@@ -32,13 +32,13 @@ pnpm install
 
 ## Instructions for running a project ( from the root of the project ):
 
-Running frontend only:
+Running frontend only ( hosted on localhost:5173 ):
 ```
-pnpm dev:frontend ( hosted on localhost:5173 )
+pnpm dev:frontend
 ```
-Running backend only:
+Running backend only ( hosted on localhost:3000 ):
 ```
-pnpm dev:backend ( hosted on localhost:3000 )
+pnpm dev:backend
 ```
 Running all together:
 ```
