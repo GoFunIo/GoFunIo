@@ -22,19 +22,31 @@ GoFunIo/
 ## Instructions for preparing a project
 
 1. Install pnpm if you don't have it:
-    npm install -g pnpm
+```
+npm install -g pnpm
+```
 2. From the root of the monorepo:
-    pnpm install
+```
+pnpm install
+```
 
 ## Instructions for running a project ( from the root of the project ):
 
 Running frontend only:
-    pnpm dev:frontend ( hosted on localhost:5173 )
+```
+pnpm dev:frontend ( hosted on localhost:5173 )
+```
 Running backend only:
-    pnpm dev:backend ( hosted on localhost:3000 )
+```
+pnpm dev:backend ( hosted on localhost:3000 )
+```
 Running all together:
-    pnpm dev
+```
+pnpm dev
+```
 
 ## Build Project
-
+From the root of project:
+```
 pnpm run build
+```
