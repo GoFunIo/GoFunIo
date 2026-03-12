@@ -13,8 +13,7 @@ jobs:
     name: Lint frontend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -22,7 +21,7 @@ jobs:
           node-version: 20
 
       - name: Install pnpm globally
-        run: npm install -g pnpm@8
+        run: npm install -g pnpm@10.32.0
 
       - name: Restore pnpm store cache
         uses: actions/cache@v3
@@ -46,8 +45,7 @@ jobs:
     needs: lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -55,7 +53,7 @@ jobs:
           node-version: 20
 
       - name: Install pnpm globally
-        run: npm install -g pnpm@8
+        run: npm install -g pnpm@10.32.0
 
       - name: Restore pnpm store cache
         uses: actions/cache@v3
