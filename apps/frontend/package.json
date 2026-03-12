@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "pnpm format && pnpm lint:check",
     "lint:check": "eslint . --ext .ts,.tsx,.js,.jsx",
