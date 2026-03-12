@@ -13,23 +13,33 @@ jobs:
     name: Lint frontend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: Install pnpm globally
-        run: npm install -g pnpm@8
+      - name: Install pnpm from package.json
+        run: |
+          PNPM_VERSION=$(node -p "require('./package.json').packageManager.split('@')[1]")
+          echo "Installing pnpm@$PNPM_VERSION"
+          npm install -g pnpm@$PNPM_VERSION
+
+      - name: Restore pnpm store cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies (root)
         run: pnpm install --frozen-lockfile
         working-directory: .
 
       - name: Lint frontend
-        run: pnpm --filter frontend lint
+        run: pnpm --filter frontend run lint
         working-directory: .
 
   build:
@@ -38,23 +48,33 @@ jobs:
     needs: lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: Install pnpm globally
-        run: npm install -g pnpm@8
+      - name: Install pnpm from package.json
+        run: |
+          PNPM_VERSION=$(node -p "require('./package.json').packageManager.split('@')[1]")
+          echo "Installing pnpm@$PNPM_VERSION"
+          npm install -g pnpm@$PNPM_VERSION
+
+      - name: Restore pnpm store cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies (root)
         run: pnpm install --frozen-lockfile
         working-directory: .
 
       - name: Lint frontend
-        run: pnpm --filter frontend lint
+        run: pnpm --filter frontend run lint
         working-directory: .
 
       - name: Build frontend
