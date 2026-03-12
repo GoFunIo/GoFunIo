@@ -21,14 +21,16 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install pnpm
+      - name: Install pnpm globally
         run: npm install -g pnpm@8
 
-      - name: Install dependencies
+      - name: Install dependencies (root)
         run: pnpm install --frozen-lockfile
+        working-directory: .
 
       - name: Lint frontend
         run: pnpm --filter frontend lint
+        working-directory: .
 
   build:
     name: Build frontend & backend
@@ -44,17 +46,21 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install pnpm
+      - name: Install pnpm globally
         run: npm install -g pnpm@8
 
-      - name: Install dependencies
+      - name: Install dependencies (root)
         run: pnpm install --frozen-lockfile
+        working-directory: .
 
       - name: Lint frontend
         run: pnpm --filter frontend lint
+        working-directory: .
 
       - name: Build frontend
         run: pnpm --filter frontend build
+        working-directory: .
 
       - name: Build backend
         run: pnpm --filter backend build
+        working-directory: .
