@@ -45,6 +45,13 @@ Running all together:
 pnpm dev
 ```
 
+## Run Eslint
+
+Running frontend only
+```
+pnpm lint:frontend
+```
+
 ## Build Project
 From the root of project:
 ```
