@@ -33,12 +33,12 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Install dependencies (root)
-        run: pnpm install --frozen-lockfile --lockfile-dir=$GITHUB_WORKSPACE
-        working-directory: $GITHUB_WORKSPACE
+        run: pnpm install --frozen-lockfile
+        working-directory: .
 
       - name: Lint frontend
         run: pnpm --filter frontend lint
-        working-directory: $GITHUB_WORKSPACE
+        working-directory: .
 
   build:
     name: Build frontend & backend
@@ -66,17 +66,17 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Install dependencies (root)
-        run: pnpm install --frozen-lockfile --lockfile-dir=$GITHUB_WORKSPACE
-        working-directory: $GITHUB_WORKSPACE
+        run: pnpm install --frozen-lockfile
+        working-directory: .
 
       - name: Lint frontend
         run: pnpm --filter frontend lint
-        working-directory: $GITHUB_WORKSPACE
+        working-directory: .
 
       - name: Build frontend
         run: pnpm --filter frontend build
-        working-directory: $GITHUB_WORKSPACE
+        working-directory: .
 
       - name: Build backend
         run: pnpm --filter backend build
-        working-directory: $GITHUB_WORKSPACE
+        working-directory: .
