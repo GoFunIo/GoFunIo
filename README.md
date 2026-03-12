@@ -57,3 +57,9 @@ From the root of project:
 ```
 pnpm run build
 ```
+After building the project, a dist folder is created in the root directory
+```
+├ dist/
+│  ├ frontend
+│  └ backend
+```
