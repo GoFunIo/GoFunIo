@@ -8,7 +8,8 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend start:dev",
     "dev": "concurrently --raw -n FRONTEND,BACKEND -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:backend\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:frontend": "pnpm --filter frontend run lint"
   },
   "keywords": [],
   "author": "",
