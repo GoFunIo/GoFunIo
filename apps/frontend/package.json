@@ -11,6 +11,15 @@
     "lint:check": "eslint . --ext .ts,.tsx,.js,.jsx",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,scss,md}'"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "pnpm --filter frontend exec eslint --fix",
+      "pnpm --filter frontend exec prettier --write"
+    ],
+    "*.{json,css,scss,md}": [
+      "pnpm --filter frontend exec prettier --write"
+    ]
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.2.1",
