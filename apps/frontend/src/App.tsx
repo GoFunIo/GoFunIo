@@ -1,8 +1,6 @@
-import './assets/global.css'
+import './assets/global.css';
 
 import { useState, useEffect } from 'react';
-import { Header } from './components/layout/Header';
-
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
@@ -20,7 +18,9 @@ function App() {
       <h1>Vite + React</h1>
       <h2>{backendMessage}</h2>
       <h2 className="text-red-500">tailwind css installed</h2>
-      <h2><strong>Tests on github workflow v6</strong></h2>
+      <h2>
+        <strong>Tests on github workflow v6</strong>
+      </h2>
       <div className="">
         <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
         <p>

@@ -1,7 +1,5 @@
-type Props = {
+type Props = {};
 
-}
-
-export const Select = ({ }: Props) => {
-    return <select name="" id=""></select>
-}
+export const Select = ({}: Props) => {
+  return <select name="" id=""></select>;
+};

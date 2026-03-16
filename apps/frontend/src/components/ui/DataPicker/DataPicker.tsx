@@ -1,7 +1,5 @@
-type Props = {
+type Props = {};
 
-}
-
-export const DataPicker = ({ }: Props) => {
-    return <div></div>
-}
+export const DataPicker = ({}: Props) => {
+  return <div></div>;
+};

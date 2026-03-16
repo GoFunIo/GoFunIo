@@ -1,7 +1,5 @@
-type Props = {
+type Props = {};
 
-}
-
-export const Button = ({ }: Props) => {
-    return <button></button>
-}
+export const Button = ({}: Props) => {
+  return <button></button>;
+};
