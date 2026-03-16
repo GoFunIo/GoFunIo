@@ -1,7 +1,8 @@
+import './assets/global.css'
+
 import { useState, useEffect } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
+import { Header } from './components/layout/Header';
+
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
@@ -16,18 +17,11 @@ function App() {
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
       <h1>Vite + React</h1>
       <h2>{backendMessage}</h2>
+      <h2 className="text-red-500">tailwind css installed</h2>
       <h2><strong>Tests on github workflow v6</strong></h2>
-      <div className="card">
+      <div className="">
         <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
