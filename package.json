@@ -10,7 +10,8 @@
     "dev": "concurrently --raw -n FRONTEND,BACKEND -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:backend\"",
     "build": "pnpm --filter frontend build && pnpm --filter backend build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:frontend": "pnpm --filter frontend run lint"
+    "lint:frontend": "pnpm --filter frontend run lint",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,8 @@
     "@nestjs/cli": "^11.0.16",
     "@types/node": "^25.4.0",
     "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
