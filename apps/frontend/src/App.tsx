@@ -1,10 +1,31 @@
 import './assets/global.css';
 
 import { useState, useEffect } from 'react';
+import { Select } from './components/ui/Select';
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
   const [count, setCount] = useState(0);
+
+  const [selected, setSelected] = useState<string | number>('');
+  const options = [
+    { value: 1, label: 'test' },
+    { value: 2, label: 'test123213' },
+    { value: 3, label: 'qweqweqwe' },
+  ];
+  const [selectedLang, setSelectedLang] = useState<string | number>('');
+  const optionsAnother = [
+    { value: 'react', label: 'REACT JS' },
+    { value: 'js', label: 'JAVASCRIPT' },
+    { value: 'ts', label: 'TYPESCRIPT' },
+  ];
+  const [test, setTest] = useState<string | number>(0);
+  const testOptions = [
+    { value: 0, label: 'Correct' },
+    { value: 1, label: 'Incorrect' },
+  ];
+
+  console.log(selected, selectedLang);
 
   useEffect(() => {
     fetch('http://localhost:3000/status')
@@ -28,6 +49,21 @@ function App() {
         </p>
       </div>
       <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
+
+      <p className="pt-10 text-4xl font-bold">UI components</p>
+      <Select
+        options={options}
+        value={selected}
+        onChange={setSelected}
+        placeholder={'TestSelect'}
+      />
+      <Select
+        options={optionsAnother}
+        value={selectedLang}
+        onChange={setSelectedLang}
+        placeholder={'Choose a language'}
+      />
+      <Select options={testOptions} value={test} onChange={setTest} placeholder={'Test'} />
     </>
   );
 }
