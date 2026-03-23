@@ -1,0 +1,9 @@
+# auth.users.getAll
+GET http://localhost:3000/auth/users
+
+###
+
+# auth.users.getById
+GET http://localhost:3000/auth/users/1
+
+###
