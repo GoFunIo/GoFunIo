@@ -1,9 +1,16 @@
-# auth.users.getAll
+### auth.users.getAll
 GET http://localhost:3000/auth/users
 
-###
+### auth.users.getById
 
-# auth.users.getById
 GET http://localhost:3000/auth/users/1
 
-###
+
+### auth.users.create
+POST http://localhost:3000/auth/signup
+Content-Type: application/json
+
+{
+  "email": "testest.com",
+  "password": "123456"
+}
