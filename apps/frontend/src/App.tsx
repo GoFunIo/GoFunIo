@@ -2,6 +2,8 @@ import './assets/global.css';
 
 import { useState, useEffect } from 'react';
 import { Select } from './components/ui/Select';
+import { Input } from './components/ui/Input';
+import { Button } from './components/ui/Button';
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
@@ -34,6 +36,8 @@ function App() {
       .catch((err) => setBackendMessage(err + 'Cannot connect to backend'));
   }, []);
 
+  const [value, setValue] = useState('');
+
   return (
     <>
       <h1>Vite + React</h1>
@@ -51,6 +55,14 @@ function App() {
       <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
 
       <p className="pt-10 text-4xl font-bold">UI components</p>
+      <Input value={value} onChange={setValue} />
+      <Button
+        onClick={() => {
+          console.log('button');
+        }}
+      >
+        Button
+      </Button>
       <Select
         options={options}
         value={selected}
