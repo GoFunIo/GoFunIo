@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Select } from './components/ui/Select';
 import { Input } from './components/ui/Input';
 import { Button } from './components/ui/Button';
+import { DataPicker } from './components/ui/DataPicker';
 
 function App() {
   const [backendMessage, setBackendMessage] = useState('');
@@ -37,7 +38,8 @@ function App() {
   }, []);
 
   const [value, setValue] = useState('');
-
+  const [day, setDay] = useState<Date>();
+  console.log(day);
   return (
     <>
       <h1>Vite + React</h1>
@@ -76,6 +78,7 @@ function App() {
         placeholder={'Choose a language'}
       />
       <Select options={testOptions} value={test} onChange={setTest} placeholder={'Test'} />
+      <DataPicker selected={day} onSelect={setDay} />
     </>
   );
 }
