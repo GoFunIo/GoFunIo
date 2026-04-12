@@ -39,6 +39,11 @@ export class UsersController {
     return this.authServie.signup(body.email, body.password);
   }
 
+  @Post('signin')
+  signin(@Body() body: CreateUserDto): Promise<User> {
+    return this.authServie.signin(body.email, body.password);
+  }
+
   @Delete(':id')
   removeUser(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(parseInt(id));

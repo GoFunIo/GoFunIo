@@ -15,6 +15,15 @@ Content-Type: application/json
   "password": "123456"
 }
 
+### Login user
+POST http://localhost:3000/auth/signin
+Content-Type: application/json
+
+{
+  "email": "testing@est.com",
+  "password": "123456"
+}
+
 ### Delete user by id
 DELETE http://localhost:3000/auth/4
 
