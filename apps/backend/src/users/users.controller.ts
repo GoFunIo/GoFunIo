@@ -7,17 +7,23 @@ import {
   Patch,
   Post,
   Query,
+  Session,
+  UseInterceptors,
 } from '@nestjs/common';
 import { User } from './users.entity';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { AuthUserDto } from './dtos/auth-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
 import { AuthService } from './auth.service';
+import type { SessionData } from '../types/session.types';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { CurrentUserInterceptor } from './interceptors/current-user.interceptor';
 
 @Controller('auth')
 @Serialize(UserDto)
+@UseInterceptors(CurrentUserInterceptor)
 export class UsersController {
   constructor(
     private usersService: UsersService,
@@ -34,16 +40,6 @@ export class UsersController {
     return this.usersService.findByEmail(email);
   }
 
-  @Post('signup')
-  signup(@Body() body: CreateUserDto): Promise<User> {
-    return this.authServie.signup(body.email, body.password);
-  }
-
-  @Post('signin')
-  signin(@Body() body: CreateUserDto): Promise<User> {
-    return this.authServie.signin(body.email, body.password);
-  }
-
   @Delete(':id')
   removeUser(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(parseInt(id));
@@ -55,5 +51,35 @@ export class UsersController {
     @Body() body: UpdateUserDto,
   ): Promise<User> {
     return this.usersService.update(parseInt(id), body);
+  }
+
+  @Post('signup')
+  async signup(
+    @Body() body: AuthUserDto,
+    @Session() session: SessionData,
+  ): Promise<User> {
+    const user = await this.authServie.signup(body.email, body.password);
+    session.userId = user.id;
+    return user;
+  }
+
+  @Post('signin')
+  async signin(
+    @Body() body: AuthUserDto,
+    @Session() session: SessionData,
+  ): Promise<User> {
+    const user = await this.authServie.signin(body.email, body.password);
+    session.userId = user.id;
+    return user;
+  }
+
+  @Post('signout')
+  signout(@Session() session: SessionData): void {
+    session.userId = null;
+  }
+
+  @Get('me')
+  getMe(@CurrentUser() user: User): User {
+    return user;
   }
 }

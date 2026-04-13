@@ -24,6 +24,12 @@ Content-Type: application/json
   "password": "123456"
 }
 
+### Get me
+GET http://localhost:3000/auth/me
+
+### Sign out
+POST http://localhost:3000/auth/signout
+
 ### Delete user by id
 DELETE http://localhost:3000/auth/4
 
