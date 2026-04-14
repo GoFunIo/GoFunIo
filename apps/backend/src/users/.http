@@ -1,16 +1,42 @@
-### auth.users.getAll
+### Get all users. Optional email parameter.
 GET http://localhost:3000/auth/users
 
-### auth.users.getById
+### Get user by id
 
 GET http://localhost:3000/auth/users/1
 
 
-### auth.users.create
+### Create user
 POST http://localhost:3000/auth/signup
 Content-Type: application/json
 
 {
-  "email": "testest.com",
+  "email": "testing@est.com",
   "password": "123456"
+}
+
+### Login user
+POST http://localhost:3000/auth/signin
+Content-Type: application/json
+
+{
+  "email": "testing@est.com",
+  "password": "123456"
+}
+
+### Get me
+GET http://localhost:3000/auth/me
+
+### Sign out
+POST http://localhost:3000/auth/signout
+
+### Delete user by id
+DELETE http://localhost:3000/auth/4
+
+### Update user by id
+PATCH http://localhost:3000/auth/2
+Content-Type: application/json
+
+{
+  "password": "aaaaa"
 }
