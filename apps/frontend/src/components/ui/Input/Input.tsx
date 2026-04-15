@@ -4,9 +4,17 @@ type Props = {
   type?: React.HTMLInputTypeAttribute;
   name?: string;
   placeholder?: string;
+  required?: boolean;
 };
 
-export const Input = ({ value, onChange, type = 'text', name, placeholder }: Props) => {
+export const Input = ({
+  value,
+  onChange,
+  type = 'text',
+  name,
+  placeholder,
+  required = false,
+}: Props) => {
   return (
     <input
       type={type}
@@ -14,6 +22,8 @@ export const Input = ({ value, onChange, type = 'text', name, placeholder }: Pro
       name={name}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
+      required={required}
+      className="border"
     />
   );
 };

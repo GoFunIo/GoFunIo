@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as UserdashboardRouteImport } from './routes/userdashboard';
+import { Route as SignupRouteImport } from './routes/signup';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as BlogsRouteRouteImport } from './routes/blogs/route';
 import { Route as IndexRouteImport } from './routes/index';
@@ -19,6 +20,11 @@ import { Route as BlogsBlogIdRouteImport } from './routes/blogs/$blogId';
 const UserdashboardRoute = UserdashboardRouteImport.update({
   id: '/userdashboard',
   path: '/userdashboard',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any);
 const LoginRoute = LoginRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/blogs': typeof BlogsRouteRouteWithChildren;
   '/login': typeof LoginRoute;
+  '/signup': typeof SignupRoute;
   '/userdashboard': typeof UserdashboardRoute;
   '/blogs/$blogId': typeof BlogsBlogIdRoute;
   '/blogs/': typeof BlogsIndexRoute;
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
+  '/signup': typeof SignupRoute;
   '/userdashboard': typeof UserdashboardRoute;
   '/blogs/$blogId': typeof BlogsBlogIdRoute;
   '/blogs': typeof BlogsIndexRoute;
@@ -67,22 +75,39 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/blogs': typeof BlogsRouteRouteWithChildren;
   '/login': typeof LoginRoute;
+  '/signup': typeof SignupRoute;
   '/userdashboard': typeof UserdashboardRoute;
   '/blogs/$blogId': typeof BlogsBlogIdRoute;
   '/blogs/': typeof BlogsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/blogs' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs/';
+  fullPaths:
+    | '/'
+    | '/blogs'
+    | '/login'
+    | '/signup'
+    | '/userdashboard'
+    | '/blogs/$blogId'
+    | '/blogs/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs';
-  id: '__root__' | '/' | '/blogs' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs/';
+  to: '/' | '/login' | '/signup' | '/userdashboard' | '/blogs/$blogId' | '/blogs';
+  id:
+    | '__root__'
+    | '/'
+    | '/blogs'
+    | '/login'
+    | '/signup'
+    | '/userdashboard'
+    | '/blogs/$blogId'
+    | '/blogs/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   BlogsRouteRoute: typeof BlogsRouteRouteWithChildren;
   LoginRoute: typeof LoginRoute;
+  SignupRoute: typeof SignupRoute;
   UserdashboardRoute: typeof UserdashboardRoute;
 }
 
@@ -93,6 +118,13 @@ declare module '@tanstack/react-router' {
       path: '/userdashboard';
       fullPath: '/userdashboard';
       preLoaderRoute: typeof UserdashboardRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/signup': {
+      id: '/signup';
+      path: '/signup';
+      fullPath: '/signup';
+      preLoaderRoute: typeof SignupRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/login': {
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRouteRoute: BlogsRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   UserdashboardRoute: UserdashboardRoute,
 };
 export const routeTree = rootRouteImport
