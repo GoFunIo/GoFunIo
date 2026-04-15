@@ -1,10 +1,24 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { signOut } from 'src/api/auth';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { getUser, signOut } from 'src/api/auth';
 import { Button } from 'src/components/ui/Button';
 import { useUser } from 'src/hooks/useUser';
+import { queryClient } from 'src/lib/queryClient';
 
 export const Route = createFileRoute('/userdashboard')({
+  beforeLoad: async () => {
+    const user = await queryClient.ensureQueryData({
+      queryKey: ['me'],
+      queryFn: getUser,
+    });
+
+    if (!user) {
+      throw redirect({
+        to: '/login',
+      });
+    }
+  },
+
   component: UserDashboard,
 });
 

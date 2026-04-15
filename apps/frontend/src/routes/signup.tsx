@@ -1,11 +1,25 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { signUp } from 'src/api/auth';
+import { getUser, signUp } from 'src/api/auth';
 import { Button } from 'src/components/ui/Button';
 import { Input } from 'src/components/ui/Input';
+import { queryClient } from 'src/lib/queryClient';
 
 export const Route = createFileRoute('/signup')({
+  beforeLoad: async () => {
+    const user = await queryClient.ensureQueryData({
+      queryKey: ['me'],
+      queryFn: getUser,
+    });
+
+    if (user) {
+      throw redirect({
+        to: '/userdashboard',
+      });
+    }
+  },
+
   component: Signup,
 });
 
