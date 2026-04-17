@@ -1,11 +1,16 @@
 export const getUser = async () => {
   const res = await fetch('/auth/me', {
+    method: 'GET',
     credentials: 'include',
   });
 
   if (!res.ok) return null;
 
-  return res.json();
+  const text = await res.text();
+
+  if (!text) return null;
+
+  return JSON.parse(text);
 };
 
 export const signUp = async (email: string, password: string) => {
