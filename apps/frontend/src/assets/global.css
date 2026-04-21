@@ -130,4 +130,8 @@
     @apply text-content-muted text-[18px] leading-none font-semibold
       sm:text-[20px] sm:leading-[28px];
   }
+
+  .custom-transition {
+    @apply transition-all duration-[450ms] ease-out;
+  }
 }
