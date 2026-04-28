@@ -48,6 +48,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.168.10",
     "@tanstack/react-router-devtools": "^1.166.11",
-    "classnames": "^2.5.1"
+    "classnames": "^2.5.1",
+    "react-day-picker": "^9.14.0"
   }
 }
