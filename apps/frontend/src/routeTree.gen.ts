@@ -8,149 +8,164 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as UserdashboardRouteImport } from './routes/userdashboard';
-import { Route as LoginRouteImport } from './routes/login';
-import { Route as BlogsRouteRouteImport } from './routes/blogs/route';
-import { Route as IndexRouteImport } from './routes/index';
-import { Route as BlogsIndexRouteImport } from './routes/blogs/index';
-import { Route as BlogsBlogIdRouteImport } from './routes/blogs/$blogId';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as UserdashboardRouteImport } from './routes/userdashboard'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as BlogsRouteRouteImport } from './routes/blogs/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogsIndexRouteImport } from './routes/blogs/index'
+import { Route as BlogsBlogIdRouteImport } from './routes/blogs/$blogId'
 
 const UserdashboardRoute = UserdashboardRouteImport.update({
   id: '/userdashboard',
   path: '/userdashboard',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const BlogsRouteRoute = BlogsRouteRouteImport.update({
   id: '/blogs',
   path: '/blogs',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const BlogsIndexRoute = BlogsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => BlogsRouteRoute,
-} as any);
+} as any)
 const BlogsBlogIdRoute = BlogsBlogIdRouteImport.update({
   id: '/$blogId',
   path: '/$blogId',
   getParentRoute: () => BlogsRouteRoute,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '/blogs': typeof BlogsRouteRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/userdashboard': typeof UserdashboardRoute;
-  '/blogs/$blogId': typeof BlogsBlogIdRoute;
-  '/blogs/': typeof BlogsIndexRoute;
+  '/': typeof IndexRoute
+  '/blogs': typeof BlogsRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/userdashboard': typeof UserdashboardRoute
+  '/blogs/$blogId': typeof BlogsBlogIdRoute
+  '/blogs/': typeof BlogsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '/login': typeof LoginRoute;
-  '/userdashboard': typeof UserdashboardRoute;
-  '/blogs/$blogId': typeof BlogsBlogIdRoute;
-  '/blogs': typeof BlogsIndexRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/userdashboard': typeof UserdashboardRoute
+  '/blogs/$blogId': typeof BlogsBlogIdRoute
+  '/blogs': typeof BlogsIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
-  '/blogs': typeof BlogsRouteRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/userdashboard': typeof UserdashboardRoute;
-  '/blogs/$blogId': typeof BlogsBlogIdRoute;
-  '/blogs/': typeof BlogsIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/blogs': typeof BlogsRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/userdashboard': typeof UserdashboardRoute
+  '/blogs/$blogId': typeof BlogsBlogIdRoute
+  '/blogs/': typeof BlogsIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/blogs' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs/';
-  fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs';
-  id: '__root__' | '/' | '/blogs' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs/';
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/blogs'
+    | '/login'
+    | '/userdashboard'
+    | '/blogs/$blogId'
+    | '/blogs/'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/login' | '/userdashboard' | '/blogs/$blogId' | '/blogs'
+  id:
+    | '__root__'
+    | '/'
+    | '/blogs'
+    | '/login'
+    | '/userdashboard'
+    | '/blogs/$blogId'
+    | '/blogs/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  BlogsRouteRoute: typeof BlogsRouteRouteWithChildren;
-  LoginRoute: typeof LoginRoute;
-  UserdashboardRoute: typeof UserdashboardRoute;
+  IndexRoute: typeof IndexRoute
+  BlogsRouteRoute: typeof BlogsRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  UserdashboardRoute: typeof UserdashboardRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/userdashboard': {
-      id: '/userdashboard';
-      path: '/userdashboard';
-      fullPath: '/userdashboard';
-      preLoaderRoute: typeof UserdashboardRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/userdashboard'
+      path: '/userdashboard'
+      fullPath: '/userdashboard'
+      preLoaderRoute: typeof UserdashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
-      id: '/login';
-      path: '/login';
-      fullPath: '/login';
-      preLoaderRoute: typeof LoginRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blogs': {
-      id: '/blogs';
-      path: '/blogs';
-      fullPath: '/blogs';
-      preLoaderRoute: typeof BlogsRouteRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/blogs'
+      path: '/blogs'
+      fullPath: '/blogs'
+      preLoaderRoute: typeof BlogsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blogs/': {
-      id: '/blogs/';
-      path: '/';
-      fullPath: '/blogs/';
-      preLoaderRoute: typeof BlogsIndexRouteImport;
-      parentRoute: typeof BlogsRouteRoute;
-    };
+      id: '/blogs/'
+      path: '/'
+      fullPath: '/blogs/'
+      preLoaderRoute: typeof BlogsIndexRouteImport
+      parentRoute: typeof BlogsRouteRoute
+    }
     '/blogs/$blogId': {
-      id: '/blogs/$blogId';
-      path: '/$blogId';
-      fullPath: '/blogs/$blogId';
-      preLoaderRoute: typeof BlogsBlogIdRouteImport;
-      parentRoute: typeof BlogsRouteRoute;
-    };
+      id: '/blogs/$blogId'
+      path: '/$blogId'
+      fullPath: '/blogs/$blogId'
+      preLoaderRoute: typeof BlogsBlogIdRouteImport
+      parentRoute: typeof BlogsRouteRoute
+    }
   }
 }
 
 interface BlogsRouteRouteChildren {
-  BlogsBlogIdRoute: typeof BlogsBlogIdRoute;
-  BlogsIndexRoute: typeof BlogsIndexRoute;
+  BlogsBlogIdRoute: typeof BlogsBlogIdRoute
+  BlogsIndexRoute: typeof BlogsIndexRoute
 }
 
 const BlogsRouteRouteChildren: BlogsRouteRouteChildren = {
   BlogsBlogIdRoute: BlogsBlogIdRoute,
   BlogsIndexRoute: BlogsIndexRoute,
-};
+}
 
-const BlogsRouteRouteWithChildren = BlogsRouteRoute._addFileChildren(BlogsRouteRouteChildren);
+const BlogsRouteRouteWithChildren = BlogsRouteRoute._addFileChildren(
+  BlogsRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRouteRoute: BlogsRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   UserdashboardRoute: UserdashboardRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

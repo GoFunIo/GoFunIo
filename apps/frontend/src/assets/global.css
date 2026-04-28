@@ -1,1 +1,140 @@
+@import './fontMontserrat.css';
+@import './fontInter.css';
 @import 'tailwindcss';
+
+:root {
+  /* base */
+  --primary: 18 76 191; /* #124CBF */
+  --secondary: 20 90 226; /* #145AE2 */
+
+  /* text */
+  --content-primary: 17 21 24; /* #111518 */
+  --content-secondary: 102 102 102; /* #666666 */
+  --content-muted: 102 112 133; /* #667085 */
+
+  /* backgrounds */
+  --bg-section: 238 240 246; /* #EEF0F6 */
+  --bg-page: 250 251 251; /* #FAFBFB */
+
+  /* icons */
+  --icon: 194 194 194; /* #C2C2C2 */
+
+  /* semantic */
+  --success: 30 142 62; /* #1E8E3E */
+  --info: 26 115 232; /* #1A73E8 */
+  --warning: 240 177 74; /* #F0B14A */
+  --alert: 217 48 37; /* #D93025 */
+
+  /* base bw */
+  --white: 255 255 255; /* #FFFFFF */
+  --dark: 17 21 24; /* #111518 */
+}
+
+.dark {
+  /* base */
+  --primary: 18 76 191; /* #124CBF */
+  --secondary: 20 90 226; /* #145AE2 */
+
+  /* text */
+  --content-primary: 252 252 252; /* #FCFCFC */
+  --content-secondary: 170 170 170; /* #AAAAAA */
+  --content-muted: 188 198 217; /* #BCC6D9 */
+
+  /* backgrounds */
+  --bg-section: 39 45 59; /* #272D3B */
+  --bg-page: 22 28 40; /* #161C28 */
+
+  /* icons */
+  --icon: 90 90 90; /* #5A5A5A */
+
+  /* semantic */
+  --success: 30 142 62; /* #1E8E3E */
+  --info: 26 115 232; /* #1A73E8 */
+  --warning: 240 177 74; /* #F0B14A */
+  --alert: 217 48 37; /* #D93025 */
+
+  /* base bw */
+  --white: 255 255 255; /* #FFFFFF */
+  --dark: 17 21 24; /* #111518 */
+}
+
+@theme {
+  /* colors  */
+  --color-primary: rgb(var(--primary));
+  --color-secondary: rgb(var(--secondary));
+
+  --color-content-primary: rgb(var(--content-primary));
+  --color-content-secondary: rgb(var(--content-secondary));
+  --color-content-muted: rgb(var(--content-muted));
+
+  --color-bg-section: rgb(var(--bg-section));
+  --color-bg-page: rgb(var(--bg-page));
+
+  --color-icon: rgb(var(--icon));
+
+  --color-success: rgb(var(--success));
+  --color-info: rgb(var(--info));
+  --color-warning: rgb(var(--warning));
+  --color-alert: rgb(var(--alert));
+
+  --color-white: rgb(var(--white));
+  --color-dark: rgb(var(--dark));
+
+  /* typography */
+  --font-mont: 'Montserrat', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-inter;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-mont;
+    color: var(--color-content-primary);
+  }
+
+  h1 {
+    @apply text-[40px] leading-none font-extrabold
+      sm:text-[60px] sm:leading-none
+      xl:text-[68px] xl:leading-[80px];
+  }
+
+  h2 {
+    @apply text-[32px] leading-none font-bold
+      sm:text-[40px]
+      xl:text-[48px];
+  }
+
+  h3 {
+    @apply text-[24px] leading-none font-bold
+      sm:text-[28px]
+      xl:text-[32px];
+  }
+
+  h4 {
+    @apply text-[18px] leading-none font-semibold
+      xl:text-[20px] xl:leading-[26px];
+  }
+
+  p {
+    @apply text-[16px] leading-[21px] font-normal text-content-secondary;
+  }
+}
+
+@layer components {
+  .subtitle {
+    @apply text-content-muted text-[18px] leading-none font-semibold
+      sm:text-[20px] sm:leading-[28px];
+  }
+
+  .custom-transition {
+    @apply transition-all duration-[450ms] ease-out;
+  }
+}
