@@ -45,8 +45,8 @@ function Signup() {
     <div>
       <h1 className="text-3xl pb-5">Signup</h1>
       <form action="" onSubmit={createAccount} className="flex flex-col max-w-[240px] gap-5">
-        <Input type="email" value={email} onChange={setEmail} required />
-        <Input type="password" value={password} onChange={setPassword} required />
+        <Input name="email" type="email" value={email} onChange={setEmail} />
+        <Input name="password" type="password" value={password} onChange={setPassword} />
         <Button type="submit">Create account</Button>
       </form>
     </div>

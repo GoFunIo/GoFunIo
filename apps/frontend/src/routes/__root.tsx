@@ -9,7 +9,7 @@ const RootLayout = () => (
   <>
     <Header />
 
-    <main className="min-h-50 p-10">
+    <main className="min-h-50">
       <Outlet />
     </main>
 

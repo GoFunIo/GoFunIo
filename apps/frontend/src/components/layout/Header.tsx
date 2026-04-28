@@ -9,9 +9,6 @@ export const Header = () => {
       <Link to="/" className="[&.active]:font-bold">
         Home
       </Link>
-      <Link to="/blogs" className="[&.active]:font-bold">
-        Blogs
-      </Link>
       {!user && !isLoading && (
         <Link to="/login" className="[&.active]:font-bold">
           Login

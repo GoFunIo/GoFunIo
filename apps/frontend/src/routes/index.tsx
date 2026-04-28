@@ -14,7 +14,7 @@ function Index() {
   const [input4, setInput4] = useState('');
 
   return (
-    <div>
+    <div className="bg-bg-section p-10">
       <h3 className="pb-8">Hello "/Index"!</h3>
       <div className="flex flex-col gap-4">
         <Button onClick={() => {}}>Primary</Button>

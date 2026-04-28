@@ -2,7 +2,7 @@ import classNames from 'classnames';
 
 type Props = {
   children: React.ReactNode;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   variant?: 'default' | 'outline';
