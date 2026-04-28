@@ -35,16 +35,16 @@
   --secondary: 20 90 226; /* #145AE2 */
 
   /* text */
-  --content-primary: 17 21 24; /* #111518 */
-  --content-secondary: 102 102 102; /* #666666 */
-  --content-muted: 102 112 133; /* #667085 */
+  --content-primary: 252 252 252; /* #FCFCFC */
+  --content-secondary: 170 170 170; /* #AAAAAA */
+  --content-muted: 188 198 217; /* #BCC6D9 */
 
   /* backgrounds */
-  --bg-section: 238 240 246; /* #EEF0F6 */
-  --bg-page: 250 251 251; /* #FAFBFB */
+  --bg-section: 39 45 59; /* #272D3B */
+  --bg-page: 22 28 40; /* #161C28 */
 
   /* icons */
-  --icon: 194 194 194; /* #C2C2C2 */
+  --icon: 90 90 90; /* #5A5A5A */
 
   /* semantic */
   --success: 30 142 62; /* #1E8E3E */
