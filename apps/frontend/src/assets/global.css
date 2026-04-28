@@ -1,4 +1,5 @@
-@import './fonts.css';
+@import './fontMontserrat.css';
+@import './fontInter.css';
 @import 'tailwindcss';
 
 :root {
@@ -80,12 +81,13 @@
   --color-dark: rgb(var(--dark));
 
   /* typography */
-  --font-sans: 'Montserrat', sans-serif;
+  --font-mont: 'Montserrat', sans-serif;
+  --font-inter: 'Inter', sans-serif;
 }
 
 @layer base {
   body {
-    @apply font-sans;
+    @apply font-inter;
   }
 
   h1,
@@ -94,6 +96,7 @@
   h4,
   h5,
   h6 {
+    @apply font-mont;
     color: var(--color-content-primary);
   }
 
