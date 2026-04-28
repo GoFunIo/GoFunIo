@@ -31,9 +31,9 @@ export const Input = ({
   `;
 
   return (
-    <div className="min-w-[240px] w-fit">
+    <div className="relative min-w-[240px] w-fit pt-5.5">
       {(label || hasError) && (
-        <div className="flex justify-between gap-x-2 flex-wrap items-end">
+        <div className="absolute top-0 left-0 w-full flex justify-between gap-x-2 flex-wrap items-end">
           {label && (
             <label
               htmlFor={name}
