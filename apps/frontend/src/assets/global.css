@@ -2,6 +2,13 @@
 @import './fontInter.css';
 @import 'tailwindcss';
 
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
 :root {
   /* base */
   --primary: 18 76 191; /* #124CBF */

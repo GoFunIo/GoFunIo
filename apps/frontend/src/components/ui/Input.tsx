@@ -2,12 +2,12 @@ import classNames from 'classnames';
 
 type Props = {
   value: string;
-  onChange: (value: string) => void;
+  onChange: React.ChangeEventHandler<HTMLInputElement>;
   name: string;
   type?: React.HTMLInputTypeAttribute;
   label?: string;
   placeholder?: string;
-  style?: React.CSSProperties;
+  className?: string;
   error?: string;
 };
 
@@ -18,7 +18,7 @@ export const Input = ({
   type = 'text',
   label,
   placeholder = 'Type me',
-  style,
+  className,
   error,
 }: Props) => {
   const hasError = Boolean(error);
@@ -31,7 +31,7 @@ export const Input = ({
   `;
 
   return (
-    <div className="relative min-w-[240px] w-fit pt-5.5">
+    <div className={classNames('relative w-full pt-5.5', className)}>
       {(label || hasError) && (
         <div className="absolute top-0 left-0 w-full flex justify-between gap-x-2 flex-wrap items-end">
           {label && (
@@ -54,9 +54,8 @@ export const Input = ({
         value={value}
         name={name}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className={classNames(mainInputStyles, hasError ? 'border-alert' : 'border-primary')}
-        style={style}
+        onChange={onChange}
+        className={classNames(mainInputStyles, hasError ? 'border-alert' : 'border-icons')}
       />
     </div>
   );
