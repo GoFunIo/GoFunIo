@@ -10,31 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as UserdashboardRouteImport } from './routes/userdashboard'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SignupIndexRouteImport } from './routes/signup/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as SignupSuccessRouteImport } from './routes/signup/success'
+import { Route as DashboardResetPasswordRouteImport } from './routes/dashboard/reset-password'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UserdashboardRoute = UserdashboardRouteImport.update({
-  id: '/userdashboard',
-  path: '/userdashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,34 +38,57 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupIndexRoute = SignupIndexRouteImport.update({
+  id: '/signup/',
+  path: '/signup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupSuccessRoute = SignupSuccessRouteImport.update({
+  id: '/signup/success',
+  path: '/signup/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardResetPasswordRoute = DashboardResetPasswordRouteImport.update({
+  id: '/dashboard/reset-password',
+  path: '/dashboard/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/userdashboard': typeof UserdashboardRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/signup/success': typeof SignupSuccessRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/signup/': typeof SignupIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/userdashboard': typeof UserdashboardRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/signup/success': typeof SignupSuccessRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/signup': typeof SignupIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/userdashboard': typeof UserdashboardRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/signup/success': typeof SignupSuccessRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/signup/': typeof SignupIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,38 +96,42 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/reset-password'
-    | '/signup'
-    | '/userdashboard'
     | '/verify-email'
+    | '/dashboard/reset-password'
+    | '/signup/success'
+    | '/dashboard/'
+    | '/signup/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/reset-password'
-    | '/signup'
-    | '/userdashboard'
     | '/verify-email'
+    | '/dashboard/reset-password'
+    | '/signup/success'
+    | '/dashboard'
+    | '/signup'
   id:
     | '__root__'
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/reset-password'
-    | '/signup'
-    | '/userdashboard'
     | '/verify-email'
+    | '/dashboard/reset-password'
+    | '/signup/success'
+    | '/dashboard/'
+    | '/signup/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
-  SignupRoute: typeof SignupRoute
-  UserdashboardRoute: typeof UserdashboardRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  DashboardResetPasswordRoute: typeof DashboardResetPasswordRoute
+  SignupSuccessRoute: typeof SignupSuccessRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  SignupIndexRoute: typeof SignupIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -128,27 +141,6 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/userdashboard': {
-      id: '/userdashboard'
-      path: '/userdashboard'
-      fullPath: '/userdashboard'
-      preLoaderRoute: typeof UserdashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -172,6 +164,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup/': {
+      id: '/signup/'
+      path: '/signup'
+      fullPath: '/signup/'
+      preLoaderRoute: typeof SignupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup/success': {
+      id: '/signup/success'
+      path: '/signup/success'
+      fullPath: '/signup/success'
+      preLoaderRoute: typeof SignupSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/reset-password': {
+      id: '/dashboard/reset-password'
+      path: '/dashboard/reset-password'
+      fullPath: '/dashboard/reset-password'
+      preLoaderRoute: typeof DashboardResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -179,10 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
-  SignupRoute: SignupRoute,
-  UserdashboardRoute: UserdashboardRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  DashboardResetPasswordRoute: DashboardResetPasswordRoute,
+  SignupSuccessRoute: SignupSuccessRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  SignupIndexRoute: SignupIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

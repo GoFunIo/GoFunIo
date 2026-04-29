@@ -20,7 +20,7 @@ export const Header = () => {
         </Link>
       )}
       {user && !isLoading && (
-        <Link to="/userdashboard" className="[&.active]:font-bold">
+        <Link to="/dashboard" className="[&.active]:font-bold">
           Dashboard
         </Link>
       )}

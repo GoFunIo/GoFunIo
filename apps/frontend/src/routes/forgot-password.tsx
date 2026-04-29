@@ -1,12 +1,26 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
+import { getUser } from 'src/api/auth';
 import { AuthWrapper } from 'src/components/features/auth/AuthWrapper';
 import { handleChange } from 'src/components/features/auth/form';
 import { FormProps } from 'src/components/features/auth/types';
 import { isFormEmpty, validateForm } from 'src/components/features/auth/validation';
 import { Button, Input } from 'src/components/ui';
+import { queryClient } from 'src/lib/queryClient';
 
 export const Route = createFileRoute('/forgot-password')({
+  beforeLoad: async () => {
+    const user = await queryClient.ensureQueryData({
+      queryKey: ['me'],
+      queryFn: getUser,
+    });
+
+    if (user) {
+      throw redirect({
+        to: '/dashboard',
+      });
+    }
+  },
   component: RouteComponent,
 });
 
