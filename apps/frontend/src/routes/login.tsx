@@ -82,7 +82,10 @@ function Login() {
           placeholder="• • • • • • • •"
           error={errors.password}
         />
-        <Link to="/" className="ml-auto block w-fit my-[10px] font-medium text-[14px] text-primary">
+        <Link
+          to="/forgot-password"
+          className="ml-auto block w-fit my-[10px] font-medium text-[14px] text-primary"
+        >
           Nie pamiętasz hasła?
         </Link>
         <Button type="submit" disabled={isFormEmpty(form)} className="w-full">

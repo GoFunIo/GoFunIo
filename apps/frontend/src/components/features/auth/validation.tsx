@@ -34,6 +34,7 @@ export const compose =
 export const validators: Record<string, (value: string) => string> = {
   email: compose(required, email),
   password: compose(required, minLength),
+  submitPassword: compose(required, minLength),
   name: compose(required, minLength),
   surname: compose(required, minLength),
 };
