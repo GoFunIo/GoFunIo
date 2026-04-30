@@ -1,6 +1,6 @@
+import { Footer } from '@/modules/layout/components/Footer';
+import { Header } from '@/modules/layout/components/Header';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { Footer } from 'react-day-picker';
-import { Header } from 'src/components/layout';
 
 export const Route = createFileRoute('/(auth)')({
   component: RouteComponent,

@@ -1,13 +1,13 @@
+import { getUser } from '@/api/auth';
+import { AuthWrapper } from '@/components/features/auth/AuthWrapper';
+import { handleChange } from '@/components/features/auth/form';
+import { FormProps } from '@/components/features/auth/types';
+import { isFormEmpty, validateForm } from '@/components/features/auth/validation';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { queryClient } from '@/lib/queryClient';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
-import { getUser } from 'src/api/auth';
-import { AuthWrapper } from 'src/components/features/auth/AuthWrapper';
-import { handleChange } from 'src/components/features/auth/form';
-import { FormProps } from 'src/components/features/auth/types';
-import { isFormEmpty, validateForm } from 'src/components/features/auth/validation';
-import { Button } from 'src/components/ui/Button';
-import { Input } from 'src/components/ui/Input';
-import { queryClient } from 'src/lib/queryClient';
 
 export const Route = createFileRoute('/dashboard/reset-password')({
   beforeLoad: async () => {

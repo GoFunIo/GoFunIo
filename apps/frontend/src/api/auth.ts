@@ -1,4 +1,4 @@
-import { FormProps } from 'src/components/features/auth/types';
+import { FormProps } from '@/components/features/auth/types';
 
 export const getUser = async () => {
   const res = await fetch('/auth/me', {

@@ -1,6 +1,6 @@
+import { getImage } from '@/utils/getImage';
 import { Link } from '@tanstack/react-router';
 import React from 'react';
-import { getImage } from 'src/utils/getImage';
 
 type Props = {
   title: string;

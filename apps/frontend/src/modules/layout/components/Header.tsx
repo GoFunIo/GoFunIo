@@ -1,5 +1,5 @@
+import { useUser } from '@/hooks/useUser';
 import { Link } from '@tanstack/react-router';
-import { useUser } from 'src/hooks/useUser';
 
 export const Header = () => {
   const { data: user, isLoading } = useUser();

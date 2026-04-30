@@ -1,6 +1,6 @@
+import { Button } from '@/components/ui/Button';
+import { getImage } from '@/utils/getImage';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { Button } from 'src/components/ui';
-import { getImage } from 'src/utils/getImage';
 
 export const Route = createFileRoute('/(auth)/signup/success')({
   component: RouteComponent,

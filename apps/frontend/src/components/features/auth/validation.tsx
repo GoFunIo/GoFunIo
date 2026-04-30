@@ -1,6 +1,6 @@
-// rules for inputs
-
 import { FormProps } from './types';
+
+// rules for inputs
 
 export const required = (value: string) => {
   if (!value.trim()) {

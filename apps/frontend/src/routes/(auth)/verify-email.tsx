@@ -1,6 +1,6 @@
+import { AuthWrapper } from '@/components/features/auth/AuthWrapper';
+import { Button } from '@/components/ui/Button';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { AuthWrapper } from 'src/components/features/auth/AuthWrapper';
-import { Button } from 'src/components/ui';
 
 export const Route = createFileRoute('/(auth)/verify-email')({
   component: RouteComponent,

@@ -17,7 +17,7 @@ export default defineConfig({
   clearScreen: false,
   resolve: {
     alias: {
-      src: path.resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {

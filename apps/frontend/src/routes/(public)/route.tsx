@@ -1,6 +1,6 @@
+import { Footer } from '@/modules/layout/components/Footer';
+import { Header } from '@/modules/layout/components/Header';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { Header } from 'src/components/layout/Header';
-import { Footer } from 'src/components/layout/Footer';
 
 export const Route = createFileRoute('/(public)')({
   component: RouteComponent,

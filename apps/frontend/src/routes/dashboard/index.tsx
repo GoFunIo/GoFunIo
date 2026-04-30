@@ -1,9 +1,9 @@
+import { getUser, signOut } from '@/api/auth';
+import { Button } from '@/components/ui/Button';
+import { useUser } from '@/hooks/useUser';
+import { queryClient } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
-import { getUser, signOut } from 'src/api/auth';
-import { Button } from 'src/components/ui';
-import { useUser } from 'src/hooks/useUser';
-import { queryClient } from 'src/lib/queryClient';
 
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: async () => {
@@ -40,9 +40,9 @@ function RouteComponent() {
   };
 
   return (
-    <div>
+    <>
       <h1 className="text-3xl pb-5">Hello, {user.email}</h1>
       <Button onClick={logout}>Logout</Button>
-    </div>
+    </>
   );
 }
