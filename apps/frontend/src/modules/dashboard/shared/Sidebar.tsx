@@ -71,7 +71,11 @@ export const Sidebar = () => {
               const Icon = item.icon;
 
               return (
-                <div className="cursor-pointer min-h-[30px] px-[17px] group" key={item.id}>
+                <Link
+                  to={item.href}
+                  className="cursor-pointer min-h-[30px] px-[17px] group"
+                  key={item.id}
+                >
                   <div className="custom-transition flex items-center group-hover:bg-secondary rounded-[3px] h-full">
                     <div className="w-[30px] h-full shrink-0 flex items-center justify-center">
                       <Icon
@@ -83,7 +87,7 @@ export const Sidebar = () => {
                       {item.title}
                     </p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

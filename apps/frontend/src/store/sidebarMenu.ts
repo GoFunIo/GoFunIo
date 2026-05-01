@@ -11,42 +11,44 @@ import {
   Wrench,
 } from 'lucide-react';
 
+const baseRoute = '/dashboard';
+
 export const sidebar = [
   [
     {
       id: 1,
       title: 'Pulpit',
-      href: '/',
+      href: `${baseRoute}/`,
       icon: LayoutDashboard,
     },
     {
       id: 2,
       title: 'Pojazdy',
-      href: '/',
+      href: `${baseRoute}/my-cars`,
       icon: CarFront,
     },
     {
       id: 3,
       title: 'Serwis',
-      href: '/',
+      href: `${baseRoute}/service`,
       icon: Wrench,
     },
     {
       id: 4,
       title: 'Oś czasu',
-      href: '/',
+      href: `${baseRoute}/timeline`,
       icon: History,
     },
     {
       id: 5,
       title: 'Alerty',
-      href: '/',
+      href: `${baseRoute}/notifications`,
       icon: Bell,
     },
     {
       id: 6,
       title: 'Ustawienia',
-      href: '/',
+      href: `${baseRoute}/settings`,
       icon: Settings,
     },
   ],
@@ -54,91 +56,26 @@ export const sidebar = [
     {
       id: 7,
       title: 'Płatność',
-      href: '/',
+      href: `${baseRoute}/payments`,
       icon: CreditCard,
     },
     {
       id: 8,
       title: 'Admin',
-      href: '/',
+      href: `${baseRoute}/admin`,
       icon: Shield,
     },
     {
       id: 9,
       title: 'Użytkownicy',
-      href: '/',
+      href: `${baseRoute}/users`,
       icon: Users,
     },
     {
       id: 10,
       title: 'Przypisanie pojazdów',
-      href: '/',
+      href: `${baseRoute}/vehicle-assignments`,
       icon: Warehouse,
     },
   ],
-];
-
-export const dashboardNav = [
-  {
-    id: 1,
-    title: 'Pulpit',
-    href: '/',
-    icon: LayoutDashboard,
-  },
-  {
-    id: 2,
-    title: 'Pojazdy',
-    href: '/',
-    icon: CarFront,
-  },
-  {
-    id: 3,
-    title: 'Serwis',
-    href: '/',
-    icon: Wrench,
-  },
-  {
-    id: 4,
-    title: 'Oś czasu',
-    href: '/',
-    icon: History,
-  },
-  {
-    id: 5,
-    title: 'Alerty',
-    href: '/',
-    icon: Bell,
-  },
-  {
-    id: 6,
-    title: 'Ustawienia',
-    href: '/',
-    icon: Settings,
-  },
-];
-export const profileNav = [
-  {
-    id: 7,
-    title: 'Płatność',
-    href: '/',
-    icon: CreditCard,
-  },
-  {
-    id: 8,
-    title: 'Admin',
-    href: '/',
-    icon: Shield,
-  },
-  {
-    id: 9,
-    title: 'Użytkownicy',
-    href: '/',
-    icon: Users,
-  },
-  {
-    id: 10,
-    title: 'Przypisanie pojazdów',
-    href: '/',
-    icon: Warehouse,
-  },
 ];

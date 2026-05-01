@@ -14,7 +14,17 @@ import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as publicIndexRouteImport } from './routes/(public)/index'
+import { Route as DashboardVehicleAssignmentsRouteImport } from './routes/dashboard/vehicle-assignments'
+import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
+import { Route as DashboardTimelineRouteImport } from './routes/dashboard/timeline'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardServiceRouteImport } from './routes/dashboard/service'
 import { Route as DashboardResetPasswordRouteImport } from './routes/dashboard/reset-password'
+import { Route as DashboardPaymentsRouteImport } from './routes/dashboard/payments'
+import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
+import { Route as DashboardMyCarsRouteImport } from './routes/dashboard/my-cars'
+import { Route as DashboardHistoryRouteImport } from './routes/dashboard/history'
+import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
 import { Route as authVerifyEmailRouteImport } from './routes/(auth)/verify-email'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
@@ -44,9 +54,60 @@ const publicIndexRoute = publicIndexRouteImport.update({
   path: '/',
   getParentRoute: () => publicRouteRoute,
 } as any)
+const DashboardVehicleAssignmentsRoute =
+  DashboardVehicleAssignmentsRouteImport.update({
+    id: '/vehicle-assignments',
+    path: '/vehicle-assignments',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardUsersRoute = DashboardUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardTimelineRoute = DashboardTimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardServiceRoute = DashboardServiceRouteImport.update({
+  id: '/service',
+  path: '/service',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardResetPasswordRoute = DashboardResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardMyCarsRoute = DashboardMyCarsRouteImport.update({
+  id: '/my-cars',
+  path: '/my-cars',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardHistoryRoute = DashboardHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAdminRoute = DashboardAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const authVerifyEmailRoute = authVerifyEmailRouteImport.update({
@@ -80,7 +141,17 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/verify-email': typeof authVerifyEmailRoute
+  '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/my-cars': typeof DashboardMyCarsRoute
+  '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/dashboard/service': typeof DashboardServiceRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/timeline': typeof DashboardTimelineRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute
   '/': typeof publicIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/signup/success': typeof authSignupSuccessRoute
@@ -90,7 +161,17 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/verify-email': typeof authVerifyEmailRoute
+  '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/my-cars': typeof DashboardMyCarsRoute
+  '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/dashboard/service': typeof DashboardServiceRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/timeline': typeof DashboardTimelineRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute
   '/': typeof publicIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/signup/success': typeof authSignupSuccessRoute
@@ -104,7 +185,17 @@ export interface FileRoutesById {
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/verify-email': typeof authVerifyEmailRoute
+  '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/my-cars': typeof DashboardMyCarsRoute
+  '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/reset-password': typeof DashboardResetPasswordRoute
+  '/dashboard/service': typeof DashboardServiceRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/timeline': typeof DashboardTimelineRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute
   '/(public)/': typeof publicIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/(auth)/signup/success': typeof authSignupSuccessRoute
@@ -117,7 +208,17 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/verify-email'
+    | '/dashboard/admin'
+    | '/dashboard/history'
+    | '/dashboard/my-cars'
+    | '/dashboard/notifications'
+    | '/dashboard/payments'
     | '/dashboard/reset-password'
+    | '/dashboard/service'
+    | '/dashboard/settings'
+    | '/dashboard/timeline'
+    | '/dashboard/users'
+    | '/dashboard/vehicle-assignments'
     | '/'
     | '/dashboard/'
     | '/signup/success'
@@ -127,7 +228,17 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/verify-email'
+    | '/dashboard/admin'
+    | '/dashboard/history'
+    | '/dashboard/my-cars'
+    | '/dashboard/notifications'
+    | '/dashboard/payments'
     | '/dashboard/reset-password'
+    | '/dashboard/service'
+    | '/dashboard/settings'
+    | '/dashboard/timeline'
+    | '/dashboard/users'
+    | '/dashboard/vehicle-assignments'
     | '/'
     | '/dashboard'
     | '/signup/success'
@@ -140,7 +251,17 @@ export interface FileRouteTypes {
     | '/(auth)/forgot-password'
     | '/(auth)/login'
     | '/(auth)/verify-email'
+    | '/dashboard/admin'
+    | '/dashboard/history'
+    | '/dashboard/my-cars'
+    | '/dashboard/notifications'
+    | '/dashboard/payments'
     | '/dashboard/reset-password'
+    | '/dashboard/service'
+    | '/dashboard/settings'
+    | '/dashboard/timeline'
+    | '/dashboard/users'
+    | '/dashboard/vehicle-assignments'
     | '/(public)/'
     | '/dashboard/'
     | '/(auth)/signup/success'
@@ -190,11 +311,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof publicIndexRouteImport
       parentRoute: typeof publicRouteRoute
     }
+    '/dashboard/vehicle-assignments': {
+      id: '/dashboard/vehicle-assignments'
+      path: '/vehicle-assignments'
+      fullPath: '/dashboard/vehicle-assignments'
+      preLoaderRoute: typeof DashboardVehicleAssignmentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/users': {
+      id: '/dashboard/users'
+      path: '/users'
+      fullPath: '/dashboard/users'
+      preLoaderRoute: typeof DashboardUsersRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/timeline': {
+      id: '/dashboard/timeline'
+      path: '/timeline'
+      fullPath: '/dashboard/timeline'
+      preLoaderRoute: typeof DashboardTimelineRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/service': {
+      id: '/dashboard/service'
+      path: '/service'
+      fullPath: '/dashboard/service'
+      preLoaderRoute: typeof DashboardServiceRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/reset-password': {
       id: '/dashboard/reset-password'
       path: '/reset-password'
       fullPath: '/dashboard/reset-password'
       preLoaderRoute: typeof DashboardResetPasswordRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/payments': {
+      id: '/dashboard/payments'
+      path: '/payments'
+      fullPath: '/dashboard/payments'
+      preLoaderRoute: typeof DashboardPaymentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/notifications': {
+      id: '/dashboard/notifications'
+      path: '/notifications'
+      fullPath: '/dashboard/notifications'
+      preLoaderRoute: typeof DashboardNotificationsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/my-cars': {
+      id: '/dashboard/my-cars'
+      path: '/my-cars'
+      fullPath: '/dashboard/my-cars'
+      preLoaderRoute: typeof DashboardMyCarsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/history': {
+      id: '/dashboard/history'
+      path: '/history'
+      fullPath: '/dashboard/history'
+      preLoaderRoute: typeof DashboardHistoryRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/admin': {
+      id: '/dashboard/admin'
+      path: '/admin'
+      fullPath: '/dashboard/admin'
+      preLoaderRoute: typeof DashboardAdminRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/(auth)/verify-email': {
@@ -268,12 +459,32 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 )
 
 interface DashboardRouteRouteChildren {
+  DashboardAdminRoute: typeof DashboardAdminRoute
+  DashboardHistoryRoute: typeof DashboardHistoryRoute
+  DashboardMyCarsRoute: typeof DashboardMyCarsRoute
+  DashboardNotificationsRoute: typeof DashboardNotificationsRoute
+  DashboardPaymentsRoute: typeof DashboardPaymentsRoute
   DashboardResetPasswordRoute: typeof DashboardResetPasswordRoute
+  DashboardServiceRoute: typeof DashboardServiceRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardTimelineRoute: typeof DashboardTimelineRoute
+  DashboardUsersRoute: typeof DashboardUsersRoute
+  DashboardVehicleAssignmentsRoute: typeof DashboardVehicleAssignmentsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardAdminRoute: DashboardAdminRoute,
+  DashboardHistoryRoute: DashboardHistoryRoute,
+  DashboardMyCarsRoute: DashboardMyCarsRoute,
+  DashboardNotificationsRoute: DashboardNotificationsRoute,
+  DashboardPaymentsRoute: DashboardPaymentsRoute,
   DashboardResetPasswordRoute: DashboardResetPasswordRoute,
+  DashboardServiceRoute: DashboardServiceRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardTimelineRoute: DashboardTimelineRoute,
+  DashboardUsersRoute: DashboardUsersRoute,
+  DashboardVehicleAssignmentsRoute: DashboardVehicleAssignmentsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
