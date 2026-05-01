@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 export const Sidebar = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
   // outline-none focus:outline-none active:outline-none select-none
   return (
     <div
@@ -75,18 +76,42 @@ export const Sidebar = () => {
                   to={item.href}
                   className="cursor-pointer min-h-[30px] px-[17px] group"
                   key={item.id}
+                  activeOptions={{
+                    exact: true,
+                  }}
                 >
-                  <div className="custom-transition flex items-center group-hover:bg-secondary rounded-[3px] h-full">
-                    <div className="w-[30px] h-full shrink-0 flex items-center justify-center">
-                      <Icon
-                        className="custom-transition text-black group-hover:text-white"
-                        size={18}
-                      />
+                  {({ isActive }) => (
+                    <div
+                      className={classNames(
+                        'custom-transition flex items-center group-hover:bg-secondary rounded-[3px] h-full',
+                        {
+                          'bg-secondary': isActive,
+                        },
+                      )}
+                    >
+                      <div className="w-[30px] h-full shrink-0 flex items-center justify-center">
+                        <Icon
+                          className={classNames(
+                            'custom-transition text-black group-hover:text-white',
+                            {
+                              'text-white': isActive,
+                            },
+                          )}
+                          size={18}
+                        />
+                      </div>
+                      <p
+                        className={classNames(
+                          'w-[115px] shrink-0 custom-transition text-[12px] group-hover:text-white font-semibold text-black uppercase shrink-0 pl-[18px]',
+                          {
+                            'text-white': isActive,
+                          },
+                        )}
+                      >
+                        {item.title}
+                      </p>
                     </div>
-                    <p className="w-[115px] shrink-0 custom-transition text-[12px] group-hover:text-white font-semibold text-black uppercase shrink-0 pl-[18px]">
-                      {item.title}
-                    </p>
-                  </div>
+                  )}
                 </Link>
               );
             })}
