@@ -1,5 +1,5 @@
-import { Footer } from '@/modules/layout/components/Footer';
-import { Header } from '@/modules/layout/components/Header';
+import { Footer } from '@/modules/layout/shared/Footer';
+import { Header } from '@/modules/layout/shared/Header';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(public)')({

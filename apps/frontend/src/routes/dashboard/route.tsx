@@ -1,5 +1,5 @@
-import { Sidebar } from '@/modules/dashboard/components/Sidebar';
-import { Userbar } from '@/modules/dashboard/components/Usebar';
+import { Sidebar } from '@/modules/dashboard/shared/Sidebar';
+import { Userbar } from '@/modules/dashboard/shared/Usebar';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard')({
