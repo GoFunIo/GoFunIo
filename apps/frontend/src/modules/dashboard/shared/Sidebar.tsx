@@ -1,8 +1,9 @@
 import { sidebar } from '@/store/sidebarMenu';
-import { getImage } from '@/utils/getImage';
 import { Link } from '@tanstack/react-router';
 import classNames from 'classnames';
 import { useState } from 'react';
+import { Logo } from '../ui/Logo';
+import { BurgerButton } from '../ui/BurgerButton';
 
 export const Sidebar = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -17,53 +18,8 @@ export const Sidebar = () => {
         },
       )}
     >
-      <Link to="/" className="pl-[17px] pt-[15px] pb-[12px]">
-        <img src={getImage('logo-min.svg')} alt="Logo" />
-      </Link>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="h-[30px] mb-[12px] px-[17px] cursor-pointer"
-      >
-        <div className="flex items-center h-full">
-          <div className="w-[30px] h-full flex items-center justify-center shrink-0">
-            <div className="relative w-[15px] h-[10px]">
-              <div
-                className={classNames(
-                  '-left-[0px] w-full h-[2px] bg-black rounded-full absolute top-0 custom-transition ',
-                  {
-                    ['-left-[100px]']: isOpen,
-                  },
-                )}
-              ></div>
-              <div
-                className={classNames(
-                  'w-full h-[2px] bg-black rounded-full absolute top-[4px] custom-transition rotate-0 ',
-                  {
-                    ['rotate-45']: isOpen,
-                  },
-                )}
-              ></div>
-              <div
-                className={classNames(
-                  'w-full h-[2px] bg-black rounded-full absolute top-[4px] custom-transition -rotate-0 ',
-                  {
-                    ['-rotate-45']: isOpen,
-                  },
-                )}
-              ></div>
-              <div
-                className={classNames(
-                  'w-full h-[2px] bg-black rounded-full absolute bottom-0 custom-transition -left-[0px] ',
-                  {
-                    ['-left-[100px]']: isOpen,
-                  },
-                )}
-              ></div>
-            </div>
-          </div>
-          <p className="text-[12px] shrink-0 pl-[18px] font-semibold text-black">ZWIŃ MENU</p>
-        </div>
-      </div>
+      <Logo className="pl-[17px] pt-[15px] pb-[12px]" />
+      <BurgerButton value={isOpen} onClick={setIsOpen} className="mb-[12px] px-[17px]" />
 
       {sidebar.map((group, groupIndex) => (
         <>

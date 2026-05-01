@@ -1,8 +1,22 @@
+import { getUser } from '@/api/auth';
+import { queryClient } from '@/lib/queryClient';
 import { Footer } from '@/modules/layout/shared/Footer';
 import { Header } from '@/modules/layout/shared/Header';
-import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(auth)')({
+  beforeLoad: async () => {
+    const user = await queryClient.ensureQueryData({
+      queryKey: ['me'],
+      queryFn: getUser,
+    });
+
+    if (user) {
+      throw redirect({
+        to: '/dashboard',
+      });
+    }
+  },
   component: RouteComponent,
 });
 

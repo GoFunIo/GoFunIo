@@ -1,28 +1,15 @@
-import { getUser, signIn } from '@/api/auth';
+import { signIn } from '@/api/auth';
 import { AuthWrapper } from '@/components/features/auth/AuthWrapper';
 import { handleChange } from '@/components/features/auth/form';
 import { FormProps } from '@/components/features/auth/types';
 import { isFormEmpty, validateForm } from '@/components/features/auth/validation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { queryClient } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, redirect, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 export const Route = createFileRoute('/(auth)/login')({
-  beforeLoad: async () => {
-    const user = await queryClient.ensureQueryData({
-      queryKey: ['me'],
-      queryFn: getUser,
-    });
-
-    if (user) {
-      throw redirect({
-        to: '/dashboard',
-      });
-    }
-  },
   component: Login,
 });
 
