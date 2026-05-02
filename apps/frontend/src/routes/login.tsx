@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { getUser, signIn } from 'src/api/auth';
-import { Button } from 'src/components/ui/Button';
-import { Input } from 'src/components/ui/Input';
-import { queryClient } from 'src/lib/queryClient';
+import { getUser, signIn } from '@/api/auth';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { queryClient } from '@/lib/queryClient';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {

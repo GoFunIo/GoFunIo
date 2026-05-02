@@ -1,57 +1,30 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Button } from 'src/components/ui/Button';
-import { Input } from 'src/components/ui/Input';
+import { Hero } from '@/modules/landing/Hero';
+import { BenefitsSection } from '@/modules/landing/BenefitsSection';
+import { AboutSection } from '@/modules/landing/AboutSection';
+import { PricingSection } from '@/modules/landing/PricingSection';
+import { StatsSection } from '@/modules/landing/StatsSection';
+import { Testimonials } from '@/modules/landing/Testimonials';
+import { CTASection } from '@/modules/landing/CTASection ';
+import { FaqSection } from '@/modules/landing/FaqSection';
+import { RegisterForm } from '@/modules/landing/components/Register';
 
 export const Route = createFileRoute('/')({
-  component: Index,
+  component: LandingPage,
 });
 
-function Index() {
-  const [input, setInput] = useState('');
-  const [input2, setInput2] = useState('');
-  const [input3, setInput3] = useState('');
-  const [input4, setInput4] = useState('');
-
+function LandingPage() {
   return (
-    <div className="bg-bg-section p-10">
-      <h3 className="pb-8">Hello "/Index"!</h3>
-      <div className="flex flex-col gap-4">
-        <Button onClick={() => {}}>Primary</Button>
-        <Button disabled onClick={() => {}}>
-          Primary
-        </Button>
-        <Button variant="outline" onClick={() => {}}>
-          Primary
-        </Button>
-        <Button disabled variant="outline" onClick={() => {}}>
-          Primary
-        </Button>
-        <Input
-          name="email"
-          value={input}
-          onChange={setInput}
-          placeholder="admin@gmail.com"
-          label="Name"
-        />
-        <Input
-          name="password"
-          type="password"
-          value={input2}
-          onChange={setInput2}
-          placeholder="admin@gmail.com"
-          error="Imię i nazwisko jest wymagane"
-        />
-        <Input
-          name="password"
-          label="Qweqwe"
-          value={input3}
-          onChange={setInput3}
-          placeholder="admin@gmail.com"
-          error="Imię i nazwisko jest wymagane"
-        />
-        <Input name="password" value={input4} onChange={setInput4} />
-      </div>
-    </div>
+    <>
+      <Hero />
+      <BenefitsSection />
+      <AboutSection />
+      <PricingSection />
+      <StatsSection />
+      <Testimonials />
+      <CTASection />
+      <FaqSection />
+      <RegisterForm />
+    </>
   );
 }

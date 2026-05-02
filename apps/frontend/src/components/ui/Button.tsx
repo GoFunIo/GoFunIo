@@ -6,6 +6,7 @@ type Props = {
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   variant?: 'default' | 'outline';
+  className?: string;
   style?: React.CSSProperties;
 };
 
@@ -15,6 +16,7 @@ export const Button = ({
   type = 'button',
   disabled = false,
   variant = 'default',
+  className,
   style,
 }: Props) => {
   const mainButtonStyles = `
@@ -39,7 +41,7 @@ export const Button = ({
       onClick={onClick}
       type={type}
       disabled={disabled}
-      className={classNames(mainButtonStyles, {
+      className={classNames(mainButtonStyles, className, {
         [defaultButtonStyles]: variant === 'default',
         [outlineButtonStyles]: variant === 'outline',
         [disabledButtonStyles]: disabled,

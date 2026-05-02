@@ -9,6 +9,7 @@ type Props = {
   placeholder?: string;
   style?: React.CSSProperties;
   error?: string;
+  className?: string;
 };
 
 export const Input = ({
@@ -20,32 +21,39 @@ export const Input = ({
   placeholder = 'Type me',
   style,
   error,
+  className,
 }: Props) => {
   const hasError = Boolean(error);
+  const showHeader = label || hasError;
 
   const mainInputStyles = `
     w-full min-h-[45px] rounded-[7px] px-[16px] border
-    text-[12px] font-medium text-icon 
-    focus:outline-none focus:ring-0
+    text-[14px] font-medium  transition-all duration-200
+    outline-none focus:ring-0
+
+    bg-white dark:bg-bg-card
+    text-content-primary dark:text-white
     placeholder:text-icon
   `;
 
   return (
-    <div className="relative min-w-[240px] w-fit pt-5.5">
-      {(label || hasError) && (
+    <div className={classNames('relative w-full', showHeader ? 'pt-4' : 'pt-0', className)}>
+      {showHeader && (
         <div className="absolute top-0 left-0 w-full flex justify-between gap-x-2 flex-wrap items-end">
           {label && (
             <label
               htmlFor={name}
               className={classNames(
-                'text-[12px] font-medium leading-[21px]',
-                hasError ? 'text-alert' : 'text-content-muted',
+                'text-[14px] font-medium leading-none',
+                hasError ? 'text-alert' : 'text-content-secondary ',
               )}
             >
               {label}
             </label>
           )}
-          {hasError && <p className="text-alert text-[10px] font-medium">{error}</p>}
+          {hasError && (
+            <span className="text-alert text-[12px] leading-none font-medium ">{error}</span>
+          )}
         </div>
       )}
       <input
@@ -55,7 +63,11 @@ export const Input = ({
         name={name}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={classNames(mainInputStyles, hasError ? 'border-alert' : 'border-primary')}
+        className={classNames(
+          mainInputStyles,
+          hasError ? 'border-alert' : 'border-icon',
+          className,
+        )}
         style={style}
       />
     </div>

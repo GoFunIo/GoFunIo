@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
-import { getUser, signOut } from 'src/api/auth';
+import { getUser, signOut } from '@/api/auth';
 import { Button } from 'src/components/ui/Button';
 import { useUser } from 'src/hooks/useUser';
-import { queryClient } from 'src/lib/queryClient';
+import { queryClient } from '@/lib/queryClient';
 
 export const Route = createFileRoute('/userdashboard')({
   beforeLoad: async () => {
