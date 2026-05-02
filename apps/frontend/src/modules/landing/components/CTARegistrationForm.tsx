@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Link } from '@tanstack/react-router';
 
 export const CTARegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -60,11 +61,11 @@ export const CTARegistrationForm = () => {
           onChange={(val) => handleChange('password', val)}
           className={inputTheme}
         />
-
-        <Button variant="outline" type="submit" className="w-full">
-          Zarejestruj się za darmo
-        </Button>
-
+        <Link href="/signup" passHref>
+          <Button variant="outline" type="submit" className="w-full mt-2 mb-2">
+            Zarejestruj się za darmo
+          </Button>
+        </Link>
         <p className="text-center text-[12px] text-white opacity-90">
           Karta płatnicza nie jest wymagana. Rejestracja bez ryzyka.
         </p>

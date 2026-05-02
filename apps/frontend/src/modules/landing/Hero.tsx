@@ -6,6 +6,7 @@ import heroFleetSmall from '@/assets/img/heroFleetSmall.webp';
 import heroService from '@/assets/img/heroService.webp';
 import heroServiceSmall from '@/assets/img/heroServiceSmall.webp';
 import { Blob } from './ui/Blob';
+import { Link } from '@tanstack/react-router';
 
 export const Hero = () => {
   return (
@@ -29,8 +30,12 @@ export const Hero = () => {
               flex flex-col sm:flex-row gap-4 w-full
               sm:w-auto items-center"
           >
-            <Button variant="default">Zacznij za darmo</Button>
-            <Button variant="outline">Dowiedz się więcej</Button>
+            <Link href="/signup" passHref>
+              <Button variant="default">Zacznij za darmo</Button>
+            </Link>
+            <Link href="#proces" scroll={true}>
+              <Button variant="outline">Dowiedz się więcej</Button>
+            </Link>
           </div>
           <p>Bezpłatny okres próbny — bez karty kredytowej</p>
         </div>

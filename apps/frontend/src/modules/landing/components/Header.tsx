@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { MobileMenu } from './MobileMenu';
 import LogoLight from '@/assets/logo/logo_autokeep.svg';
@@ -7,6 +7,8 @@ import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/hooks/useTheme';
+import { useScrollY } from '../hooks/useScrollY';
+import { useNavigation } from '../hooks/useNavigation';
 
 const navLinks = [
   { label: 'FUNKCJE', href: '#funkcje' },
@@ -18,14 +20,9 @@ const navLinks = [
 
 export const Header = () => {
   const { data: user, isLoading } = useUser();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const isScrolled = useScrollY(10);
+  const { handleLogoClick } = useNavigation(() => setIsMenuOpen(false));
 
   return (
     <>
@@ -37,9 +34,8 @@ export const Header = () => {
         }`}
       >
         <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 flex items-center justify-between">
-          {/* GRUPA LEWA: Logo + Linki */}
           <div className="flex items-center gap-8">
-            <Link to="/" onClick={() => setIsMenuOpen(false)} className="z-[110] ">
+            <Link to="/" onClick={handleLogoClick} className="z-[200] ">
               <img
                 src={LogoLight}
                 alt="Logo Auto Keep"
@@ -70,7 +66,6 @@ export const Header = () => {
             </nav>
           </div>
 
-          {/* GRUPA PRAWA: Język, Theme, Auth */}
           <div className="flex items-center gap-4">
             <ThemeToggle />
 
