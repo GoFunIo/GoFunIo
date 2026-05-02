@@ -30,10 +30,10 @@ export const Hero = () => {
               flex flex-col sm:flex-row gap-4 w-full
               sm:w-auto items-center"
           >
-            <Link href="/signup" passHref>
+            <Link to="/signup">
               <Button variant="default">Zacznij za darmo</Button>
             </Link>
-            <Link href="#proces" scroll={true}>
+            <Link to="/" hash="proces">
               <Button variant="outline">Dowiedz się więcej</Button>
             </Link>
           </div>

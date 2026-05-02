@@ -61,7 +61,7 @@ export const CTARegistrationForm = () => {
           onChange={(val) => handleChange('password', val)}
           className={inputTheme}
         />
-        <Link href="/signup" passHref>
+        <Link to="/signup">
           <Button variant="outline" type="submit" className="w-full mt-2 mb-2">
             Zarejestruj się za darmo
           </Button>
