@@ -94,7 +94,7 @@ body,
 
 @layer base {
   body {
-    @apply font-inter;
+    @apply font-inter overflow-x-hidden;
   }
 
   h1,
