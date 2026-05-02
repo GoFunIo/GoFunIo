@@ -88,7 +88,7 @@ export const Userbar = () => {
             </div>
             <div
               className={classNames(
-                'shadow-[0_2px_7px_0_rgba(0,0,0,0.1)] min-[425px]:w-full w-fit flex flex-col gap-[8px] p-[4px] absolute min-[425px]:top-[64px] top-[50px] right-0 bg-white',
+                'shadow-[0_2px_7px_0_rgba(0,0,0,0.1)] min-[426px]:w-full w-fit flex flex-col gap-[8px] p-[4px] absolute min-[426px]:top-[64px] top-[50px] right-0 bg-white',
                 {
                   hidden: !dropdown,
                 },

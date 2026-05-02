@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { sidebar } from '@/store/sidebarMenu';
 import { Link } from '@tanstack/react-router';
 import classNames from 'classnames';
@@ -22,8 +23,8 @@ export const Sidebar = () => {
       <BurgerButton value={isOpen} onClick={setIsOpen} className="mb-[12px] px-[17px]" />
 
       {sidebar.map((group, groupIndex) => (
-        <>
-          <div className="flex flex-col gap-[10px]" key={groupIndex}>
+        <Fragment key={groupIndex}>
+          <div className="flex flex-col gap-[10px]">
             {group.map((item) => {
               const Icon = item.icon;
 
@@ -75,7 +76,7 @@ export const Sidebar = () => {
           {groupIndex !== sidebar.length - 1 && (
             <div className="bg-black mx-[17px] h-[2px] my-[10px]" />
           )}
-        </>
+        </Fragment>
       ))}
     </div>
   );
