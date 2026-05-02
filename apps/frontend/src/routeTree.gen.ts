@@ -23,7 +23,6 @@ import { Route as DashboardResetPasswordRouteImport } from './routes/dashboard/r
 import { Route as DashboardPaymentsRouteImport } from './routes/dashboard/payments'
 import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
 import { Route as DashboardMyCarsRouteImport } from './routes/dashboard/my-cars'
-import { Route as DashboardHistoryRouteImport } from './routes/dashboard/history'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
 import { Route as authVerifyEmailRouteImport } from './routes/(auth)/verify-email'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
@@ -100,11 +99,6 @@ const DashboardMyCarsRoute = DashboardMyCarsRouteImport.update({
   path: '/my-cars',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardHistoryRoute = DashboardHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardAdminRoute = DashboardAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -142,7 +136,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/verify-email': typeof authVerifyEmailRoute
   '/dashboard/admin': typeof DashboardAdminRoute
-  '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/my-cars': typeof DashboardMyCarsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
@@ -162,7 +155,6 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/verify-email': typeof authVerifyEmailRoute
   '/dashboard/admin': typeof DashboardAdminRoute
-  '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/my-cars': typeof DashboardMyCarsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
@@ -186,7 +178,6 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/verify-email': typeof authVerifyEmailRoute
   '/dashboard/admin': typeof DashboardAdminRoute
-  '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/my-cars': typeof DashboardMyCarsRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
@@ -209,7 +200,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/verify-email'
     | '/dashboard/admin'
-    | '/dashboard/history'
     | '/dashboard/my-cars'
     | '/dashboard/notifications'
     | '/dashboard/payments'
@@ -229,7 +219,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/verify-email'
     | '/dashboard/admin'
-    | '/dashboard/history'
     | '/dashboard/my-cars'
     | '/dashboard/notifications'
     | '/dashboard/payments'
@@ -252,7 +241,6 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/verify-email'
     | '/dashboard/admin'
-    | '/dashboard/history'
     | '/dashboard/my-cars'
     | '/dashboard/notifications'
     | '/dashboard/payments'
@@ -374,13 +362,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMyCarsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/history': {
-      id: '/dashboard/history'
-      path: '/history'
-      fullPath: '/dashboard/history'
-      preLoaderRoute: typeof DashboardHistoryRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/admin': {
       id: '/dashboard/admin'
       path: '/admin'
@@ -460,7 +441,6 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 
 interface DashboardRouteRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRoute
-  DashboardHistoryRoute: typeof DashboardHistoryRoute
   DashboardMyCarsRoute: typeof DashboardMyCarsRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
   DashboardPaymentsRoute: typeof DashboardPaymentsRoute
@@ -475,7 +455,6 @@ interface DashboardRouteRouteChildren {
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAdminRoute: DashboardAdminRoute,
-  DashboardHistoryRoute: DashboardHistoryRoute,
   DashboardMyCarsRoute: DashboardMyCarsRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
   DashboardPaymentsRoute: DashboardPaymentsRoute,

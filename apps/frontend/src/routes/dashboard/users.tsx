@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/users')({
@@ -5,5 +6,16 @@ export const Route = createFileRoute('/dashboard/users')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/users"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Użytkownicy"
+        subtitle="Wszyscy użytkownicy systemu i przypisane pojazdy."
+        button={{
+          label: 'Dodaj użytkownika',
+          onClick: () => {},
+        }}
+      />
+    </>
+  );
 }

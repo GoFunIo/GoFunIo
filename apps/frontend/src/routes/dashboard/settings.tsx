@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/settings')({
@@ -5,5 +6,9 @@ export const Route = createFileRoute('/dashboard/settings')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/settings"!</div>;
+  return (
+    <>
+      <DashboardHeader title="Ustawienia" subtitle="Zarządzaj swoim kontem i subskrypcją." />
+    </>
+  );
 }

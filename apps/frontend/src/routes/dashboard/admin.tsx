@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/admin')({
@@ -5,5 +6,12 @@ export const Route = createFileRoute('/dashboard/admin')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/admin"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Pulpit floty"
+        subtitle="Alerty, finanse i aktywność w jednym miejscu."
+      />
+    </>
+  );
 }

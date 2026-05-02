@@ -1,4 +1,5 @@
 import { useUser } from '@/hooks/useUser';
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/')({
@@ -13,7 +14,14 @@ function RouteComponent() {
 
   return (
     <>
-      <h3 className="">Hello, {user.email}</h3>
+      <DashboardHeader
+        title={`Hello, ${user.email}`}
+        subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
+        button={{
+          label: 'Dodaj pojazd',
+          onClick: () => {},
+        }}
+      />
     </>
   );
 }

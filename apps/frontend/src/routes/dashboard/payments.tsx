@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/payments')({
@@ -5,5 +6,12 @@ export const Route = createFileRoute('/dashboard/payments')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/payments"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Wybierz plan dopasowany do Ciebie"
+        subtitle="Aktywuj subskrypcję, aby zachować dostęp do wszystkich funkcji po zakończeniu okresu próbnego. Anulujesz w każdej chwili."
+      />
+    </>
+  );
 }

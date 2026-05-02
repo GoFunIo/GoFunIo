@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/vehicle-assignments')({
@@ -5,5 +6,12 @@ export const Route = createFileRoute('/dashboard/vehicle-assignments')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/vehicle-assignments"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Przypisania pojazdów"
+        subtitle="Przypisuj pojazdy do użytkowników w firmie"
+      />
+    </>
+  );
 }

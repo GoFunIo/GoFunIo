@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/notifications')({
@@ -5,5 +6,12 @@ export const Route = createFileRoute('/dashboard/notifications')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/notifications"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Powiadomienia"
+        subtitle="Sam decydujesz, ile dni przed terminem (przegląd, OC, AC) chcesz dostać przypomnienie."
+      />
+    </>
+  );
 }

@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/timeline')({
@@ -5,5 +6,12 @@ export const Route = createFileRoute('/dashboard/timeline')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/timeline"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Oś czasu serwisu"
+        subtitle="Chronologiczny widok wszystkich napraw i przeglądów."
+      />
+    </>
+  );
 }

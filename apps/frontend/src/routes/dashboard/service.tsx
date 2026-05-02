@@ -1,3 +1,4 @@
+import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/service')({
@@ -5,5 +6,16 @@ export const Route = createFileRoute('/dashboard/service')({
 });
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/service"!</div>;
+  return (
+    <>
+      <DashboardHeader
+        title="Serwis i przeglądy"
+        subtitle="Pełna historia serwisowa Twojej floty"
+        button={{
+          label: 'Dodaj wpis serwisowy',
+          onClick: () => {},
+        }}
+      />
+    </>
+  );
 }
