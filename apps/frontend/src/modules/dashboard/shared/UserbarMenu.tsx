@@ -12,7 +12,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
   return (
     <div
       className={classNames(
-        'fixed h-0 custom-transition overflow-hidden w-screen bg-white top-[64px] px-[20px]',
+        'z-9 fixed h-0 custom-transition overflow-hidden w-screen bg-white min-[425px]:top-[64px] top-[50px] px-[20px]',
         {
           'h-screen': value,
         },
@@ -20,8 +20,8 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
     >
       <div className="pt-[20px]">
         {sidebar.map((group, groupIndex) => (
-          <>
-            <div className="flex flex-col gap-[4px]" key={groupIndex}>
+          <div key={groupIndex}>
+            <div className="flex flex-col gap-[4px]">
               {group.map((item) => {
                 const Icon = item.icon;
 
@@ -74,7 +74,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
             {groupIndex !== sidebar.length - 1 && (
               <div className="bg-black w-full h-[2px] my-[10px]" />
             )}
-          </>
+          </div>
         ))}
       </div>
     </div>
