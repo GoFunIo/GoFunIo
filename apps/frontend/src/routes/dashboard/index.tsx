@@ -1,4 +1,5 @@
 import { useUser } from '@/hooks/useUser';
+import { Banner } from '@/modules/dashboard/shared/Banner';
 import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -22,6 +23,15 @@ function RouteComponent() {
           onClick: () => {},
         }}
       />
+      <div className="flex flex-col gap-[24px]">
+        <Banner title="Plan indywidualby" subtitle="Plan aktywny do 20.12.2026" />
+        <Banner type="warning" title="Plan indywidualby" subtitle="Plan aktywny do 20.12.2026" />
+        <Banner
+          type="alert"
+          title="Plan indywidualby"
+          subtitle="Aplikacja działa w trybie tylko do odczytu — nie możesz dodawać ani edytować pojazdów i wpisów serwisowych."
+        />
+      </div>
     </>
   );
 }
