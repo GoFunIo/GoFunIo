@@ -1,6 +1,6 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 
-export const useNavigation = (closeMenu?: () => void) => {
+export const useLogoAction = (closeMenu?: () => void) => {
   const navigate = useNavigate();
   const state = useRouterState();
 

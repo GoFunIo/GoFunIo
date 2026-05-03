@@ -14,7 +14,7 @@ export const BenefitCard = ({ title, desc, icon, className }: BenefitCardProps) 
   return (
     <div
       className={classNames(
-        'group p-10 rounded-[15px] bg-bg-card shadow-card flex flex-col items-center text-center gap-6',
+        'group p-8 rounded-[15px] bg-bg-card shadow-card flex flex-col items-center text-center gap-6',
         'border border-transparent transition-all duration-300',
 
         // HOVER GRUPOWY:
@@ -29,8 +29,8 @@ export const BenefitCard = ({ title, desc, icon, className }: BenefitCardProps) 
       />
 
       <div className="flex flex-col gap-4">
-        <h4 className="text-xl font-bold ">{title}</h4>
-        <p className="text-content-secondary leading-relaxed">{desc}</p>
+        <h4 className="">{title}</h4>
+        <p className="text-content-secondary ">{desc}</p>
       </div>
     </div>
   );

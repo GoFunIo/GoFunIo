@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
-import { useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { Button } from '@/components/ui/Button';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 type UserType = ReturnType<typeof useUser>['data'];
 
@@ -13,20 +13,7 @@ interface MobileMenuProps {
 }
 
 export const MobileMenu = ({ isOpen, onClose, user, navLinks }: MobileMenuProps) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.height = '100vh';
-    } else {
-      document.body.style.overflow = 'unset';
-      document.body.style.height = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.body.style.height = 'unset';
-    };
-  }, [isOpen]);
+  useLockBodyScroll(isOpen);
 
   return (
     <div
@@ -34,24 +21,21 @@ export const MobileMenu = ({ isOpen, onClose, user, navLinks }: MobileMenuProps)
         isOpen ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
-      <div className="flex flex-col items-center justify-start h-full gap-8 px-6 pt-40">
-        <nav className="flex flex-col items-center gap-6 text-content-primary">
+      <div className="flex flex-col  justify-start h-full gap-8 px-6 pt-21">
+        <nav className="flex flex-col w-full max-w-[768px] gap-0 text-content-primary mb-4">
           {navLinks.map((link) => (
             <a
               key={link.label}
               href={link.href}
               onClick={onClose}
-              className="text-2xl font-bold text-content-primary hover:text-secondary transition-colors"
+              className=" w-full px-4 py-2 text-[20px] font-bold text-content-primary rounded-[3px] transition-all duration-200 hover:bg-bg-section  hover:text-secondary  flex items-center"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <hr className="w-full max-w-[200px] border-gray-100" />
-
-        {/* Sekcja Auth w MobileMenu - Wersja z Twoimi Buttonami */}
-        <div className="flex flex-col w-full gap-4 max-w-[280px] mt-8">
+        <div className="flex flex-col w-full md:max-w-[450px] gap-4 items-start justify-start">
           {!user ? (
             <>
               <Link to="/login" onClick={onClose} className="w-full">
@@ -61,7 +45,7 @@ export const MobileMenu = ({ isOpen, onClose, user, navLinks }: MobileMenuProps)
               </Link>
 
               <Link to="/signup" onClick={onClose} className="w-full">
-                <Button variant="outline" className="w-full  uppercase tracking-widest ">
+                <Button variant="outline" className="w-full uppercase tracking-widest ">
                   Rejestracja
                 </Button>
               </Link>

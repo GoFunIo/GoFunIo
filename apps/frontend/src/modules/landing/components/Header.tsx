@@ -8,11 +8,11 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { useScrollY } from '../hooks/useScrollY';
-import { useNavigation } from '../hooks/useNavigation';
+import { useLogoAction } from '../hooks/useLogoAction';
 
 const navLinks = [
   { label: 'FUNKCJE', href: '#funkcje' },
-  { label: 'JAK DZIAŁA', href: '#proces' },
+  { label: 'JAK DZIAŁA', href: '#jak-dziala' },
   { label: 'CENNIK', href: '#cennik' },
   { label: 'FAQ', href: '#faq' },
   { label: 'KONTAKT', href: '#kontakt' },
@@ -22,7 +22,7 @@ export const Header = () => {
   const { data: user, isLoading } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isScrolled = useScrollY(10);
-  const { handleLogoClick } = useNavigation(() => setIsMenuOpen(false));
+  const { handleLogoClick } = useLogoAction(() => setIsMenuOpen(false));
 
   return (
     <>
@@ -34,6 +34,7 @@ export const Header = () => {
         }`}
       >
         <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 flex items-center justify-between">
+          {/* LEFT SIDE   */}
           <div className="flex items-center gap-8">
             <Link to="/" onClick={handleLogoClick} className="z-[200] ">
               <img
@@ -66,6 +67,7 @@ export const Header = () => {
             </nav>
           </div>
 
+          {/* RIGHT SIDE   */}
           <div className="flex items-center gap-4">
             <ThemeToggle />
 
@@ -77,13 +79,13 @@ export const Header = () => {
                     <Button
                       variant="default"
                       className={`
-            text-[11px]! uppercase transition-all duration-500
-            ${
-              isScrolled
-                ? 'px-3! min-w-[80px]! min-h-[34px]!'
-                : 'px-4! min-w-[100px]! min-h-[40px]!'
-            }
-          `}
+                        text-[11px]! uppercase transition-all duration-500
+                        ${
+                          isScrolled
+                            ? 'px-3! min-w-[80px]! min-h-[34px]!'
+                            : 'px-4! min-w-[100px]! min-h-[40px]!'
+                        }
+                      `}
                     >
                       Login
                     </Button>
@@ -93,13 +95,13 @@ export const Header = () => {
                     <Button
                       variant="outline"
                       className={`
-            text-[11px]! uppercase transition-all duration-500
-            ${
-              isScrolled
-                ? 'px-3! min-w-[80px]! min-h-[34px]!'
-                : 'px-4! min-w-[100px]! min-h-[40px]!'
-            }
-          `}
+                        text-[11px]! uppercase transition-all duration-500
+                        ${
+                          isScrolled
+                            ? 'px-3! min-w-[80px]! min-h-[34px]!'
+                            : 'px-4! min-w-[100px]! min-h-[40px]!'
+                        }
+                      `}
                     >
                       Rejestracja
                     </Button>

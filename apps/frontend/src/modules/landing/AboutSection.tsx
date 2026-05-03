@@ -24,8 +24,8 @@ const steps = [
 export const AboutSection = () => {
   return (
     <section
-      id="proces"
-      className="bg-bg-section pt-[70px] pb-[70px] mb-[70px] lg:mb-30 relative overflow-hidden "
+      id="jak-dziala"
+      className="scroll-mt-20 bg-bg-section pt-[70px] pb-[70px] mb-[70px] lg:mb-30 relative overflow-hidden "
     >
       <Blob size="lg" className="-top-[30%] -right-[30%] opacity-80 z-0" />
 

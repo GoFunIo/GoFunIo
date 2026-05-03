@@ -20,7 +20,7 @@ export const PricingCard = ({ plan, billingCycle }: PricingCardProps) => {
 
   return (
     <div
-      className={`group relative px-8 py-10  rounded-[15px] flex flex-col transition-all duration-300 border shadow-card
+      className={`group relative px-8 py-10 rounded-[15px] flex flex-col transition-all duration-300 border shadow-card
         ${
           isPro
             ? 'bg-primary text-white border-secondary lg:scale-y-105 z-10 hover:shadow-hover hover:-translate-y-1'
@@ -51,7 +51,7 @@ export const PricingCard = ({ plan, billingCycle }: PricingCardProps) => {
           </div>
 
           <Button
-            className={`w-full rounded-[7px] mb-8  sm:mb-0 ${
+            className={`w-full rounded-[7px] mb-8 sm:mb-0 ${
               isPro ? 'bg-white! text-primary! hover:bg-bg-page!' : ''
             }`}
           >

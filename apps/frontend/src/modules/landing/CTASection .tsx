@@ -4,6 +4,7 @@ import avatar1 from '@/assets/img/testimonial-image-1.webp';
 import avatar2 from '@/assets/img/testimonial-image-2.webp';
 import avatar3 from '@/assets/img/testimonial-image-3.webp';
 import ctaLarge from '@/assets/img/ctaLarge.webp';
+import { SocialProofBadge } from './ui/SocialProofBadge';
 
 const AVATAR_URLS = [avatar1, avatar2, avatar3];
 
@@ -11,7 +12,7 @@ export const CTASection = () => {
   return (
     <section
       id="cta"
-      className="relative min-h-[500px] flex items-center overflow-hidden py-[70px] mb-[70px] lg:mb-30"
+      className="scroll-mt-20 relative min-h-[500px] flex items-center overflow-hidden py-[70px] mb-[70px] lg:mb-30"
     >
       <div className="absolute inset-0 z-0">
         <img
@@ -23,17 +24,11 @@ export const CTASection = () => {
       </div>
 
       <div className="container mx-auto px-4 sm:px-8 lg:px-16 relative z-10 max-w-[1440px]">
-        <div
-          className="
-        grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12
-         md:grid-row items-center gap-10 xl:gap-20"
-        >
-          <div className="lg:col-span-6  md:pb-0 flex flex-col pb-8 md:pb-0">
-            <p className="text-[16px] font-semibold mb-3 block text-white opacity-90">
-              Twoje centrum dowodzenia
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 md:grid-row items-center gap-10 xl:gap-20">
+          <div className="lg:col-span-6  md:pb-0 flex flex-col pb-8 md:pb-0 gap-8">
+            <SocialProofBadge text="Twoje centrum dowodzenia" />
 
-            <h2 className="text-white mb-5">
+            <h2 className="text-white ">
               Przejmij <span className="text-primary">pełną kontrolę</span> nad swoim autem.
               Dzisiaj.
             </h2>

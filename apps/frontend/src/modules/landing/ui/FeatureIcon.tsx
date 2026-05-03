@@ -8,7 +8,7 @@ interface FeatureIconProps {
 
 export const FeatureIcon = ({ icon: Icon, size = 'md', className = '' }: FeatureIconProps) => {
   const containerClasses =
-    'w-16 h-16 rounded-[7px] flex-shrink-0 flex items-center justify-center bg-primary text-white shadow-lg shadow-primary/20';
+    'w-16 h-16 rounded-[7px] flex-shrink-0 flex items-center justify-center bg-primary text-white shadow-md shadow-primary/20';
 
   const iconSizes = {
     md: 24,

@@ -45,7 +45,7 @@ const benefits = [
 
 export const BenefitsSection = () => {
   return (
-    <section id="funkcje" className="mb-[70px] lg:mb-30">
+    <section id="funkcje" className="scroll-mt-20 mb-[70px] lg:mb-30">
       <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16">
         <div className="mb-12.5 lg:text-center max-w-[760px] mx-auto">
           <h2 className="mb-4">

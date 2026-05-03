@@ -15,7 +15,7 @@ export const CTARegistrationForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     console.log('Dane wysłane:', formData);
   };
@@ -24,7 +24,7 @@ export const CTARegistrationForm = () => {
     '!bg-secondary !border-none text-white placeholder:text-white/70 !min-h-[45px] !rounded-[7px]';
 
   return (
-    <div className="bg-primary rounded-[15px] px-6 py-8 text-white w-full ">
+    <div className="bg-primary/70 backdrop-blur-md rounded-[15px] px-6 py-8 text-white w-full ">
       <div className="text-center mb-8">
         <h4 className="text-[18px] mb-2 text-white">Załóż darmowe konto</h4>
         <p className="opacity-90 text-white">Wypróbuj bezpłatnie przez 7 dni</p>
@@ -61,7 +61,7 @@ export const CTARegistrationForm = () => {
           onChange={(val) => handleChange('password', val)}
           className={inputTheme}
         />
-        <Link to="/signup">
+        <Link to="/">
           <Button variant="outline" type="submit" className="w-full mt-2 mb-2">
             Zarejestruj się za darmo
           </Button>

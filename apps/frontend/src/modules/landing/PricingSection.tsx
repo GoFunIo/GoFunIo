@@ -51,7 +51,7 @@ export const PricingSection = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   return (
-    <section id="cennik" className="mb-[70px] lg:mb-30">
+    <section id="cennik" className="scroll-mt-20 mb-[70px] lg:mb-30">
       <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16">
         <div className="lg:text-center max-w-[700px] mx-auto ">
           <h2 className="mb-4 sm:mb-6">
@@ -65,7 +65,7 @@ export const PricingSection = () => {
 
         <Switcher activeCycle={billingCycle} onChange={setBillingCycle} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-stretch ">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch ">
           {pricingPlans.map((plan) => (
             <PricingCard key={plan.name} plan={plan} billingCycle={billingCycle} />
           ))}

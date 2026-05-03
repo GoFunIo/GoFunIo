@@ -13,14 +13,17 @@ export const StatItem = ({ value, label, suffix = '', icon }: StatItemProps) => 
   const { count, ref } = useCountUp(value);
 
   return (
-    <div ref={ref} className="flex flex-col items-center text-center ">
+    <div
+      ref={ref}
+      className="flex flex-col items-center text-center  p-2 lg:p-4 rounded-[7px] md:w-[150px] md:w-[200px] "
+    >
       <FeatureIcon icon={icon} size="md" className="mb-4 md:w-14 md:h-14 lg:w-16 lg:h-16" />
 
-      <span className="text-[30px] md:text-[24px] lg:text-[35px] leading-none font-inter font-bold lg:mb-4 text-content-primary mb-1">
+      <span className="text-[24px] lg:text-[30px] leading-none font-inter font-bold lg:mb-4 text-content-primary mb-1">
         {count.toLocaleString('pl-PL')}
         {suffix}
       </span>
-      <p className="text-[16px] md:text-[14px] lg:text-[18px] text-content-secondary font-semibold max-w-[150px] lg:max-w-[200px]">
+      <p className="text-[16px] md:text-[14px] lg:text-[18px] text-content-secondary font-semibold  text-center mx-auto">
         {label}
       </p>
     </div>

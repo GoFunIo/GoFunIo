@@ -54,7 +54,7 @@ export const FaqSection = () => {
   };
 
   return (
-    <section id="faq" className="mb-[70px] lg:mb-30">
+    <section id="faq" className="scroll-mt-20 mb-[70px] lg:mb-30">
       <div className="container mx-auto px-4 sm:px-8 lg:px-16 relative z-10 max-w-[1440px]">
         <div className="lg:text-center max-w-[700px] mx-auto ">
           <h2 className="mb-[50px] ">

@@ -7,17 +7,19 @@ import heroService from '@/assets/img/heroService.webp';
 import heroServiceSmall from '@/assets/img/heroServiceSmall.webp';
 import { Blob } from './ui/Blob';
 import { Link } from '@tanstack/react-router';
+import { SocialProofBadge } from './ui/SocialProofBadge';
 
 export const Hero = () => {
   return (
     <section
       id="home"
-      className="relative pt-[124px] lg:pt-40 pb-20 mb-[70px] lg:mb-30 overflow-hidden bg-bg-section"
+      className="scroll-mt-20 relative pt-[124px] lg:pt-40 pb-20 mb-[70px] lg:mb-30 overflow-hidden bg-bg-section"
     >
       <Blob size="xl" className="-top-[60%] -left-[40%] opacity-80 z-0" />
 
       <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 grid grid-cols-4 md:grid-cols-12 gap-4 md:gap-5 lg:gap-8 items-center z-10 relative">
         <div className=" col-span-4 md:col-span-12 lg:col-span-6 flex flex-col gap-10 items-center text-center md:items-start md:text-left pt-6 pb-6">
+          <SocialProofBadge text="Polecane przez 5 000+ użytkowników" />
           <h1 className="">
             Twój samochód <span className="text-primary">zawsze gotowy</span> do drogi
           </h1>
@@ -33,7 +35,7 @@ export const Hero = () => {
             <Link to="/signup">
               <Button variant="default">Zacznij za darmo</Button>
             </Link>
-            <Link to="/" hash="proces">
+            <Link to="/" hash="jak-dziala">
               <Button variant="outline">Dowiedz się więcej</Button>
             </Link>
           </div>
