@@ -32,9 +32,22 @@ body,
   --warning: 240 177 74; /* #F0B14A */
   --alert: 217 48 37; /* #D93025 */
 
+  --info-bg: 232 240 254; /* #E8F0FE */
+  --warning-bg: 254 247 224; /* #FEF7E0 */
+  --alert-bg: 252 232 230; /* #FCE8E6 */
+
+  --info-bg-icon: 207 228 255; /* #CFE4FF */
+  --warning-bg-icon: 255 224 173; /* #FFE0AD */
+  --alert-bg-icon: 251 206 201; /* #FBCEC9 */
+
   /* base bw */
   --white: 255 255 255; /* #FFFFFF */
   --dark: 17 21 24; /* #111518 */
+
+  /* opacity */
+  --info: 26 115 232; /* #1A73E8 */
+  --warning: 240 177 74; /* #F0B14A */
+  --alert: 217 48 37; /* #D93025 */
 }
 
 .dark {
@@ -83,6 +96,14 @@ body,
   --color-info: rgb(var(--info));
   --color-warning: rgb(var(--warning));
   --color-alert: rgb(var(--alert));
+
+  --color-info-bg: rgb(var(--info-bg));
+  --color-warning-bg: rgb(var(--warning-bg));
+  --color-alert-bg: rgb(var(--alert-bg));
+
+  --color-info-bg-icon: rgb(var(--info-bg-icon));
+  --color-warning-bg-icon: rgb(var(--warning-bg-icon));
+  --color-alert-bg-icon: rgb(var(--alert-bg-icon));
 
   --color-white: rgb(var(--white));
   --color-dark: rgb(var(--dark));
