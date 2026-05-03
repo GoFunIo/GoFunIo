@@ -4,11 +4,12 @@ import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { EmptyPlaceholder } from '@/modules/dashboard/shared/EmptyPlaceholder';
 import { History } from '@/modules/dashboard/shared/History';
 import { Card } from '@/modules/dashboard/ui/Card';
+import { DaysAmount } from '@/modules/dashboard/ui/DaysAmount';
 import { IconWrapper } from '@/modules/dashboard/ui/IconWrapper';
-import { formatDays } from '@/utils/formatDays';
 import { createFileRoute } from '@tanstack/react-router';
+import { AlertTriangle } from 'lucide-react';
 import classNames from 'classnames';
-import { AlertTriangle, CarFront, Plus } from 'lucide-react';
+import { actionsArr, activityArr, carSingleArr, infoArr } from '@/store/cars';
 
 export const Route = createFileRoute('/dashboard/')({
   component: RouteComponent,
@@ -19,43 +20,6 @@ function RouteComponent() {
 
   if (isLoading) return <h1 className="">Loading</h1>;
   if (!user) return null;
-
-  // static data for example
-  const activity = {
-    id: 1,
-    title: 'Pełny serwis',
-    car: 'BMW E60',
-    date: '3 kwi 2026',
-    price: '1850.00',
-    place: 'BMW Serwis Kraków',
-  };
-
-  const info = {
-    id: 1,
-    title: 'Moje pojazdy',
-    count: 3,
-    subtitle: 'aktywnych',
-    status: '',
-    icon: CarFront,
-  };
-
-  const cars = {
-    id: 1,
-    title: 'BMW',
-    termin: 31,
-  };
-
-  const actions = {
-    id: 1,
-    title: 'Dodaj pojazd',
-    onClick: () => {},
-    icon: Plus,
-  };
-
-  const activityArr = Array.from({ length: 6 }, (_, i) => ({ ...activity, id: i + 1 }));
-  const carsArr = Array.from({ length: 2 }, (_, i) => ({ ...cars, id: i + 1 }));
-  const infoArr = Array.from({ length: 3 }, (_, i) => ({ ...info, id: i + 1 }));
-  const actionsArr = Array.from({ length: 3 }, (_, i) => ({ ...actions, id: i + 1 }));
 
   return (
     <>
@@ -160,26 +124,15 @@ function RouteComponent() {
             </div>
             <div className="pt-[12px]">
               <p className="text-dark font-semibold text-[14px]">Nadchodzące przeglądy</p>
-              {!carsArr || carsArr.length === 0 ? (
+              {!carSingleArr || carSingleArr.length === 0 ? (
                 <EmptyPlaceholder className="mt-[18px]" title="Brak aktualnych przegladów" />
               ) : (
                 <div className="flex flex-col gap-[8px] mt-[18px]">
-                  {carsArr.map((item) => {
+                  {carSingleArr.map((item) => {
                     return (
                       <div className="flex items-center justify-between gap-[12px]" key={item.id}>
                         <p className="text-[14px] text-dark">{item.title}</p>
-                        <p
-                          className={classNames(
-                            'flex items-center justify-center shrink-0 h-[21px] min-w-[52px] px-[8px] rounded-[3px] font-semibold text-[10px]/[100%]',
-                            {
-                              'bg-alert text-white': item.termin >= 0 && item.termin < 7,
-                              'bg-warning text-dark': item.termin >= 7 && item.termin < 28,
-                              'bg-bg-section text-dark': item.termin >= 28,
-                            },
-                          )}
-                        >
-                          {item.termin} {formatDays(item.termin)}
-                        </p>
+                        <DaysAmount days={item.termin} />
                       </div>
                     );
                   })}

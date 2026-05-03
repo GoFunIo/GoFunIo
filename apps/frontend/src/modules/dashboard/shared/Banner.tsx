@@ -28,14 +28,14 @@ export const Banner = ({ className, type = 'info', title, subtitle }: Props) => 
     >
       <IconWrapper
         className={classNames({
-          'bg-info-bg-icon': type === 'info',
-          'bg-warning-bg-icon': type === 'warning',
-          'bg-alert-bg-icon': type === 'alert',
+          '!bg-info-bg-icon': type === 'info',
+          '!bg-warning-bg-icon': type === 'warning',
+          '!bg-alert-bg-icon': type === 'alert',
         })}
       >
-        {type === 'info' && <Clock className={`text-${type}`} />}
-        {type === 'warning' && <Clock className={`text-${type}`} />}
-        {type === 'alert' && <TriangleAlert className={`text-${type}`} />}
+        {type === 'info' && <Clock className={`!text-${type}`} />}
+        {type === 'warning' && <Clock className={`!text-${type}`} />}
+        {type === 'alert' && <TriangleAlert className={`!text-${type}`} />}
       </IconWrapper>
       <div className="mr-auto">
         <p className="pb-[4px] text-black font-semibold text-[16px]/[21px]">{title}</p>

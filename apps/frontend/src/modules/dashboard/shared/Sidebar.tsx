@@ -34,7 +34,7 @@ export const Sidebar = () => {
                   className="cursor-pointer min-h-[30px] px-[17px] group"
                   key={item.id}
                   activeOptions={{
-                    exact: true,
+                    exact: item.href === '/dashboard/',
                   }}
                 >
                   {({ isActive }) => (
