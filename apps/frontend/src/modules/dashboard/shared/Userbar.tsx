@@ -70,7 +70,7 @@ export const Userbar = () => {
             to="/dashboard/notifications"
             className="relative flex items-center h-full px-[10px] cursor-pointer"
           >
-            <div className="absolute top-[20px] right-[12px] w-[6px] h-[6px] bg-alert rounded-full"></div>
+            <div className="absolute min-[426px]:top-[20px] top-[14px] right-[12px] w-[6px] h-[6px] bg-alert rounded-full"></div>
             <Bell className="text-black" size={20} />
           </Link>
           <div className="relative h-full" ref={selectRef}>

@@ -13,7 +13,7 @@ export const Sidebar = () => {
   return (
     <div
       className={classNames(
-        'overflow-hidden box-sizing custom-transition flex flex-col w-[65px] bg-white border-r border-icon shrink-0',
+        'sticky top-0 h-screen overflow-hidden box-sizing custom-transition flex flex-col w-[65px] bg-white border-r border-icon shrink-0',
         {
           ['w-[180px]']: isOpen,
         },

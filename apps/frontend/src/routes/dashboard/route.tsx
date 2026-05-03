@@ -25,12 +25,12 @@ function RouteComponent() {
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen">
       {!isTabletOrMobile && <Sidebar />}
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-full h-screen overflow-hidden">
         <Userbar />
 
-        <div className="flex-1 bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px]">
+        <div className="flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px]">
           <Outlet />
         </div>
       </div>
