@@ -10,10 +10,7 @@ const AVATAR_URLS = [avatar1, avatar2, avatar3];
 
 export const CTASection = () => {
   return (
-    <section
-      id="cta"
-      className="scroll-mt-20 relative min-h-[500px] flex items-center overflow-hidden py-[70px] mb-[70px] lg:mb-30"
-    >
+    <section className="scroll-mt-20 relative min-h-[500px] flex items-center overflow-hidden py-[70px] mb-[70px] lg:mb-30">
       <div className="absolute inset-0 z-0">
         <img
           src={ctaLarge}

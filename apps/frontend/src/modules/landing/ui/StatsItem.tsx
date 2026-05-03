@@ -15,7 +15,7 @@ export const StatItem = ({ value, label, suffix = '', icon }: StatItemProps) => 
   return (
     <div
       ref={ref}
-      className="flex flex-col items-center text-center  p-2 lg:p-4 rounded-[7px] md:w-[150px] md:w-[200px] "
+      className="flex flex-col items-center text-center  p-2  rounded-[7px] md:w-[200px] lg:w-[250px] xl:w-[320px]"
     >
       <FeatureIcon icon={icon} size="md" className="mb-4 md:w-14 md:h-14 lg:w-16 lg:h-16" />
 

@@ -42,7 +42,7 @@ export const StatsSection = () => {
   };
 
   return (
-    <section id="stats" className="scroll-mt-20 relative overflow-hidden  lg:mb-[50px] pb-17.5">
+    <section className="scroll-mt-20 relative overflow-hidden  lg:mb-[50px] pb-17.5">
       <div className="bg-primary h-[470px] pt-[70px] px-4">
         <div className="container lg:text-center max-w-[700px] mx-auto  text-white">
           <h2 className="text-white mb-4">Skala, która robi różnicę</h2>
@@ -56,9 +56,9 @@ export const StatsSection = () => {
       <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16">
         <div
           className="bg-white dark:bg-bg-card rounded-[15px] mt-[-150px] md:mt-[-160px]
-        px-0 md:px-6 py-10 lg:py-10 xl:py-20 relative  shadow-card "
+        px-0 md:px-6 py-10 xl:px-15 xl:py-20 relative  shadow-card "
         >
-          <div className="hidden md:flex absolute inset-0 justify-center pointer-events-none z-0 ">
+          <div className="hidden md:flex absolute inset-0 justify-center  pointer-events-none z-0 ">
             <div className="relative flex items-bottom justify-center w-full ">
               <RingsIcon className="absolute bottom-0 left-1/2 -translate-x-1/2  h-[90%] lg:h-[100%] text-icon/40  dark:text-icon/40 animate-pulse-slow " />
 
@@ -73,7 +73,7 @@ export const StatsSection = () => {
             </div>
           </div>
 
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 md:grid-row-2 gap-4 lg:gap-8 items-center ">
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 md:grid-row-2 gap-4 lg:gap-8 items-start ">
             <div className="md:col-start-1 md:justify-self-start">{renderStat('top-left')}</div>
             <div className="hidden md:block" />
             <div className="md:col-start-3 md:justify-self-end">{renderStat('top-right')}</div>

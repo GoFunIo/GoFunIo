@@ -5,6 +5,8 @@ export const BackToTop = () => {
   const isVisible = useScrollY(300);
 
   const scrollToTop = () => {
+    window.history.replaceState(null, '', window.location.origin);
+
     window.scrollTo({
       top: 0,
       behavior: 'smooth',

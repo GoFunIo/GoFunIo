@@ -32,7 +32,7 @@ const testimonials = [
 
 export const Testimonials = () => {
   return (
-    <section id="testimonials" className="scroll-mt-20 relative mb-[70px] lg:mb-30">
+    <section className="scroll-mt-20 relative mb-[70px] lg:mb-30">
       <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16">
         <div className="mb-[50px] lg:text-center max-w-[700px] mx-auto">
           <h2 className="mb-4">
