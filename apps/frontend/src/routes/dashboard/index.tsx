@@ -2,12 +2,13 @@ import { useUser } from '@/hooks/useUser';
 import { Banner } from '@/modules/dashboard/shared/Banner';
 import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { EmptyPlaceholder } from '@/modules/dashboard/shared/EmptyPlaceholder';
+import { History } from '@/modules/dashboard/shared/History';
 import { Card } from '@/modules/dashboard/ui/Card';
 import { IconWrapper } from '@/modules/dashboard/ui/IconWrapper';
 import { formatDays } from '@/utils/formatDays';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import classNames from 'classnames';
-import { Activity, AlertTriangle, CarFront, Plus, Wrench } from 'lucide-react';
+import { AlertTriangle, CarFront, Plus } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/')({
   component: RouteComponent,
@@ -82,7 +83,8 @@ function RouteComponent() {
         <div
           className="grid grid-cols-1 md:gap-[24px] gap-[15px] 
             lg:grid-cols-3 
-            sm:grid-cols-2"
+            sm:grid-cols-2
+            "
         >
           {infoArr.map((item) => {
             const Icon = item.icon;
@@ -90,11 +92,14 @@ function RouteComponent() {
             return (
               <Card
                 key={item.id}
-                className={classNames('w-full flex justify-between', {
-                  'border-info bg-info-bg': item.status === 'info',
-                  'border-warning bg-warning-bg': item.status === 'warning',
-                  '!border-alert !bg-alert-bg': item.status === 'alert',
-                })}
+                className={classNames(
+                  'w-full flex justify-between sm:[&:nth-child(3)]:col-span-2 lg:[&:nth-child(3)]:col-span-1',
+                  {
+                    'border-info bg-info-bg': item.status === 'info',
+                    'border-warning bg-warning-bg': item.status === 'warning',
+                    '!border-alert !bg-alert-bg': item.status === 'alert',
+                  },
+                )}
               >
                 <div className="">
                   <p className="text-[14px] text-black pb-[5px]">{item.title}</p>
@@ -124,48 +129,15 @@ function RouteComponent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 md:gap-[24px] gap-[15px]">
           {/* block with last activity */}
-          <Card className="lg:col-span-2 h-fit">
-            <div className="flex gap-[10px] items-center">
-              <Activity className="text-secondary" size={20} />
-              <h4 className="">Ostatnia aktywność</h4>
-              <Link to="/dashboard/timeline" className="text-secondary text-[12px] ml-[auto]">
-                Zobacz wszystko
-              </Link>
-            </div>
-            {!activityArr || activityArr.length === 0 ? (
-              <EmptyPlaceholder
-                title="Wprowadż pierwszy wpis serwisowy."
-                className="min-h-[240px] mt-[16px]"
-              />
-            ) : (
-              <div className="mt-[16px] flex flex-col gap-[16px]">
-                {activityArr.map((item) => {
-                  return (
-                    <div
-                      className="not-last:pb-[10px] flex gap-[16px] not-last:border-b not-last:border-icon items-start"
-                      key={item.id}
-                    >
-                      <IconWrapper className="bg-info/25 !h-[30px] !w-[30px] mt-[4px]">
-                        <Wrench className="text-info" size={18} />
-                      </IconWrapper>
-                      <div className="">
-                        <p className="text-dark text-[14px]">{item.title}</p>
-                        <p className="text-[12px]">
-                          {item.car} - {item.date}
-                        </p>
-                      </div>
-                      <div className="ml-auto">
-                        <p className="text-right text-dark font-bold text-[14px]">
-                          {item.price} zł
-                        </p>
-                        <p className="text-right text-[12px]">{item.place}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
+          <History
+            className="lg:col-span-2"
+            data={activityArr}
+            link={{
+              label: 'Zobacz wszystko',
+              href: '/dashboard/timeline',
+            }}
+            title="Ostatnia aktywność"
+          />
 
           {/* block with quick actions */}
           <Card className="lg:col-span-1 h-fit">
