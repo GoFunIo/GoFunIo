@@ -1,5 +1,6 @@
 import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
 import { EmptyPlaceholder } from '@/modules/dashboard/shared/EmptyPlaceholder';
+import { GridWrapper } from '@/modules/dashboard/shared/GridWrapper';
 import { BoardButton } from '@/modules/dashboard/ui/BoardButton';
 import { Card } from '@/modules/dashboard/ui/Card';
 import { DaysAmount } from '@/modules/dashboard/ui/DaysAmount';
@@ -36,10 +37,7 @@ function RouteComponent() {
           icon={<CarFront size={48} className="text-primary" />}
         />
       ) : (
-        <div
-          className="grid grid-cols-1 md:gap-[24px] gap-[15px] lg:grid-cols-3 sm:grid-cols-2
-    "
-        >
+        <GridWrapper layout="3-equal">
           {carsArr.map((item) => {
             return (
               <Card key={item.id}>
@@ -81,7 +79,7 @@ function RouteComponent() {
               </Card>
             );
           })}
-        </div>
+        </GridWrapper>
       )}
     </>
   );

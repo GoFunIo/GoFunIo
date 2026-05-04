@@ -10,6 +10,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AlertTriangle } from 'lucide-react';
 import classNames from 'classnames';
 import { actionsArr, activityArr, carSingleArr, infoArr } from '@/store/cars';
+import { GridWrapper } from '@/modules/dashboard/shared/GridWrapper';
 
 export const Route = createFileRoute('/dashboard/')({
   component: RouteComponent,
@@ -44,12 +45,7 @@ function RouteComponent() {
         />
 
         {/* main 3 blocks with most important info  */}
-        <div
-          className="grid grid-cols-1 md:gap-[24px] gap-[15px] 
-            lg:grid-cols-3 
-            sm:grid-cols-2
-            "
-        >
+        <GridWrapper layout="3-equal">
           {infoArr.map((item) => {
             const Icon = item.icon;
 
@@ -89,9 +85,9 @@ function RouteComponent() {
               </Card>
             );
           })}
-        </div>
+        </GridWrapper>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 md:gap-[24px] gap-[15px]">
+        <GridWrapper layout="2-unequal">
           {/* block with last activity */}
           <History
             className="lg:col-span-2"
@@ -140,7 +136,7 @@ function RouteComponent() {
               )}
             </div>
           </Card>
-        </div>
+        </GridWrapper>
       </div>
     </>
   );
