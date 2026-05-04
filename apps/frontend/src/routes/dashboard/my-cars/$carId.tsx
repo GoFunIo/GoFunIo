@@ -1,5 +1,5 @@
-import { BoardButton } from '@/modules/dashboard/ui/BoardButton';
-import { IconWrapper } from '@/modules/dashboard/ui/IconWrapper';
+import { IconWrapper } from '@/features/dashboard/layout/IconWrapper';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { carsArr } from '@/store/cars';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, CarFront } from 'lucide-react';

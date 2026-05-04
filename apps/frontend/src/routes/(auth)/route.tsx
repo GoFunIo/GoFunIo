@@ -1,6 +1,6 @@
 import { getUser } from '@/api/auth';
+import { Header } from '@/features/homepage/layout/Header';
 import { queryClient } from '@/lib/queryClient';
-import { Header } from '@/modules/landing/components';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(auth)')({

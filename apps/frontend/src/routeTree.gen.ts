@@ -12,22 +12,22 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route';
 import { Route as publicRouteRouteImport } from './routes/(public)/route';
 import { Route as authRouteRouteImport } from './routes/(auth)/route';
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index';
-import { Route as publicIndexRouteImport } from './routes/(public)/index';
-import { Route as DashboardVehicleAssignmentsRouteImport } from './routes/dashboard/vehicle-assignments';
-import { Route as DashboardUsersRouteImport } from './routes/dashboard/users';
-import { Route as DashboardTimelineRouteImport } from './routes/dashboard/timeline';
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings';
-import { Route as DashboardServiceRouteImport } from './routes/dashboard/service';
-import { Route as DashboardResetPasswordRouteImport } from './routes/dashboard/reset-password';
-import { Route as DashboardPaymentsRouteImport } from './routes/dashboard/payments';
-import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications';
-import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin';
-import { Route as authVerifyEmailRouteImport } from './routes/(auth)/verify-email';
-import { Route as authLoginRouteImport } from './routes/(auth)/login';
-import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password';
+import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index';
+import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index';
+import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index';
+import { Route as DashboardServiceIndexRouteImport } from './routes/dashboard/service/index';
+import { Route as DashboardResetPasswordIndexRouteImport } from './routes/dashboard/reset-password/index';
+import { Route as DashboardPaymentsIndexRouteImport } from './routes/dashboard/payments/index';
+import { Route as DashboardNotificationsIndexRouteImport } from './routes/dashboard/notifications/index';
 import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-cars/index';
+import { Route as DashboardAdminIndexRouteImport } from './routes/dashboard/admin/index';
+import { Route as DashboardhomeIndexRouteImport } from './routes/dashboard/(home)/index';
+import { Route as publichomeIndexRouteImport } from './routes/(public)/(home)/index';
+import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify-email/index';
 import { Route as authSignupIndexRouteImport } from './routes/(auth)/signup/index';
+import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index';
+import { Route as authForgotPasswordIndexRouteImport } from './routes/(auth)/forgot-password/index';
+import { Route as DashboardVehicleAssignmentsVehicleAssignmentsRouteImport } from './routes/dashboard/vehicle-assignments/vehicle-assignments';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
 import { Route as authSignupSuccessRouteImport } from './routes/(auth)/signup/success';
 
@@ -44,86 +44,87 @@ const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => rootRouteImport,
 } as any);
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const publicIndexRoute = publicIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => publicRouteRoute,
-} as any);
-const DashboardVehicleAssignmentsRoute = DashboardVehicleAssignmentsRouteImport.update({
-  id: '/vehicle-assignments',
-  path: '/vehicle-assignments',
+const DashboardTimelineIndexRoute = DashboardTimelineIndexRouteImport.update({
+  id: '/timeline/',
+  path: '/timeline/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardUsersRoute = DashboardUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
+const DashboardSettingsIndexRoute = DashboardSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardTimelineRoute = DashboardTimelineRouteImport.update({
-  id: '/timeline',
-  path: '/timeline',
+const DashboardServiceIndexRoute = DashboardServiceIndexRouteImport.update({
+  id: '/service/',
+  path: '/service/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const DashboardResetPasswordIndexRoute = DashboardResetPasswordIndexRouteImport.update({
+  id: '/reset-password/',
+  path: '/reset-password/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardServiceRoute = DashboardServiceRouteImport.update({
-  id: '/service',
-  path: '/service',
+const DashboardPaymentsIndexRoute = DashboardPaymentsIndexRouteImport.update({
+  id: '/payments/',
+  path: '/payments/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardResetPasswordRoute = DashboardResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const DashboardNotificationsIndexRoute = DashboardNotificationsIndexRouteImport.update({
+  id: '/notifications/',
+  path: '/notifications/',
   getParentRoute: () => DashboardRouteRoute,
-} as any);
-const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
-const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
-const DashboardAdminRoute = DashboardAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
-const authVerifyEmailRoute = authVerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => authRouteRoute,
-} as any);
-const authLoginRoute = authLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => authRouteRoute,
-} as any);
-const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => authRouteRoute,
 } as any);
 const DashboardMyCarsIndexRoute = DashboardMyCarsIndexRouteImport.update({
   id: '/my-cars/',
   path: '/my-cars/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
+const DashboardAdminIndexRoute = DashboardAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
+const DashboardhomeIndexRoute = DashboardhomeIndexRouteImport.update({
+  id: '/(home)/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
+const publichomeIndexRoute = publichomeIndexRouteImport.update({
+  id: '/(home)/',
+  path: '/',
+  getParentRoute: () => publicRouteRoute,
+} as any);
+const authVerifyEmailIndexRoute = authVerifyEmailIndexRouteImport.update({
+  id: '/verify-email/',
+  path: '/verify-email/',
+  getParentRoute: () => authRouteRoute,
+} as any);
 const authSignupIndexRoute = authSignupIndexRouteImport.update({
   id: '/signup/',
   path: '/signup/',
   getParentRoute: () => authRouteRoute,
 } as any);
+const authLoginIndexRoute = authLoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
+  getParentRoute: () => authRouteRoute,
+} as any);
+const authForgotPasswordIndexRoute = authForgotPasswordIndexRouteImport.update({
+  id: '/forgot-password/',
+  path: '/forgot-password/',
+  getParentRoute: () => authRouteRoute,
+} as any);
+const DashboardVehicleAssignmentsVehicleAssignmentsRoute =
+  DashboardVehicleAssignmentsVehicleAssignmentsRouteImport.update({
+    id: '/vehicle-assignments/vehicle-assignments',
+    path: '/vehicle-assignments/vehicle-assignments',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any);
 const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
   id: '/my-cars/$carId',
   path: '/my-cars/$carId',
@@ -137,134 +138,134 @@ const authSignupSuccessRoute = authSignupSuccessRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
-  '/forgot-password': typeof authForgotPasswordRoute;
-  '/login': typeof authLoginRoute;
-  '/verify-email': typeof authVerifyEmailRoute;
-  '/dashboard/admin': typeof DashboardAdminRoute;
-  '/dashboard/notifications': typeof DashboardNotificationsRoute;
-  '/dashboard/payments': typeof DashboardPaymentsRoute;
-  '/dashboard/reset-password': typeof DashboardResetPasswordRoute;
-  '/dashboard/service': typeof DashboardServiceRoute;
-  '/dashboard/settings': typeof DashboardSettingsRoute;
-  '/dashboard/timeline': typeof DashboardTimelineRoute;
-  '/dashboard/users': typeof DashboardUsersRoute;
-  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute;
-  '/': typeof publicIndexRoute;
-  '/dashboard/': typeof DashboardIndexRoute;
   '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
+  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
+  '/forgot-password/': typeof authForgotPasswordIndexRoute;
+  '/login/': typeof authLoginIndexRoute;
   '/signup/': typeof authSignupIndexRoute;
+  '/verify-email/': typeof authVerifyEmailIndexRoute;
+  '/': typeof publichomeIndexRoute;
+  '/dashboard/': typeof DashboardhomeIndexRoute;
+  '/dashboard/admin/': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
+  '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
+  '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
+  '/dashboard/reset-password/': typeof DashboardResetPasswordIndexRoute;
+  '/dashboard/service/': typeof DashboardServiceIndexRoute;
+  '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
+  '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
+  '/dashboard/users/': typeof DashboardUsersIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/forgot-password': typeof authForgotPasswordRoute;
-  '/login': typeof authLoginRoute;
-  '/verify-email': typeof authVerifyEmailRoute;
-  '/dashboard/admin': typeof DashboardAdminRoute;
-  '/dashboard/notifications': typeof DashboardNotificationsRoute;
-  '/dashboard/payments': typeof DashboardPaymentsRoute;
-  '/dashboard/reset-password': typeof DashboardResetPasswordRoute;
-  '/dashboard/service': typeof DashboardServiceRoute;
-  '/dashboard/settings': typeof DashboardSettingsRoute;
-  '/dashboard/timeline': typeof DashboardTimelineRoute;
-  '/dashboard/users': typeof DashboardUsersRoute;
-  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute;
-  '/': typeof publicIndexRoute;
-  '/dashboard': typeof DashboardIndexRoute;
   '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
+  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
+  '/forgot-password': typeof authForgotPasswordIndexRoute;
+  '/login': typeof authLoginIndexRoute;
   '/signup': typeof authSignupIndexRoute;
+  '/verify-email': typeof authVerifyEmailIndexRoute;
+  '/': typeof publichomeIndexRoute;
+  '/dashboard': typeof DashboardhomeIndexRoute;
+  '/dashboard/admin': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars': typeof DashboardMyCarsIndexRoute;
+  '/dashboard/notifications': typeof DashboardNotificationsIndexRoute;
+  '/dashboard/payments': typeof DashboardPaymentsIndexRoute;
+  '/dashboard/reset-password': typeof DashboardResetPasswordIndexRoute;
+  '/dashboard/service': typeof DashboardServiceIndexRoute;
+  '/dashboard/settings': typeof DashboardSettingsIndexRoute;
+  '/dashboard/timeline': typeof DashboardTimelineIndexRoute;
+  '/dashboard/users': typeof DashboardUsersIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/(auth)': typeof authRouteRouteWithChildren;
   '/(public)': typeof publicRouteRouteWithChildren;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
-  '/(auth)/forgot-password': typeof authForgotPasswordRoute;
-  '/(auth)/login': typeof authLoginRoute;
-  '/(auth)/verify-email': typeof authVerifyEmailRoute;
-  '/dashboard/admin': typeof DashboardAdminRoute;
-  '/dashboard/notifications': typeof DashboardNotificationsRoute;
-  '/dashboard/payments': typeof DashboardPaymentsRoute;
-  '/dashboard/reset-password': typeof DashboardResetPasswordRoute;
-  '/dashboard/service': typeof DashboardServiceRoute;
-  '/dashboard/settings': typeof DashboardSettingsRoute;
-  '/dashboard/timeline': typeof DashboardTimelineRoute;
-  '/dashboard/users': typeof DashboardUsersRoute;
-  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsRoute;
-  '/(public)/': typeof publicIndexRoute;
-  '/dashboard/': typeof DashboardIndexRoute;
   '/(auth)/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
+  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
+  '/(auth)/forgot-password/': typeof authForgotPasswordIndexRoute;
+  '/(auth)/login/': typeof authLoginIndexRoute;
   '/(auth)/signup/': typeof authSignupIndexRoute;
+  '/(auth)/verify-email/': typeof authVerifyEmailIndexRoute;
+  '/(public)/(home)/': typeof publichomeIndexRoute;
+  '/dashboard/(home)/': typeof DashboardhomeIndexRoute;
+  '/dashboard/admin/': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
+  '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
+  '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
+  '/dashboard/reset-password/': typeof DashboardResetPasswordIndexRoute;
+  '/dashboard/service/': typeof DashboardServiceIndexRoute;
+  '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
+  '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
+  '/dashboard/users/': typeof DashboardUsersIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/dashboard'
-    | '/forgot-password'
-    | '/login'
-    | '/verify-email'
-    | '/dashboard/admin'
-    | '/dashboard/notifications'
-    | '/dashboard/payments'
-    | '/dashboard/reset-password'
-    | '/dashboard/service'
-    | '/dashboard/settings'
-    | '/dashboard/timeline'
-    | '/dashboard/users'
-    | '/dashboard/vehicle-assignments'
+    | '/signup/success'
+    | '/dashboard/my-cars/$carId'
+    | '/dashboard/vehicle-assignments/vehicle-assignments'
+    | '/forgot-password/'
+    | '/login/'
+    | '/signup/'
+    | '/verify-email/'
     | '/'
     | '/dashboard/'
-    | '/signup/success'
-    | '/dashboard/my-cars/$carId'
-    | '/signup/'
-    | '/dashboard/my-cars/';
+    | '/dashboard/admin/'
+    | '/dashboard/my-cars/'
+    | '/dashboard/notifications/'
+    | '/dashboard/payments/'
+    | '/dashboard/reset-password/'
+    | '/dashboard/service/'
+    | '/dashboard/settings/'
+    | '/dashboard/timeline/'
+    | '/dashboard/users/';
   fileRoutesByTo: FileRoutesByTo;
   to:
+    | '/signup/success'
+    | '/dashboard/my-cars/$carId'
+    | '/dashboard/vehicle-assignments/vehicle-assignments'
     | '/forgot-password'
     | '/login'
+    | '/signup'
     | '/verify-email'
+    | '/'
+    | '/dashboard'
     | '/dashboard/admin'
+    | '/dashboard/my-cars'
     | '/dashboard/notifications'
     | '/dashboard/payments'
     | '/dashboard/reset-password'
     | '/dashboard/service'
     | '/dashboard/settings'
     | '/dashboard/timeline'
-    | '/dashboard/users'
-    | '/dashboard/vehicle-assignments'
-    | '/'
-    | '/dashboard'
-    | '/signup/success'
-    | '/dashboard/my-cars/$carId'
-    | '/signup'
-    | '/dashboard/my-cars';
+    | '/dashboard/users';
   id:
     | '__root__'
     | '/(auth)'
     | '/(public)'
     | '/dashboard'
-    | '/(auth)/forgot-password'
-    | '/(auth)/login'
-    | '/(auth)/verify-email'
-    | '/dashboard/admin'
-    | '/dashboard/notifications'
-    | '/dashboard/payments'
-    | '/dashboard/reset-password'
-    | '/dashboard/service'
-    | '/dashboard/settings'
-    | '/dashboard/timeline'
-    | '/dashboard/users'
-    | '/dashboard/vehicle-assignments'
-    | '/(public)/'
-    | '/dashboard/'
     | '/(auth)/signup/success'
     | '/dashboard/my-cars/$carId'
+    | '/dashboard/vehicle-assignments/vehicle-assignments'
+    | '/(auth)/forgot-password/'
+    | '/(auth)/login/'
     | '/(auth)/signup/'
-    | '/dashboard/my-cars/';
+    | '/(auth)/verify-email/'
+    | '/(public)/(home)/'
+    | '/dashboard/(home)/'
+    | '/dashboard/admin/'
+    | '/dashboard/my-cars/'
+    | '/dashboard/notifications/'
+    | '/dashboard/payments/'
+    | '/dashboard/reset-password/'
+    | '/dashboard/service/'
+    | '/dashboard/settings/'
+    | '/dashboard/timeline/'
+    | '/dashboard/users/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -296,103 +297,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authRouteRouteImport;
       parentRoute: typeof rootRouteImport;
     };
-    '/dashboard/': {
-      id: '/dashboard/';
-      path: '/';
-      fullPath: '/dashboard/';
-      preLoaderRoute: typeof DashboardIndexRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
-    '/(public)/': {
-      id: '/(public)/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof publicIndexRouteImport;
-      parentRoute: typeof publicRouteRoute;
-    };
-    '/dashboard/vehicle-assignments': {
-      id: '/dashboard/vehicle-assignments';
-      path: '/vehicle-assignments';
-      fullPath: '/dashboard/vehicle-assignments';
-      preLoaderRoute: typeof DashboardVehicleAssignmentsRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
-    '/dashboard/users': {
-      id: '/dashboard/users';
+    '/dashboard/users/': {
+      id: '/dashboard/users/';
       path: '/users';
-      fullPath: '/dashboard/users';
-      preLoaderRoute: typeof DashboardUsersRouteImport;
+      fullPath: '/dashboard/users/';
+      preLoaderRoute: typeof DashboardUsersIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/timeline': {
-      id: '/dashboard/timeline';
+    '/dashboard/timeline/': {
+      id: '/dashboard/timeline/';
       path: '/timeline';
-      fullPath: '/dashboard/timeline';
-      preLoaderRoute: typeof DashboardTimelineRouteImport;
+      fullPath: '/dashboard/timeline/';
+      preLoaderRoute: typeof DashboardTimelineIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/settings': {
-      id: '/dashboard/settings';
+    '/dashboard/settings/': {
+      id: '/dashboard/settings/';
       path: '/settings';
-      fullPath: '/dashboard/settings';
-      preLoaderRoute: typeof DashboardSettingsRouteImport;
+      fullPath: '/dashboard/settings/';
+      preLoaderRoute: typeof DashboardSettingsIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/service': {
-      id: '/dashboard/service';
+    '/dashboard/service/': {
+      id: '/dashboard/service/';
       path: '/service';
-      fullPath: '/dashboard/service';
-      preLoaderRoute: typeof DashboardServiceRouteImport;
+      fullPath: '/dashboard/service/';
+      preLoaderRoute: typeof DashboardServiceIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/reset-password': {
-      id: '/dashboard/reset-password';
+    '/dashboard/reset-password/': {
+      id: '/dashboard/reset-password/';
       path: '/reset-password';
-      fullPath: '/dashboard/reset-password';
-      preLoaderRoute: typeof DashboardResetPasswordRouteImport;
+      fullPath: '/dashboard/reset-password/';
+      preLoaderRoute: typeof DashboardResetPasswordIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/payments': {
-      id: '/dashboard/payments';
+    '/dashboard/payments/': {
+      id: '/dashboard/payments/';
       path: '/payments';
-      fullPath: '/dashboard/payments';
-      preLoaderRoute: typeof DashboardPaymentsRouteImport;
+      fullPath: '/dashboard/payments/';
+      preLoaderRoute: typeof DashboardPaymentsIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/notifications': {
-      id: '/dashboard/notifications';
+    '/dashboard/notifications/': {
+      id: '/dashboard/notifications/';
       path: '/notifications';
-      fullPath: '/dashboard/notifications';
-      preLoaderRoute: typeof DashboardNotificationsRouteImport;
+      fullPath: '/dashboard/notifications/';
+      preLoaderRoute: typeof DashboardNotificationsIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
-    };
-    '/dashboard/admin': {
-      id: '/dashboard/admin';
-      path: '/admin';
-      fullPath: '/dashboard/admin';
-      preLoaderRoute: typeof DashboardAdminRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
-    '/(auth)/verify-email': {
-      id: '/(auth)/verify-email';
-      path: '/verify-email';
-      fullPath: '/verify-email';
-      preLoaderRoute: typeof authVerifyEmailRouteImport;
-      parentRoute: typeof authRouteRoute;
-    };
-    '/(auth)/login': {
-      id: '/(auth)/login';
-      path: '/login';
-      fullPath: '/login';
-      preLoaderRoute: typeof authLoginRouteImport;
-      parentRoute: typeof authRouteRoute;
-    };
-    '/(auth)/forgot-password': {
-      id: '/(auth)/forgot-password';
-      path: '/forgot-password';
-      fullPath: '/forgot-password';
-      preLoaderRoute: typeof authForgotPasswordRouteImport;
-      parentRoute: typeof authRouteRoute;
     };
     '/dashboard/my-cars/': {
       id: '/dashboard/my-cars/';
@@ -401,12 +353,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMyCarsIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
+    '/dashboard/admin/': {
+      id: '/dashboard/admin/';
+      path: '/admin';
+      fullPath: '/dashboard/admin/';
+      preLoaderRoute: typeof DashboardAdminIndexRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
+    '/dashboard/(home)/': {
+      id: '/dashboard/(home)/';
+      path: '/';
+      fullPath: '/dashboard/';
+      preLoaderRoute: typeof DashboardhomeIndexRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
+    '/(public)/(home)/': {
+      id: '/(public)/(home)/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof publichomeIndexRouteImport;
+      parentRoute: typeof publicRouteRoute;
+    };
+    '/(auth)/verify-email/': {
+      id: '/(auth)/verify-email/';
+      path: '/verify-email';
+      fullPath: '/verify-email/';
+      preLoaderRoute: typeof authVerifyEmailIndexRouteImport;
+      parentRoute: typeof authRouteRoute;
+    };
     '/(auth)/signup/': {
       id: '/(auth)/signup/';
       path: '/signup';
       fullPath: '/signup/';
       preLoaderRoute: typeof authSignupIndexRouteImport;
       parentRoute: typeof authRouteRoute;
+    };
+    '/(auth)/login/': {
+      id: '/(auth)/login/';
+      path: '/login';
+      fullPath: '/login/';
+      preLoaderRoute: typeof authLoginIndexRouteImport;
+      parentRoute: typeof authRouteRoute;
+    };
+    '/(auth)/forgot-password/': {
+      id: '/(auth)/forgot-password/';
+      path: '/forgot-password';
+      fullPath: '/forgot-password/';
+      preLoaderRoute: typeof authForgotPasswordIndexRouteImport;
+      parentRoute: typeof authRouteRoute;
+    };
+    '/dashboard/vehicle-assignments/vehicle-assignments': {
+      id: '/dashboard/vehicle-assignments/vehicle-assignments';
+      path: '/vehicle-assignments/vehicle-assignments';
+      fullPath: '/dashboard/vehicle-assignments/vehicle-assignments';
+      preLoaderRoute: typeof DashboardVehicleAssignmentsVehicleAssignmentsRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
     };
     '/dashboard/my-cars/$carId': {
       id: '/dashboard/my-cars/$carId';
@@ -426,61 +427,62 @@ declare module '@tanstack/react-router' {
 }
 
 interface authRouteRouteChildren {
-  authForgotPasswordRoute: typeof authForgotPasswordRoute;
-  authLoginRoute: typeof authLoginRoute;
-  authVerifyEmailRoute: typeof authVerifyEmailRoute;
   authSignupSuccessRoute: typeof authSignupSuccessRoute;
+  authForgotPasswordIndexRoute: typeof authForgotPasswordIndexRoute;
+  authLoginIndexRoute: typeof authLoginIndexRoute;
   authSignupIndexRoute: typeof authSignupIndexRoute;
+  authVerifyEmailIndexRoute: typeof authVerifyEmailIndexRoute;
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
-  authForgotPasswordRoute: authForgotPasswordRoute,
-  authLoginRoute: authLoginRoute,
-  authVerifyEmailRoute: authVerifyEmailRoute,
   authSignupSuccessRoute: authSignupSuccessRoute,
+  authForgotPasswordIndexRoute: authForgotPasswordIndexRoute,
+  authLoginIndexRoute: authLoginIndexRoute,
   authSignupIndexRoute: authSignupIndexRoute,
+  authVerifyEmailIndexRoute: authVerifyEmailIndexRoute,
 };
 
 const authRouteRouteWithChildren = authRouteRoute._addFileChildren(authRouteRouteChildren);
 
 interface publicRouteRouteChildren {
-  publicIndexRoute: typeof publicIndexRoute;
+  publichomeIndexRoute: typeof publichomeIndexRoute;
 }
 
 const publicRouteRouteChildren: publicRouteRouteChildren = {
-  publicIndexRoute: publicIndexRoute,
+  publichomeIndexRoute: publichomeIndexRoute,
 };
 
 const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(publicRouteRouteChildren);
 
 interface DashboardRouteRouteChildren {
-  DashboardAdminRoute: typeof DashboardAdminRoute;
-  DashboardNotificationsRoute: typeof DashboardNotificationsRoute;
-  DashboardPaymentsRoute: typeof DashboardPaymentsRoute;
-  DashboardResetPasswordRoute: typeof DashboardResetPasswordRoute;
-  DashboardServiceRoute: typeof DashboardServiceRoute;
-  DashboardSettingsRoute: typeof DashboardSettingsRoute;
-  DashboardTimelineRoute: typeof DashboardTimelineRoute;
-  DashboardUsersRoute: typeof DashboardUsersRoute;
-  DashboardVehicleAssignmentsRoute: typeof DashboardVehicleAssignmentsRoute;
-  DashboardIndexRoute: typeof DashboardIndexRoute;
   DashboardMyCarsCarIdRoute: typeof DashboardMyCarsCarIdRoute;
+  DashboardVehicleAssignmentsVehicleAssignmentsRoute: typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
+  DashboardhomeIndexRoute: typeof DashboardhomeIndexRoute;
+  DashboardAdminIndexRoute: typeof DashboardAdminIndexRoute;
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute;
+  DashboardNotificationsIndexRoute: typeof DashboardNotificationsIndexRoute;
+  DashboardPaymentsIndexRoute: typeof DashboardPaymentsIndexRoute;
+  DashboardResetPasswordIndexRoute: typeof DashboardResetPasswordIndexRoute;
+  DashboardServiceIndexRoute: typeof DashboardServiceIndexRoute;
+  DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute;
+  DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute;
+  DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute;
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardAdminRoute: DashboardAdminRoute,
-  DashboardNotificationsRoute: DashboardNotificationsRoute,
-  DashboardPaymentsRoute: DashboardPaymentsRoute,
-  DashboardResetPasswordRoute: DashboardResetPasswordRoute,
-  DashboardServiceRoute: DashboardServiceRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardTimelineRoute: DashboardTimelineRoute,
-  DashboardUsersRoute: DashboardUsersRoute,
-  DashboardVehicleAssignmentsRoute: DashboardVehicleAssignmentsRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
   DashboardMyCarsCarIdRoute: DashboardMyCarsCarIdRoute,
+  DashboardVehicleAssignmentsVehicleAssignmentsRoute:
+    DashboardVehicleAssignmentsVehicleAssignmentsRoute,
+  DashboardhomeIndexRoute: DashboardhomeIndexRoute,
+  DashboardAdminIndexRoute: DashboardAdminIndexRoute,
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
+  DashboardNotificationsIndexRoute: DashboardNotificationsIndexRoute,
+  DashboardPaymentsIndexRoute: DashboardPaymentsIndexRoute,
+  DashboardResetPasswordIndexRoute: DashboardResetPasswordIndexRoute,
+  DashboardServiceIndexRoute: DashboardServiceIndexRoute,
+  DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
+  DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
+  DashboardUsersIndexRoute: DashboardUsersIndexRoute,
 };
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

@@ -1,10 +1,10 @@
-import { DashboardHeader } from '@/modules/dashboard/shared/DashboardHeader';
-import { EmptyPlaceholder } from '@/modules/dashboard/shared/EmptyPlaceholder';
-import { GridWrapper } from '@/modules/dashboard/shared/GridWrapper';
-import { BoardButton } from '@/modules/dashboard/ui/BoardButton';
-import { Card } from '@/modules/dashboard/ui/Card';
-import { DaysAmount } from '@/modules/dashboard/ui/DaysAmount';
-import { IconWrapper } from '@/modules/dashboard/ui/IconWrapper';
+import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
+import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
+import { EmptyPlaceholder } from '@/features/dashboard/layout/EmptyPlaceholder';
+import { GridWrapper } from '@/features/dashboard/layout/GridWrapper';
+import { IconWrapper } from '@/features/dashboard/layout/IconWrapper';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
 import { carsArr } from '@/store/cars';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Calendar, CarFront, Gauge } from 'lucide-react';
@@ -40,7 +40,7 @@ function RouteComponent() {
         <GridWrapper layout="3-equal">
           {carsArr.map((item) => {
             return (
-              <Card key={item.id}>
+              <BlockWrapper key={item.id}>
                 <div className="flex gap-[16px]">
                   <IconWrapper className="w-[50px] h-[50px]">
                     <CarFront className="text-info" />
@@ -76,7 +76,7 @@ function RouteComponent() {
                 >
                   Zobacz szczegóły
                 </BoardButton>
-              </Card>
+              </BlockWrapper>
             );
           })}
         </GridWrapper>

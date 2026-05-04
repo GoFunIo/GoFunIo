@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { FormProps } from '@/components/features/auth/types';
-import { isFormEmpty, validateForm } from '@/components/features/auth/validation';
 import { signUp } from '@/api/auth';
-import { AuthWrapper } from '@/components/features/auth/AuthWrapper';
 import { Input } from '@/components/ui/Input';
-import { handleChange } from '@/components/features/auth/form';
 import { Button } from '@/components/ui/Button';
+import { isFormEmpty, validateForm } from '@/features/auth/lib/validation';
+import { FormProps } from '@/features/auth/types/types';
+import { AuthWrapper } from '@/features/auth/layout/AuthWrapper';
+import { handleChange } from '@/features/auth/lib/form';
 
 export const Route = createFileRoute('/(auth)/signup/')({
   component: Signup,

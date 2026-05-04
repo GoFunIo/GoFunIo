@@ -1,7 +1,7 @@
 import { getUser } from '@/api/auth';
+import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
+import { Userbar } from '@/features/dashboard/widgets/Userbar';
 import { queryClient } from '@/lib/queryClient';
-import { Sidebar } from '@/modules/dashboard/shared/Sidebar';
-import { Userbar } from '@/modules/dashboard/shared/Userbar';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useMediaQuery } from 'react-responsive';
 

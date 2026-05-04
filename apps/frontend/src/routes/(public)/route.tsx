@@ -1,6 +1,6 @@
-import { Footer } from '@/modules/landing/components/Footer';
-import { Header } from '@/modules/landing/components/Header';
-import { BackToTop } from '@/modules/landing/ui/BackToTop';
+import { Footer } from '@/features/homepage/layout/Footer';
+import { Header } from '@/features/homepage/layout/Header';
+import { BackToTop } from '@/features/homepage/ui/BackToTop';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(public)')({
