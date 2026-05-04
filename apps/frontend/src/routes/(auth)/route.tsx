@@ -1,7 +1,6 @@
 import { getUser } from '@/api/auth';
 import { queryClient } from '@/lib/queryClient';
-import { Footer } from '@/modules/landing/shared/Footer';
-import { Header } from '@/modules/landing/shared/Header';
+import { Header } from '@/modules/landing/components';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(auth)')({
@@ -28,8 +27,6 @@ function RouteComponent() {
       <main className="flex-1">
         <Outlet />
       </main>
-
-      <Footer />
     </div>
   );
 }

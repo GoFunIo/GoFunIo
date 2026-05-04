@@ -51,7 +51,7 @@ export const MobileMenu = ({ isOpen, onClose, user, navLinks }: MobileMenuProps)
               </Link>
             </>
           ) : (
-            <Link to="/userdashboard" onClick={onClose} className="w-full">
+            <Link to="/dashboard" onClick={onClose} className="w-full">
               <Button variant="default" className="w-full uppercase ">
                 Dashboard
               </Button>

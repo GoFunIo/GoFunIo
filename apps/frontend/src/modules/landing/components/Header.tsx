@@ -73,7 +73,7 @@ export const Header = () => {
 
             {/* LOGIN/REGISTER BUTTON  */}
             <div className="hidden lg:flex items-center gap-3">
-              {!user && !isLoading && (
+              {!user && !isLoading ? (
                 <>
                   <Link to="/login">
                     <Button
@@ -107,6 +107,22 @@ export const Header = () => {
                     </Button>
                   </Link>
                 </>
+              ) : (
+                <Link to="/dashboard">
+                  <Button
+                    variant="default"
+                    className={`
+                    text-[11px]! uppercase transition-all duration-500
+                    ${
+                      isScrolled
+                        ? 'px-3! min-w-[80px]! min-h-[34px]!'
+                        : 'px-4! min-w-[100px]! min-h-[40px]!'
+                    }
+                  `}
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
               )}
             </div>
 
