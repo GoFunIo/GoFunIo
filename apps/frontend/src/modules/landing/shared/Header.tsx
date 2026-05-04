@@ -1,5 +1,5 @@
+import { useUser } from '@/hooks/useUser';
 import { Link } from '@tanstack/react-router';
-import { useUser } from 'src/hooks/useUser';
 
 export const Header = () => {
   const { data: user, isLoading } = useUser();
@@ -20,7 +20,7 @@ export const Header = () => {
         </Link>
       )}
       {user && !isLoading && (
-        <Link to="/userdashboard" className="[&.active]:font-bold">
+        <Link to="/dashboard" className="[&.active]:font-bold">
           Dashboard
         </Link>
       )}

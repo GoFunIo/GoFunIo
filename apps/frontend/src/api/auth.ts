@@ -1,3 +1,5 @@
+import { FormProps } from '@/components/features/auth/types';
+
 export const getUser = async () => {
   const res = await fetch('/auth/me', {
     method: 'GET',
@@ -13,7 +15,9 @@ export const getUser = async () => {
   return JSON.parse(text);
 };
 
-export const signUp = async (email: string, password: string) => {
+export const signUp = async (form: FormProps) => {
+  const { email, password } = form;
+
   const res = await fetch('/auth/signup', {
     method: 'POST',
     headers: {
@@ -41,14 +45,14 @@ export const signOut = async () => {
   }
 };
 
-export const signIn = async (email: string, password: string) => {
+export const signIn = async (form: FormProps) => {
   const res = await fetch('/auth/signin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(form),
   });
 
   if (!res.ok) {
