@@ -38,11 +38,10 @@ function Login() {
       const user = await signIn(form);
       queryClient.setQueryData(['me'], user);
       navigate({ to: '/dashboard' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nieprawidłowe dane uwierzytelniające';
+    } catch {
       setErrors({
         ...errors,
-        email: message,
+        email: 'Nieprawidłowe dane uwierzytelniające',
       });
     }
   };

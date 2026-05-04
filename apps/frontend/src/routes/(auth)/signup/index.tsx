@@ -97,7 +97,7 @@ function Signup() {
           Załóż konto
         </Button>
         <div className="flex justify-center gap-2 mt-[10px]">
-          <p className="text-[14px] font-medium">Masz juz konto?</p>
+          <p className="text-[14px] font-medium">Masz już konto?</p>
           <Link to="/login" className="font-medium text-[14px] text-primary">
             Zaloguj się
           </Link>

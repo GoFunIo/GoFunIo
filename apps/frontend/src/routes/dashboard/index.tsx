@@ -36,7 +36,7 @@ function RouteComponent() {
 
       <div className="flex flex-col md:gap-[24px] gap-[15px]">
         {/* banner */}
-        <Banner title="Plan indywidualby" subtitle="Plan aktywny do 20.12.2026" type="info" />
+        <Banner title="Plan indywidualny" subtitle="Plan aktywny do 20.12.2026" type="info" />
         <Banner type="warning" title="Plan indywidualby" subtitle="Plan aktywny do 20.12.2026" />
         <Banner
           type="alert"

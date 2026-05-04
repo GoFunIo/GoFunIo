@@ -29,7 +29,7 @@ function RouteComponent() {
       {!carsArr || carsArr.length === 0 ? (
         <EmptyPlaceholder
           className="bg-white min-h-[250px]"
-          title="Nie m tu żadnych pojazdów. Dodaj pierwszy "
+          title="Nie ma tu żadnych pojazdów. Dodaj pierwszy "
           button={{
             label: 'Zobacz wszystko',
             onClick: () => {},
