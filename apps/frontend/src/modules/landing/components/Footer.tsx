@@ -13,10 +13,10 @@ export const Footer = () => {
           <div className="lg:col-start-7 lg:col-span-6 flex flex-col gap-4 max-w-[550px] lg:order-2">
             <div>
               <h3 className="mb-3">
-                <span className="text-primary">Masz pytania?</span> Chętnie pomożemy
+                <span className="text-primary">Masz pytania?</span> Chętnie pomożemy.
               </h3>
               <p className="subtitle text-content-primary">
-                Nasz zespół jest dostępny od poniedziałku do piątku w godzinach 8:00 – 16:00
+                Nasz zespół jest dostępny od poniedziałku do piątku w godzinach 8:00 – 16:00.
               </p>
             </div>
             <a

@@ -39,7 +39,7 @@ export const Hero = () => {
               <Button variant="outline">Dowiedz się więcej</Button>
             </Link>
           </div>
-          <p>Bezpłatny okres próbny — bez karty kredytowej</p>
+          <p>Bezpłatny okres próbny — bez karty kredytowej.</p>
         </div>
 
         <div className="col-span-4 md:col-span-12 lg:col-span-6 h-full">
