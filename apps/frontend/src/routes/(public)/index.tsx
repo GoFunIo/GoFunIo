@@ -1,4 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { Hero } from '@/modules/landing/Hero';
+import { BenefitsSection } from '@/modules/landing/BenefitsSection';
+import { AboutSection } from '@/modules/landing/AboutSection';
+import { PricingSection } from '@/modules/landing/PricingSection';
+import { StatsSection } from '@/modules/landing/StatsSection';
+import { Testimonials } from '@/modules/landing/Testimonials';
+import { CTASection } from '@/modules/landing/CTASection ';
+import { FaqSection } from '@/modules/landing/FaqSection';
 
 export const Route = createFileRoute('/(public)/')({
   component: Index,
@@ -6,8 +14,15 @@ export const Route = createFileRoute('/(public)/')({
 
 function Index() {
   return (
-    <div className="bg-bg-section p-10">
-      <h3 className="pb-8">Hello "/Index"!</h3>
-    </div>
+    <>
+      <Hero />
+      <BenefitsSection />
+      <AboutSection />
+      <PricingSection />
+      <StatsSection />
+      <Testimonials />
+      <CTASection />
+      <FaqSection />
+    </>
   );
 }

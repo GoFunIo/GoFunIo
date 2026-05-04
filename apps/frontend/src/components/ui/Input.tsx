@@ -25,8 +25,11 @@ export const Input = ({
 
   const mainInputStyles = `
     w-full min-h-[45px] rounded-[7px] px-[16px] border
-    text-[12px] font-medium text-icon 
-    focus:outline-none focus:ring-0
+    text-[14px] font-medium  transition-all duration-200
+    outline-none focus:ring-0
+
+    bg-white dark:bg-bg-card
+    text-content-primary dark:text-white
     placeholder:text-icon
   `;
 
@@ -38,14 +41,16 @@ export const Input = ({
             <label
               htmlFor={name}
               className={classNames(
-                'text-[12px] font-medium leading-[21px]',
-                hasError ? 'text-alert' : 'text-content-muted',
+                'text-[14px] font-medium leading-none',
+                hasError ? 'text-alert' : 'text-content-secondary ',
               )}
             >
               {label}
             </label>
           )}
-          {hasError && <p className="text-alert text-[10px] font-medium">{error}</p>}
+          {hasError && (
+            <span className="text-alert text-[12px] leading-none font-medium ">{error}</span>
+          )}
         </div>
       )}
       <input

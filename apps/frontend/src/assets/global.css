@@ -1,6 +1,7 @@
 @import './fontMontserrat.css';
 @import './fontInter.css';
 @import 'tailwindcss';
+@variant dark (&:where(.dark, .dark *));
 
 html,
 body,
@@ -22,6 +23,7 @@ body,
   /* backgrounds */
   --bg-section: 238 240 246; /* #EEF0F6 */
   --bg-page: 250 251 251; /* #FAFBFB */
+  --bg-card: 250 250 250; /* #FFF */
 
   /* icons */
   --icon: 194 194 194; /* #C2C2C2 */
@@ -48,6 +50,9 @@ body,
   --info: 26 115 232; /* #1A73E8 */
   --warning: 240 177 74; /* #F0B14A */
   --alert: 217 48 37; /* #D93025 */
+  /* shadow */
+  --shadow-card: 0px 4px 13px 0px rgba(0, 0, 0, 0.07);
+  --shadow-hover: 0 4px 13px rgb(var(--primary) / 0.2);
 }
 
 .dark {
@@ -63,6 +68,7 @@ body,
   /* backgrounds */
   --bg-section: 39 45 59; /* #272D3B */
   --bg-page: 22 28 40; /* #161C28 */
+  --bg-card: 17 21 24; /* #111518 */
 
   /* icons */
   --icon: 90 90 90; /* #5A5A5A */
@@ -76,6 +82,10 @@ body,
   /* base bw */
   --white: 255 255 255; /* #FFFFFF */
   --dark: 17 21 24; /* #111518 */
+
+  /* shadow */
+  --shadow-card: 0px 10px 30px 0px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 4px 13px rgb(var(--primary) / 0.2);
 }
 
 @theme {
@@ -89,6 +99,7 @@ body,
 
   --color-bg-section: rgb(var(--bg-section));
   --color-bg-page: rgb(var(--bg-page));
+  --color-bg-card: rgb(var(--bg-card));
 
   --color-icon: rgb(var(--icon));
 
@@ -108,6 +119,9 @@ body,
   --color-white: rgb(var(--white));
   --color-dark: rgb(var(--dark));
 
+  --shadow-card: var(--shadow-card);
+  --shadow-hover: var(--shadow-hover);
+
   /* typography */
   --font-mont: 'Montserrat', sans-serif;
   --font-inter: 'Inter', sans-serif;
@@ -115,7 +129,7 @@ body,
 
 @layer base {
   body {
-    @apply font-inter overflow-x-hidden;
+    @apply font-inter overflow-x-hidden bg-bg-page;
   }
 
   h1,
@@ -129,25 +143,26 @@ body,
   }
 
   h1 {
-    @apply text-[40px] leading-none font-extrabold
-      sm:text-[60px] sm:leading-none
-      xl:text-[68px] xl:leading-[80px];
+    @apply text-[40px] leading-tight font-extrabold
+      sm:text-[60px]
+      lg:text-[50px]
+      xl:text-[68px];
   }
 
   h2 {
-    @apply text-[32px] leading-none font-bold
+    @apply text-[32px] leading-tight font-bold
       sm:text-[40px]
       xl:text-[48px];
   }
 
   h3 {
-    @apply text-[24px] leading-none font-bold
+    @apply text-[24px] leading-tight font-bold
       sm:text-[28px]
       xl:text-[32px];
   }
 
   h4 {
-    @apply text-[18px] leading-none font-semibold
+    @apply text-[18px] leading-tight font-semibold
       xl:text-[20px] xl:leading-[26px];
   }
 
@@ -162,11 +177,19 @@ body,
 
 @layer components {
   .subtitle {
-    @apply text-content-muted text-[18px] leading-none font-semibold
+    @apply text-content-muted text-[18px] leading-[22px] font-medium
       sm:text-[20px] sm:leading-[28px];
   }
 
   .custom-transition {
     @apply transition-all duration-[450ms] ease-out;
   }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+section[id] {
+  scroll-margin-top: 90px;
 }

@@ -1,5 +1,6 @@
-import { Footer } from '@/modules/landing/shared/Footer';
-import { Header } from '@/modules/landing/shared/Header';
+import { Footer } from '@/modules/landing/components/Footer';
+import { Header } from '@/modules/landing/components/Header';
+import { BackToTop } from '@/modules/landing/ui/BackToTop';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/(public)')({
@@ -8,14 +9,13 @@ export const Route = createFileRoute('/(public)')({
 
 function RouteComponent() {
   return (
-    <div className="flex flex-col h-full">
+    <>
       <Header />
-
-      <main className="flex-1">
+      <main>
         <Outlet />
       </main>
-
       <Footer />
-    </div>
+      <BackToTop />
+    </>
   );
 }
