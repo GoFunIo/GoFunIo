@@ -1,5 +1,4 @@
 import { getUser } from '@/api/auth';
-import { Header } from '@/features/homepage/layout/Header';
 import { queryClient } from '@/lib/queryClient';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
@@ -22,8 +21,6 @@ export const Route = createFileRoute('/(auth)')({
 function RouteComponent() {
   return (
     <div className="flex flex-col h-full">
-      <Header />
-
       <main className="flex-1">
         <Outlet />
       </main>

@@ -20,8 +20,7 @@ export const CTARegistrationForm = () => {
     console.log('Dane wysłane:', formData);
   };
 
-  const inputTheme =
-    '!border-none text-white placeholder:text-white/70 !min-h-[45px] !rounded-[7px]';
+  const inputTheme = '!bg-secondary  !border-none text-white placeholder:text-white/70';
 
   return (
     <div className="bg-primary/70 backdrop-blur-md rounded-[15px] px-6 py-8 text-white w-full ">
@@ -30,13 +29,14 @@ export const CTARegistrationForm = () => {
         <p className="opacity-90 text-white">Wypróbuj bezpłatnie przez 7 dni</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="">
+      <form onSubmit={handleSubmit} className="space-y-1">
         <Input
           name="firstName"
           placeholder="Imię"
           value={formData.firstName}
           onChange={(val) => handleChange('firstName', val.target.value)}
           className={inputTheme}
+          errorStyle="text-white"
         />
         <Input
           name="lastName"
@@ -44,6 +44,7 @@ export const CTARegistrationForm = () => {
           value={formData.lastName}
           onChange={(val) => handleChange('lastName', val.target.value)}
           className={inputTheme}
+          errorStyle="text-white"
         />
         <Input
           name="email"
@@ -52,6 +53,7 @@ export const CTARegistrationForm = () => {
           value={formData.email}
           onChange={(val) => handleChange('email', val.target.value)}
           className={inputTheme}
+          errorStyle="text-white"
         />
         <Input
           name="password"
@@ -60,6 +62,7 @@ export const CTARegistrationForm = () => {
           value={formData.password}
           onChange={(val) => handleChange('password', val.target.value)}
           className={inputTheme}
+          errorStyle="text-white"
         />
         <Link to="/">
           <Button variant="outline" type="submit" className="w-full mt-6 mb-2">

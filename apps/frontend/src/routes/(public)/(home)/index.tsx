@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Hero } from './components/Hero';
-import { BenefitsSection } from './components/BenefitsSection';
-import { AboutSection } from './components/AboutSection';
-import { PricingSection } from './components/PricingSection';
-import { StatsSection } from './components/StatsSection';
-import { Testimonials } from './components/Testimonials';
-import { CTASection } from './components/CTASection ';
-import { FaqSection } from './components/FaqSection';
+import { BenefitsSection } from './_components/layout/BenefitsSection';
+import { Hero } from './_components/layout/Hero';
+import { AboutSection } from './_components/layout/AboutSection';
+import { PricingSection } from './_components/layout/PricingSection';
+import { StatsSection } from './_components/layout/StatsSection';
+import { Testimonials } from './_components/layout/Testimonials';
+import { CTASection } from './_components/layout/CTASection ';
+import { FaqSection } from './_components/layout/FaqSection';
 
 export const Route = createFileRoute('/(public)/(home)/')({
   component: Index,
