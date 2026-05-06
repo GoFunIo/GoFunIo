@@ -30,7 +30,7 @@ function RouteComponent() {
       <div className="flex flex-col w-full h-screen overflow-hidden">
         <Userbar />
 
-        <div className="flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px]">
+        <div className="flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px] flex flex-col md:gap-[24px] gap-[15px]">
           <Outlet />
         </div>
       </div>

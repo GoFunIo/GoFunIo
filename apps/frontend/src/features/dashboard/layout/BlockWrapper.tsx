@@ -1,14 +1,18 @@
+import { getVariantStyles, Variant } from '@/utils/getVariantStyles';
 import classNames from 'classnames';
 import React from 'react';
 
 type Props = {
   children: React.ReactNode;
   className?: string;
+  variant?: Variant;
 };
 
-export const BlockWrapper = ({ children, className }: Props) => {
+export const BlockWrapper = ({ children, className, variant = 'default' }: Props) => {
+  const { border, bg } = getVariantStyles(variant);
+
   return (
-    <div className={classNames('bg-bg-page p-[25px] rounded-[7px] border border-icon', className)}>
+    <div className={classNames('p-[25px] rounded-[7px] border', className, bg, border)}>
       {children}
     </div>
   );

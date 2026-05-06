@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route';
 import { Route as publicRouteRouteImport } from './routes/(public)/route';
 import { Route as authRouteRouteImport } from './routes/(auth)/route';
+import { Route as DashboardVehicleAssignmentsIndexRouteImport } from './routes/dashboard/vehicle-assignments/index';
 import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index';
 import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index';
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index';
@@ -27,7 +28,6 @@ import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify
 import { Route as authSignupIndexRouteImport } from './routes/(auth)/signup/index';
 import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index';
 import { Route as authForgotPasswordIndexRouteImport } from './routes/(auth)/forgot-password/index';
-import { Route as DashboardVehicleAssignmentsVehicleAssignmentsRouteImport } from './routes/dashboard/vehicle-assignments/vehicle-assignments';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
 import { Route as authSignupSuccessRouteImport } from './routes/(auth)/signup/success';
 
@@ -43,6 +43,11 @@ const publicRouteRoute = publicRouteRouteImport.update({
 const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => rootRouteImport,
+} as any);
+const DashboardVehicleAssignmentsIndexRoute = DashboardVehicleAssignmentsIndexRouteImport.update({
+  id: '/vehicle-assignments/',
+  path: '/vehicle-assignments/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any);
 const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
   id: '/users/',
@@ -119,12 +124,6 @@ const authForgotPasswordIndexRoute = authForgotPasswordIndexRouteImport.update({
   path: '/forgot-password/',
   getParentRoute: () => authRouteRoute,
 } as any);
-const DashboardVehicleAssignmentsVehicleAssignmentsRoute =
-  DashboardVehicleAssignmentsVehicleAssignmentsRouteImport.update({
-    id: '/vehicle-assignments/vehicle-assignments',
-    path: '/vehicle-assignments/vehicle-assignments',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any);
 const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
   id: '/my-cars/$carId',
   path: '/my-cars/$carId',
@@ -140,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
   '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
-  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
   '/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/login/': typeof authLoginIndexRoute;
   '/signup/': typeof authSignupIndexRoute;
@@ -156,11 +154,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
   '/dashboard/users/': typeof DashboardUsersIndexRoute;
+  '/dashboard/vehicle-assignments/': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRoutesByTo {
   '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
-  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
   '/forgot-password': typeof authForgotPasswordIndexRoute;
   '/login': typeof authLoginIndexRoute;
   '/signup': typeof authSignupIndexRoute;
@@ -176,6 +174,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline': typeof DashboardTimelineIndexRoute;
   '/dashboard/users': typeof DashboardUsersIndexRoute;
+  '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -184,7 +183,6 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
   '/(auth)/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
-  '/dashboard/vehicle-assignments/vehicle-assignments': typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
   '/(auth)/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/(auth)/login/': typeof authLoginIndexRoute;
   '/(auth)/signup/': typeof authSignupIndexRoute;
@@ -200,6 +198,7 @@ export interface FileRoutesById {
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
   '/dashboard/users/': typeof DashboardUsersIndexRoute;
+  '/dashboard/vehicle-assignments/': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -207,7 +206,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/signup/success'
     | '/dashboard/my-cars/$carId'
-    | '/dashboard/vehicle-assignments/vehicle-assignments'
     | '/forgot-password/'
     | '/login/'
     | '/signup/'
@@ -222,12 +220,12 @@ export interface FileRouteTypes {
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
-    | '/dashboard/users/';
+    | '/dashboard/users/'
+    | '/dashboard/vehicle-assignments/';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/signup/success'
     | '/dashboard/my-cars/$carId'
-    | '/dashboard/vehicle-assignments/vehicle-assignments'
     | '/forgot-password'
     | '/login'
     | '/signup'
@@ -242,7 +240,8 @@ export interface FileRouteTypes {
     | '/dashboard/service'
     | '/dashboard/settings'
     | '/dashboard/timeline'
-    | '/dashboard/users';
+    | '/dashboard/users'
+    | '/dashboard/vehicle-assignments';
   id:
     | '__root__'
     | '/(auth)'
@@ -250,7 +249,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/(auth)/signup/success'
     | '/dashboard/my-cars/$carId'
-    | '/dashboard/vehicle-assignments/vehicle-assignments'
     | '/(auth)/forgot-password/'
     | '/(auth)/login/'
     | '/(auth)/signup/'
@@ -265,7 +263,8 @@ export interface FileRouteTypes {
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
-    | '/dashboard/users/';
+    | '/dashboard/users/'
+    | '/dashboard/vehicle-assignments/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -296,6 +295,13 @@ declare module '@tanstack/react-router' {
       fullPath: '';
       preLoaderRoute: typeof authRouteRouteImport;
       parentRoute: typeof rootRouteImport;
+    };
+    '/dashboard/vehicle-assignments/': {
+      id: '/dashboard/vehicle-assignments/';
+      path: '/vehicle-assignments';
+      fullPath: '/dashboard/vehicle-assignments/';
+      preLoaderRoute: typeof DashboardVehicleAssignmentsIndexRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
     };
     '/dashboard/users/': {
       id: '/dashboard/users/';
@@ -402,13 +408,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authForgotPasswordIndexRouteImport;
       parentRoute: typeof authRouteRoute;
     };
-    '/dashboard/vehicle-assignments/vehicle-assignments': {
-      id: '/dashboard/vehicle-assignments/vehicle-assignments';
-      path: '/vehicle-assignments/vehicle-assignments';
-      fullPath: '/dashboard/vehicle-assignments/vehicle-assignments';
-      preLoaderRoute: typeof DashboardVehicleAssignmentsVehicleAssignmentsRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
     '/dashboard/my-cars/$carId': {
       id: '/dashboard/my-cars/$carId';
       path: '/my-cars/$carId';
@@ -456,7 +455,6 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(publicRou
 
 interface DashboardRouteRouteChildren {
   DashboardMyCarsCarIdRoute: typeof DashboardMyCarsCarIdRoute;
-  DashboardVehicleAssignmentsVehicleAssignmentsRoute: typeof DashboardVehicleAssignmentsVehicleAssignmentsRoute;
   DashboardhomeIndexRoute: typeof DashboardhomeIndexRoute;
   DashboardAdminIndexRoute: typeof DashboardAdminIndexRoute;
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute;
@@ -467,12 +465,11 @@ interface DashboardRouteRouteChildren {
   DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute;
   DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute;
   DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute;
+  DashboardVehicleAssignmentsIndexRoute: typeof DashboardVehicleAssignmentsIndexRoute;
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardMyCarsCarIdRoute: DashboardMyCarsCarIdRoute,
-  DashboardVehicleAssignmentsVehicleAssignmentsRoute:
-    DashboardVehicleAssignmentsVehicleAssignmentsRoute,
   DashboardhomeIndexRoute: DashboardhomeIndexRoute,
   DashboardAdminIndexRoute: DashboardAdminIndexRoute,
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
@@ -483,6 +480,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
   DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
   DashboardUsersIndexRoute: DashboardUsersIndexRoute,
+  DashboardVehicleAssignmentsIndexRoute: DashboardVehicleAssignmentsIndexRoute,
 };
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

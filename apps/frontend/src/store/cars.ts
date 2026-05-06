@@ -24,7 +24,7 @@ const info = {
   title: 'Moje pojazdy',
   count: 3,
   subtitle: 'aktywnych',
-  status: '',
+  status: 'default',
   icon: CarFront,
 };
 

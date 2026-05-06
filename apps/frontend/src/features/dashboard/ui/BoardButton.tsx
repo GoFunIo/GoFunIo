@@ -23,7 +23,7 @@ export const BoardButton = ({
   disabled,
 }: Props) => {
   const mainBtn = `
-    custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] cursor-pointer w-fit font-semibold flex items-center justify-center gap-[8px]
+    custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] cursor-pointer w-fit font-semibold flex shrink-0 items-center justify-center gap-[8px]
   `;
   const smallBtn = `
     h-[30px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px]

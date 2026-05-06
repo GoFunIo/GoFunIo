@@ -21,11 +21,11 @@ type Props = {
   link?: LinkProps;
   button?: ButtonProps;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any[];
+  data?: any[];
   className?: string;
 };
 
-export const History = ({ title, button, data, className, link }: Props) => {
+export const History = ({ title, button, data = [], className, link }: Props) => {
   return (
     <BlockWrapper className={classNames('h-fit', className)}>
       <div className="flex gap-[10px] items-center">
@@ -37,7 +37,7 @@ export const History = ({ title, button, data, className, link }: Props) => {
           </Link>
         )}
         {button && (
-          <BoardButton size="small" onClick={button.onClick}>
+          <BoardButton size="small" onClick={button.onClick} className="ml-[auto]">
             {button?.label}
           </BoardButton>
         )}

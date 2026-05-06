@@ -1,3 +1,4 @@
+import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -12,6 +13,8 @@ function RouteComponent() {
         title="Oś czasu serwisu"
         subtitle="Chronologiczny widok wszystkich napraw i przeglądów."
       />
+
+      <BlockWrapper>Timeline</BlockWrapper>
     </>
   );
 }
