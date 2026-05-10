@@ -16,7 +16,7 @@ export const getUser = async () => {
 };
 
 export const signUp = async (form: FormProps) => {
-  const { email, password } = form;
+  const { email, password, name, surname } = form;
 
   const res = await fetch('/auth/signup', {
     method: 'POST',
@@ -24,7 +24,7 @@ export const signUp = async (form: FormProps) => {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, name, surname }),
   });
 
   if (!res.ok) {
@@ -46,13 +46,15 @@ export const signOut = async () => {
 };
 
 export const signIn = async (form: FormProps) => {
+  const { email, password } = form;
+
   const res = await fetch('/auth/signin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify(form),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {
