@@ -1,7 +1,7 @@
-import { signIn } from '@/api/auth';
+import { signIn } from '@/features/auth/auth.api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { AuthWrapper } from '@/features/auth/layout/AuthWrapper';
+import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
 import { handleChange } from '@/features/auth/lib/form';
 import { isFormEmpty, validateForm } from '@/features/auth/lib/validation';
 import { FormProps } from '@/features/auth/types/types';

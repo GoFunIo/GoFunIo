@@ -12,7 +12,7 @@ export const BlockWrapper = ({ children, className, variant = 'default' }: Props
   const { border, bg } = getVariantStyles(variant);
 
   return (
-    <div className={classNames('p-[25px] rounded-[7px] border', className, bg, border)}>
+    <div className={classNames('p-[25px] rounded-[7px] border bg', className, bg, border)}>
       {children}
     </div>
   );

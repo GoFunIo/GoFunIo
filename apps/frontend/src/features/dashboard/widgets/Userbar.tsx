@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/useUser';
 import { Bell, LogOut, Settings } from 'lucide-react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import classNames from 'classnames';
-import { signOut } from '@/api/auth';
+import { signOut } from '@/features/auth/auth.api';
 import { queryClient } from '@/lib/queryClient';
 
 export const Userbar = () => {
@@ -79,10 +79,10 @@ export const Userbar = () => {
               onClick={() => setDropdown(!dropdown)}
             >
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center">
-                <p className="text-[12px] font-regular text-white">{getInitials()}</p>
+                <p className="text-[12px] font-normal text-white">{getInitials()}</p>
               </div>
               <div className="max-[426px]:hidden">
-                <p className="text-[14px] font-regular text-black">{name}</p>
+                <p className="text-[14px] font-normal text-black">{name}</p>
                 <p className="text-[12px]">{user.email}</p>
               </div>
             </div>
@@ -100,7 +100,7 @@ export const Userbar = () => {
                 className="hover:bg-bg-section p-[8px] flex items-center gap-[8px]"
               >
                 <Settings size={22} className="text-black" />
-                <p className="font-regular text-[14px] text-black">Ustawienia</p>
+                <p className="font-normal text-[14px] text-black">Ustawienia</p>
               </Link>
               <button
                 onClick={logout}
@@ -108,7 +108,7 @@ export const Userbar = () => {
                 className="cursor-pointer flex items-center gap-[8px] hover:bg-bg-section p-[8px]"
               >
                 <LogOut size={22} className="text-alert" />
-                <p className="font-regular text-[14px] text-alert">Wyloguj</p>
+                <p className="font-normal text-[14px] text-alert">Wyloguj</p>
               </button>
             </div>
           </div>

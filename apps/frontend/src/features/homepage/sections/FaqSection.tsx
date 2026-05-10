@@ -1,4 +1,4 @@
-import { Accordion } from '@/features/homepage/layout/Accordion';
+import { Accordion } from '@/features/homepage/widgets/Accordion';
 import { useState } from 'react';
 
 export const FaqSection = () => {

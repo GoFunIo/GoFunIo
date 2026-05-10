@@ -1,5 +1,5 @@
-import { Footer } from '@/features/homepage/layout/Footer';
-import { Header } from '@/features/homepage/layout/Header';
+import { Footer } from '@/features/homepage/widgets/Footer';
+import { Header } from '@/features/homepage/widgets/Header';
 import { BackToTop } from '@/features/homepage/ui/BackToTop';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 

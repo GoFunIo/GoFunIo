@@ -1,5 +1,5 @@
 import { LucideIcon } from 'lucide-react';
-import { useCountUp } from './../hooks/useCountUp';
+import { useCountUp } from '../../../hooks/useCountUp';
 import { FeatureIcon } from './FeatureIcon';
 
 interface StatItemProps {

@@ -1,4 +1,4 @@
-import { getUser } from '@/api/auth';
+import { getUser } from '@/features/auth/auth.api';
 import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
 import { Userbar } from '@/features/dashboard/widgets/Userbar';
 import { queryClient } from '@/lib/queryClient';

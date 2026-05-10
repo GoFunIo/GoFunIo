@@ -2,9 +2,9 @@ import classNames from 'classnames';
 import { Activity, Wrench } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { BoardButton } from '../ui/BoardButton';
-import { EmptyPlaceholder } from '../layout/EmptyPlaceholder';
-import { IconWrapper } from '../layout/IconWrapper';
-import { BlockWrapper } from '../layout/BlockWrapper';
+import { BlockWrapper } from '../ui/BlockWrapper';
+import { EmptyPlaceholder } from './EmptyPlaceholder';
+import { IconWrapper } from '../ui/IconWrapper';
 
 type LinkProps = {
   label: string;

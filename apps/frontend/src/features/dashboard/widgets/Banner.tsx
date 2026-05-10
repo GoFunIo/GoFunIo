@@ -2,8 +2,8 @@ import { BoardButton } from '../ui/BoardButton';
 import { Clock, TriangleAlert } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import classNames from 'classnames';
-import { IconWrapper } from '../layout/IconWrapper';
 import { getVariantStyles, Variant } from '@/utils/getVariantStyles';
+import { IconWrapper } from '../ui/IconWrapper';
 
 type Props = {
   className?: string;
@@ -30,7 +30,7 @@ export const Banner = ({ className, variant = 'info', title, subtitle }: Props) 
       </IconWrapper>
       <div className="mr-auto">
         <p className="pb-[4px] text-black font-semibold text-[16px]/[21px]">{title}</p>
-        <p className="text-black font-regular text-[14px]/[21px]">{subtitle}</p>
+        <p className="text-black font-normal text-[14px]/[21px]">{subtitle}</p>
       </div>
       <BoardButton
         onClick={() => navigate({ to: '/dashboard/payments' })}

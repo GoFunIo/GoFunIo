@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useUser } from '@/hooks/useUser';
 import { Button } from '@/components/ui/Button';
-import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 type UserType = ReturnType<typeof useUser>['data'];
 

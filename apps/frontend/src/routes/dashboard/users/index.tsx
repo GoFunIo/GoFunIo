@@ -1,4 +1,4 @@
-import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/users/')({

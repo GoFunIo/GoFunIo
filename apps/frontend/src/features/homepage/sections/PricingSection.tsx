@@ -1,4 +1,4 @@
-import { PricingCard } from '@/features/homepage/layout/PricingCard';
+import { PricingCard } from '@/features/homepage/widgets/PricingCard';
 import { Switcher } from '@/features/homepage/ui/Switcher';
 import { useState } from 'react';
 

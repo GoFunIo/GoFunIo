@@ -1,6 +1,6 @@
-import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
-import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
-import { GridWrapper } from '@/features/dashboard/layout/GridWrapper';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/vehicle-assignments/')({

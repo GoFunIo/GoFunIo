@@ -1,4 +1,5 @@
-import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { Filters } from '@/features/dashboard/widgets/Filters';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/service/')({
@@ -16,6 +17,8 @@ function RouteComponent() {
           onClick: () => {},
         }}
       />
+
+      <Filters />
     </>
   );
 }

@@ -1,7 +1,7 @@
-import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
-import { GridWrapper } from '@/features/dashboard/layout/GridWrapper';
-import { IconWrapper } from '@/features/dashboard/layout/IconWrapper';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { History } from '@/features/dashboard/widgets/History';
 import { activityArr, carsArr } from '@/store/cars';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -90,7 +90,7 @@ function RouteComponent() {
           }}
           title="Historia serwisowa"
         />
-        <BlockWrapper>
+        <BlockWrapper className="h-fit">
           <h4 className="">Specyfikacja</h4>
           <ul className="py-[16px] border-b border-dark space-y-[10px]">
             <li className="flex gap-[8px] justify-between">

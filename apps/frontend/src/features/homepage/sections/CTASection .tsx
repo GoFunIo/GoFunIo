@@ -4,7 +4,7 @@ import avatar3 from '@/assets/img/testimonial-image-3.webp';
 import ctaLarge from '@/assets/img/ctaLarge.webp';
 import { SocialProofBadge } from '@/features/homepage/ui/SocialProofBadge';
 import { AvatarStack } from '@/features/homepage/ui/AvatarStack';
-import { CTARegistrationForm } from '@/features/homepage/layout/CTARegistrationForm';
+import { CTARegistrationForm } from '@/features/homepage/widgets/CTARegistrationForm';
 
 const AVATAR_URLS = [avatar1, avatar2, avatar3];
 

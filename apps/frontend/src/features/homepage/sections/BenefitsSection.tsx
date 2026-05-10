@@ -1,4 +1,4 @@
-import { BenefitCard } from '@/features/homepage/layout/BenefitCard';
+import { BenefitCard } from '@/features/homepage/widgets/BenefitCard';
 import {
   FileChartColumn,
   BellRing,

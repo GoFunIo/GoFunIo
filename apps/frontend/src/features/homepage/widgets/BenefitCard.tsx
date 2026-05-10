@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { FeatureIcon } from './../ui/FeatureIcon';
+import { FeatureIcon } from '../ui/FeatureIcon';
 import { LucideIcon } from 'lucide-react';
 
 interface BenefitCardProps {

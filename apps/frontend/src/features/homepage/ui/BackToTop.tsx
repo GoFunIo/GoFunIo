@@ -1,5 +1,5 @@
+import { useScrollY } from '@/hooks/useScrollY';
 import { ArrowUp } from 'lucide-react';
-import { useScrollY } from './../hooks/useScrollY';
 
 export const BackToTop = () => {
   const isVisible = useScrollY(300);

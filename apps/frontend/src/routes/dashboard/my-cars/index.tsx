@@ -1,13 +1,13 @@
-import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
-import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
-import { EmptyPlaceholder } from '@/features/dashboard/layout/EmptyPlaceholder';
-import { GridWrapper } from '@/features/dashboard/layout/GridWrapper';
-import { IconWrapper } from '@/features/dashboard/layout/IconWrapper';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
 import { carsArr } from '@/store/cars';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Calendar, CarFront, Gauge } from 'lucide-react';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,

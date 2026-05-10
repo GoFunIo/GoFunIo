@@ -1,4 +1,4 @@
-import { Blob } from './../ui/Blob';
+import { Blob } from '../ui/Blob';
 import { InstagramIcon, XIcon, FacebookIcon } from '../ui/Icons';
 import LogoLight from '@/assets/logo/logo_autokeep.svg';
 import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';

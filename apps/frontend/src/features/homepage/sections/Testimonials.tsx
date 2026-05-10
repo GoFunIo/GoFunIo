@@ -1,7 +1,7 @@
 import testimonialimage1 from '@/assets/img/testimonial-image-1.webp';
 import testimonialimage2 from '@/assets/img/testimonial-image-2.webp';
 import testimonialimage3 from '@/assets/img/testimonial-image-3.webp';
-import { TestimonialCard } from '@/features/homepage/layout/TestimonialCard';
+import { TestimonialCard } from '@/features/homepage/widgets/TestimonialCard';
 
 const testimonials = [
   {

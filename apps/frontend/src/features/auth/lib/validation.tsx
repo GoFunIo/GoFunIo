@@ -1,4 +1,4 @@
-import { FormProps } from './types';
+import { FormProps } from '../types/types';
 
 // rules for inputs
 

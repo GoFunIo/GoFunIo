@@ -2,14 +2,14 @@ import { useUser } from '@/hooks/useUser';
 import { createFileRoute } from '@tanstack/react-router';
 import { AlertTriangle, CarFront } from 'lucide-react';
 import { actionsArr, activityArr, carSingleArr } from '@/store/cars';
-import { DashboardHeader } from '@/features/dashboard/layout/DashboardHeader';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Banner } from '@/features/dashboard/widgets/Banner';
-import { GridWrapper } from '@/features/dashboard/layout/GridWrapper';
-import { BlockWrapper } from '@/features/dashboard/layout/BlockWrapper';
-import { IconWrapper } from '@/features/dashboard/layout/IconWrapper';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { History } from '@/features/dashboard/widgets/History';
-import { EmptyPlaceholder } from '@/features/dashboard/layout/EmptyPlaceholder';
 import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
