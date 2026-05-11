@@ -171,7 +171,7 @@ body,
   }
 
   button {
-    @apply outline-none focus:outline-none active:outline-none select-none;
+    @apply select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
   }
 }
 

@@ -1,7 +1,7 @@
-import { getUser } from '@/api/auth';
+import { getUser } from '@/features/auth/auth.api';
+import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
+import { Userbar } from '@/features/dashboard/widgets/Userbar';
 import { queryClient } from '@/lib/queryClient';
-import { Sidebar } from '@/modules/dashboard/shared/Sidebar';
-import { Userbar } from '@/modules/dashboard/shared/Userbar';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useMediaQuery } from 'react-responsive';
 
@@ -30,7 +30,7 @@ function RouteComponent() {
       <div className="flex flex-col w-full h-screen overflow-hidden">
         <Userbar />
 
-        <div className="flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px]">
+        <div className="flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px] flex flex-col md:gap-[24px] gap-[15px]">
           <Outlet />
         </div>
       </div>

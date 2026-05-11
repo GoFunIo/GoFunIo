@@ -9,6 +9,7 @@ type Props = {
   placeholder?: string;
   className?: string;
   error?: string;
+  errorStyle?: string;
 };
 
 export const Input = ({
@@ -20,12 +21,13 @@ export const Input = ({
   placeholder = 'Type me',
   className,
   error,
+  errorStyle,
 }: Props) => {
   const hasError = Boolean(error);
 
   const mainInputStyles = `
     w-full min-h-[45px] rounded-[7px] px-[16px] border
-    text-[14px] font-medium  transition-all duration-200
+    text-[14px] font-medium focus:border-info custom-transition
     outline-none focus:ring-0
 
     bg-white dark:bg-bg-card
@@ -34,25 +36,30 @@ export const Input = ({
   `;
 
   return (
-    <div className={classNames('relative w-full pt-5.5', className)}>
-      {(label || hasError) && (
-        <div className="absolute top-0 left-0 w-full flex justify-between gap-x-2 flex-wrap items-end">
-          {label && (
-            <label
-              htmlFor={name}
-              className={classNames(
-                'text-[14px] font-medium leading-none',
-                hasError ? 'text-alert' : 'text-content-secondary ',
-              )}
-            >
-              {label}
-            </label>
+    <div className={classNames('relative w-full')}>
+      <div
+        className={classNames(
+          'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',
+        )}
+      >
+        <label
+          htmlFor={name}
+          className={classNames(
+            'shrink-0 text-[14px] font-medium leading-none',
+            hasError ? 'text-alert' : 'text-content-secondary ',
           )}
-          {hasError && (
-            <span className="text-alert text-[12px] leading-none font-medium ">{error}</span>
+        >
+          {label}
+        </label>
+        <span
+          className={classNames(
+            'text-right text-alert text-[12px] leading-none font-medium',
+            errorStyle,
           )}
-        </div>
-      )}
+        >
+          {error}
+        </span>
+      </div>
       <input
         id={name}
         type={type}
@@ -60,7 +67,11 @@ export const Input = ({
         name={name}
         placeholder={placeholder}
         onChange={onChange}
-        className={classNames(mainInputStyles, hasError ? 'border-alert' : 'border-icons')}
+        className={classNames(
+          mainInputStyles,
+          className,
+          hasError ? 'border-alert' : 'border-icon',
+        )}
       />
     </div>
   );

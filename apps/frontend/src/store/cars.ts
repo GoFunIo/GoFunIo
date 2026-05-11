@@ -1,5 +1,16 @@
 import { CarFront, Plus } from 'lucide-react';
 
+const timeline = {
+  id: 1,
+  date: '03.04.2026',
+  title: 'Pełny serwis',
+  car: 'BMW E60',
+  registration: 'SJ 0776A',
+  service: 'Auto Krakow',
+  notations: 'Wymiana rozrządu',
+  price: 1850,
+};
+
 const car = {
   id: 1,
   title: 'BMW',
@@ -24,7 +35,7 @@ const info = {
   title: 'Moje pojazdy',
   count: 3,
   subtitle: 'aktywnych',
-  status: '',
+  status: 'default',
   icon: CarFront,
 };
 
@@ -46,3 +57,4 @@ export const carSingleArr = Array.from({ length: 2 }, (_, i) => ({ ...carSingle,
 export const infoArr = Array.from({ length: 3 }, (_, i) => ({ ...info, id: i + 1 }));
 export const actionsArr = Array.from({ length: 3 }, (_, i) => ({ ...actions, id: i + 1 }));
 export const carsArr = Array.from({ length: 5 }, (_, i) => ({ ...car, id: i + 1 }));
+export const timelineArr = Array.from({ length: 5 }, (_, i) => ({ ...timeline, id: i + 1 }));

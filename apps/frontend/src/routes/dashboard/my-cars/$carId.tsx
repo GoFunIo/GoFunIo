@@ -1,8 +1,11 @@
-import { BoardButton } from '@/modules/dashboard/ui/BoardButton';
-import { IconWrapper } from '@/modules/dashboard/ui/IconWrapper';
-import { carsArr } from '@/store/cars';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
+import { History } from '@/features/dashboard/widgets/History';
+import { activityArr, carsArr } from '@/store/cars';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft, CarFront } from 'lucide-react';
+import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {
@@ -17,15 +20,15 @@ function RouteComponent() {
   if (!car) return <h1 className="">Car not found</h1>;
 
   return (
-    <div className="">
+    <>
       <Link
         to="/dashboard/my-cars"
-        className="w-fit px-[4px] py-[6px] flex items-center gap-[8px] text-[12px] text-content-secondary"
+        className="w-fit flex items-center gap-[8px] text-[12px] text-content-secondary"
       >
         <ArrowLeft size={18} />
         Wróć do pojazdów
       </Link>
-      <div className="md:my-[24px] my-[12px] grid sm:grid-cols-2 grid-cols-1 gap-[16px]">
+      <div className="grid sm:grid-cols-2 grid-cols-1 gap-[16px]">
         <div className="flex gap-[16px] items-center shrink-0">
           <IconWrapper className="xl:w-[60px] xl:h-[60px] w-[50px] h-[50px]  bg-secondary">
             <CarFront className="text-white" />
@@ -46,6 +49,85 @@ function RouteComponent() {
           </BoardButton>
         </div>
       </div>
-    </div>
+      <GridWrapper layout="3-equal">
+        <BlockWrapper className="flex gap-[16px]">
+          <IconWrapper>
+            <Gauge />
+          </IconWrapper>
+          <div className="">
+            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-black">48 230 km</p>
+          </div>
+        </BlockWrapper>
+
+        <BlockWrapper className="flex gap-[16px]">
+          <IconWrapper>
+            <Gauge />
+          </IconWrapper>
+          <div className="">
+            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-black">48 230 km</p>
+          </div>
+        </BlockWrapper>
+
+        <BlockWrapper className="flex gap-[16px]">
+          <IconWrapper>
+            <Gauge />
+          </IconWrapper>
+          <div className="">
+            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-black">48 230 km</p>
+          </div>
+        </BlockWrapper>
+      </GridWrapper>
+
+      <GridWrapper layout="2-unequal">
+        <History
+          data={activityArr}
+          button={{
+            label: 'Zobacz wszystko',
+            onClick: () => {},
+          }}
+          title="Historia serwisowa"
+        />
+        <BlockWrapper className="h-fit">
+          <h4 className="">Specyfikacja</h4>
+          <ul className="py-[16px] border-b border-dark space-y-[10px]">
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+            <li className="flex gap-[8px] justify-between">
+              <p className="text-[14px]">Marka</p>
+              <p className="text-[14px] text-black">BMW</p>
+            </li>
+          </ul>
+          <div className="pt-[16px]">
+            <h4 className="">Notatki</h4>
+            <p className="text-[14px] pt-[8px]">Samochód służbowy</p>
+          </div>
+        </BlockWrapper>
+      </GridWrapper>
+    </>
   );
 }
