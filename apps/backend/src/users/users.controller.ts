@@ -16,7 +16,6 @@ import { AuthService } from './auth.service';
 import type { SessionData } from '../types/session.types';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { CurrentUserInterceptor } from './interceptors/current-user.interceptor';
-import { AuthGuard } from './guards/auth.guard';
 
 @Controller('auth')
 @Serialize(UserDto)
@@ -49,13 +48,11 @@ export class UsersController {
   }
 
   @Post('signout')
-  @UseGuards(AuthGuard)
   signout(@Session() session: SessionData): void {
     session.userId = null;
   }
 
   @Get('me')
-  @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: User): User {
     return user;
   }
