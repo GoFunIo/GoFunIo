@@ -1,11 +1,3 @@
-### Get all users. Optional email parameter.
-GET http://localhost:3000/auth/users
-
-### Get user by id
-
-GET http://localhost:3000/auth/users/1
-
-
 ### Create user
 POST http://localhost:3000/auth/signup
 Content-Type: application/json
@@ -29,14 +21,3 @@ GET http://localhost:3000/auth/me
 
 ### Sign out
 POST http://localhost:3000/auth/signout
-
-### Delete user by id
-DELETE http://localhost:3000/auth/4
-
-### Update user by id
-PATCH http://localhost:3000/auth/2
-Content-Type: application/json
-
-{
-  "password": "aaaaa"
-}
