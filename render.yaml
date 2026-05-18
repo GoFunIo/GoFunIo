@@ -6,10 +6,12 @@ services:
     name: gofunio-api-staging
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter backend build
+    buildCommand: npm install -g pnpm@10.32.0 && pnpm install --frozen-lockfile && pnpm --filter backend build
     startCommand: node dist/backend/main.js
     healthCheckPath: /status
     envVars:
+      - key: NODE_VERSION
+        value: '22'
       - key: NODE_ENV
         value: production
       - key: RUN_MIGRATIONS
