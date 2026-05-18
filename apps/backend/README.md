@@ -31,6 +31,13 @@
 $ pnpm install
 ```
 
+## Dev email (Mailtrap)
+
+1. Copy [`.env.example`](./.env.example) to `.env` and set `COOKIE_KEY`, `FRONTEND_URL` (must match your frontend origin, e.g. `http://localhost:5173`).
+2. In [Mailtrap](https://mailtrap.io) → **Email Testing** → pick an inbox → **SMTP** → use host `smtp.mailtrap.io`, port **587**, and the **username / password** shown there as `MAIL_USER` and `MAIL_PASS`.
+3. Set `MAIL_FROM` to any sender string you like (Mailtrap accepts it for testing).
+4. Run `pnpm run start:dev`. Signup or **resend verification** delivers messages to that Mailtrap inbox; links use `FRONTEND_URL` + `/verify-email?token=…`.
+
 ## Compile and run the project
 
 ```bash
