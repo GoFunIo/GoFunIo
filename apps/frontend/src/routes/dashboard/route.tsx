@@ -1,6 +1,7 @@
 import { getUser } from '@/features/auth/auth.api';
 import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
 import { Userbar } from '@/features/dashboard/widgets/Userbar';
+import { useUser } from '@/hooks/useUser';
 import { queryClient } from '@/lib/queryClient';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useMediaQuery } from 'react-responsive';
@@ -22,6 +23,11 @@ export const Route = createFileRoute('/dashboard')({
 });
 
 function RouteComponent() {
+  const { data: user, isLoading } = useUser();
+  console.log(user);
+  if (isLoading) return <h1 className="">Loading</h1>;
+  if (!user) return null;
+
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   return (

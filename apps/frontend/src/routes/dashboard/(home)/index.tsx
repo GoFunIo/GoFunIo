@@ -16,10 +16,7 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 });
 
 function RouteComponent() {
-  const { data: user, isLoading } = useUser();
-
-  if (isLoading) return <h1 className="">Loading</h1>;
-  if (!user) return null;
+  const { data: user } = useUser();
 
   return (
     <>
