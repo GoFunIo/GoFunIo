@@ -22,9 +22,26 @@ export class UsersService {
     return this.usersRepository.findBy({ email });
   }
 
-  async create(email: string, password: string): Promise<User> {
-    const user = this.usersRepository.create({ email, password });
+  async create(
+    email: string,
+    password: string,
+    extra: Partial<
+      Pick<User, 'verificationTokenHash' | 'verificationTokenExpiresAt'>
+    > = {},
+  ): Promise<User> {
+    const user = this.usersRepository.create({ email, password, ...extra });
     return this.usersRepository.save(user);
+  }
+
+  async findOneByVerificationTokenHash(hash: string): Promise<User | null> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect([
+        'user.verificationTokenHash',
+        'user.verificationTokenExpiresAt',
+      ])
+      .where('user.verificationTokenHash = :hash', { hash })
+      .getOne();
   }
 
   async update(id: number, attrs: Partial<User>): Promise<User> {
