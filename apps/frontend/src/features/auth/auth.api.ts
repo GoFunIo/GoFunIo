@@ -1,7 +1,9 @@
 import { FormProps } from '@/features/auth/types/types';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const getUser = async () => {
-  const res = await fetch('/auth/me', {
+  const res = await fetch(`${API_URL}/auth/me`, {
     method: 'GET',
     credentials: 'include',
   });
@@ -16,15 +18,15 @@ export const getUser = async () => {
 };
 
 export const signUp = async (form: FormProps) => {
-  const { email, password, name, surname } = form;
+  const { email, password } = form;
 
-  const res = await fetch('/auth/signup', {
+  const res = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ email, password, name, surname }),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {
@@ -35,7 +37,7 @@ export const signUp = async (form: FormProps) => {
 };
 
 export const signOut = async () => {
-  const res = await fetch('/auth/signout', {
+  const res = await fetch(`${API_URL}/auth/signout`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -48,7 +50,7 @@ export const signOut = async () => {
 export const signIn = async (form: FormProps) => {
   const { email, password } = form;
 
-  const res = await fetch('/auth/signin', {
+  const res = await fetch(`${API_URL}/auth/signin`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

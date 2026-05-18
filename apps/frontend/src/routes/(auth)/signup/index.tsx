@@ -18,15 +18,11 @@ function Signup() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState<FormProps>({
-    name: '',
-    surname: '',
     email: '',
     password: '',
   });
 
   const [errors, setErrors] = useState<FormProps>({
-    name: '',
-    surname: '',
     email: '',
     password: '',
   });
@@ -55,24 +51,6 @@ function Signup() {
   return (
     <AuthWrapper title="Załóż darmowe konto" subtitle="Wypróbuj bezpłatnie przez 7 dni">
       <form noValidate onSubmit={createAccount} className="mt-[30px]">
-        <Input
-          label="Imię"
-          name="name"
-          value={form.name}
-          onChange={(e) => handleChange(e, 'name', setForm, setErrors)}
-          placeholder="Imię"
-          className="mb-[10px]"
-          error={errors.name}
-        />
-        <Input
-          label="Nazwisko"
-          name="surname"
-          value={form.surname}
-          onChange={(e) => handleChange(e, 'surname', setForm, setErrors)}
-          placeholder="Nazwisko"
-          className="mb-[10px]"
-          error={errors.surname}
-        />
         <Input
           label="E-mail"
           name="email"

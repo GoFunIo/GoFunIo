@@ -23,12 +23,6 @@ export default defineConfig({
   },
   server: {
     open: true,
-    proxy: {
-      '/auth': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
   },
   build: {
     outDir: '../../dist/frontend',
