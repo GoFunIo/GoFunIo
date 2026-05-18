@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
+import { toMilliseconds } from '../common/duration.util';
 
 export const VERIFICATION_TOKEN_BYTES = 32;
 export const VERIFICATION_TOKEN_HEX_LENGTH = VERIFICATION_TOKEN_BYTES * 2;
@@ -18,6 +19,6 @@ export function generateVerificationToken(
 ): GeneratedVerificationToken {
   const token = randomBytes(VERIFICATION_TOKEN_BYTES).toString('hex');
   const tokenHash = hashVerificationToken(token);
-  const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + toMilliseconds({ hours: ttlHours }));
   return { token, tokenHash, expiresAt };
 }
