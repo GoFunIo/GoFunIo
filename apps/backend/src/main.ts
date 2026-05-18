@@ -32,10 +32,7 @@ async function bootstrap() {
   }
 
   app.enableCors({
-    origin: resolveCorsOrigins(
-      frontendUrl,
-      config.get<string>('CORS_ORIGINS'),
-    ),
+    origin: resolveCorsOrigins(frontendUrl, config.get<string>('CORS_ORIGINS')),
     credentials: true,
   });
   app.use(
@@ -44,7 +41,7 @@ async function bootstrap() {
       keys: [cookieKey],
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: toMilliseconds({ days: 7 }),
     }),
   );
