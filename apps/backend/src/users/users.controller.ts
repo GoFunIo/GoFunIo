@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Post,
+  Query,
   Session,
   UseGuards,
   UseInterceptors,
@@ -10,6 +12,8 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { User } from './users.entity';
 import { AuthUserDto } from './dtos/auth-user.dto';
+import { VerifyEmailDto } from './dtos/verify-email.dto';
+import { ResendVerificationDto } from './dtos/resend-verification.dto';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
 import { AuthService } from './auth.service';
@@ -18,24 +22,20 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { CurrentUserInterceptor } from './interceptors/current-user.interceptor';
 
 @Controller('auth')
-@Serialize(UserDto)
 @UseInterceptors(CurrentUserInterceptor)
 export class UsersController {
   constructor(private authService: AuthService) {}
 
   @Post('signup')
+  @Serialize(UserDto)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  async signup(
-    @Body() body: AuthUserDto,
-    @Session() session: SessionData,
-  ): Promise<User> {
-    const user = await this.authService.signup(body.email, body.password);
-    session.userId = user.id;
-    return user;
+  async signup(@Body() body: AuthUserDto): Promise<User> {
+    return this.authService.signup(body.email, body.password);
   }
 
   @Post('signin')
+  @Serialize(UserDto)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signin(
@@ -53,7 +53,26 @@ export class UsersController {
   }
 
   @Get('me')
+  @Serialize(UserDto)
   getMe(@CurrentUser() user: User): User {
     return user;
+  }
+
+  @Get('verify-email')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async verifyEmail(
+    @Query() query: VerifyEmailDto,
+  ): Promise<{ verified: true }> {
+    await this.authService.verifyEmail(query.token);
+    return { verified: true };
+  }
+
+  @Post('resend-verification')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 1, ttl: 60_000 } })
+  @HttpCode(204)
+  async resendVerification(@Body() body: ResendVerificationDto): Promise<void> {
+    await this.authService.resendVerification(body.email);
   }
 }

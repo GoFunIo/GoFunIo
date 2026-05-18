@@ -16,6 +16,17 @@ Content-Type: application/json
   "password": "123456"
 }
 
+### Verify email (token: 64 hex chars from verification link)
+GET http://localhost:3000/auth/verify-email?token=2437282ae53c7af1981eebe4088b13b9bfe1a7e656be07f525f0ade2c9dcce22
+
+### Resend verification email
+POST http://localhost:3000/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "testing@est.com"
+}
+
 ### Get me
 GET http://localhost:3000/auth/me
 
