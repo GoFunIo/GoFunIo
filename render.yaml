@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install -g pnpm@10.32.0 && pnpm install --frozen-lockfile && pnpm --filter backend build
-    startCommand: node dist/backend/main.js
+    startCommand: node apps/backend/dist/main.js
     healthCheckPath: /status
     envVars:
       - key: NODE_VERSION

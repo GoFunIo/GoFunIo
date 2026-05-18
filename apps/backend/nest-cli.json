@@ -7,7 +7,7 @@
     "assets": [
       {
         "include": "mail/templates/**/*.hbs",
-        "outDir": "../../dist/backend"
+        "outDir": "dist"
       }
     ],
     "watchAssets": true

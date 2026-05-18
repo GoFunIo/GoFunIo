@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules --project tsconfig.json src/main.ts",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node ../../dist/backend/main.js",
+    "start:prod": "node dist/main.js",
     "migration:run": "node --env-file=.env -r ts-node/register ./node_modules/typeorm/cli.js migration:run -d src/data-source.ts",
     "migration:show": "node --env-file=.env -r ts-node/register ./node_modules/typeorm/cli.js migration:show -d src/data-source.ts",
     "migration:revert": "node --env-file=.env -r ts-node/register ./node_modules/typeorm/cli.js migration:revert -d src/data-source.ts",
