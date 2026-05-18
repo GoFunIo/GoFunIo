@@ -7,6 +7,6 @@
 
 [[redirects]]
   from = "/auth/*"
-  to = "https://REPLACE_ME.onrender.com/auth/:splat"
+  to = "https://gofunio.onrender.com/auth/:splat"
   status = 200
   force = true
