@@ -54,6 +54,37 @@ export class EnvVars {
   @Min(1)
   @Max(24 * 30)
   VERIFICATION_TOKEN_TTL_HOURS: number = 24;
+
+  /** When set, uses PostgreSQL (e.g. Neon). Omit for local SQLite. */
+  @IsOptional()
+  @IsString()
+  DATABASE_URL?: string;
+
+  /** SQLite file path when DATABASE_URL is not set. */
+  @IsOptional()
+  @IsString()
+  DATABASE_PATH?: string;
+
+  /** Comma-separated origins; defaults to FRONTEND_URL when omitted. */
+  @IsOptional()
+  @IsString()
+  CORS_ORIGINS?: string;
+
+  /**
+   * Comma-separated regex patterns matched against the request `Origin` header
+   * to decide which frontend host to use for outbound links (e.g. mail).
+   * FRONTEND_URL is always implicitly allowed.
+   *
+   * Example for Netlify deploys:
+   *   ^https:\/\/([\w-]+--)?my-app\.netlify\.app$
+   */
+  @IsOptional()
+  @IsString()
+  FRONTEND_URL_PATTERNS?: string;
+
+  /** Run pending TypeORM migrations on app startup (staging/production). */
+  @IsOptional()
+  RUN_MIGRATIONS?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {

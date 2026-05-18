@@ -1,0 +1,12 @@
+# Replace RENDER_API_URL with your Render web service URL (no trailing slash).
+# Example: https://gofunio-api-staging.onrender.com
+
+[build]
+  command = "pnpm install --frozen-lockfile && pnpm --filter frontend build"
+  publish = "dist/frontend"
+
+[[redirects]]
+  from = "/auth/*"
+  to = "https://REPLACE_ME.onrender.com/auth/:splat"
+  status = 200
+  force = true

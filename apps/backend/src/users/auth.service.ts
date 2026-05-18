@@ -21,10 +21,17 @@ import {
 const scrypt = promisify(_scrypt);
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
-const SQLITE_UNIQUE_CODES = new Set([
+const UNIQUE_VIOLATION_CODES = new Set([
   'SQLITE_CONSTRAINT_UNIQUE',
   'SQLITE_CONSTRAINT',
+  '23505',
 ]);
+
+function isUniqueViolation(err: unknown): boolean {
+  if (!(err instanceof QueryFailedError)) return false;
+  const code = (err.driverError as { code?: string } | undefined)?.code;
+  return code != null && UNIQUE_VIOLATION_CODES.has(code);
+}
 
 @Injectable()
 export class AuthService {
@@ -34,7 +41,7 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
-  async signup(email: string, password: string) {
+  async signup(email: string, password: string, origin?: string) {
     const salt = randomBytes(SALT_BYTES).toString('hex');
     const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
     const result = salt + '.' + hash.toString('hex');
@@ -52,18 +59,15 @@ export class AuthService {
         verificationTokenExpiresAt: expiresAt,
       });
     } catch (err) {
-      if (err instanceof QueryFailedError) {
-        const code = (err.driverError as { code?: string } | undefined)?.code;
-        if (code && SQLITE_UNIQUE_CODES.has(code)) {
-          throw new BadRequestException('Email already in use');
-        }
+      if (isUniqueViolation(err)) {
+        throw new BadRequestException('Email already in use');
       }
       throw err;
     }
 
     this.eventEmitter.emit(
       USER_REGISTERED_EVENT,
-      new UserRegisteredEvent(user.id, user.email, token),
+      new UserRegisteredEvent(user.id, user.email, token, origin),
     );
 
     return user;
@@ -116,7 +120,7 @@ export class AuthService {
     });
   }
 
-  async resendVerification(email: string): Promise<void> {
+  async resendVerification(email: string, origin?: string): Promise<void> {
     const [user] = await this.usersService.findByEmail(email);
     if (!user || user.isVerified) {
       return;
@@ -135,7 +139,7 @@ export class AuthService {
 
     this.eventEmitter.emit(
       USER_REGISTERED_EVENT,
-      new UserRegisteredEvent(user.id, user.email, token),
+      new UserRegisteredEvent(user.id, user.email, token, origin),
     );
   }
 }

@@ -12,6 +12,10 @@ export class UserRegisteredListener {
 
   @OnEvent(USER_REGISTERED_EVENT, { async: true })
   async handle(event: UserRegisteredEvent): Promise<void> {
-    await this.mailService.sendVerificationEmail(event.email, event.token);
+    await this.mailService.sendVerificationEmail(
+      event.email,
+      event.token,
+      event.origin,
+    );
   }
 }

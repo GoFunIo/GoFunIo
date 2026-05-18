@@ -5,5 +5,6 @@ export class UserRegisteredEvent {
     public readonly userId: number,
     public readonly email: string,
     public readonly token: string,
+    public readonly origin?: string,
   ) {}
 }

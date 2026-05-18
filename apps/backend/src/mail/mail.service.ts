@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
+import { FrontendUrlResolver } from '../common/frontend-url.resolver';
 
 @Injectable()
 export class MailService {
@@ -8,12 +8,16 @@ export class MailService {
 
   constructor(
     private readonly mailer: MailerService,
-    private readonly config: ConfigService,
+    private readonly frontendUrl: FrontendUrlResolver,
   ) {}
 
-  async sendVerificationEmail(email: string, token: string): Promise<void> {
-    const frontendUrl = this.config.getOrThrow<string>('FRONTEND_URL');
-    const verificationUrl = `${frontendUrl.replace(/\/$/, '')}/verify-email?token=${token}`;
+  async sendVerificationEmail(
+    email: string,
+    token: string,
+    origin?: string,
+  ): Promise<void> {
+    const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
+    const verificationUrl = `${base}/verify-email?token=${token}`;
 
     try {
       await this.mailer.sendMail({

@@ -27,6 +27,11 @@ Content-Type: application/json
   "email": "testing@est.com"
 }
 
+
+funlo
+funlo2169@gmail.com
+FXZ1npq4nwr0vhe-ahq
+
 ### Get me
 GET http://localhost:3000/auth/me
 

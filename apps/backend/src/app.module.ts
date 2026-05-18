@@ -6,19 +6,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
-import { User } from './users/users.entity';
 import { validateEnv } from './config/env.validation';
+import { buildTypeOrmOptions } from './config/database.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     EventEmitterModule.forRoot(),
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: process.env.DATABASE ?? 'db.sqlite',
-      entities: [User],
-      synchronize: process.env.NODE_ENV !== 'production',
-    }),
+    TypeOrmModule.forRoot(buildTypeOrmOptions()),
     UsersModule,
     MailModule,
   ],

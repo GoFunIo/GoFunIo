@@ -7,7 +7,7 @@ import {
   Column,
 } from 'typeorm';
 
-@Entity()
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -24,7 +24,7 @@ export class User {
   @Column({ type: 'varchar', nullable: true, select: false })
   verificationTokenHash!: string | null;
 
-  @Column({ type: 'datetime', nullable: true, select: false })
+  @Column({ type: 'timestamptz', nullable: true, select: false })
   verificationTokenExpiresAt!: Date | null;
 
   @AfterInsert()

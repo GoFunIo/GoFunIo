@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Post,
   Query,
@@ -30,8 +31,11 @@ export class UsersController {
   @Serialize(UserDto)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  async signup(@Body() body: AuthUserDto): Promise<User> {
-    return this.authService.signup(body.email, body.password);
+  async signup(
+    @Body() body: AuthUserDto,
+    @Headers('origin') origin?: string,
+  ): Promise<User> {
+    return this.authService.signup(body.email, body.password, origin);
   }
 
   @Post('signin')
@@ -72,7 +76,10 @@ export class UsersController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
-  async resendVerification(@Body() body: ResendVerificationDto): Promise<void> {
-    await this.authService.resendVerification(body.email);
+  async resendVerification(
+    @Body() body: ResendVerificationDto,
+    @Headers('origin') origin?: string,
+  ): Promise<void> {
+    await this.authService.resendVerification(body.email, origin);
   }
 }

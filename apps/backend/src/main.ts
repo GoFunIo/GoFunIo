@@ -1,17 +1,43 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieSession from 'cookie-session';
 import { toMilliseconds } from './common/duration.util';
 
+function resolveCorsOrigins(
+  frontendUrl: string,
+  corsOrigins?: string,
+): string | string[] {
+  if (corsOrigins?.trim()) {
+    return corsOrigins
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+  }
+  return frontendUrl;
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const cookieKey = config.getOrThrow<string>('COOKIE_KEY');
+  const frontendUrl = config.getOrThrow<string>('FRONTEND_URL');
   const isProd = config.get<string>('NODE_ENV') === 'production';
+  const port = Number(process.env.PORT) || 3000;
 
-  app.enableCors({ origin: 'http://localhost:5173', credentials: true });
+  if (isProd) {
+    app.set('trust proxy', 1);
+  }
+
+  app.enableCors({
+    origin: resolveCorsOrigins(
+      frontendUrl,
+      config.get<string>('CORS_ORIGINS'),
+    ),
+    credentials: true,
+  });
   app.use(
     cookieSession({
       name: 'session',
@@ -25,7 +51,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
-  await app.listen(3000);
+  await app.listen(port);
 }
 
 bootstrap().catch(console.error);
