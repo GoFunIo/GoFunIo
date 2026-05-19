@@ -8,6 +8,7 @@ import { FormProps } from '@/features/auth/types/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { getImage } from '@/utils/getImage';
 
 export const Route = createFileRoute('/(auth)/login/')({
   component: Login,
@@ -48,6 +49,19 @@ function Login() {
 
   return (
     <AuthWrapper title="Witaj ponownie" subtitle="Zaloguj się do swojego konta">
+      <button className="cursor-pointer my-[30px] flex items-center justify-center gap-[16px] h-[45px] w-full bg-bg-section rounded-[7px] border border-icon">
+        <img src={getImage('google.svg')} alt="Google icon" className="" />
+        <p className="text-[14px] font-medium text-content-muted">Zaloguj się przez Google</p>
+      </button>
+
+      <div
+        className="flex items-center gap-[30px] text-gray-500
+         before:h-[2px] before:flex-1 before:bg-icon
+         after:h-[2px] after:flex-1 after:bg-icon"
+      >
+        <span className="text-[14px] font-medium text-content-muted">lub</span>
+      </div>
+
       <form noValidate onSubmit={logIn} className="mt-[30px]">
         <Input
           label="E-mail"
