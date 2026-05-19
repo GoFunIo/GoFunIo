@@ -2,13 +2,31 @@ import { signIn } from '@/features/auth/auth.api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
-import { handleChange } from '@/features/auth/lib/form';
-import { isFormEmpty, validateForm } from '@/features/auth/lib/validation';
-import { FormProps } from '@/features/auth/types/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
 import { getImage } from '@/utils/getImage';
+
+import { SubmitHandler, useForm, UseFormRegisterReturn } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { ChangeEvent } from 'react';
+
+type FormData = yup.InferType<typeof schema>;
+
+type Inputs = {
+  email: string;
+  password: string;
+};
+
+const schema = yup
+  .object({
+    email: yup
+      .string()
+      .required('Adres e-mail jest wymagany')
+      .email('Wprowadź poprawny adres e-mail'),
+    password: yup.string().required('Hasło jest wymagane'),
+  })
+  .required();
 
 export const Route = createFileRoute('/(auth)/login/')({
   component: Login,
@@ -18,31 +36,55 @@ function Login() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<FormProps>({
-    email: '',
-    password: '',
+  const {
+    register,
+    setError,
+    reset,
+    formState: { errors },
+    handleSubmit,
+    clearErrors,
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+    reValidateMode: 'onSubmit',
+    mode: 'onSubmit',
+    shouldFocusError: false,
   });
 
-  const [errors, setErrors] = useState<FormProps>({
-    email: '',
-    password: '',
-  });
-  const { currentErrors, isValid } = validateForm(form);
+  const emailRegister = register('email');
+  const passwordRegister = register('password');
 
-  const logIn = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors(currentErrors);
+  const handleInputChange =
+    (field: keyof FormData, registerFn: UseFormRegisterReturn) =>
+    (e: ChangeEvent<HTMLInputElement>) => {
+      clearErrors('root');
+      clearErrors(field);
+      registerFn.onChange(e);
+    };
 
-    if (!isValid) return;
-
+  const login: SubmitHandler<Inputs> = async (data) => {
     try {
-      const user = await signIn(form);
+      const user = await signIn(data);
       queryClient.setQueryData(['me'], user);
       navigate({ to: '/dashboard' });
     } catch {
-      setErrors({
-        ...errors,
-        email: 'Nieprawidłowe dane uwierzytelniające',
+      reset({
+        email: '',
+        password: '',
+      });
+
+      setError('email', {
+        type: 'server',
+        message: 'Nieprawidłowy email lub hasło',
+      });
+
+      setError('password', {
+        type: 'server',
+        message: 'Nieprawidłowy email lub hasło',
+      });
+
+      setError('root', {
+        type: 'server',
+        message: 'Podane dane logowania są nieprawidłowe',
       });
     }
   };
@@ -62,25 +104,27 @@ function Login() {
         <span className="text-[14px] font-medium text-content-muted">lub</span>
       </div>
 
-      <form noValidate onSubmit={logIn} className="mt-[30px]">
+      <form onSubmit={handleSubmit(login)} className="pt-[30px] relative">
+        {errors.root?.message && (
+          <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
+            Podane dane logowania są nieprawidłowe
+          </p>
+        )}
         <Input
           label="E-mail"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={(e) => handleChange(e, 'email', setForm, setErrors)}
           placeholder="email@example.com"
           className="mb-[10px]"
-          error={errors.email}
+          error={errors.email?.message}
+          {...emailRegister}
+          onChange={handleInputChange('email', emailRegister)}
         />
         <Input
-          label="Hasło"
-          name="password"
           type="password"
-          value={form.password}
-          onChange={(e) => handleChange(e, 'password', setForm, setErrors)}
+          label="Hasło"
           placeholder="• • • • • • • •"
-          error={errors.password}
+          error={errors.password?.message}
+          {...passwordRegister}
+          onChange={handleInputChange('password', emailRegister)}
         />
         <Link
           to="/forgot-password"
@@ -88,7 +132,7 @@ function Login() {
         >
           Nie pamiętasz hasła?
         </Link>
-        <Button type="submit" disabled={isFormEmpty(form)} className="w-full">
+        <Button type="submit" className="w-full">
           ZALOGUJ SIĘ
         </Button>
         <div className="flex justify-center gap-2 mt-[10px]">
