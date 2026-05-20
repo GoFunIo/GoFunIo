@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { LoginSchema } from '../lib/formValidationRules';
 import { LoginFormData, LoginInputs } from '../types/FormTypes';
+import { useLoading } from '@/hooks/useLoading';
 
 type FormProps = {
   className?: string;
@@ -16,6 +17,7 @@ type FormProps = {
 export const LoginForm = ({ className }: FormProps) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { loading, setLoading } = useLoading();
 
   const {
     register,
@@ -32,6 +34,8 @@ export const LoginForm = ({ className }: FormProps) => {
   });
 
   const login: SubmitHandler<LoginInputs> = async (data) => {
+    setLoading(true);
+
     try {
       const user = await signIn(data);
       queryClient.setQueryData(['me'], user);
@@ -57,6 +61,8 @@ export const LoginForm = ({ className }: FormProps) => {
         message: 'Podane dane logowania są nieprawidłowe',
       });
     }
+
+    setLoading(false);
   };
 
   return (
@@ -97,7 +103,7 @@ export const LoginForm = ({ className }: FormProps) => {
       >
         Nie pamiętasz hasła?
       </Link>
-      <Button type="submit" className="w-full">
+      <Button loading={loading} type="submit" className="w-full">
         ZALOGUJ SIĘ
       </Button>
     </form>

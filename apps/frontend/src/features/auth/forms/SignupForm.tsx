@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import { PasswordRequirements } from '../ui/PasswordRequirements';
 import { SignupSchema } from '../lib/formValidationRules';
 import { SignupFormData, SignupInputs } from '../types/FormTypes';
+import { useLoading } from '@/hooks/useLoading';
 
 type FormProps = {
   className?: string;
@@ -14,6 +15,8 @@ type FormProps = {
 };
 
 export const SignupForm = ({ className, setSuccess }: FormProps) => {
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     setError,
@@ -32,6 +35,8 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
   const password = watch('password', '');
 
   const createAccount: SubmitHandler<SignupInputs> = async (data) => {
+    setLoading(true);
+
     try {
       await signUp(data);
       setSuccess(true);
@@ -47,6 +52,8 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
         message: 'Użytkownik z takim adresem e-mail już istnieje',
       });
     }
+
+    setLoading(false);
   };
 
   return (
@@ -97,7 +104,7 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
 
       <PasswordRequirements password={password} className="mt-[16px] mb-[24px]" />
 
-      <Button type="submit" className="w-full">
+      <Button loading={loading} type="submit" className="w-full">
         Załóż konto
       </Button>
     </form>

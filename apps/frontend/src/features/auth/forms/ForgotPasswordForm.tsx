@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import classNames from 'classnames';
 import { ForgotPasswordSchema } from '../lib/formValidationRules';
 import { ForgotPasswordFormData, ForgotPasswordInputs } from '../types/FormTypes';
+import { useLoading } from '@/hooks/useLoading';
 
 type FormProps = {
   className?: string;
@@ -12,6 +13,8 @@ type FormProps = {
 };
 
 export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     setError,
@@ -26,6 +29,8 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
   });
 
   const resetPassword: SubmitHandler<ForgotPasswordInputs> = async () => {
+    setLoading(true);
+
     try {
       setSuccess(true);
     } catch {
@@ -34,6 +39,8 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
         message: 'Konto o takim adresie e-mail nie istnieje',
       });
     }
+
+    setLoading(false);
   };
 
   return (
@@ -54,7 +61,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
           },
         })}
       />
-      <Button type="submit" className="mt-[30px] w-full">
+      <Button loading={loading} type="submit" className="mt-[30px] w-full">
         WYŚLIJ LINK RESETUJĄCY HASŁO
       </Button>
     </form>

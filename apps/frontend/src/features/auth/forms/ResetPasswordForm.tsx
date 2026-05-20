@@ -6,12 +6,15 @@ import classNames from 'classnames';
 import { PasswordRequirements } from '../ui/PasswordRequirements';
 import { ResetPasswordSchema } from '../lib/formValidationRules';
 import { ResetPassordInputs, ResetPasswordFormData } from '../types/FormTypes';
+import { useLoading } from '@/hooks/useLoading';
 
 type FormProps = {
   className?: string;
 };
 
 export const ResetPasswordForm = ({ className }: FormProps) => {
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     watch,
@@ -28,8 +31,12 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
   const password = watch('password', '');
 
   const changePassword: SubmitHandler<ResetPassordInputs> = async () => {
+    setLoading(true);
+
     try {
     } catch {}
+
+    setLoading(false);
   };
 
   return (
@@ -67,7 +74,7 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
 
       <PasswordRequirements password={password} className="mt-[16px] mb-[24px]" />
 
-      <Button type="submit" className="w-full">
+      <Button loading={loading} type="submit" className="w-full">
         Zapisz nowe hasło
       </Button>
     </form>
