@@ -65,3 +65,22 @@ export const signIn = async (form: FormProps) => {
 
   return res.json();
 };
+
+export const resendVerification = async (form: FormProps) => {
+  const { email } = form;
+
+  const res = await fetch(`${API_URL}/auth/resend-verification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    throw await res.json();
+  }
+
+  return res.json();
+};
