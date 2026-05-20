@@ -10,13 +10,11 @@ export const Route = createFileRoute('/(auth)/verify-email/')({
 function RouteComponent() {
   const navigate = useNavigate();
   const isTokenValid = true;
-  const data = {
-    email: 'test@gmail.com',
-  };
+  const email = 'test@gmail.com';
 
   const resendEmail = async () => {
     try {
-      await resendVerification(data);
+      await resendVerification(email);
     } catch {}
   };
 

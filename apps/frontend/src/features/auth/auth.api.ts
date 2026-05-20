@@ -1,4 +1,4 @@
-import { FormProps } from '@/features/auth/types/types';
+import { LoginFormData, SignupFormData } from './types/FormTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -17,7 +17,7 @@ export const getUser = async () => {
   return JSON.parse(text);
 };
 
-export const signUp = async (form: FormProps) => {
+export const signUp = async (form: SignupFormData) => {
   const { email, password } = form;
 
   const res = await fetch(`${API_URL}/auth/signup`, {
@@ -47,7 +47,7 @@ export const signOut = async () => {
   }
 };
 
-export const signIn = async (form: FormProps) => {
+export const signIn = async (form: LoginFormData) => {
   const { email, password } = form;
 
   const res = await fetch(`${API_URL}/auth/signin`, {
@@ -66,9 +66,7 @@ export const signIn = async (form: FormProps) => {
   return res.json();
 };
 
-export const resendVerification = async (form: FormProps) => {
-  const { email } = form;
-
+export const resendVerification = async (email: string) => {
   const res = await fetch(`${API_URL}/auth/resend-verification`, {
     method: 'POST',
     headers: {
