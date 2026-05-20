@@ -29,7 +29,6 @@ import { Route as authSignupIndexRouteImport } from './routes/(auth)/signup/inde
 import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index';
 import { Route as authForgotPasswordIndexRouteImport } from './routes/(auth)/forgot-password/index';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
-import { Route as authSignupSuccessRouteImport } from './routes/(auth)/signup/success';
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
@@ -129,15 +128,9 @@ const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
   path: '/my-cars/$carId',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const authSignupSuccessRoute = authSignupSuccessRouteImport.update({
-  id: '/signup/success',
-  path: '/signup/success',
-  getParentRoute: () => authRouteRoute,
-} as any);
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
-  '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/login/': typeof authLoginIndexRoute;
@@ -157,7 +150,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/vehicle-assignments/': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/forgot-password': typeof authForgotPasswordIndexRoute;
   '/login': typeof authLoginIndexRoute;
@@ -181,7 +173,6 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren;
   '/(public)': typeof publicRouteRouteWithChildren;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
-  '/(auth)/signup/success': typeof authSignupSuccessRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/(auth)/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/(auth)/login/': typeof authLoginIndexRoute;
@@ -204,7 +195,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/dashboard'
-    | '/signup/success'
     | '/dashboard/my-cars/$carId'
     | '/forgot-password/'
     | '/login/'
@@ -224,7 +214,6 @@ export interface FileRouteTypes {
     | '/dashboard/vehicle-assignments/';
   fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/signup/success'
     | '/dashboard/my-cars/$carId'
     | '/forgot-password'
     | '/login'
@@ -247,7 +236,6 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/(public)'
     | '/dashboard'
-    | '/(auth)/signup/success'
     | '/dashboard/my-cars/$carId'
     | '/(auth)/forgot-password/'
     | '/(auth)/login/'
@@ -415,18 +403,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMyCarsCarIdRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/(auth)/signup/success': {
-      id: '/(auth)/signup/success';
-      path: '/signup/success';
-      fullPath: '/signup/success';
-      preLoaderRoute: typeof authSignupSuccessRouteImport;
-      parentRoute: typeof authRouteRoute;
-    };
   }
 }
 
 interface authRouteRouteChildren {
-  authSignupSuccessRoute: typeof authSignupSuccessRoute;
   authForgotPasswordIndexRoute: typeof authForgotPasswordIndexRoute;
   authLoginIndexRoute: typeof authLoginIndexRoute;
   authSignupIndexRoute: typeof authSignupIndexRoute;
@@ -434,7 +414,6 @@ interface authRouteRouteChildren {
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
-  authSignupSuccessRoute: authSignupSuccessRoute,
   authForgotPasswordIndexRoute: authForgotPasswordIndexRoute,
   authLoginIndexRoute: authLoginIndexRoute,
   authSignupIndexRoute: authSignupIndexRoute,

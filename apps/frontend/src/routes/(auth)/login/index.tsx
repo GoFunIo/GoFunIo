@@ -107,7 +107,7 @@ function Login() {
       <form onSubmit={handleSubmit(login)} className="pt-[30px] relative">
         {errors.root?.message && (
           <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
-            Podane dane logowania są nieprawidłowe
+            {errors.root.message}
           </p>
         )}
         <div className="flex flex-col gap-[10px]">
