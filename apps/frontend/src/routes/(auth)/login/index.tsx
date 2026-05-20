@@ -11,6 +11,10 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ChangeEvent } from 'react';
 
+export const Route = createFileRoute('/(auth)/login/')({
+  component: Login,
+});
+
 type FormData = yup.InferType<typeof schema>;
 
 type Inputs = {
@@ -27,10 +31,6 @@ const schema = yup
     password: yup.string().required('Hasło jest wymagane'),
   })
   .required();
-
-export const Route = createFileRoute('/(auth)/login/')({
-  component: Login,
-});
 
 function Login() {
   const queryClient = useQueryClient();
@@ -110,22 +110,23 @@ function Login() {
             Podane dane logowania są nieprawidłowe
           </p>
         )}
-        <Input
-          label="E-mail"
-          placeholder="email@example.com"
-          className="mb-[10px]"
-          error={errors.email?.message}
-          {...emailRegister}
-          onChange={handleInputChange('email', emailRegister)}
-        />
-        <Input
-          type="password"
-          label="Hasło"
-          placeholder="• • • • • • • •"
-          error={errors.password?.message}
-          {...passwordRegister}
-          onChange={handleInputChange('password', emailRegister)}
-        />
+        <div className="flex flex-col gap-[10px]">
+          <Input
+            label="E-mail"
+            placeholder="email@example.com"
+            error={errors.email?.message}
+            {...emailRegister}
+            onChange={handleInputChange('email', emailRegister)}
+          />
+          <Input
+            type="password"
+            label="Hasło"
+            placeholder="• • • • • • • •"
+            error={errors.password?.message}
+            {...passwordRegister}
+            onChange={handleInputChange('password', passwordRegister)}
+          />
+        </div>
         <Link
           to="/forgot-password"
           className="ml-auto block w-fit my-[10px] font-medium text-[14px] text-primary"
