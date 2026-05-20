@@ -17,7 +17,6 @@ import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/user
 import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index';
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index';
 import { Route as DashboardServiceIndexRouteImport } from './routes/dashboard/service/index';
-import { Route as DashboardResetPasswordIndexRouteImport } from './routes/dashboard/reset-password/index';
 import { Route as DashboardPaymentsIndexRouteImport } from './routes/dashboard/payments/index';
 import { Route as DashboardNotificationsIndexRouteImport } from './routes/dashboard/notifications/index';
 import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-cars/index';
@@ -26,6 +25,7 @@ import { Route as DashboardhomeIndexRouteImport } from './routes/dashboard/(home
 import { Route as publichomeIndexRouteImport } from './routes/(public)/(home)/index';
 import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify-email/index';
 import { Route as authSignupIndexRouteImport } from './routes/(auth)/signup/index';
+import { Route as authResetPasswordIndexRouteImport } from './routes/(auth)/reset-password/index';
 import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index';
 import { Route as authForgotPasswordIndexRouteImport } from './routes/(auth)/forgot-password/index';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
@@ -68,11 +68,6 @@ const DashboardServiceIndexRoute = DashboardServiceIndexRouteImport.update({
   path: '/service/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardResetPasswordIndexRoute = DashboardResetPasswordIndexRouteImport.update({
-  id: '/reset-password/',
-  path: '/reset-password/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
 const DashboardPaymentsIndexRoute = DashboardPaymentsIndexRouteImport.update({
   id: '/payments/',
   path: '/payments/',
@@ -113,6 +108,11 @@ const authSignupIndexRoute = authSignupIndexRouteImport.update({
   path: '/signup/',
   getParentRoute: () => authRouteRoute,
 } as any);
+const authResetPasswordIndexRoute = authResetPasswordIndexRouteImport.update({
+  id: '/reset-password/',
+  path: '/reset-password/',
+  getParentRoute: () => authRouteRoute,
+} as any);
 const authLoginIndexRoute = authLoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
@@ -134,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/login/': typeof authLoginIndexRoute;
+  '/reset-password/': typeof authResetPasswordIndexRoute;
   '/signup/': typeof authSignupIndexRoute;
   '/verify-email/': typeof authVerifyEmailIndexRoute;
   '/': typeof publichomeIndexRoute;
@@ -142,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
   '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
-  '/dashboard/reset-password/': typeof DashboardResetPasswordIndexRoute;
   '/dashboard/service/': typeof DashboardServiceIndexRoute;
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
@@ -153,6 +153,7 @@ export interface FileRoutesByTo {
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/forgot-password': typeof authForgotPasswordIndexRoute;
   '/login': typeof authLoginIndexRoute;
+  '/reset-password': typeof authResetPasswordIndexRoute;
   '/signup': typeof authSignupIndexRoute;
   '/verify-email': typeof authVerifyEmailIndexRoute;
   '/': typeof publichomeIndexRoute;
@@ -161,7 +162,6 @@ export interface FileRoutesByTo {
   '/dashboard/my-cars': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications': typeof DashboardNotificationsIndexRoute;
   '/dashboard/payments': typeof DashboardPaymentsIndexRoute;
-  '/dashboard/reset-password': typeof DashboardResetPasswordIndexRoute;
   '/dashboard/service': typeof DashboardServiceIndexRoute;
   '/dashboard/settings': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline': typeof DashboardTimelineIndexRoute;
@@ -176,6 +176,7 @@ export interface FileRoutesById {
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/(auth)/forgot-password/': typeof authForgotPasswordIndexRoute;
   '/(auth)/login/': typeof authLoginIndexRoute;
+  '/(auth)/reset-password/': typeof authResetPasswordIndexRoute;
   '/(auth)/signup/': typeof authSignupIndexRoute;
   '/(auth)/verify-email/': typeof authVerifyEmailIndexRoute;
   '/(public)/(home)/': typeof publichomeIndexRoute;
@@ -184,7 +185,6 @@ export interface FileRoutesById {
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
   '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
-  '/dashboard/reset-password/': typeof DashboardResetPasswordIndexRoute;
   '/dashboard/service/': typeof DashboardServiceIndexRoute;
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
@@ -198,6 +198,7 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/$carId'
     | '/forgot-password/'
     | '/login/'
+    | '/reset-password/'
     | '/signup/'
     | '/verify-email/'
     | '/'
@@ -206,7 +207,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/'
     | '/dashboard/notifications/'
     | '/dashboard/payments/'
-    | '/dashboard/reset-password/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
@@ -217,6 +217,7 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/$carId'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/verify-email'
     | '/'
@@ -225,7 +226,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars'
     | '/dashboard/notifications'
     | '/dashboard/payments'
-    | '/dashboard/reset-password'
     | '/dashboard/service'
     | '/dashboard/settings'
     | '/dashboard/timeline'
@@ -239,6 +239,7 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/$carId'
     | '/(auth)/forgot-password/'
     | '/(auth)/login/'
+    | '/(auth)/reset-password/'
     | '/(auth)/signup/'
     | '/(auth)/verify-email/'
     | '/(public)/(home)/'
@@ -247,7 +248,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/'
     | '/dashboard/notifications/'
     | '/dashboard/payments/'
-    | '/dashboard/reset-password/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
@@ -319,13 +319,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardServiceIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/reset-password/': {
-      id: '/dashboard/reset-password/';
-      path: '/reset-password';
-      fullPath: '/dashboard/reset-password/';
-      preLoaderRoute: typeof DashboardResetPasswordIndexRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
     '/dashboard/payments/': {
       id: '/dashboard/payments/';
       path: '/payments';
@@ -382,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignupIndexRouteImport;
       parentRoute: typeof authRouteRoute;
     };
+    '/(auth)/reset-password/': {
+      id: '/(auth)/reset-password/';
+      path: '/reset-password';
+      fullPath: '/reset-password/';
+      preLoaderRoute: typeof authResetPasswordIndexRouteImport;
+      parentRoute: typeof authRouteRoute;
+    };
     '/(auth)/login/': {
       id: '/(auth)/login/';
       path: '/login';
@@ -409,6 +409,7 @@ declare module '@tanstack/react-router' {
 interface authRouteRouteChildren {
   authForgotPasswordIndexRoute: typeof authForgotPasswordIndexRoute;
   authLoginIndexRoute: typeof authLoginIndexRoute;
+  authResetPasswordIndexRoute: typeof authResetPasswordIndexRoute;
   authSignupIndexRoute: typeof authSignupIndexRoute;
   authVerifyEmailIndexRoute: typeof authVerifyEmailIndexRoute;
 }
@@ -416,6 +417,7 @@ interface authRouteRouteChildren {
 const authRouteRouteChildren: authRouteRouteChildren = {
   authForgotPasswordIndexRoute: authForgotPasswordIndexRoute,
   authLoginIndexRoute: authLoginIndexRoute,
+  authResetPasswordIndexRoute: authResetPasswordIndexRoute,
   authSignupIndexRoute: authSignupIndexRoute,
   authVerifyEmailIndexRoute: authVerifyEmailIndexRoute,
 };
@@ -439,7 +441,6 @@ interface DashboardRouteRouteChildren {
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute;
   DashboardNotificationsIndexRoute: typeof DashboardNotificationsIndexRoute;
   DashboardPaymentsIndexRoute: typeof DashboardPaymentsIndexRoute;
-  DashboardResetPasswordIndexRoute: typeof DashboardResetPasswordIndexRoute;
   DashboardServiceIndexRoute: typeof DashboardServiceIndexRoute;
   DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute;
   DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute;
@@ -454,7 +455,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
   DashboardNotificationsIndexRoute: DashboardNotificationsIndexRoute,
   DashboardPaymentsIndexRoute: DashboardPaymentsIndexRoute,
-  DashboardResetPasswordIndexRoute: DashboardResetPasswordIndexRoute,
   DashboardServiceIndexRoute: DashboardServiceIndexRoute,
   DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
   DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
