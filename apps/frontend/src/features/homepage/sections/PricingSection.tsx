@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 export const pricingPlans = [
   {
+    id: 1,
     name: 'START',
     description: 'Dla pojedynczego kierowcy z jednym lub dwoma autami.',
     price: { monthly: 29, yearly: 240 },
@@ -18,6 +19,7 @@ export const pricingPlans = [
     highlight: false,
   },
   {
+    id: 2,
     name: 'PRO',
     description: 'Dla tych, którzy chcą mieć pełną kontrolę nad kosztami.',
     price: { monthly: 59, yearly: 580 },
@@ -32,6 +34,7 @@ export const pricingPlans = [
     highlight: true,
   },
   {
+    id: 3,
     name: 'BUSINESS',
     description: 'Dla firm i flot pojazdów służbowych.',
     price: { monthly: 99, yearly: 990 },
@@ -67,7 +70,7 @@ export const PricingSection = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch ">
           {pricingPlans.map((plan) => (
-            <PricingCard key={plan.name} plan={plan} billingCycle={billingCycle} />
+            <PricingCard key={plan.id} plan={plan} billingCycle={billingCycle} />
           ))}
         </div>
       </div>

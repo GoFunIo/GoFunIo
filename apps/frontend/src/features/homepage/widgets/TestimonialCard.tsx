@@ -27,7 +27,7 @@ export const TestimonialCard = ({
       </div>
 
       <div className="flex gap-0.5 ">
-        {[...Array(5)].map((_, i) => (
+        {Array.from({ length: 5 }, (_, i) => (
           <Star
             key={i}
             size={16}

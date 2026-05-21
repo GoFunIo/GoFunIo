@@ -5,6 +5,7 @@ import { TestimonialCard } from '@/features/homepage/widgets/TestimonialCard';
 
 const testimonials = [
   {
+    id: 1,
     content:
       'Wcześniej zawsze gubiłam kartki od mechanika i zapominałam o terminach OC. Dzięki aplikacji mam wszystko w telefonie i czuję się po prostu bezpieczniej, wiedząc, że auto jest pod kontrolą.',
     author: 'Anna Kowalska',
@@ -13,6 +14,7 @@ const testimonials = [
     avatar: testimonialimage2,
   },
   {
+    id: 2,
     content:
       'Dla mnie liczy się pełna historia serwisowa. Przy sprzedaży auta taki cyfrowy dziennik to potężny atut. Aplikacja jest intuicyjna, szybka i wygląda świetnie na iPhone.',
     author: 'Marek Wiśniewski',
@@ -21,6 +23,7 @@ const testimonials = [
     avatar: testimonialimage1,
   },
   {
+    id: 3,
     content:
       'Zarządzanie pięcioma busami w Excelu to był koszmar. Tutaj widzę od razu, który samochód wymaga wymiany olejów czy klocków. Oszczędzam czas i unikam awarii w trasie.',
     author: 'Tomasz Mazur',
@@ -45,8 +48,8 @@ export const Testimonials = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-          {testimonials.map((t, idx) => (
-            <TestimonialCard key={idx} {...t} />
+          {testimonials.map((t) => (
+            <TestimonialCard key={t.id} {...t} />
           ))}
         </div>
       </div>

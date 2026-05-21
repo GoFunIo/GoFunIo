@@ -10,32 +10,38 @@ import {
 
 const benefits = [
   {
+    id: 1,
     icon: FileChartColumn,
     title: 'Pełna historia pojazdu',
     desc: 'Przechowuj kompletną cyfrową dokumentację każdego auta w bezpiecznej chmurze, dostępną z dowolnego urządzenia 24/7.',
   },
   {
+    id: 2,
     icon: BellRing,
     title: 'Automatyczne powiadomienia',
     desc: 'Otrzymuj automatyczne powiadomienia o nadchodzących przeglądach i badaniach, zanim termin ich ważności dobiegnie końca.',
     highlight: false,
   },
   {
+    id: 3,
     icon: Wrench,
     title: 'Diagnostyka pojazdu',
     desc: 'Uzyskaj błyskawiczny wgląd w kondycję swoich samochodów oraz historię napraw, co pozwoli Ci uniknąć kosztownych niespodzianek.',
   },
   {
+    id: 4,
     icon: BadgeDollarSign,
     title: 'Optymalizacja kosztów',
     desc: 'Skutecznie planuj wydatki i unikaj nieplanowanych awarii dzięki monitorowaniu terminów wymiany części i płynów.',
   },
   {
+    id: 5,
     icon: FolderCheck,
     title: 'Kontrola dokumentacji',
     desc: 'Zarządzaj dokumentami, polisami i historią serwisową wszystkich pojazdów w jednym, intuicyjnym centrum dowodzenia online.',
   },
   {
+    id: 6,
     icon: CarFront,
     title: 'Zarządzanie flotą',
     desc: 'Niezależnie od liczby posiadanych aut, nasza platforma dostosuje się do Twoich potrzeb, oferując narzędzia klasy profesjonalnej.',
@@ -58,9 +64,9 @@ export const BenefitsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {benefits.map((benefit, index) => (
+          {benefits.map((benefit) => (
             <BenefitCard
-              key={index}
+              key={benefit.id}
               title={benefit.title}
               desc={benefit.desc}
               icon={benefit.icon}

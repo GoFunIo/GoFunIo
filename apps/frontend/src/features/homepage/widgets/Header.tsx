@@ -16,6 +16,7 @@ const navLinks = [
   { label: 'CENNIK', href: '#cennik' },
   { label: 'FAQ', href: '#faq' },
   { label: 'KONTAKT', href: '#kontakt' },
+  { label: 'BLOG', href: '#blog' },
 ];
 
 export const Header = () => {
@@ -137,7 +138,7 @@ export const Header = () => {
         </div>
       </header>
 
-      {/* WYDZIELONE MENU MOBILNE */}
+      {/* MENU MOBILNE */}
       <MobileMenu
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
