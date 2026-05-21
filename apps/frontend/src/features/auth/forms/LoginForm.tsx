@@ -22,47 +22,55 @@ export const LoginForm = ({ className }: FormProps) => {
   const {
     register,
     setError,
-    reset,
     formState: { errors },
     handleSubmit,
-    clearErrors,
   } = useForm<LoginFormData>({
     resolver: yupResolver(LoginSchema),
-    reValidateMode: 'onSubmit',
-    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    mode: 'onTouched',
     shouldFocusError: false,
   });
 
   const login: SubmitHandler<LoginInputs> = async (data) => {
     setLoading(true);
 
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
       const user = await signIn(data);
       queryClient.setQueryData(['me'], user);
       navigate({ to: '/dashboard' });
-    } catch {
-      reset({
-        email: '',
-        password: '',
-      });
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
 
-      setError('email', {
-        type: 'server',
-        message: 'Nieprawidłowy email lub hasło',
-      });
+      if (status === 401 || status === 403) {
+        setError('email', {
+          type: 'server',
+          message: 'Nieprawidłowy email lub hasło',
+        });
 
-      setError('password', {
-        type: 'server',
-        message: 'Nieprawidłowy email lub hasło',
-      });
+        setError('password', {
+          type: 'server',
+          message: 'Nieprawidłowy email lub hasło',
+        });
 
-      setError('root', {
-        type: 'server',
-        message: 'Podane dane logowania są nieprawidłowe',
-      });
+        setError('root', {
+          type: 'server',
+          message: 'Podane dane logowania są nieprawidłowe',
+        });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -77,24 +85,14 @@ export const LoginForm = ({ className }: FormProps) => {
           label="E-mail"
           placeholder="email@example.com"
           error={errors.email?.message}
-          {...register('email', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('email');
-            },
-          })}
+          {...register('email')}
         />
         <Input
           type="password"
           label="Hasło"
           placeholder="• • • • • • • •"
           error={errors.password?.message}
-          {...register('password', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('password');
-            },
-          })}
+          {...register('password')}
         />
       </div>
       <Link

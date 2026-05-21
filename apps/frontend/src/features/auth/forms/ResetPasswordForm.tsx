@@ -17,14 +17,14 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
 
   const {
     register,
+    setError,
     watch,
     formState: { errors },
     handleSubmit,
-    clearErrors,
   } = useForm<ResetPasswordFormData>({
     resolver: yupResolver(ResetPasswordSchema),
-    reValidateMode: 'onSubmit',
-    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    mode: 'onTouched',
     shouldFocusError: false,
   });
 
@@ -33,10 +33,16 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
   const changePassword: SubmitHandler<ResetPassordInputs> = async () => {
     setLoading(true);
 
-    try {
-    } catch {}
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
 
-    setLoading(false);
+    try {
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,24 +57,14 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
           label="Hasło"
           placeholder="• • • • • • • •"
           error={errors.password?.message}
-          {...register('password', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('password');
-            },
-          })}
+          {...register('password')}
         />
         <Input
           type="password"
           label="Hasło"
           placeholder="• • • • • • • •"
           error={errors.passwordConfirm?.message}
-          {...register('passwordConfirm', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('passwordConfirm');
-            },
-          })}
+          {...register('passwordConfirm')}
         />
       </div>
 

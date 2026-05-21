@@ -20,27 +20,27 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     setError,
     formState: { errors },
     handleSubmit,
-    clearErrors,
   } = useForm<ForgotPasswordFormData>({
     resolver: yupResolver(ForgotPasswordSchema),
-    reValidateMode: 'onSubmit',
-    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    mode: 'onTouched',
     shouldFocusError: false,
   });
 
   const resetPassword: SubmitHandler<ForgotPasswordInputs> = async () => {
     setLoading(true);
 
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
       setSuccess(true);
     } catch {
-      setError('root', {
-        type: 'server',
-        message: 'Konto o takim adresie e-mail nie istnieje',
-      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -54,12 +54,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
         label="E-mail"
         placeholder="email@example.com"
         error={errors.email?.message}
-        {...register('email', {
-          onChange: () => {
-            clearErrors('root');
-            clearErrors('email');
-          },
-        })}
+        {...register('email')}
       />
       <Button loading={loading} type="submit" className="mt-[30px] w-full">
         WYŚLIJ LINK RESETUJĄCY HASŁO

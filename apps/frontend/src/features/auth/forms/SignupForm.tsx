@@ -20,15 +20,13 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
   const {
     register,
     setError,
-    reset,
     watch,
     formState: { errors },
     handleSubmit,
-    clearErrors,
   } = useForm<SignupFormData>({
     resolver: yupResolver(SignupSchema),
-    reValidateMode: 'onSubmit',
-    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    mode: 'onTouched',
     shouldFocusError: false,
   });
 
@@ -37,23 +35,36 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
   const createAccount: SubmitHandler<SignupInputs> = async (data) => {
     setLoading(true);
 
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
       await signUp(data);
       setSuccess(true);
-    } catch {
-      reset({
-        email: '',
-        password: '',
-        passwordConfirm: '',
-      });
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
 
-      setError('root', {
-        type: 'server',
-        message: 'Użytkownik z takim adresem e-mail już istnieje',
-      });
+      if (status === 400) {
+        setError('root', {
+          type: 'server',
+          message: 'Użytkownik z takim adresem e-mail już istnieje',
+        });
+        setError('email', {
+          type: 'server',
+          message: 'Ten adres e-mail jest już zarejestrowany',
+        });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -69,36 +80,39 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
           label="E-mail"
           placeholder="email@example.com"
           error={errors.email?.message}
-          {...register('email', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('email');
-            },
-          })}
+          {...register('email')}
+          // {...register('email', {
+          //   onChange: () => {
+          //     clearErrors('root');
+          //     clearErrors('email');
+          //   },
+          // })}
         />
         <Input
           type="password"
           label="Hasło"
           placeholder="• • • • • • • •"
           error={errors.password?.message}
-          {...register('password', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('password');
-            },
-          })}
+          {...register('password')}
+          // {...register('password', {
+          //   onChange: () => {
+          //     clearErrors('root');
+          //     clearErrors('password');
+          //   },
+          // })}
         />
         <Input
           type="password"
           label="Hasło"
           placeholder="• • • • • • • •"
           error={errors.passwordConfirm?.message}
-          {...register('passwordConfirm', {
-            onChange: () => {
-              clearErrors('root');
-              clearErrors('passwordConfirm');
-            },
-          })}
+          {...register('passwordConfirm')}
+          // {...register('passwordConfirm', {
+          //   onChange: () => {
+          //     clearErrors('root');
+          //     clearErrors('passwordConfirm');
+          //   },
+          // })}
         />
       </div>
 

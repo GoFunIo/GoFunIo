@@ -29,11 +29,16 @@ export const signUp = async (form: SignupFormData) => {
     body: JSON.stringify({ email, password }),
   });
 
+  const data = await res.json().catch(() => null);
+
   if (!res.ok) {
-    throw await res.json();
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Request failed',
+    };
   }
 
-  return res.json();
+  return data;
 };
 
 export const signOut = async () => {
@@ -59,11 +64,16 @@ export const signIn = async (form: LoginFormData) => {
     body: JSON.stringify({ email, password }),
   });
 
+  const data = await res.json().catch(() => null);
+
   if (!res.ok) {
-    throw await res.json();
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Request failed',
+    };
   }
 
-  return res.json();
+  return data;
 };
 
 export const resendVerification = async (email: string) => {
