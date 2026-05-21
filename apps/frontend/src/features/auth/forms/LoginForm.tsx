@@ -30,6 +30,7 @@ export const LoginForm = ({ className }: FormProps) => {
     mode: 'onTouched',
     shouldFocusError: false,
   });
+  // 401 - неправильные данные
 
   const login: SubmitHandler<LoginInputs> = async (data) => {
     setLoading(true);
@@ -48,20 +49,27 @@ export const LoginForm = ({ className }: FormProps) => {
       const status = err.status;
 
       if (status === 401 || status === 403) {
-        setError('email', {
-          type: 'server',
-          message: 'Nieprawidłowy email lub hasło',
-        });
+        if (err.message === 'Email not verified') {
+          setError('root', {
+            type: 'server',
+            message: 'Twoje konto nie zostało zweryfikowane',
+          });
+        } else {
+          setError('email', {
+            type: 'server',
+            message: 'Nieprawidłowy email lub hasło',
+          });
 
-        setError('password', {
-          type: 'server',
-          message: 'Nieprawidłowy email lub hasło',
-        });
+          setError('password', {
+            type: 'server',
+            message: 'Nieprawidłowy email lub hasło',
+          });
 
-        setError('root', {
-          type: 'server',
-          message: 'Podane dane logowania są nieprawidłowe',
-        });
+          setError('root', {
+            type: 'server',
+            message: 'Podane dane logowania są nieprawidłowe',
+          });
+        }
       } else {
         setError('root', {
           type: 'server',
