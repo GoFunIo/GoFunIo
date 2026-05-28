@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import { Plus, SquarePen, Trash2 } from 'lucide-react';
 
 type Props = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onClick: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   size?: 'small' | 'big';

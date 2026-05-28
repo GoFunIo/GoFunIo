@@ -10,6 +10,7 @@ type Props = {
   className?: string;
   error?: string;
   errorStyle?: string;
+  isValidate?: boolean;
 };
 
 export const Input = ({
@@ -22,6 +23,7 @@ export const Input = ({
   className,
   error,
   errorStyle,
+  isValidate = true,
 }: Props) => {
   const hasError = Boolean(error);
 
@@ -37,29 +39,31 @@ export const Input = ({
 
   return (
     <div className={classNames('relative w-full')}>
-      <div
-        className={classNames(
-          'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',
-        )}
-      >
-        <label
-          htmlFor={name}
+      {isValidate && (
+        <div
           className={classNames(
-            'shrink-0 text-[14px] font-medium leading-none',
-            hasError ? 'text-alert' : 'text-content-secondary ',
+            'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',
           )}
         >
-          {label}
-        </label>
-        <span
-          className={classNames(
-            'text-right text-alert text-[12px] leading-none font-medium',
-            errorStyle,
-          )}
-        >
-          {error}
-        </span>
-      </div>
+          <label
+            htmlFor={name}
+            className={classNames(
+              'shrink-0 text-[14px] font-medium leading-none',
+              hasError ? 'text-alert' : 'text-content-secondary ',
+            )}
+          >
+            {label}
+          </label>
+          <span
+            className={classNames(
+              'text-right text-alert text-[12px] leading-none font-medium',
+              errorStyle,
+            )}
+          >
+            {error}
+          </span>
+        </div>
+      )}
       <input
         id={name}
         type={type}
