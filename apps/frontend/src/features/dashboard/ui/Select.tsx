@@ -16,14 +16,16 @@ type Props = {
   onChange: (value: Value) => void;
   placeholder?: string;
   clearOption?: boolean;
+  className?: string;
 };
 
 export const Select = ({
   options = [],
   value,
   onChange,
-  placeholder = 'Choose one',
+  placeholder = 'Wybierz jedno',
   clearOption = true,
+  className,
 }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
@@ -51,23 +53,25 @@ export const Select = ({
   }, []);
 
   return (
-    <div className="relative min-w-[250px] w-fit h-[35px]" ref={selectRef}>
-      <button
-        className="flex items-center justify-between cursor-pointer bg-bg-page px-[8px] rounded-[5px] border border-icon w-full h-full"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
-        <p className="text-left text-[14px] text-content-secondary">
-          {selected ? selected.label : placeholder}
-        </p>
+    <div className={classNames('relative min-w-[250px] w-fit h-[35px]', className)} ref={selectRef}>
+      <div className="relative flex items-center justify-between bg-bg-page rounded-[5px] border border-icon w-full h-full">
+        <input
+          readOnly
+          value={selected ? selected.label : ''}
+          placeholder={placeholder}
+          type="text"
+          className="caret-transparent text-[14px] focus:outline-none placeholder:text-content-secondary text-content-secondary z-9 cursor-pointer px-[8px] w-full h-full"
+          onClick={() => setIsOpen((prev) => !prev)}
+        />
         <ChevronUp
           size={20}
-          className={classNames('text-content-secondary', {
+          className={classNames('absolute right-2 text-content-secondary', {
             'rotate-180': isOpen,
           })}
         />
-      </button>
+      </div>
       {isOpen && (
-        <div className="flex flex-col gap-[4px] absolute top-[40px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
+        <div className="z-99 flex flex-col gap-[4px] absolute top-[40px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
           {clearOption && (
             <span
               onClick={() => handleSelect(null)}
