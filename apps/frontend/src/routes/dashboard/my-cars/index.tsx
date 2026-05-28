@@ -8,6 +8,8 @@ import { Calendar, CarFront, Gauge } from 'lucide-react';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,
@@ -15,6 +17,7 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   return (
     <>
@@ -23,7 +26,7 @@ function RouteComponent() {
         subtitle="Zarządzaj wszystkimi pojazdami w jednym miejscu."
         button={{
           label: 'Dodaj pojazd',
-          onClick: () => {},
+          onClick: () => setIsModalOpen(true),
         }}
       />
       {!carsArr || carsArr.length === 0 ? (
@@ -81,6 +84,15 @@ function RouteComponent() {
           })}
         </GridWrapper>
       )}
+
+      <Modal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        title="Dane firmowe"
+        subtitle="Wypełnij, jeśli chcesz wystawiać faktury na firmę."
+      >
+        test
+      </Modal>
     </>
   );
 }
