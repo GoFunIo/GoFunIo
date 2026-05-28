@@ -188,6 +188,18 @@ body,
   }
 }
 
+@layer utilities {
+  .scrollbar-dashboard::-webkit-scrollbar {
+    width: 9px;
+  }
+  .scrollbar-dashboard::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    border: 1px solid var(--color-icon);
+    background: var(--color-white);
+    box-shadow: 0 3px 13px 0 rgba(0, 0, 0, 0.2);
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }
