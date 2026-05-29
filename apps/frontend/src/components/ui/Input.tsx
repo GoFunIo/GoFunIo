@@ -1,17 +1,31 @@
 import classNames from 'classnames';
-import { forwardRef, InputHTMLAttributes } from 'react';
 
-type Props = InputHTMLAttributes<HTMLInputElement> & {
+type Props = {
+  value: string;
+  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  name: string;
+  type?: React.HTMLInputTypeAttribute;
   label?: string;
+  placeholder?: string;
+  className?: string;
   error?: string;
   errorStyle?: string;
 };
 
-export const Input = forwardRef<HTMLInputElement, Props>(
-  ({ name, label, placeholder = 'Type me', className, error, errorStyle, ...props }, ref) => {
-    const hasError = Boolean(error);
+export const Input = ({
+  value,
+  onChange,
+  name,
+  type = 'text',
+  label,
+  placeholder = 'Type me',
+  className,
+  error,
+  errorStyle,
+}: Props) => {
+  const hasError = Boolean(error);
 
-    const mainInputStyles = `
+  const mainInputStyles = `
     w-full min-h-[45px] rounded-[7px] px-[16px] border
     text-[14px] font-medium focus:border-info custom-transition
     outline-none focus:ring-0
@@ -21,46 +35,44 @@ export const Input = forwardRef<HTMLInputElement, Props>(
     placeholder:text-icon
   `;
 
-    return (
-      <div className={classNames('relative w-full')}>
-        <div
+  return (
+    <div className={classNames('relative w-full')}>
+      <div
+        className={classNames(
+          'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',
+        )}
+      >
+        <label
+          htmlFor={name}
           className={classNames(
-            'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',
+            'shrink-0 text-[14px] font-medium leading-none',
+            hasError ? 'text-alert' : 'text-content-secondary ',
           )}
         >
-          <label
-            htmlFor={name}
-            className={classNames(
-              'shrink-0 text-[14px] font-medium leading-none',
-              hasError ? 'text-alert' : 'text-content-secondary ',
-            )}
-          >
-            {label}
-          </label>
-          <span
-            className={classNames(
-              'text-right text-alert text-[12px] leading-none font-medium',
-              errorStyle,
-            )}
-          >
-            {error}
-          </span>
-        </div>
-        <input
-          ref={ref}
-          id={name}
-          name={name}
-          placeholder={placeholder}
+          {label}
+        </label>
+        <span
           className={classNames(
-            mainInputStyles,
-            className,
-            hasError ? 'border-alert' : 'border-icon',
+            'text-right text-alert text-[12px] leading-none font-medium',
+            errorStyle,
           )}
-          {...props}
-        />
+        >
+          {error}
+        </span>
       </div>
-    );
-  },
-);
-
-Input.displayName = 'Input';
+      <input
+        id={name}
+        type={type}
+        value={value}
+        name={name}
+        placeholder={placeholder}
+        onChange={onChange}
+        className={classNames(
+          mainInputStyles,
+          className,
+          hasError ? 'border-alert' : 'border-icon',
+        )}
+      />
+    </div>
+  );
+};

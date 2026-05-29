@@ -1,12 +1,10 @@
 import classNames from 'classnames';
-import { LoadingIcon } from './LoadingIcon';
 
 type Props = {
   children: React.ReactNode;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
-  loading?: boolean;
   variant?: 'default' | 'outline';
   className?: string;
   style?: React.CSSProperties;
@@ -17,14 +15,13 @@ export const Button = ({
   onClick,
   type = 'button',
   disabled = false,
-  loading = false,
   variant = 'default',
   className,
   style,
 }: Props) => {
   const mainButtonStyles = `
-    block relative min-w-[190px] w-fit min-h-[50px] rounded-[7px] px-[8px]
-    text-[16px] font-semibold text-center
+    min-w-[190px] w-fit min-h-[50px] rounded-[7px] px-[8px]
+    text-[16px] leading-[14px] font-semibold text-center
     cursor-pointer custom-transition
     hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)]
   `;
@@ -43,15 +40,15 @@ export const Button = ({
     <button
       onClick={onClick}
       type={type}
-      disabled={disabled || loading}
+      disabled={disabled}
       style={style}
       className={classNames(mainButtonStyles, className, {
         [defaultButtonStyles]: variant === 'default',
         [outlineButtonStyles]: variant === 'outline',
-        [disabledButtonStyles]: disabled || loading,
+        [disabledButtonStyles]: disabled,
       })}
     >
-      {loading ? <LoadingIcon className="m-auto" /> : children}
+      {children}
     </button>
   );
 };
