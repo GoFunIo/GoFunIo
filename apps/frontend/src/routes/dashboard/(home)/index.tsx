@@ -10,6 +10,9 @@ import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
@@ -17,6 +20,7 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 
 function RouteComponent() {
   const { data: user, isLoading } = useUser();
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   if (isLoading) return <h1 className="">Loading</h1>;
   if (!user) return null;
@@ -29,7 +33,7 @@ function RouteComponent() {
         subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
         button={{
           label: 'Dodaj pojazd',
-          onClick: () => {},
+          onClick: () => setIsModalOpen(true),
         }}
       />
 
@@ -136,6 +140,15 @@ function RouteComponent() {
           </div>
         </BlockWrapper>
       </GridWrapper>
+
+      <Modal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        title="Dodaj pojazd"
+        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
+      >
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
+      </Modal>
     </>
   );
 }
