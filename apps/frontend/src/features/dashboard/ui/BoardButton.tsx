@@ -1,13 +1,13 @@
 import classNames from 'classnames';
-import { Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, ChevronRight } from 'lucide-react';
 
 type Props = {
   children: React.ReactNode;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
-  size?: 'small' | 'big';
+  size?: 'small' | 'medium' | 'big';
   variant?: 'default' | 'outline' | 'danger';
-  icon?: 'add' | 'edit' | 'delete';
+  icon?: 'add' | 'edit' | 'delete' | 'arrow';
   className?: string;
   disabled?: boolean;
 };
@@ -26,11 +26,14 @@ export const BoardButton = ({
     custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] cursor-pointer w-fit font-semibold flex shrink-0 items-center justify-center gap-[8px]
   `;
   const smallBtn = `
-    h-[30px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px]
+    h-[35px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px]
+  `;
+  const mediumBtn = `
+    h-[40px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px] uppercase
   `;
   const bigBtn = `
-    sm:h-[50px] h-[30px] 
-    sm:min-w-[190px] min-w-[100px] 
+    sm:h-[50px] h-[30px]
+    sm:min-w-[190px] min-w-[100px]
     sm:px-[35px] px-[12px]
     sm:text-[16px]/[14px] text-[12px]/[100%]
     sm:rounded-[7px] rounded-[3px]
@@ -61,6 +64,7 @@ export const BoardButton = ({
         [outlineBtn]: variant === 'outline',
         [dangerBtn]: variant === 'danger',
         [smallBtn]: size === 'small',
+        [mediumBtn]: size === 'medium',
         [bigBtn]: size === 'big',
         [disabledBtn]: disabled,
       })}
@@ -69,6 +73,7 @@ export const BoardButton = ({
       {icon && icon === 'edit' && <SquarePen size={18} />}
       {icon && icon === 'delete' && <Trash2 size={18} />}
       {children}
+      {icon && icon === 'arrow' && <ChevronRight size={16} className="shrink-0" />}
     </button>
   );
 };

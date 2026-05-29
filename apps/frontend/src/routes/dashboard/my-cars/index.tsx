@@ -10,6 +10,7 @@ import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { useState } from 'react';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,
@@ -70,7 +71,8 @@ function RouteComponent() {
                 </div>
                 <BoardButton
                   className="w-full"
-                  size="small"
+                  size="medium"
+                  icon="arrow"
                   onClick={() =>
                     navigate({
                       to: `/dashboard/my-cars/${item.id}`,
@@ -88,10 +90,10 @@ function RouteComponent() {
       <Modal
         isOpen={isModalOpen}
         setIsOpen={setIsModalOpen}
-        title="Dane firmowe"
-        subtitle="Wypełnij, jeśli chcesz wystawiać faktury na firmę."
+        title="Dodaj pojazd"
+        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
       >
-        test
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
       </Modal>
     </>
   );

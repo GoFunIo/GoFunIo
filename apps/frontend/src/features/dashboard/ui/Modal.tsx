@@ -11,7 +11,7 @@ type Props = {
   subtitle?: string;
 };
 
-export const Modal = ({ title, subtitle, isOpen, setIsOpen }: Props) => {
+export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) => {
   useLockDashboardScroll(isOpen);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen }: Props) => {
       onMouseDown={() => setIsOpen(false)}
     >
       <div
-        className="relative max-w-[690px] md:m-[32px] m-[15px] w-full p-[25px] rounded-[7px] border-icon bg-bg-page"
+        className="relative max-w-[800px] max-h-[90vh] overflow-y-auto md:m-[32px] m-[15px] w-full p-[25px] rounded-[7px] border-icon bg-bg-page"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button className="absolute right-[25px] top-[25px]" onClick={() => setIsOpen(false)}>
@@ -45,11 +45,12 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen }: Props) => {
         </button>
 
         {(title || subtitle) && (
-          <div className="">
-            {title && <p className="font-bold text-[16px] text-dark pb-[4px]">{title}</p>}
-            {subtitle && <p className="font-normal text-[14px] text-dark">{subtitle}</p>}
+          <div className="mb-[28px]">
+            {title && <p className="font-bold text-[18px] text-dark mb-2">{title}</p>}
+            {subtitle && <p className=" text-[16px] subtitle">{subtitle}</p>}
           </div>
         )}
+        <div className="w-full">{children}</div>
       </div>
     </div>
   );
