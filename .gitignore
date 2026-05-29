@@ -4,3 +4,4 @@ dist
 
 # DEV DB
 db.sqlite
+apps/frontend/src/routeTree.gen.ts
