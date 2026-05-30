@@ -11,10 +11,12 @@ import { Resolver } from 'react-hook-form';
 type FormProps = {
   className?: string;
   onClose: () => void;
+  initialData?: Partial<AddVehicleFormData> & { id?: string | number };
 };
 
-export const AddVehicleForm = ({ className, onClose }: FormProps) => {
+export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) => {
   const { loading, setLoading } = useLoading();
+  const isEditMode = !!initialData?.id;
 
   const {
     register,
@@ -27,6 +29,7 @@ export const AddVehicleForm = ({ className, onClose }: FormProps) => {
     reValidateMode: 'onChange',
     mode: 'onTouched',
     shouldFocusError: false,
+    defaultValues: initialData || {},
   });
 
   const onSubmit: SubmitHandler<AddVehicleFormData> = async (data) => {
@@ -34,20 +37,29 @@ export const AddVehicleForm = ({ className, onClose }: FormProps) => {
     setError('root', { type: 'server', message: '' });
 
     try {
+      if (isEditMode) {
+        console.log(`Aktualizacja pojazdu o ID ${initialData?.id}:`, data);
+        // Tutaj wleci axios.put(`/api/vehicles/${initialData.id}`, data)
+      } else {
+        console.log('Dodawanie nowego pojazdu:', data);
+        // Tutaj wleci axios.post('/api/vehicles', data)
+      }
       console.log('Dane gotowe do wysyłki:', data);
       // Tutaj wleci axios/fetch
       onClose();
     } catch {
       setError('root', {
         type: 'server',
-        message: 'Nie udało się dodać pojazdu. Spróbuj ponownie.',
+        message: isEditMode
+          ? 'Nie udało się zaktualizować pojazdu.'
+          : 'Nie udało się dodać pojazdu. Spróbuj ponownie.',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const inputStyles = '!text-[14px] !placeholder:text-[12px] font-medium';
+  const inputStyles = '!text-[14px] !placeholder:text-[12px] ';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={classNames('w-full', className)}>
@@ -146,7 +158,7 @@ export const AddVehicleForm = ({ className, onClose }: FormProps) => {
         <label className="text-[14px] font-medium text-content-secondary mb-[8px]">Notatki</label>
         <textarea
           className={classNames(
-            'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] font-medium focus:border-info custom-transition outline-none focus:ring-0 bg-white dark:bg-bg-card text-content-primary dark:text-white placeholder:text-icon min-h-[100px] resize-none',
+            'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] focus:border-info custom-transition outline-none focus:ring-0 bg-white dark:bg-bg-card text-content-primary dark:text-white placeholder:text-icon min-h-[100px] resize-none',
             errors.notes?.message ? 'border-alert' : 'border-icon',
           )}
           placeholder="Dodatkowe informacje o pojeździe...."
@@ -177,7 +189,7 @@ export const AddVehicleForm = ({ className, onClose }: FormProps) => {
           className="!w-[120px] sm:!w-[140px]"
           disabled={loading}
         >
-          Dodaj
+          {isEditMode ? 'Zapisz' : 'Dodaj'}
         </BoardButton>
       </div>
     </form>

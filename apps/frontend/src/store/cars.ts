@@ -4,20 +4,29 @@ const timeline = {
   id: 1,
   date: '03.04.2026',
   title: 'Pełny serwis',
-  car: 'BMW E60',
-  registration: 'SJ 0776A',
-  service: 'Auto Krakow',
-  notations: 'Wymiana rozrządu',
+  brand: 'BMW',
+  model: 'Seria 5 (E60)',
+  registrationNumber: 'SJ 0776A',
+  servicePlace: 'Auto Krakow',
+  notes: 'Wymiana rozrządu',
   price: 1850,
 };
 
+// POPRAWIONE: dopasowanie kluczy do AddVehicleInputs
 const car = {
   id: 1,
-  title: 'BMW',
-  year: '2004',
-  fuel: 'Gas',
-  registration: 'SJ 0776A',
-  mileage: 310000,
+  brand: 'BMW',
+  model: 'Seria 5 (E60)',
+  productionYear: '2004',
+  fuelType: 'GAS',
+  registrationNumber: 'SJ 0776A',
+  currentMileage: 310000,
+  vin: 'WBAAF71040BXXXXXX',
+  purchaseDate: '2022-05-15',
+  ocExpiry: '2026-11-20',
+  acExpiry: '2026-11-20',
+  technicalInspectionExpiry: '2026-06-18',
+  notes: 'Samochód służbowy — zadbany, regularnie serwisowany.',
   vti: 18,
 };
 

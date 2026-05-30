@@ -23,13 +23,15 @@ export const BoardButton = ({
   disabled,
 }: Props) => {
   const mainBtn = `
-    custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] cursor-pointer w-fit font-semibold flex shrink-0 items-center justify-center gap-[8px]
+    custom-transition w-fit font-semibold
+    inline-flex shrink-0 items-center justify-center gap-[8px] whitespace-nowrap w-auto
+    cursor-pointer  disabled:cursor-not-allowed
   `;
   const smallBtn = `
     h-[35px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px]
   `;
   const mediumBtn = `
-    h-[40px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px] uppercase
+    h-[40px] min-w-[100px] px-[12px] text-[12px]/[100%] rounded-[3px]
   `;
   const bigBtn = `
     sm:h-[50px] h-[30px]
@@ -40,18 +42,18 @@ export const BoardButton = ({
   `;
 
   const defaultBtn = `
-    bg-primary text-white hover:bg-secondary
+    bg-primary text-white hover:bg-secondary not-disabled:hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)]
   `;
 
   const outlineBtn = `
-    bg-white border border-primary text-primary
+    bg-white border border-primary text-primary not-disabled:hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)]
   `;
   const dangerBtn = `
     bg-alert text-white
   `;
 
   const disabledBtn = `
-    pointer-events-none opacity-50 cursor-default
+    pointer-events-none opacity-50 cursor-default 
   `;
 
   return (

@@ -1,5 +1,6 @@
 import * as yup from 'yup';
 
+// 1. Schemat dla dodawania pojazdu
 export const AddVehicleSchema = yup
   .object({
     brand: yup.string().required('Marka samochodu jest wymagana'),
@@ -26,4 +27,17 @@ export const AddVehicleSchema = yup
   })
   .required();
 
-export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
+// 2. Schemat dla wpisu serwisowego
+export const AddServiceSchema = yup.object().shape({
+  vehicleId: yup.string().required('Wybór pojazdu jest wymagany'),
+  serviceDate: yup.string().required('Data serwisu jest wymagana'),
+  serviceType: yup.string().required('Podaj rodzaj serwisu'),
+  cost: yup
+    .number()
+    .typeError('Koszt musi być liczbą')
+    .positive('Koszt musi być większy od 0')
+    .required('Podaj koszt usługi'),
+  servicePlace: yup.string().required('Nazwa warsztatu jest wymagana'),
+  notes: yup.string().nullable(),
+  attachment: yup.string().nullable(),
+});

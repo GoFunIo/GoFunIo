@@ -1,9 +1,11 @@
 import * as yup from 'yup';
-import { AddVehicleSchema } from '../lib/formValidationRules';
+import { AddVehicleSchema, AddServiceSchema } from '../lib/formValidationRules';
 
 export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
+export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
 
 export type AddVehicleInputs = {
+  id?: number | string;
   brand: string;
   model: string;
   productionYear?: string | null;
@@ -16,4 +18,15 @@ export type AddVehicleInputs = {
   acExpiry?: string | null;
   technicalInspectionExpiry?: string | null;
   notes?: string | null;
+};
+
+export type AddServiceInputs = {
+  id?: number | string;
+  vehicleId: string;
+  serviceDate: string;
+  serviceType: string;
+  cost: number;
+  servicePlace: string;
+  notes?: string | null;
+  attachment?: string | null;
 };

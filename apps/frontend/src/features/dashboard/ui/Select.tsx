@@ -16,6 +16,8 @@ type Props = {
   onChange: (value: Value) => void;
   placeholder?: string;
   clearOption?: boolean;
+  className?: string;
+  error?: string;
 };
 
 export const Select = ({
@@ -24,6 +26,8 @@ export const Select = ({
   onChange,
   placeholder = 'Choose one',
   clearOption = true,
+  className,
+  error,
 }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
@@ -50,10 +54,25 @@ export const Select = ({
     };
   }, []);
 
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className="relative min-w-[250px] w-fit h-[35px]" ref={selectRef}>
+    <div
+      className={classNames('relative min-w-[250px] w-fit h-[35px]', className)}
+      ref={selectRef}
+      tabIndex={0}
+      onBlur={handleBlur}
+    >
       <button
-        className="flex items-center justify-between cursor-pointer bg-bg-page px-[8px] rounded-[5px] border border-icon w-full h-full"
+        type="button"
+        className={classNames(
+          'flex items-center justify-between cursor-pointer bg-bg-page px-[8px] rounded-[5px] w-full h-full outline-none ',
+          error ? 'border border-alert' : 'border border-icon',
+        )}
         onClick={() => setIsOpen((prev) => !prev)}
       >
         <p className="text-left text-[14px] text-content-secondary">
@@ -67,7 +86,7 @@ export const Select = ({
         />
       </button>
       {isOpen && (
-        <div className="flex flex-col gap-[4px] absolute top-[40px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
+        <div className="flex flex-col gap-[4px] absolute top-[40px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)] z-[99]">
           {clearOption && (
             <span
               onClick={() => handleSelect(null)}

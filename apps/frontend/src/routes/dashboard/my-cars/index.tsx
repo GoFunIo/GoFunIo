@@ -50,17 +50,19 @@ function RouteComponent() {
                     <CarFront className="text-info" />
                   </IconWrapper>
                   <div className="">
-                    <p className="font-bold text-[14px] text-dark">{item.title}</p>
-                    <p className="text-[14px]">
-                      {item.year} - {item.fuel}
+                    <p className="font-bold text-[14px] text-dark">
+                      {item.brand} {item.model}
                     </p>
-                    <p className="text-[14px]">{item.registration}</p>
+                    <p className="text-[14px]">
+                      {item.productionYear} - {item.fuelType}
+                    </p>
+                    <p className="text-[14px]">{item.registrationNumber}</p>
                   </div>
                 </div>
                 <div className="mt-[12px] mb-[16px]">
                   <div className="flex gap-[10px] items-center pb-[8px]">
                     <Gauge size={16} />
-                    <p className="text-[14px]">{item.mileage} km</p>
+                    <p className="text-[14px]">{item.currentMileage} km</p>
                   </div>
                   <div className="flex gap-[10px] items-center">
                     <Calendar size={16} />
