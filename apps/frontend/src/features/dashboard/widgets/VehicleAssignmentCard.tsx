@@ -36,7 +36,7 @@ export const VehicleAssignmentCard = ({ vehicle, users, onAssign }: VehicleAssig
   };
 
   return (
-    <div className="bg-bg-page border border-icon rounded-[7px] p-5 shadow-sm flex flex-col gap-6 max-w-sm">
+    <div className="bg-bg-page border border-icon rounded-[7px] p-5 shadow-sm flex flex-col gap-6 ">
       <div className="flex items-start gap-4">
         <div className="w-[70px] h-[70px] bg-info-bg-icon rounded-[3px] flex items-center justify-center text-info shrink-0">
           <Car size={30} />
