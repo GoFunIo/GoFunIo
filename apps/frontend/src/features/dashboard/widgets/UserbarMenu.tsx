@@ -12,7 +12,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
   return (
     <div
       className={classNames(
-        'z-9 fixed h-0 custom-transition overflow-hidden w-screen bg-bg-card min-[426px]:top-[64px] top-[50px] px-[15px]',
+        'z-999 fixed h-0 custom-transition overflow-hidden w-screen bg-bg-card min-[426px]:top-[64px] top-[50px] px-[15px]',
         {
           'h-screen': value,
         },
