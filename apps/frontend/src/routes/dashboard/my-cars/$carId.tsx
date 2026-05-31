@@ -5,7 +5,7 @@ import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { History } from '@/features/dashboard/widgets/History';
 import { activityArr, carsArr } from '@/store/cars';
-import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
@@ -19,18 +19,23 @@ export const Route = createFileRoute('/dashboard/my-cars/$carId')({
 
 function RouteComponent() {
   const car = Route.useLoaderData();
+  const navigate = useNavigate();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   if (!car) return <h1 className="">Car not found</h1>;
 
+  const editModalTitle = `Edytuj pojazd ${car.brand} ${car.model}`;
+  const editModalSubtitle =
+    'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
+
   const handleDelete = async () => {
     try {
       console.log('Usuwanie pojazdu o ID:', car.id);
       // await axios.delete(`/api/vehicles/${car.id}`);
       setIsDeleteModalOpen(false);
-      Navigate({ to: '/dashboard/my-cars' });
+      navigate({ to: '/dashboard/my-cars' });
     } catch (error) {
       console.error('Błąd usuwania:', error);
     }
@@ -154,7 +159,12 @@ function RouteComponent() {
       </GridWrapper>
 
       {/* MODAL EDYCJI */}
-      <Modal isOpen={isEditModalOpen} setIsOpen={setIsEditModalOpen} title="Edytuj pojazd">
+      <Modal
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        title={editModalTitle}
+        subtitle={editModalSubtitle}
+      >
         <AddVehicleForm initialData={car} onClose={() => setIsEditModalOpen(false)} />
       </Modal>
 
@@ -168,7 +178,7 @@ function RouteComponent() {
             </strong>
             ? Tej operacji nie można cofnąć.
           </p>
-          <div className="flex justify-end gap-3 border-t pt-4">
+          <div className="flex justify-end gap-3  pt-4">
             <BoardButton
               variant="outline"
               size="medium"

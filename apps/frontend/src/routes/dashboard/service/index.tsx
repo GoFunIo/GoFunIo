@@ -1,4 +1,5 @@
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVechiclesServicesForm';
+import { AddServiceFormData } from '@/features/dashboard/types/FormTypes';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Filters } from '@/features/dashboard/widgets/Filters';
@@ -9,8 +10,21 @@ export const Route = createFileRoute('/dashboard/service/')({
   component: RouteComponent,
 });
 
+type ModalState = boolean | (Partial<AddServiceFormData> & { id: string | number }) | null;
+
 function RouteComponent() {
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalState, setModalState] = useState<ModalState>(null);
+
+  const isModalOpen = !!modalState;
+  const isEditMode = typeof modalState === 'object' && modalState !== null;
+
+  const modalTitle = isEditMode ? 'Edytuj wpis serwisowy' : 'Dodaj wpis serwisowy';
+  const modalSubtitle = isEditMode
+    ? 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.'
+    : 'Zapisz każdą czynność serwisową, by mieć pełną historię pojazdu.';
+
+  const handleCloseModal = () => setModalState(null);
+
   return (
     <>
       <DashboardHeader
@@ -18,18 +32,26 @@ function RouteComponent() {
         subtitle="Pełna historia serwisowa Twojej floty"
         button={{
           label: 'Dodaj wpis serwisowy',
-          onClick: () => setIsModalOpen(true),
+          onClick: () => setModalState(true),
         }}
       />
+
+      {/*
+        W tabeli wpisów serwisowych (wewnątrz <Filters />  do "Edytuj" przypiszesz:
+        onClick={() => setModalState(item)} <-- gdzie item to obiekt z danymi wpisu (musi mieć id!)
+      */}
 
       <Filters />
       <Modal
         isOpen={isModalOpen}
-        setIsOpen={setIsModalOpen}
-        title="Dodaj pojazd"
-        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
+        setIsOpen={handleCloseModal}
+        title={modalTitle}
+        subtitle={modalSubtitle}
       >
-        <AddVehicleServiceForm onClose={() => setIsModalOpen(false)} />
+        <AddVehicleServiceForm
+          onClose={handleCloseModal}
+          initialData={isEditMode ? modalState : undefined}
+        />
       </Modal>
     </>
   );
