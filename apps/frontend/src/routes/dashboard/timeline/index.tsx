@@ -26,24 +26,24 @@ function RouteComponent() {
               <div className="w-full flex-wrap flex justify-between sm:flex-row flex-col gap-[12px] sm:items-end p-[16px] bg-bg-page border border-icon rounded-[7px]">
                 <div className="">
                   <p className="text-[12px]">{item.date}</p>
-                  <p className="text-[14px] font-bold text-dark">{item.title}</p>
+                  <p className="text-[14px] font-bold text-content-primary">{item.title}</p>
                   <div className="flex gap-x-[8px] flex-wrap">
                     <p className="text-[12px]">{item.car}</p>
                     <p className="text-[12px]">{item.registration}</p>
                   </div>
                 </div>
                 <div className="">
-                  <p className="text-[12px]">Warsztat</p>
-                  <p className="text-[14px] text-dark">{item.service}</p>
+                  <p className="text-[12px] text-content-primary">Warsztat</p>
+                  <p className="text-[14px] text-content-secondary">{item.service}</p>
                 </div>
                 {item.notations && item.notations.length !== 0 && (
                   <div className="">
-                    <p className="text-[12px]">Notatki</p>
-                    <p className="text-[14px] text-dark">{item.notations}</p>
+                    <p className="text-[12px] text-content-primary">Notatki</p>
+                    <p className="text-[14px] text-content-secondary">{item.notations}</p>
                   </div>
                 )}
                 <div className="md:w-fit w-full">
-                  <p className="bg-bg-section rounded-[3px] h-[30px] min-w-[100px] w-fit flex items-center justify-center text-[10px] font-semibold text-dark">
+                  <p className="bg-bg-section rounded-[3px] h-[30px] min-w-[100px] w-fit flex items-center justify-center text-[10px] font-semibold text-content-primary">
                     {item.price} zł
                   </p>
                 </div>

@@ -9,6 +9,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import classNames from 'classnames';
 import { signOut } from '@/features/auth/auth.api';
 import { queryClient } from '@/lib/queryClient';
+import { ThemeToggle } from '@/hooks/useTheme';
 
 export const Userbar = () => {
   const name = 'Anna Kowalska';
@@ -53,7 +54,7 @@ export const Userbar = () => {
 
   return (
     <>
-      <div className="flex items-center z-9 min-[426px]:h-[64px] h-[50px] bg-white border-b border-icon shrink-0">
+      <div className="flex items-center z-9 min-[426px]:h-[64px] h-[50px] bg-bg-card border-b border-icon shrink-0">
         {isTabletOrMobile && (
           <div className="md:ml-[32px] ml-[15px] flex items-center h-full gap-[15px]">
             <Logo />
@@ -65,13 +66,15 @@ export const Userbar = () => {
             />
           </div>
         )}
-        <div className="ml-[auto] h-full flex items-center gap-[10px]">
+        <div className="ml-[auto] h-full flex items-center gap-4">
+          <ThemeToggle />
+
           <Link
             to="/dashboard/notifications"
-            className="relative flex items-center h-full px-[10px] cursor-pointer"
+            className="relative flex items-center h-full cursor-pointer"
           >
             <div className="absolute min-[426px]:top-[20px] top-[14px] right-[12px] w-[6px] h-[6px] bg-alert rounded-full"></div>
-            <Bell className="text-black" size={20} />
+            <Bell className="text-content-primary" size={20} />
           </Link>
           <div className="relative h-full" ref={selectRef}>
             <div
@@ -82,13 +85,13 @@ export const Userbar = () => {
                 <p className="text-[12px] font-normal text-white">{getInitials()}</p>
               </div>
               <div className="max-[426px]:hidden">
-                <p className="text-[14px] font-normal text-black">{name}</p>
+                <p className="text-[14px] font-normal text-content-primary">{name}</p>
                 <p className="text-[12px]">{user.email}</p>
               </div>
             </div>
             <div
               className={classNames(
-                'shadow-[0_2px_7px_0_rgba(0,0,0,0.1)] min-[426px]:w-full w-fit flex flex-col gap-[8px] p-[4px] absolute min-[426px]:top-[64px] top-[50px] right-0 bg-white',
+                'shadow-[0_2px_7px_0_rgba(0,0,0,0.1)] min-[426px]:w-full w-fit flex flex-col gap-[8px] p-[4px] absolute min-[426px]:top-[64px] top-[50px] right-0 bg-bg-card',
                 {
                   hidden: !dropdown,
                 },
@@ -99,8 +102,8 @@ export const Userbar = () => {
                 to="/dashboard/settings"
                 className="hover:bg-bg-section p-[8px] flex items-center gap-[8px]"
               >
-                <Settings size={22} className="text-black" />
-                <p className="font-normal text-[14px] text-black">Ustawienia</p>
+                <Settings size={22} className="text-content-primary" />
+                <p className="font-normal text-[14px] text-content-primary">Ustawienia</p>
               </Link>
               <button
                 onClick={logout}

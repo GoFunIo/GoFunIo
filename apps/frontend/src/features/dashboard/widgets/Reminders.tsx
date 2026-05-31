@@ -29,17 +29,17 @@ export const Reminders = ({ title, data = [], className }: Props) => {
               <div
                 key={item.id}
                 className={classNames(
-                  'gap-[16px] grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 items-start p-[16px] border-l-[5px] rounded-[7px]',
+                  'gap-[16px] grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 items-start p-[16px] border-l-[5px] border-r-[1px] border-t-[1px] border-b-[1px] rounded-[7px]',
                   {
-                    'bg-alert-bg border-alert': item.termin <= 7,
-                    'bg-warning-bg border-warning': item.termin > 7,
+                    'bg-alert-bg dark:bg-bg-section border-alert': item.termin <= 7,
+                    'bg-warning-bg dark:bg-bg-section  border-warning': item.termin > 7,
                   },
                 )}
               >
                 <div className="">
-                  <p className="pb-[8px] text-[14px] text-dark font-bold">
+                  <p className="pb-[8px] text-[14px] text-content-primary  font-bold">
                     {item.car}
-                    <span className="text-content-secondary font-normal"> ({item.plate})</span>
+                    <span className="text-content-primary font-normal"> ({item.plate})</span>
                   </p>
                   <p className="text-[12px] text-content-secondary">
                     Przegląd techniczny — termin za {item.termin} {formatDays(item.termin)}
@@ -57,7 +57,12 @@ export const Reminders = ({ title, data = [], className }: Props) => {
                   {item.termin <= 7 ? 'Krytyczne' : 'Nadchodzące'}
                 </p>
                 <div className="md:ml-auto flex gap-[16px]">
-                  <BoardButton onClick={() => {}} size="small" variant="outline">
+                  <BoardButton
+                    onClick={() => {}}
+                    size="small"
+                    variant="outline"
+                    className="dark:text-white  dark:bg-bg-section"
+                  >
                     Ignoruj
                   </BoardButton>
                   <BoardButton onClick={() => {}} size="small">

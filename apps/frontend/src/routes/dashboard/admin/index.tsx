@@ -22,12 +22,12 @@ function RouteComponent() {
       <GridWrapper layout="3-equal">
         <BlockWrapper className="flex justify-between" variant="default">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {false && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px]  pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper>
             <CarFront />
@@ -36,12 +36,12 @@ function RouteComponent() {
 
         <BlockWrapper className="flex justify-between" variant="alert">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {true && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px]  pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper variant="alert">
             <CarFront />
@@ -50,12 +50,12 @@ function RouteComponent() {
 
         <BlockWrapper className="flex justify-between" variant="warning">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {false && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px] pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper variant="warning">
             <CarFront />
@@ -65,8 +65,10 @@ function RouteComponent() {
 
       <BlockWrapper>
         <div className="">
-          <p className="text-[18px] text-dark font-semibold mb-[8px]">Nadchodzące terminy</p>
-          <p className="text-[14px] text-dark">
+          <p className="text-[18px] text-content-primary font-semibold mb-[8px]">
+            Nadchodzące terminy
+          </p>
+          <p className="text-[14px] text-content-primary">
             Liczba pojazdów wymagających uwagi w najbliższym czasie
           </p>
         </div>
@@ -77,21 +79,21 @@ function RouteComponent() {
               <IconWrapper className="!w-[25px] !h-[25px]">
                 <Wrench className="text-info" size={16} />
               </IconWrapper>
-              <p className="text-[14px] font-bold text-dark">Przeglądy techniczne</p>
+              <p className="text-[14px] font-bold text-content-primary">Przeglądy techniczne</p>
             </div>
 
             <div className="mt-[24px] gap-[16px] grid sm:grid-cols-3 grid-cols-1">
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
                 <p className="text-center text-[12px]">≤ 7 dni</p>
               </div>
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
+                <p className="text-center text-[12px]">≤ 30 dni</p>
               </div>
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
+                <p className="text-center text-[12px]">≤ 60 dni</p>
               </div>
             </div>
           </div>
@@ -101,20 +103,20 @@ function RouteComponent() {
               <IconWrapper className="!w-[25px] !h-[25px]">
                 <Wrench className="text-info" size={16} />
               </IconWrapper>
-              <p className="text-[14px] font-bold text-dark">Przeglądy techniczne</p>
+              <p className="text-[14px] font-bold text-content-primary">Ubezpieczenia (OC / AC)</p>
             </div>
 
             <div className="mt-[24px] gap-[16px] grid sm:grid-cols-3 grid-cols-1">
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
                 <p className="text-center text-[12px]">≤ 7 dni</p>
               </div>
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
                 <p className="text-center text-[12px]">≤ 7 dni</p>
               </div>
               <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-dark font-bold">0</p>
+                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
                 <p className="text-center text-[12px]">≤ 7 dni</p>
               </div>
             </div>

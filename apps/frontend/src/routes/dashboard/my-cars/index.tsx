@@ -28,7 +28,7 @@ function RouteComponent() {
       />
       {!carsArr || carsArr.length === 0 ? (
         <EmptyPlaceholder
-          className="bg-white min-h-[250px]"
+          className="bg-wbg-card min-h-[250px]"
           title="Nie ma tu żadnych pojazdów. Dodaj pierwszy "
           button={{
             label: 'Zobacz wszystko',
@@ -46,7 +46,7 @@ function RouteComponent() {
                     <CarFront className="text-info" />
                   </IconWrapper>
                   <div className="">
-                    <p className="font-bold text-[14px] text-dark">{item.title}</p>
+                    <p className="font-bold text-[14px] text-content-primary">{item.title}</p>
                     <p className="text-[14px]">
                       {item.year} - {item.fuel}
                     </p>
@@ -55,11 +55,11 @@ function RouteComponent() {
                 </div>
                 <div className="mt-[12px] mb-[16px]">
                   <div className="flex gap-[10px] items-center pb-[8px]">
-                    <Gauge size={16} />
+                    <Gauge size={16} strokeWidth={3} className="text-content-primary " />
                     <p className="text-[14px]">{item.mileage} km</p>
                   </div>
                   <div className="flex gap-[10px] items-center">
-                    <Calendar size={16} />
+                    <Calendar size={16} strokeWidth={3} className="text-content-primary " />
                     <p className="text-[14px] flex items-center gap-[16px]">
                       Przegląd za <DaysAmount days={item.vti} />
                     </p>

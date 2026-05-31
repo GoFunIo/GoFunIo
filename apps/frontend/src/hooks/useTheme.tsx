@@ -18,7 +18,7 @@ export const ThemeToggle = () => {
   return (
     <button
       onClick={() => setIsDark(!isDark)}
-      className="p-2 rounded-full hover:bg-bg-section transition-colors"
+      className=" rounded-full hover:bg-bg-section transition-colors"
       aria-label="Przełącz motyw"
     >
       {isDark ? (

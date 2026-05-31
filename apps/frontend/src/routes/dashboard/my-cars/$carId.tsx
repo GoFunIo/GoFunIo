@@ -35,7 +35,7 @@ function RouteComponent() {
           </IconWrapper>
           <div className="">
             <h3 className="pb-[3px]">{car.title}</h3>
-            <p className="text-[14px] text-dark">
+            <p className="text-[14px] ">
               {car.year} - {car.registration} - {car.fuel}
             </p>
           </div>
@@ -55,8 +55,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
 
@@ -65,8 +65,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
 
@@ -75,8 +75,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
       </GridWrapper>

@@ -60,7 +60,10 @@ export const Select = ({
           value={selected ? selected.label : ''}
           placeholder={placeholder}
           type="text"
-          className="caret-transparent text-[14px] focus:outline-none placeholder:text-content-secondary text-content-secondary z-9 cursor-pointer px-[8px] w-full h-full"
+          className={classNames(
+            'caret-transparent text-[14px] focus:outline-none placeholder:text-content-secondary z-9 cursor-pointer px-[8px] w-full h-full rounded-[5px]',
+            selected ? 'text-content-primary' : 'text-content-secondary',
+          )}
           onClick={() => setIsOpen((prev) => !prev)}
         />
         <ChevronUp
@@ -76,9 +79,10 @@ export const Select = ({
             <span
               onClick={() => handleSelect(null)}
               className={classNames(
-                'cursor-pointer p-[8px] text-[14px] text-content-secondary rounded-[5px] hover:text-dark hover:bg-bg-section',
+                'cursor-pointer p-[8px] text-[14px] rounded-[5px] transition-colors duration-150',
+                'text-content-secondary hover:text-content-primary hover:bg-bg-section',
                 {
-                  'text-dark bg-bg-section': value == null,
+                  'text-content-primary bg-bg-section': value == null,
                 },
               )}
             >
@@ -91,7 +95,7 @@ export const Select = ({
                 key={`${item.value}-${index}`}
                 onClick={() => handleSelect(item.value)}
                 className={classNames(
-                  'cursor-pointer p-[8px] text-[14px] text-content-secondary rounded-[5px] hover:text-dark hover:bg-bg-section',
+                  'cursor-pointer p-[8px] text-[14px] text-content-secondary rounded-[5px] hover:text-content-primary hover:bg-bg-section',
                   {
                     'text-dark bg-bg-section': item.value === value,
                   },

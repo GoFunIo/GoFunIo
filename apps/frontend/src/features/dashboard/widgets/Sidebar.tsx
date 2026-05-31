@@ -13,7 +13,7 @@ export const Sidebar = () => {
   return (
     <div
       className={classNames(
-        'sticky top-0 h-screen overflow-hidden box-sizing custom-transition flex flex-col w-[65px] bg-white border-r border-icon shrink-0',
+        'sticky top-0 h-screen overflow-hidden box-sizing custom-transition flex flex-col w-[65px] bg-bg-card border-r border-icon shrink-0',
         {
           ['w-[180px]']: isOpen,
         },
@@ -49,7 +49,7 @@ export const Sidebar = () => {
                       <div className="w-[30px] h-full shrink-0 flex items-center justify-center">
                         <Icon
                           className={classNames(
-                            'custom-transition text-black group-hover:text-white',
+                            'custom-transition text-content-primary group-hover:text-white',
                             {
                               'text-white': isActive,
                             },
@@ -59,7 +59,7 @@ export const Sidebar = () => {
                       </div>
                       <p
                         className={classNames(
-                          'w-[115px] shrink-0 custom-transition text-[12px] group-hover:text-white font-semibold text-black uppercase shrink-0 pl-[18px]',
+                          'w-[115px] shrink-0 custom-transition text-[12px] group-hover:text-white font-semibold text-content-primary uppercase shrink-0 pl-[18px]',
                           {
                             'text-white': isActive,
                           },
@@ -74,7 +74,7 @@ export const Sidebar = () => {
             })}
           </div>
           {groupIndex !== sidebar.length - 1 && (
-            <div className="bg-black mx-[17px] h-[2px] my-[10px]" />
+            <div className="bg-bg-card mx-[17px] h-[2px] my-[10px]" />
           )}
         </Fragment>
       ))}

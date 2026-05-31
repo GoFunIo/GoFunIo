@@ -90,20 +90,22 @@ function RouteComponent() {
           <div className="border-b border-icon pb-[24px] mb-[24px]">
             <div className="flex items-center gap-[8px] mb-[16px]">
               <Bell className="text-primary" size={18} />
-              <p className="text-[16px] text-dark font-bold">Przypomnienia o terminach</p>
+              <p className="text-[16px] text-content-primary font-bold">
+                Przypomnienia o terminach
+              </p>
             </div>
-            <p className="text-[16px] text-dark mb-[16px]">
+            <p className="text-[16px] text-content-secondary mb-[16px]">
               Możesz ustawić dowolnie wiele przypomnień
             </p>
             <div className="mb-[24px]">
-              <p className="text-[14px] text-dark mb-[10px]">Aktywne ustawienia</p>
+              <p className="text-[14px] text-content-secondary mb-[10px]">Aktywne ustawienia</p>
               {currentSettings.length > 0 ? (
                 <div className="flex items-center gap-[16px] flex-wrap">
                   {currentSettings.map((item) => {
                     return (
                       <div
                         key={item.id}
-                        className="shrink-0 bg-info-bg flex gap-[8px] items-center h-[30px] w-fit rounded-[3px] px-[8px]"
+                        className="shrink-0 bg-info-bg  flex gap-[8px] items-center h-[30px] w-fit rounded-[3px] px-[8px]"
                       >
                         <p className="text-[12px] text-dark">
                           {item.value} {formatDays(item.value)}
@@ -119,14 +121,14 @@ function RouteComponent() {
                   })}
                 </div>
               ) : (
-                <p className="text-[12px] text-dark bg-bg-section flex items-center h-[30px] min-w-[80px] w-fit rounded-[3px] px-[8px]">
+                <p className="text-[12px] text-content-primary bg-bg-section flex items-center h-[30px] min-w-[80px] w-fit rounded-[3px] px-[8px]">
                   Brak aktywnych ustawień
                 </p>
               )}
             </div>
 
             <div className="mb-[24px]">
-              <p className="text-[14px] text-dark mb-[10px]">
+              <p className="text-[14px] text-content-secondary mb-[10px]">
                 Dodaj własne (liczba dni przed terminem)
               </p>
               <div className="flex items-center gap-[16px] max-w-[240px]">
@@ -148,7 +150,7 @@ function RouteComponent() {
               </div>
             </div>
             <div className="">
-              <p className="text-[14px] text-dark mb-[10px]">Szybkie ustawienia</p>
+              <p className="text-[14px] text-content-secondary mb-[10px]">Szybkie ustawienia</p>
               {settings.length > 0 ? (
                 <div className="flex items-center gap-[16px] flex-wrap">
                   {settings.map((item) => {

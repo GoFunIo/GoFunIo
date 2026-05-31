@@ -12,7 +12,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
   return (
     <div
       className={classNames(
-        'z-9 fixed h-0 custom-transition overflow-hidden w-screen bg-white min-[426px]:top-[64px] top-[50px] px-[15px]',
+        'z-9 fixed h-0 custom-transition overflow-hidden w-screen bg-bg-card min-[426px]:top-[64px] top-[50px] px-[15px]',
         {
           'h-screen': value,
         },
@@ -47,7 +47,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
                         <div className="w-[30px] h-full shrink-0 flex items-center justify-center">
                           <Icon
                             className={classNames(
-                              'custom-transition text-black group-hover:text-white',
+                              'custom-transition text-content-primary group-hover:text-white',
                               {
                                 'text-white': isActive,
                               },
@@ -57,7 +57,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
                         </div>
                         <p
                           className={classNames(
-                            'custom-transition text-[12px] group-hover:text-white font-semibold text-black uppercase shrink-0 pl-[18px]',
+                            'custom-transition text-[12px] group-hover:text-white font-semibold text-content-primary uppercase shrink-0 pl-[18px]',
                             {
                               'text-white': isActive,
                             },
@@ -72,7 +72,7 @@ export const UserbarMenu = ({ value, onClick }: Props) => {
               })}
             </div>
             {groupIndex !== sidebar.length - 1 && (
-              <div className="bg-black w-full h-[2px] my-[10px]" />
+              <div className="bg-black dark:bg-icon w-full h-[1px] my-[10px]" />
             )}
           </div>
         ))}

@@ -28,13 +28,15 @@ export const DataTable = <T extends { id: string | number }>({
             {columns.map((col, idx) => (
               <th
                 key={idx}
-                className="py-[16px] pl-[25px] text-left font-normal text-dark text-[14px]"
+                className="py-[16px] pl-[25px] text-left font-normal text-content-primary text-[14px]"
               >
                 {col.header}
               </th>
             ))}
             {(onEdit || onDelete) && (
-              <th className="text-right pr-[25px] font-normal text-dark text-[14px]">Akcje</th>
+              <th className="text-right pr-[25px] font-normal text-content-primary text-[14px]">
+                Akcje
+              </th>
             )}
           </tr>
         </thead>
@@ -52,12 +54,12 @@ export const DataTable = <T extends { id: string | number }>({
                     key={colIdx}
                     className="lg:py-[16px] lg:pl-[25px] pb-[8px] flex justify-between items-center lg:table-cell"
                   >
-                    <span className="lg:hidden font-normal text-dark text-[14px]">
+                    <span className="lg:hidden font-normal text-content-primary text-[14px]">
                       {col.header}
                     </span>
                     <div
                       className={classNames('text-[14px] text-content-secondary', {
-                        'text-dark font-bold': col.isImportant,
+                        'text-content-primary font-bold': col.isImportant,
                       })}
                     >
                       {col.render ? col.render(value, item) : (value as React.ReactNode)}
@@ -68,14 +70,16 @@ export const DataTable = <T extends { id: string | number }>({
 
               {(onEdit || onDelete) && (
                 <td className="lg:py-[12px] lg:px-[25px] flex justify-end gap-3 lg:table-cell">
-                  <span className="lg:hidden font-normal text-dark text-[14px] mr-auto">Akcje</span>
+                  <span className="lg:hidden font-normal text-content-primary text-[14px] mr-auto">
+                    Akcje
+                  </span>
                   <div className="flex gap-2.5 lg:justify-end">
                     {onEdit && (
                       <button
                         onClick={() => onEdit(item)}
                         className="cursor-pointer text-gray-400 hover:text-primary custom-transition"
                       >
-                        <Pencil size={18} />
+                        <Pencil size={18} className="text-content-primary" />
                       </button>
                     )}
                     {onDelete && (
@@ -83,7 +87,7 @@ export const DataTable = <T extends { id: string | number }>({
                         onClick={() => onDelete(item)}
                         className="cursor-pointer text-gray-400 hover:text-alert custom-transition"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} className="text-content-primary" />
                       </button>
                     )}
                   </div>
@@ -96,8 +100,8 @@ export const DataTable = <T extends { id: string | number }>({
 
       {footer && (
         <div className="border-t border-icon flex items-center justify-between py-[16px] md:px-[25px] px-[20px] w-full">
-          <p className="text-dark font-semibold">{data.length} wpisów</p>
-          {footerLabel && <p className="text-dark font-semibold block">{footerLabel}</p>}
+          <p className="text-content-primary font-semibold">{data.length} wpisów</p>
+          {footerLabel && <p className="text-content-primary font-semibold block">{footerLabel}</p>}
         </div>
       )}
     </div>
