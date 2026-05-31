@@ -3,8 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
 import classNames from 'classnames';
-import { AddVehicleSchema } from '../lib/formValidationRules';
-import { AddVehicleFormData } from '../types/FormTypes';
+import { AddVehicleFormData, AddVehicleSchema } from '../lib/formValidationRules';
 import { useLoading } from '@/hooks/useLoading';
 import { Resolver } from 'react-hook-form';
 

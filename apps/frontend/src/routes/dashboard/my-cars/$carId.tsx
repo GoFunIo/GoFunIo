@@ -9,6 +9,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
+import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {
@@ -169,28 +170,17 @@ function RouteComponent() {
       </Modal>
 
       {/* MODAL USUWANIA */}
-      <Modal isOpen={isDeleteModalOpen} setIsOpen={setIsDeleteModalOpen} title="Usuń pojazd">
-        <div className="py-4">
-          <p className="text-content-secondary mb-6">
-            Czy na pewno chcesz usunąć{' '}
-            <strong>
-              {car.brand} {car.model}
-            </strong>
-            ? Tej operacji nie można cofnąć.
-          </p>
-          <div className="flex justify-end gap-3  pt-4">
-            <BoardButton
-              variant="outline"
-              size="medium"
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Anuluj
-            </BoardButton>
-            <BoardButton size="medium" className="bg-alert text-white" onClick={handleDelete}>
-              Usuń pojazd
-            </BoardButton>
-          </div>
-        </div>
+      <Modal
+        isOpen={isDeleteModalOpen}
+        setIsOpen={setIsDeleteModalOpen}
+        title="Usuń pojazd"
+        subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
+      >
+        <DeleteCarConfirm
+          car={car}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+        />
       </Modal>
     </>
   );

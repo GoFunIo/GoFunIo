@@ -1,3 +1,4 @@
+import { isPasswordValid } from '@/features/auth/lib/passwordRules';
 import * as yup from 'yup';
 
 // 1. Schemat dla dodawania pojazdu
@@ -41,3 +42,77 @@ export const AddServiceSchema = yup.object().shape({
   notes: yup.string().nullable(),
   attachment: yup.string().nullable(),
 });
+
+// 3. DANE OSOBOWE
+export const PersonalDataSchema = yup.object({
+  firstName: yup.string().default(''),
+  lastName: yup.string().default(''),
+  phone: yup.string().default(''),
+  address: yup.string().default(''),
+  city: yup.string().default(''),
+
+  postalCode: yup
+    .string()
+    .default('')
+    .matches(/^\d{2}-\d{3}$/, {
+      message: 'Format 00-000',
+      excludeEmptyString: true,
+    }),
+});
+
+// 4. DANE FIRMOWE
+export const CompanyDataSchema = yup.object({
+  sameAsPersonal: yup.boolean().default(false),
+  companyName: yup.string().required('Nazwa firmy jest wymagana'),
+  nip: yup
+    .string()
+    .matches(/^\d{10}$/, 'NIP musi mieć dokładnie 10 cyfr')
+    .required('Podaj prawidłowy NIP'),
+  companyAddress: yup.string().required('Adres firmy jest wymagany'),
+  companyPostalCode: yup
+    .string()
+    .matches(/^\d{2}-\d{3}$/, 'Format 00-000')
+    .required('Kod pocztowy jest wymagany'),
+  companyCity: yup.string().required('Miasto jest wymagane'),
+});
+
+// 5. EDYCJA E-MAIL
+export const ChangeEmailSchema = yup.object({
+  newEmail: yup.string().email('Podaj prawidłowy e-mail').required('Podaj prawidłowy e-mail'),
+  confirmEmail: yup
+    .string()
+    .oneOf([yup.ref('newEmail')], 'Nowy e-mail musi być identyczny')
+    .required('Powtórz e-mail'),
+});
+
+// 6. EDYCJA HASŁA
+export const ChangePasswordSchema = yup.object({
+  currentPassword: yup.string().required('Podaj prawidłowe hasło'),
+  newPassword: yup
+    .string()
+    .required('Wprowadź nowe hasło')
+    .test('password-rules', 'Hasło nie spełnia wszystkich wymogów bezpieczeństwa', (value) => {
+      return isPasswordValid(value || '');
+    }),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('newPassword')], 'Nowe hasła muszą być identyczne')
+    .required('Powtórz nowe hasło'),
+});
+
+// 7. Schemat dla użytkownika systemu
+export const UserManagementSchema = yup.object({
+  firstName: yup.string().default(''),
+  lastName: yup.string().default(''),
+  email: yup.string().email('Podaj prawidłowy e-mail').required('Adres e-mail jest wymagany'),
+  role: yup.string().required('Wybór roli jest wymagany'),
+  sendInvite: yup.boolean().default(false),
+});
+
+export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
+export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
+export type PersonalDataFormData = yup.InferType<typeof PersonalDataSchema>;
+export type CompanyDataFormData = yup.InferType<typeof CompanyDataSchema>;
+export type ChangeEmailFormData = yup.InferType<typeof ChangeEmailSchema>;
+export type ChangePasswordFormData = yup.InferType<typeof ChangePasswordSchema>;
+export type UserManagementFormData = yup.InferType<typeof UserManagementSchema>;

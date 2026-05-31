@@ -6,10 +6,10 @@ import classNames from 'classnames';
 import { useLoading } from '@/hooks/useLoading';
 import { Resolver } from 'react-hook-form';
 
-import { AddServiceSchema } from '../lib/formValidationRules';
-import { AddServiceFormData } from '../types/FormTypes';
+import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
 import { carsArr } from '@/store/cars';
 import { Select } from '../ui/Select';
+import { useEffect } from 'react';
 
 type FormProps = {
   className?: string;
@@ -37,6 +37,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
   const {
     register,
     control,
+    reset,
     setError,
     clearErrors,
     formState: { errors },
@@ -48,6 +49,17 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     shouldFocusError: false,
     defaultValues: initialData || {},
   });
+
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    } else {
+      reset({
+        serviceType: '',
+        cost: undefined,
+      });
+    }
+  }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<AddServiceFormData> = async (data) => {
     setLoading(true);
@@ -72,11 +84,12 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     }
   };
 
-  const inputStyles = '!text-[14px] !placeholder:text-[12px] font-medium w-full';
+  const inputStyles =
+    '!text-[14px] !placeholder:text-[12px] !placeholder:text-icon w-full !font-normal';
 
   const carOptions = carsArr.map((car) => ({
     id: car.id,
-    value: car.id,
+    value: String(car.id),
     label: `${car.brand} ${car.model} (${car.registrationNumber})`,
   }));
 
@@ -217,7 +230,6 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
         </div>
       </div>
 
-      {/* PRZYCISKI AKCJI */}
       <div className="flex justify-end gap-4 pt-4 border-t border-gray-100 mt-6">
         <BoardButton
           type="button"

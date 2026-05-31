@@ -1,9 +1,3 @@
-import * as yup from 'yup';
-import { AddVehicleSchema, AddServiceSchema } from '../lib/formValidationRules';
-
-export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
-export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
-
 export type AddVehicleInputs = {
   id?: number | string;
   brand: string;
