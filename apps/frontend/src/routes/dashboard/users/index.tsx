@@ -1,4 +1,8 @@
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { DataTable } from '@/features/dashboard/widgets/DataTable';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { usersColumns, usersData } from '@/store/usersTable';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/dashboard/users/')({
@@ -16,6 +20,20 @@ function RouteComponent() {
           onClick: () => {},
         }}
       />
+
+      {usersData.length === 0 || !usersData ? (
+        <BlockWrapper>
+          <EmptyPlaceholder title="Brak użytkowników" />
+        </BlockWrapper>
+      ) : (
+        <DataTable
+          columns={usersColumns}
+          data={usersData}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          footer={false}
+        />
+      )}
     </>
   );
 }

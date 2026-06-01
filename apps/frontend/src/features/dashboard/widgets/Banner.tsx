@@ -12,7 +12,7 @@ type Props = {
   subtitle: string;
 };
 
-export const Banner = ({ className, variant = 'info', title, subtitle }: Props) => {
+export const Banner = ({ variant = 'info', title, subtitle, className }: Props) => {
   const navigate = useNavigate();
   const { border, bg } = getVariantStyles(variant);
 
@@ -20,17 +20,17 @@ export const Banner = ({ className, variant = 'info', title, subtitle }: Props) 
     <div
       className={classNames(
         'flex sm:flex-nowrap flex-wrap  items-center gap-x-[24px] gap-y-[14px] px-[23px] py-[16px] rounded-[7px] border',
-        className,
         border,
         bg,
+        className,
       )}
     >
       <IconWrapper variant={variant}>
         {variant === 'alert' ? <TriangleAlert /> : <Clock />}
       </IconWrapper>
       <div className="mr-auto">
-        <p className="pb-[4px] text-black font-semibold text-[16px]/[21px]">{title}</p>
-        <p className="text-black font-normal text-[14px]/[21px]">{subtitle}</p>
+        <p className="pb-[4px] text-content-primary font-semibold text-[16px]/[21px]">{title}</p>
+        <p className="text-content-secondary font-normal text-[14px]/[21px]">{subtitle}</p>
       </div>
       <BoardButton
         onClick={() => navigate({ to: '/dashboard/payments' })}

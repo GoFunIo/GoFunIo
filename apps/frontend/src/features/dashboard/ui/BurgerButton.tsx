@@ -19,7 +19,7 @@ export const BurgerButton = ({ value, onClick, className, hasLabel = true }: Pro
           <div className="relative w-[15px] h-[10px]">
             <div
               className={classNames(
-                '-left-[0px] w-full h-[2px] bg-black rounded-full absolute top-0 custom-transition ',
+                '-left-[0px] w-full h-[2px] bg-content-primary rounded-full absolute top-0 custom-transition ',
                 {
                   ['-left-[100px]']: value,
                 },
@@ -27,7 +27,7 @@ export const BurgerButton = ({ value, onClick, className, hasLabel = true }: Pro
             ></div>
             <div
               className={classNames(
-                'w-full h-[2px] bg-black rounded-full absolute top-[4px] custom-transition rotate-0 ',
+                'w-full h-[2px] bg-content-primary rounded-full absolute top-[4px] custom-transition rotate-0 ',
                 {
                   ['rotate-45']: value,
                 },
@@ -35,7 +35,7 @@ export const BurgerButton = ({ value, onClick, className, hasLabel = true }: Pro
             ></div>
             <div
               className={classNames(
-                'w-full h-[2px] bg-black rounded-full absolute top-[4px] custom-transition -rotate-0 ',
+                'w-full h-[2px] bg-content-primary rounded-full absolute top-[4px] custom-transition -rotate-0 ',
                 {
                   ['-rotate-45']: value,
                 },
@@ -43,7 +43,7 @@ export const BurgerButton = ({ value, onClick, className, hasLabel = true }: Pro
             ></div>
             <div
               className={classNames(
-                'w-full h-[2px] bg-black rounded-full absolute bottom-0 custom-transition -left-[0px] ',
+                'w-full h-[2px] bg-content-primary rounded-full absolute bottom-0 custom-transition -left-[0px] ',
                 {
                   ['-left-[100px]']: value,
                 },
@@ -52,7 +52,9 @@ export const BurgerButton = ({ value, onClick, className, hasLabel = true }: Pro
           </div>
         </div>
         {hasLabel && (
-          <p className="text-[12px] shrink-0 pl-[18px] font-semibold text-black">ZWIŃ MENU</p>
+          <p className="text-[12px] shrink-0 pl-[18px] font-semibold text-content-primary">
+            ZWIŃ MENU
+          </p>
         )}
       </div>
     </div>
