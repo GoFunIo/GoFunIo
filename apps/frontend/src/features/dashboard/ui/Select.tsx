@@ -24,7 +24,7 @@ export const Select = ({
   options = [],
   value,
   onChange,
-  placeholder = 'Choose one',
+  placeholder = 'Wybierz jedno',
   clearOption = true,
   className,
   error,
@@ -85,7 +85,7 @@ export const Select = ({
         </p>
         <ChevronUp
           size={20}
-          className={classNames('text-content-secondary', {
+          className={classNames('absolute right-2 text-content-secondary', {
             'rotate-180': isOpen,
           })}
         />

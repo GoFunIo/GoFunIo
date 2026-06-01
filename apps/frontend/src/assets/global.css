@@ -37,11 +37,12 @@ body,
   --info-bg: 232 240 254; /* #E8F0FE */
   --warning-bg: 254 247 224; /* #FEF7E0 */
   --alert-bg: 252 232 230; /* #FCE8E6 */
-  --success-bg: 230 240 234;
+  --success-bg: 230 244 234; /* #E6F4EA */
 
   --info-bg-icon: 207 228 255; /* #CFE4FF */
   --warning-bg-icon: 255 224 173; /* #FFE0AD */
   --alert-bg-icon: 251 206 201; /* #FBCEC9 */
+  --success-bg-ICON: 150 207 166; /* #96CFA6 */
 
   /* base bw */
   --white: 255 255 255; /* #FFFFFF */
@@ -117,6 +118,7 @@ body,
   --color-info-bg-icon: rgb(var(--info-bg-icon));
   --color-warning-bg-icon: rgb(var(--warning-bg-icon));
   --color-alert-bg-icon: rgb(var(--alert-bg-icon));
+  --color-success-bg-icon: rgb(var(--success-bg-icon));
 
   --color-white: rgb(var(--white));
   --color-dark: rgb(var(--dark));

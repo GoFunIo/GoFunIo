@@ -3,6 +3,9 @@ import { UserManagementFormData } from '@/features/dashboard/lib/formValidationR
 import { DeleteUserConfirm } from '@/features/dashboard/ui/DeleteUserConfirm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { DataTable } from '@/features/dashboard/widgets/DataTable';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { usersColumns, usersData } from '@/store/usersTable';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
@@ -79,6 +82,20 @@ function RouteComponent() {
           Testuj Usuwanie (Marek Nowak)
         </button>
       </div>
+
+      {usersData.length === 0 || !usersData ? (
+        <BlockWrapper>
+          <EmptyPlaceholder title="Brak użytkowników" />
+        </BlockWrapper>
+      ) : (
+        <DataTable
+          columns={usersColumns}
+          data={usersData}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          footer={false}
+        />
+      )}
 
       <Modal
         isOpen={isUserModalOpen}

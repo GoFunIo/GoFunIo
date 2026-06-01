@@ -1,8 +1,9 @@
-import { getImage } from '@/utils/getImage';
+import React from 'react';
 import { Link } from '@tanstack/react-router';
 import classNames from 'classnames';
 import { CircleCheckBig, TriangleAlert } from 'lucide-react';
-import React from 'react';
+import LogoLight from '@/assets/logo/logo_autokeep.svg';
+import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
 
 type Props = {
   title: string;
@@ -14,9 +15,21 @@ type Props = {
 export const AuthWrapper = ({ title, subtitle, children, type }: Props) => {
   return (
     <section className="px-[20px] bg-bg-section flex items-center justify-center h-full">
-      <div className="bg-white max-w-[560px] w-full rounded-[15px] shadow-[0_4px_13px_0_rgba(0,0,0,0.2)] md:py-[70px] md:px-[50px] py-[50px] px-[30px]">
+      <div className="bg-bg-card max-w-[560px] w-full rounded-[15px] shadow-[0_4px_13px_0_rgba(0,0,0,0.2)] md:py-[70px] md:px-[50px] py-[50px] px-[30px]">
         <Link to="/">
-          <img src={getImage('logo.svg')} alt="Logo company" className="m-auto mb-[24px]" />
+          {/* LOGO DLA TRYBU LIGHT */}
+          <img
+            src={LogoLight}
+            alt="Logo company"
+            className="m-auto mb-[24px] block dark:hidden w-[150px] h-auto"
+          />
+
+          {/* LOGO DLA TRYBU DARK  */}
+          <img
+            src={LogoDark}
+            alt="Logo company"
+            className="m-auto mb-[24px] hidden dark:block w-[150px] h-auto"
+          />
         </Link>
         {type && (
           <div

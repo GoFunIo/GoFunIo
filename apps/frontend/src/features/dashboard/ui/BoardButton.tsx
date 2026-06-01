@@ -2,8 +2,8 @@ import classNames from 'classnames';
 import { Plus, SquarePen, Trash2, ChevronRight } from 'lucide-react';
 
 type Props = {
-  children: React.ReactNode;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  children?: React.ReactNode;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   size?: 'small' | 'medium' | 'big';
   variant?: 'default' | 'outline' | 'danger';

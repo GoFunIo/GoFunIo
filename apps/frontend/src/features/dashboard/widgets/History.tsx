@@ -59,13 +59,15 @@ export const History = ({ title, button, data = [], className, link }: Props) =>
                   <Wrench className="text-info" size={18} />
                 </IconWrapper>
                 <div className="">
-                  <p className="text-dark text-[14px]">{item.title}</p>
+                  <p className="text-content-primary text-[14px]">{item.title}</p>
                   <p className="text-[12px]">
                     {item.car} - {item.date}
                   </p>
                 </div>
                 <div className="ml-auto">
-                  <p className="text-right text-dark font-bold text-[14px]">{item.price} zł</p>
+                  <p className="text-right text-content-primary font-bold text-[14px]">
+                    {item.price} zł
+                  </p>
                   <p className="text-right text-[12px]">{item.place}</p>
                 </div>
               </div>

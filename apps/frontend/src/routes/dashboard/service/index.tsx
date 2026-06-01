@@ -3,7 +3,10 @@ import { AddServiceFormData } from '@/features/dashboard/lib/formValidationRules
 import { DeleteServiceConfirm } from '@/features/dashboard/ui/DeleteServiceConfirm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { DataTable } from '@/features/dashboard/widgets/DataTable';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { Filters } from '@/features/dashboard/widgets/Filters';
+import { serviceColumns, serviceData } from '@/store/serviceTable';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
@@ -96,6 +99,20 @@ function RouteComponent() {
       </div>
 
       <Filters />
+
+      {serviceData.length === 0 || !serviceData ? (
+        <BlockWrapper>
+          <EmptyPlaceholder title="Brak wpisów spełniających filtry." />
+        </BlockWrapper>
+      ) : (
+        <DataTable
+          columns={serviceColumns}
+          data={serviceData}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          footerLabel="Łącznie: 419.00 zł"
+        />
+      )}
 
       {/* MODAL 1: DODAWANIE / EDYCJA WPISU */}
       <Modal

@@ -16,7 +16,7 @@ export const DashboardHeader = ({ title, subtitle, button }: Props) => {
     <div className="flex justify-between gap-y-[16px] gap-x-[24px] flex-wrap">
       <div className="max-w-[610px]">
         <h3 className="pb-[9px]">{title}</h3>
-        <p className="text-black">{subtitle}</p>
+        <p className="text-content-primary">{subtitle}</p>
       </div>
       {button && (
         <BoardButton icon="add" onClick={button?.onClick}>

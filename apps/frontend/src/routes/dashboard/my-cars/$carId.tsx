@@ -85,8 +85,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
 
@@ -95,8 +95,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
 
@@ -105,8 +105,8 @@ function RouteComponent() {
             <Gauge />
           </IconWrapper>
           <div className="">
-            <p className="text-[14px] text-black pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-black">48 230 km</p>
+            <p className="text-[14px]  pb-[8px]">Przebied</p>
+            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
           </div>
         </BlockWrapper>
       </GridWrapper>

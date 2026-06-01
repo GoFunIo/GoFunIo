@@ -14,7 +14,7 @@ export const DaysAmount = ({ days, className }: Props) => {
         {
           'bg-alert text-white': days >= 0 && days < 7,
           'bg-warning text-dark': days >= 7 && days < 28,
-          'bg-bg-section text-dark': days >= 28,
+          'bg-bg-section text-content-primary': days >= 28,
         },
         className,
       )}

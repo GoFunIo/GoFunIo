@@ -5,6 +5,7 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
   errorStyle?: string;
+  isValidate?: boolean;
 };
 
 export const Input = forwardRef<HTMLInputElement, Props>(

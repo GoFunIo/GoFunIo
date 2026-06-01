@@ -47,15 +47,15 @@ function RouteComponent() {
       />
 
       {/* main 3 blocks with most important info  */}
-      <GridWrapper layout="3-equal">
+      <GridWrapper layout="3-unequal">
         <BlockWrapper className="flex justify-between" variant="default">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {false && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px] pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper>
             <CarFront />
@@ -64,12 +64,12 @@ function RouteComponent() {
 
         <BlockWrapper className="flex justify-between" variant="alert">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {true && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px]  pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper variant="alert">
             <CarFront />
@@ -78,12 +78,12 @@ function RouteComponent() {
 
         <BlockWrapper className="flex justify-between" variant="warning">
           <div className="">
-            <p className="text-[14px] text-black pb-[5px]">Moje pojazdy</p>
+            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
             <div className="flex gap-[12px] items-center">
               <h3 className="">3</h3>
               {false && <AlertTriangle className="text-alert" />}
             </div>
-            <p className="text-[14px] text-black pt-[5px]">aktywnych</p>
+            <p className="text-[14px] pt-[5px]">aktywnych</p>
           </div>
           <IconWrapper variant="warning">
             <CarFront />
@@ -104,7 +104,7 @@ function RouteComponent() {
 
         {/* block with quick actions */}
         <BlockWrapper className="lg:col-span-1 h-fit">
-          <h4 className="text-black">Szybkie akcje</h4>
+          <h4 className="text-content-primary">Szybkie akcje</h4>
           <div className="flex flex-col gap-[12px] py-[16px] border-b border-icon">
             {actionsArr.map((item) => {
               const Icon = item.icon;
@@ -113,16 +113,16 @@ function RouteComponent() {
                 <button
                   key={item.id}
                   onClick={item.onClick}
-                  className="custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] w-full text-[14px] text-dark bg-bg-section min-h-[32px] flex items-center gap-[8px] px-[12px] cursor-pointer rounded-[7px]"
+                  className="custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] w-full text-[14px] text-content-secondary bg-bg-section min-h-[32px] flex items-center gap-[8px] px-[12px] cursor-pointer rounded-[7px]"
                 >
-                  <Icon className="text-dark" size={16} />
+                  <Icon className="text-content-primary" size={16} />
                   {item.title}
                 </button>
               );
             })}
           </div>
           <div className="pt-[12px]">
-            <p className="text-dark font-semibold text-[14px]">Nadchodzące przeglądy</p>
+            <p className="text-content-primary font-semibold text-[14px]">Nadchodzące przeglądy</p>
             {!carSingleArr || carSingleArr.length === 0 ? (
               <EmptyPlaceholder className="mt-[18px]" title="Brak aktualnych przegladów" />
             ) : (
@@ -130,7 +130,7 @@ function RouteComponent() {
                 {carSingleArr.map((item) => {
                   return (
                     <div className="flex items-center justify-between gap-[12px]" key={item.id}>
-                      <p className="text-[14px] text-dark">{item.title}</p>
+                      <p className="text-[14px] text-content-secondary">{item.title}</p>
                       <DaysAmount days={item.termin} />
                     </div>
                   );
