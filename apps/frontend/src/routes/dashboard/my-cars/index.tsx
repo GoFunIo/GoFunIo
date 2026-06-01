@@ -8,6 +8,9 @@ import { Calendar, CarFront, Gauge } from 'lucide-react';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { useState } from 'react';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,
@@ -15,6 +18,7 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   return (
     <>
@@ -23,7 +27,7 @@ function RouteComponent() {
         subtitle="Zarządzaj wszystkimi pojazdami w jednym miejscu."
         button={{
           label: 'Dodaj pojazd',
-          onClick: () => {},
+          onClick: () => setIsModalOpen(true),
         }}
       />
       {!carsArr || carsArr.length === 0 ? (
@@ -46,17 +50,19 @@ function RouteComponent() {
                     <CarFront className="text-info" />
                   </IconWrapper>
                   <div className="">
-                    <p className="font-bold text-[14px] text-content-primary">{item.title}</p>
-                    <p className="text-[14px]">
-                      {item.year} - {item.fuel}
+                    <p className="font-bold text-[14px] text-dark">
+                      {item.brand} {item.model}
                     </p>
-                    <p className="text-[14px]">{item.registration}</p>
+                    <p className="text-[14px]">
+                      {item.productionYear} - {item.fuelType}
+                    </p>
+                    <p className="text-[14px]">{item.registrationNumber}</p>
                   </div>
                 </div>
                 <div className="mt-[12px] mb-[16px]">
                   <div className="flex gap-[10px] items-center pb-[8px]">
-                    <Gauge size={16} strokeWidth={3} className="text-content-primary " />
-                    <p className="text-[14px]">{item.mileage} km</p>
+                    <Gauge size={16} />
+                    <p className="text-[14px]">{item.currentMileage} km</p>
                   </div>
                   <div className="flex gap-[10px] items-center">
                     <Calendar size={16} strokeWidth={3} className="text-content-primary " />
@@ -67,7 +73,8 @@ function RouteComponent() {
                 </div>
                 <BoardButton
                   className="w-full"
-                  size="small"
+                  size="medium"
+                  icon="arrow"
                   onClick={() =>
                     navigate({
                       to: `/dashboard/my-cars/${item.id}`,
@@ -81,6 +88,15 @@ function RouteComponent() {
           })}
         </GridWrapper>
       )}
+
+      <Modal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        title="Dodaj pojazd"
+        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
+      >
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
+      </Modal>
     </>
   );
 }

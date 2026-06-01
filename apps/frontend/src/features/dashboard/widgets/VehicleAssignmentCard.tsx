@@ -4,11 +4,12 @@ import { SelectWithAction } from '../ui/SelectWithAction';
 
 export type Vehicle = {
   id: number;
-  title: string;
-  year: string;
-  fuel: string;
-  registration: string;
-  mileage: number;
+  brand: string;
+  model: string;
+  productionYear: string;
+  fuelType: string;
+  registrationNumber: string;
+  currentMileage: number;
   vti: number;
   currentOwner?: string;
 };
@@ -43,13 +44,13 @@ export const VehicleAssignmentCard = ({ vehicle, users, onAssign }: VehicleAssig
         </div>
         <div className="flex flex-col gap-[4px]">
           <h3 className="font-bold text-[16px] text-content-primary leading-tight">
-            {vehicle.title}
+            {vehicle.brand}
           </h3>
           <span className="text-[14px] text-content-secondary ">
-            {vehicle.year} · {vehicle.fuel}
+            {vehicle.productionYear} · {vehicle.fuelType}
           </span>
           <span className="text-[14px] font-medium text-content-secondary ">
-            {vehicle.registration}
+            {vehicle.registrationNumber}
           </span>
         </div>
       </div>

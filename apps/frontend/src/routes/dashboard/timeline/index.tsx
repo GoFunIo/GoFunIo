@@ -28,18 +28,20 @@ function RouteComponent() {
                   <p className="text-[12px]">{item.date}</p>
                   <p className="text-[14px] font-bold text-content-primary">{item.title}</p>
                   <div className="flex gap-x-[8px] flex-wrap">
-                    <p className="text-[12px]">{item.car}</p>
-                    <p className="text-[12px]">{item.registration}</p>
+                    <p className="text-[12px]">
+                      {item.brand} {item.model}
+                    </p>
+                    <p className="text-[12px]">{item.registrationNumber}</p>
                   </div>
                 </div>
                 <div className="">
-                  <p className="text-[12px] text-content-primary">Warsztat</p>
-                  <p className="text-[14px] text-content-secondary">{item.service}</p>
+                  <p className="text-[12px]">Warsztat</p>
+                  <p className="text-[14px] text-dark">{item.servicePlace}</p>
                 </div>
-                {item.notations && item.notations.length !== 0 && (
+                {item.notes && item.notes.length !== 0 && (
                   <div className="">
-                    <p className="text-[12px] text-content-primary">Notatki</p>
-                    <p className="text-[14px] text-content-secondary">{item.notations}</p>
+                    <p className="text-[12px]">Notatki</p>
+                    <p className="text-[14px] text-dark">{item.notes}</p>
                   </div>
                 )}
                 <div className="md:w-fit w-full">

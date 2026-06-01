@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { History } from '@/features/dashboard/widgets/History';
 import { activityArr, carsArr } from '@/store/cars';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {
@@ -16,8 +20,27 @@ export const Route = createFileRoute('/dashboard/my-cars/$carId')({
 
 function RouteComponent() {
   const car = Route.useLoaderData();
+  const navigate = useNavigate();
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   if (!car) return <h1 className="">Car not found</h1>;
+
+  const editModalTitle = `Edytuj pojazd ${car.brand} ${car.model}`;
+  const editModalSubtitle =
+    'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
+
+  const handleDelete = async () => {
+    try {
+      console.log('Usuwanie pojazdu o ID:', car.id);
+      // await axios.delete(`/api/vehicles/${car.id}`);
+      setIsDeleteModalOpen(false);
+      navigate({ to: '/dashboard/my-cars' });
+    } catch (error) {
+      console.error('Błąd usuwania:', error);
+    }
+  };
 
   return (
     <>
@@ -34,17 +57,24 @@ function RouteComponent() {
             <CarFront className="text-white" />
           </IconWrapper>
           <div className="">
-            <h3 className="pb-[3px]">{car.title}</h3>
-            <p className="text-[14px] ">
-              {car.year} - {car.registration} - {car.fuel}
+            <h3 className="pb-[3px]">
+              {car.brand} {car.model}
+            </h3>
+            <p className="text-[14px] text-dark">
+              {car.productionYear} - {car.registrationNumber} - {car.fuelType}
             </p>
           </div>
         </div>
         <div className="sm:ml-auto order-1 flex gap-[16px]">
-          <BoardButton onClick={() => {}} icon="edit" size="small">
+          <BoardButton onClick={() => setIsEditModalOpen(true)} icon="edit" size="small">
             Edytuj
           </BoardButton>
-          <BoardButton onClick={() => {}} icon="delete" variant="danger" size="small">
+          <BoardButton
+            onClick={() => setIsDeleteModalOpen(true)}
+            icon="delete"
+            variant="danger"
+            size="small"
+          >
             Usuń
           </BoardButton>
         </div>
@@ -128,6 +158,30 @@ function RouteComponent() {
           </div>
         </BlockWrapper>
       </GridWrapper>
+
+      {/* MODAL EDYCJI */}
+      <Modal
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        title={editModalTitle}
+        subtitle={editModalSubtitle}
+      >
+        <AddVehicleForm initialData={car} onClose={() => setIsEditModalOpen(false)} />
+      </Modal>
+
+      {/* MODAL USUWANIA */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        setIsOpen={setIsDeleteModalOpen}
+        title="Usuń pojazd"
+        subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
+      >
+        <DeleteCarConfirm
+          car={car}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+        />
+      </Modal>
     </>
   );
 }

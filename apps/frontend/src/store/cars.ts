@@ -4,20 +4,29 @@ const timeline = {
   id: 1,
   date: '03.04.2026',
   title: 'Pełny serwis',
-  car: 'BMW E60',
-  registration: 'SJ 0776A',
-  service: 'Auto Krakow',
-  notations: 'Wymiana rozrządu',
+  brand: 'BMW',
+  model: 'Seria 5 (E60)',
+  registrationNumber: 'SJ 0776A',
+  servicePlace: 'Auto Krakow',
+  notes: 'Wymiana rozrządu',
   price: 1850,
 };
 
+// POPRAWIONE: dopasowanie kluczy do AddVehicleInputs
 const car = {
   id: 1,
-  title: 'BMW',
-  year: '2004',
-  fuel: 'Gas',
-  registration: 'SJ 0776A',
-  mileage: 310000,
+  brand: 'BMW',
+  model: 'Seria 5 (E60)',
+  productionYear: '2004',
+  fuelType: 'GAS',
+  registrationNumber: 'SJ 0776A',
+  currentMileage: 310000,
+  vin: 'WBAAF71040BXXXXXX',
+  purchaseDate: '2022-05-15',
+  ocExpiry: '2026-11-20',
+  acExpiry: '2026-11-20',
+  technicalInspectionExpiry: '2026-06-18',
+  notes: 'Samochód służbowy — zadbany, regularnie serwisowany.',
   vti: 18,
 };
 
@@ -63,6 +72,6 @@ export const activityArr = Array.from({ length: 6 }, (_, i) => ({ ...activity, i
 export const carSingleArr = Array.from({ length: 2 }, (_, i) => ({ ...carSingle, id: i + 1 }));
 export const infoArr = Array.from({ length: 3 }, (_, i) => ({ ...info, id: i + 1 }));
 export const actionsArr = Array.from({ length: 3 }, (_, i) => ({ ...actions, id: i + 1 }));
-export const carsArr = Array.from({ length: 5 }, (_, i) => ({ ...car, id: i + 1 }));
+export const carsArr = Array.from({ length: 15 }, (_, i) => ({ ...car, id: i + 1 }));
 export const timelineArr = Array.from({ length: 5 }, (_, i) => ({ ...timeline, id: i + 1 }));
 export const reminderArr = Array.from({ length: 5 }, (_, i) => ({ ...reminder, id: i + 1 }));

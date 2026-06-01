@@ -17,6 +17,7 @@ type Props = {
   placeholder?: string;
   clearOption?: boolean;
   className?: string;
+  error?: string;
 };
 
 export const Select = ({
@@ -26,6 +27,7 @@ export const Select = ({
   placeholder = 'Wybierz jedno',
   clearOption = true,
   className,
+  error,
 }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
@@ -52,35 +54,49 @@ export const Select = ({
     };
   }, []);
 
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className={classNames('relative min-w-[250px] w-fit h-[35px]', className)} ref={selectRef}>
-      <div className="relative flex items-center justify-between bg-bg-page rounded-[5px] border border-icon w-full h-full">
-        <input
-          readOnly
-          value={selected ? selected.label : ''}
-          placeholder={placeholder}
-          type="text"
+    <div
+      className={classNames('relative min-w-[250px] w-fit h-[35px]', className)}
+      ref={selectRef}
+      tabIndex={0}
+      onBlur={handleBlur}
+    >
+      <button
+        type="button"
+        className={classNames(
+          'flex items-center justify-between cursor-pointer bg-bg-page px-[8px] rounded-[5px] w-full h-full outline-none ',
+          error ? 'border border-alert' : 'border border-icon',
+        )}
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        <p
           className={classNames(
-            'caret-transparent text-[14px] focus:outline-none placeholder:text-content-secondary z-9 cursor-pointer px-[8px] w-full h-full rounded-[5px]',
-            selected ? 'text-content-primary' : 'text-content-secondary',
+            'text-left text-[14px]',
+            selected ? 'text-content-primary' : 'text-icon',
           )}
-          onClick={() => setIsOpen((prev) => !prev)}
-        />
+        >
+          {selected ? selected.label : placeholder}
+        </p>
         <ChevronUp
           size={20}
           className={classNames('absolute right-2 text-content-secondary', {
             'rotate-180': isOpen,
           })}
         />
-      </div>
+      </button>
       {isOpen && (
-        <div className="z-99 flex flex-col gap-[4px] absolute top-[40px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
+        <div className="scrollbar-dashboard overflow-y-auto max-h-[240px] flex flex-col gap-[4px] absolute mt-[6px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)] z-[99]">
           {clearOption && (
             <span
               onClick={() => handleSelect(null)}
               className={classNames(
-                'cursor-pointer p-[8px] text-[14px] rounded-[5px] transition-colors duration-150',
-                'text-content-secondary hover:text-content-primary hover:bg-bg-section',
+                'cursor-pointer p-[8px] text-[14px] text-content-secondary rounded-[5px] hover:text-content-primary hover:bg-bg-section',
                 {
                   'text-content-primary bg-bg-section': value == null,
                 },
@@ -97,7 +113,7 @@ export const Select = ({
                 className={classNames(
                   'cursor-pointer p-[8px] text-[14px] text-content-secondary rounded-[5px] hover:text-content-primary hover:bg-bg-section',
                   {
-                    'text-dark bg-bg-section': item.value === value,
+                    'text-content-primary bg-bg-section': item.value === value,
                   },
                 )}
               >

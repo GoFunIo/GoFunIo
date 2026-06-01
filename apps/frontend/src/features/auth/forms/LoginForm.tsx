@@ -30,7 +30,6 @@ export const LoginForm = ({ className }: FormProps) => {
     mode: 'onTouched',
     shouldFocusError: false,
   });
-  // 401 - неправильные данные
 
   const login: SubmitHandler<LoginInputs> = async (data) => {
     setLoading(true);
