@@ -74,7 +74,7 @@ export const Sidebar = () => {
             })}
           </div>
           {groupIndex !== sidebar.length - 1 && (
-            <div className="bg-bg-card mx-[17px] h-[2px] my-[10px]" />
+            <div className="bg-dark dark:bg-white mx-[17px] h-[2px] my-[10px]" />
           )}
         </Fragment>
       ))}
