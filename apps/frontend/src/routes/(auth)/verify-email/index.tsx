@@ -1,24 +1,50 @@
 import { Button } from '@/components/ui/Button';
-import { resendVerification } from '@/features/auth/auth.api';
+import { resendVerification, verifyEmail } from '@/features/auth/auth.api';
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/(auth)/verify-email/')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) || '',
+  }),
+  beforeLoad: ({ search }) => {
+    if (!search.token) {
+      throw redirect({
+        to: '/signup',
+      });
+    }
+  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const isTokenValid = true;
+  const { token } = Route.useSearch();
   const email = 'test@gmail.com';
 
+  const { isPending, isError } = useQuery({
+    queryKey: ['verify-email', token],
+    queryFn: () => verifyEmail(token),
+    enabled: !!token,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const resendEmail = async () => {
+    // pobrac email z cache na potem
     try {
       await resendVerification(email);
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (!isTokenValid) {
+  if (isPending) {
+    return <AuthWrapper title="Weryfikuję..." subtitle="Proszę czekać..." children={undefined} />;
+  }
+
+  if (isError) {
     return (
       <AuthWrapper
         type="alert"
