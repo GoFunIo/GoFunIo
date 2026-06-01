@@ -43,7 +43,7 @@ function RouteComponent() {
       />
 
       {/* main 3 blocks with most important info  */}
-      <GridWrapper layout="3-equal">
+      <GridWrapper layout="3-unequal">
         <BlockWrapper className="flex justify-between" variant="default">
           <div className="">
             <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
