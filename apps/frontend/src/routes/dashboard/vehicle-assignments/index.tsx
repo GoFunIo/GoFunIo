@@ -18,9 +18,29 @@ export const Route = createFileRoute('/dashboard/vehicle-assignments/')({
 
 function RouteComponent() {
   const [vehicles, setVehicles] = useState(initialCars);
-  const [showSuccess, setShowSuccess] = useState(false);
+  // 1. Zmieniamy stan na obiekt zarządzający wiadomością i wariantem toastu
+  const [toast, setToast] = useState<{
+    isVisible: boolean;
+    message: string;
+    variant: 'success' | 'error' | 'warning';
+  }>({
+    isVisible: false,
+    message: '',
+    variant: 'success',
+  });
+
+  const triggerToast = (message: string, variant: 'success' | 'error' | 'warning') => {
+    setToast({ isVisible: true, message, variant });
+  };
 
   const handleVehicleAssign = (carId: string | number, userId: string | number) => {
+    // 2. SYMULACJA BŁĘDU: Jeśli wybierzesz Marka Nowaka ('marek_nowak'), udajemy błąd serwera
+    if (userId === 'marek_nowak') {
+      triggerToast('Nie udało się przypisać pojazdu. Brak uprawnień administratora.', 'error');
+      return; // Przerywamy funkcję, stan pojazdów się nie zmieni
+    }
+
+    // Klasyczny flow dla pozostałych użytkowników (Sukces)
     const targetUser = USERS_MOCK.find((user) => user.value === userId);
     const formattedName = targetUser ? targetUser.label.split(' (')[0] : String(userId);
 
@@ -36,7 +56,7 @@ function RouteComponent() {
       }),
     );
 
-    setShowSuccess(true);
+    triggerToast('Pojazd został pomyślnie przypisany', 'success');
   };
 
   return (
@@ -46,9 +66,10 @@ function RouteComponent() {
         subtitle="Przypisuj pojazdy do użytkowników w firmie"
       />
       <NotificationBanner
-        message="Pojazd przypisany"
-        isVisible={showSuccess}
-        onClose={() => setShowSuccess(false)}
+        variant={toast.variant}
+        message={toast.message}
+        isVisible={toast.isVisible}
+        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
         duration={3500}
       />
 
