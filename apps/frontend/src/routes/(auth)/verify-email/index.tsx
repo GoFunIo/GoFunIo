@@ -1,17 +1,72 @@
 import { Button } from '@/components/ui/Button';
+import { resendVerification, verifyEmail } from '@/features/auth/auth.api';
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/(auth)/verify-email/')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) || '',
+  }),
+  beforeLoad: ({ search }) => {
+    if (!search.token) {
+      throw redirect({
+        to: '/signup',
+      });
+    }
+  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { token } = Route.useSearch();
+  const email = 'test@gmail.com';
+
+  const { isPending, isError } = useQuery({
+    queryKey: ['verify-email', token],
+    queryFn: () => verifyEmail(token),
+    enabled: !!token,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const resendEmail = async () => {
+    // pobrac email z cache na potem
+    try {
+      await resendVerification(email);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (isPending) {
+    return <AuthWrapper title="Weryfikuję..." subtitle="Proszę czekać..." children={undefined} />;
+  }
+
+  if (isError) {
+    return (
+      <AuthWrapper
+        type="alert"
+        title="Link weryfikacyjny wygasł"
+        subtitle="Ten link był ważny przez 24 godziny od rejestracji i już nie działa. Nie martw się – możesz wygenerować nowy."
+      >
+        <Button onClick={resendEmail} className="mt-[24px] w-full">
+          Wyślij nowy link weryfikacyjny
+        </Button>
+        <div className="flex justify-center gap-2 mt-[10px]">
+          <p className="text-[14px] font-medium">Masz już konto?</p>
+          <Link to="/login" className="font-medium text-[14px] text-primary">
+            Zaloguj się
+          </Link>
+        </div>
+      </AuthWrapper>
+    );
+  }
 
   return (
     <AuthWrapper
-      isSuccess={true}
+      type="success"
       title="E-mail zweryfikowany!"
       subtitle="Twoje konto zostało aktywowane. Możesz się teraz zalogować i zacząć korzystać z AutoKeep."
     >

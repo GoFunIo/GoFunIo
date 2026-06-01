@@ -37,6 +37,7 @@ body,
   --info-bg: 232 240 254; /* #E8F0FE */
   --warning-bg: 254 247 224; /* #FEF7E0 */
   --alert-bg: 252 232 230; /* #FCE8E6 */
+  --success-bg: 230 240 234;
 
   --info-bg-icon: 207 228 255; /* #CFE4FF */
   --warning-bg-icon: 255 224 173; /* #FFE0AD */
@@ -111,6 +112,7 @@ body,
   --color-info-bg: rgb(var(--info-bg));
   --color-warning-bg: rgb(var(--warning-bg));
   --color-alert-bg: rgb(var(--alert-bg));
+  --color-success-bg: rgb(var(--success-bg));
 
   --color-info-bg-icon: rgb(var(--info-bg-icon));
   --color-warning-bg-icon: rgb(var(--warning-bg-icon));
