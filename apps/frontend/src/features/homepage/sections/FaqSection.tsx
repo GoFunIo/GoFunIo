@@ -62,12 +62,12 @@ export const FaqSection = () => {
           </h2>
         </div>
         <div className="w-full max-w-[760px] space-y-4 mx-auto">
-          {faqData.map((item, index) => (
+          {faqData.map((item) => (
             <Accordion
               key={item.id}
               title={item.question}
-              isOpen={openIndex === index}
-              onClick={() => handleToggle(index)}
+              isOpen={openIndex === item.id}
+              onClick={() => handleToggle(item.id)}
             >
               {item.answer}
             </Accordion>
