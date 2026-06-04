@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { Activity, Wrench } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { BoardButton } from '../ui/BoardButton';
 import { BlockWrapper } from '../ui/BlockWrapper';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
@@ -26,21 +26,27 @@ type Props = {
 };
 
 export const History = ({ title, button, data = [], className, link }: Props) => {
+  const navigate = useNavigate();
+
   return (
     <BlockWrapper className={classNames('h-fit', className)}>
-      <div className="flex gap-[10px] items-center">
-        <Activity className="text-secondary" size={20} />
-        <h4 className="">{title}</h4>
-        {link && (
-          <Link to={link.href} className="text-secondary text-[12px] ml-[auto]">
-            {link?.label}
-          </Link>
-        )}
-        {button && (
-          <BoardButton size="small" onClick={button.onClick} className="ml-[auto]">
-            {button?.label}
-          </BoardButton>
-        )}
+      <div className="justify-between flex gap-[16px] items-center flex-wrap">
+        <div className="flex gap-[10px] items-center">
+          <Activity className="text-secondary" size={20} />
+          <h4 className="">{title}</h4>
+        </div>
+        <div className="flex items-center gap-[16px]">
+          {link && (
+            <BoardButton size="small" variant="outline" onClick={() => navigate({ to: link.href })}>
+              {link?.label}
+            </BoardButton>
+          )}
+          {button && (
+            <BoardButton size="small" onClick={button.onClick} icon="add">
+              {button?.label}
+            </BoardButton>
+          )}
+        </div>
       </div>
       {!data || data.length === 0 ? (
         <EmptyPlaceholder

@@ -114,8 +114,12 @@ function RouteComponent() {
       <GridWrapper layout="2-unequal">
         <History
           data={activityArr}
+          link={{
+            label: 'Zobacz pełną historię',
+            href: '/dashboard/service',
+          }}
           button={{
-            label: 'Zobacz wszystko',
+            label: 'Dodaj wpis',
             onClick: () => {},
           }}
           title="Historia serwisowa"
