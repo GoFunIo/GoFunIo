@@ -5,6 +5,7 @@ import { BoardButton } from '../ui/BoardButton';
 import { BlockWrapper } from '../ui/BlockWrapper';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { IconWrapper } from '../ui/IconWrapper';
+import { Pagination } from '../ui/Pagination';
 
 type LinkProps = {
   label: string;
@@ -79,6 +80,8 @@ export const History = ({ title, button, data = [], className, link }: Props) =>
               </div>
             );
           })}
+
+          <Pagination className="mt-[18px]" />
         </div>
       )}
     </BlockWrapper>
