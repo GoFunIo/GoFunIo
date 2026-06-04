@@ -24,7 +24,7 @@ const car = {
   vin: 'WBAAF71040BXXXXXX',
   purchaseDate: '2022-05-15',
   ocExpiry: '2026-11-20',
-  acExpiry: '2026-11-20',
+  acExpiry: '2026-07-20',
   technicalInspectionExpiry: '2026-06-18',
   notes: 'Samochód służbowy — zadbany, regularnie serwisowany.',
   vti: 18,

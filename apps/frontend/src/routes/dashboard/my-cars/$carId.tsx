@@ -6,10 +6,11 @@ import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { History } from '@/features/dashboard/widgets/History';
 import { activityArr, carsArr } from '@/store/cars';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
+import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {
@@ -22,10 +23,19 @@ function RouteComponent() {
   const car = Route.useLoaderData();
   const navigate = useNavigate();
 
+  if (!car) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-content-secondary">Nie znaleziono takiego pojazdu.</p>
+        <Link to="/dashboard/my-cars" className="text-primary mt-2 inline-block hover:underline">
+          Wróć do listy pojazdów
+        </Link>
+      </div>
+    );
+  }
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  if (!car) return <h1 className="">Car not found</h1>;
 
   const editModalTitle = `Edytuj pojazd ${car.brand} ${car.model}`;
   const editModalSubtitle =
@@ -44,6 +54,7 @@ function RouteComponent() {
 
   return (
     <>
+      {/* 1. LINK POWROTNY */}
       <Link
         to="/dashboard/my-cars"
         className="w-fit flex items-center gap-[8px] text-[12px] text-content-secondary"
@@ -51,6 +62,8 @@ function RouteComponent() {
         <ArrowLeft size={18} />
         Wróć do pojazdów
       </Link>
+
+      {/* 2. NAGŁÓWEK Z DANYMI AUTA  */}
       <div className="grid sm:grid-cols-2 grid-cols-1 gap-[16px]">
         <div className="flex gap-[16px] items-center shrink-0">
           <IconWrapper className="xl:w-[60px] xl:h-[60px] w-[50px] h-[50px]  bg-secondary">
@@ -79,37 +92,31 @@ function RouteComponent() {
           </BoardButton>
         </div>
       </div>
-      <GridWrapper layout="3-equal">
-        <BlockWrapper className="flex gap-[16px]">
-          <IconWrapper>
-            <Gauge />
-          </IconWrapper>
-          <div className="">
-            <p className="text-[14px]  pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
-          </div>
-        </BlockWrapper>
 
-        <BlockWrapper className="flex gap-[16px]">
-          <IconWrapper>
-            <Gauge />
-          </IconWrapper>
-          <div className="">
-            <p className="text-[14px]  pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
-          </div>
-        </BlockWrapper>
+      {/* 3. SIATKA TRZECH  KAFELKÓW  */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <DashboardCard
+          title="przegląd"
+          value={car.technicalInspectionExpiry || ''}
+          icon={<CalendarCog size={20} />}
+        />
 
-        <BlockWrapper className="flex gap-[16px]">
-          <IconWrapper>
-            <Gauge />
-          </IconWrapper>
-          <div className="">
-            <p className="text-[14px]  pb-[8px]">Przebied</p>
-            <p className="font-bold text-[24px] text-content-primary">48 230 km</p>
-          </div>
-        </BlockWrapper>
-      </GridWrapper>
+        <DashboardCard
+          title="Ubezpieczenie OC"
+          value={car.ocExpiry || ''}
+          icon={<ShieldAlert size={20} />}
+        />
+
+        <DashboardCard
+          title="Ubezpieczenie AC"
+          value={car.acExpiry || ''}
+          icon={<ShieldCheck size={20} />}
+        />
+      </div>
+
+      {/* =================
+      --------------------
+      ------------------- */}
 
       <GridWrapper layout="2-unequal">
         <History

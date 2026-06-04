@@ -6,6 +6,7 @@ export const AddVehicleSchema = yup
   .object({
     brand: yup.string().required('Marka samochodu jest wymagana'),
     model: yup.string().required('Model samochodu jest wymagany'),
+
     productionYear: yup.string().optional(),
     fuelType: yup.string().optional(),
     vin: yup
