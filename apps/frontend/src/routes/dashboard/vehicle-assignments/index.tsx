@@ -73,7 +73,7 @@ function RouteComponent() {
         duration={3500}
       />
 
-      <div className="pt-8">
+      <div className="">
         {vehicles.length === 0 ? (
           <div className="text-center py-12 text-content-secondary border border-dashed border-icon rounded-[8px] bg-white">
             Brak pojazdów do przypisania.
