@@ -82,23 +82,6 @@ function RouteComponent() {
         }}
       />
 
-      {/* PRZYCISKI TESTOWE LOGIKI */}
-      <div className="flex gap-4 mt-4 p-4 bg-background-secondary rounded-[7px] border border-icon/20">
-        <button
-          onClick={() => setModalState(mockServiceEntry)}
-          className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded hover:bg-blue-200 custom-transition text-[14px]"
-        >
-          Testuj Edycję (Wymiana oleju)
-        </button>
-
-        <button
-          onClick={() => setDeleteModalState(mockServiceEntry)}
-          className="px-4 py-2 bg-red-100 text-red-700 font-medium rounded hover:bg-red-200 custom-transition text-[14px]"
-        >
-          Testuj Usuwanie (Wymiana oleju)
-        </button>
-      </div>
-
       <Filters />
 
       {serviceData.length === 0 || !serviceData ? (
@@ -109,8 +92,8 @@ function RouteComponent() {
         <DataTable
           columns={serviceColumns}
           data={serviceData}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          onEdit={() => setModalState(mockServiceEntry)}
+          onDelete={() => setDeleteModalState(mockServiceEntry)}
           footerLabel="Łącznie: 419.00 zł"
         />
       )}
