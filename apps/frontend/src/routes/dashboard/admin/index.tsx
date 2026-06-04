@@ -1,17 +1,24 @@
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
 import { reminderArr } from '@/store/cars';
 import { createFileRoute } from '@tanstack/react-router';
-import { AlertTriangle, CarFront, Wrench } from 'lucide-react';
+import { CarFront, TriangleAlert, Users, Wrench } from 'lucide-react';
+import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 
 export const Route = createFileRoute('/dashboard/admin/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  //test
+  const adminStats = {
+    totalFleetVehicles: 3,
+    activeUsersCount: 2,
+    urgentReminders: 4,
+  };
+
   return (
     <>
       <DashboardHeader
@@ -19,49 +26,29 @@ function RouteComponent() {
         subtitle="Alerty, finanse i aktywność w jednym miejscu."
       />
 
-      <GridWrapper layout="3-unequal">
-        <BlockWrapper className="flex justify-between" variant="default">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {false && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px]  pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper>
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <DashboardCard
+          title="Pojazdy we flocie"
+          value={adminStats.totalFleetVehicles}
+          subtitle="aktywne"
+          icon={<CarFront size={20} />}
+        />
 
-        <BlockWrapper className="flex justify-between" variant="alert">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {true && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px]  pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper variant="alert">
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
+        <DashboardCard
+          title="Aktywni użytkownicy"
+          value={adminStats.activeUsersCount}
+          subtitle="osoby mają pojazdy w systemie"
+          icon={<Users size={20} />}
+        />
 
-        <BlockWrapper className="flex justify-between" variant="warning">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {false && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px] pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper variant="warning">
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
-      </GridWrapper>
+        <DashboardCard
+          title="Pilne przypomnienia"
+          value={adminStats.urgentReminders}
+          subtitle="działania wymagane w ciągu 30 dni"
+          icon={<TriangleAlert size={20} />}
+          isAlert={true} //
+        />
+      </div>
 
       <BlockWrapper>
         <div className="">

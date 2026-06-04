@@ -282,7 +282,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
         )}
       </div>
 
-      <div className="flex justify-end gap-4 pt-4 mt-6">
+      <div className="flex justify-end gap-4 pt-4 border-t border-gray-100 mt-6">
         <BoardButton
           type="button"
           variant="outline"
