@@ -11,7 +11,7 @@ import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/(home)/')({

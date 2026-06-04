@@ -37,7 +37,18 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
     }
   };
 
-  const inputStyles = '!text-[14px] !placeholder:text-[12px] !placeholder:text-icon w-full';
+  const formatPostalCode = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length > 2) {
+      return `${digits.slice(0, 2)}-${digits.slice(2, 5)}`;
+    }
+
+    return digits;
+  };
+
+  const inputStyles =
+    '!text-[14px] !placeholder:text-[12px] !placeholder:text-icon w-full font-normal';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full">
@@ -64,6 +75,7 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
             label="E-mail"
             value={initialData?.firstName ? 'admin@gmail.com' : 'Wczytywanie...'}
             disabled
+            className="text-icon"
           />
         </div>
 
@@ -78,7 +90,7 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
         <div className="md:col-span-2">
           <Input
             label="Adres"
-            placeholder="np. Prosta 1"
+            placeholder="Wpisz ulicę i numer domu"
             className={inputStyles}
             {...register('address')}
             error={errors.address?.message}
@@ -91,11 +103,15 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
           className={inputStyles}
           {...register('postalCode')}
           error={errors.postalCode?.message}
+          maxLength={6}
+          onChange={(e) => {
+            e.target.value = formatPostalCode(e.target.value);
+          }}
         />
 
         <Input
           label="Miasto"
-          placeholder="np. Warszawa"
+          placeholder="Wpisz miasto"
           className={inputStyles}
           {...register('city')}
           error={errors.city?.message}

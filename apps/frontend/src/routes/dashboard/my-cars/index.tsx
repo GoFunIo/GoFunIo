@@ -10,7 +10,7 @@ import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { useState } from 'react';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,

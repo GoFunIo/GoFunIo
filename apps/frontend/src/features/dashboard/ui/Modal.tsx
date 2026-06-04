@@ -46,7 +46,7 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) =
 
         {(title || subtitle) && (
           <div className="mb-[28px]">
-            {title && <p className="font-bold text-[18px] text-dark mb-2">{title}</p>}
+            {title && <p className="font-bold text-[18px] text-content-primary mb-2">{title}</p>}
             {subtitle && <p className=" text-[16px] subtitle">{subtitle}</p>}
           </div>
         )}

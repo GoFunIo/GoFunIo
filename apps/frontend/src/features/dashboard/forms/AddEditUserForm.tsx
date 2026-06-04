@@ -32,7 +32,7 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
       firstName: '',
       lastName: '',
       email: '',
-      role: 'Użytkownik',
+      role: '',
       sendInvite: false,
     },
   });
@@ -45,7 +45,7 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
         firstName: '',
         lastName: '',
         email: '',
-        role: 'Użytkownik',
+        role: '',
         sendInvite: false,
       });
     }
@@ -109,6 +109,7 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
             render={({ field }) => (
               <Select
                 options={roleOptions}
+                clearOption={false}
                 value={field.value ?? null}
                 onChange={field.onChange}
                 placeholder="Przypisz rolę"

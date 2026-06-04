@@ -23,7 +23,7 @@ body,
   /* backgrounds */
   --bg-section: 238 240 246; /* #EEF0F6 */
   --bg-page: 250 251 251; /* #FAFBFB */
-  --bg-card: 250 250 250; /* #FFF */
+  --bg-card: 255 255 255; /* #FFF */
 
   /* icons */
   --icon: 194 194 194; /* #C2C2C2 */

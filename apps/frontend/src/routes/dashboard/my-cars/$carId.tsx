@@ -7,7 +7,7 @@ import { History } from '@/features/dashboard/widgets/History';
 import { activityArr, carsArr } from '@/store/cars';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVechicleForm';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
 

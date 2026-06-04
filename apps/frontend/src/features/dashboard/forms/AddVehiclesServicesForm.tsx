@@ -9,7 +9,9 @@ import { Resolver } from 'react-hook-form';
 import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
 import { carsArr } from '@/store/cars';
 import { Select } from '../ui/Select';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { DatePicker } from '../ui/DatePicker';
+import { Paperclip, Upload, X } from 'lucide-react';
 
 type FormProps = {
   className?: string;
@@ -26,13 +28,10 @@ const serviceTypeOptions = [
   { id: 6, value: 'Inne', label: 'Inne' },
 ];
 
-const attachmentOptions = [
-  { id: 1, value: 'mock_invoice_1.pdf', label: 'faktura_serwis_0304.pdf' },
-];
-
 export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormProps) => {
   const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -40,6 +39,8 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     reset,
     setError,
     clearErrors,
+    watch,
+    setValue,
     formState: { errors },
     handleSubmit,
   } = useForm<AddServiceFormData>({
@@ -50,6 +51,8 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     defaultValues: initialData || {},
   });
 
+  const currentAttachment = watch('attachment');
+
   useEffect(() => {
     if (initialData) {
       reset(initialData);
@@ -57,6 +60,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
       reset({
         serviceType: '',
         cost: undefined,
+        attachment: undefined,
       });
     }
   }, [initialData, reset]);
@@ -93,6 +97,21 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     label: `${car.brand} ${car.model} (${car.registrationNumber})`,
   }));
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      setValue('attachment', file, { shouldValidate: true });
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setValue('attachment', undefined, { shouldValidate: true });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={classNames('w-full text-left', className)}>
       {errors.root?.message && (
@@ -103,7 +122,9 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
         {/* POJAZD */}
         <div className="flex flex-col gap-1 relative pb-2">
           <div className="flex justify-between items-center">
-            <label className="text-[14px]  text-content-secondary mb-[4px]">Pojazd *</label>
+            <label className="text-[14px]  text-content-secondary font-medium mb-[4px]">
+              Pojazd *
+            </label>
             {errors.vehicleId?.message && (
               <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
                 {errors.vehicleId.message}
@@ -122,7 +143,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
                   clearErrors('vehicleId');
                 }}
                 placeholder="Wybierz z listy"
-                className="w-full !h-[45px]"
+                className="w-full !h-[45px] "
                 error={errors.vehicleId?.message}
               />
             )}
@@ -131,18 +152,38 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
 
         {/* DATA SERWISU I TYP */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="Data serwisu *"
-            type="date"
-            error={errors.serviceDate?.message}
-            className={inputStyles}
-            {...register('serviceDate')}
-          />
+          <div className="flex flex-col gap-1 relative pb-2">
+            <div className="flex justify-between items-center">
+              <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
+                Data serwisu *
+              </label>
+              {errors.serviceDate?.message && (
+                <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
+                  {errors.serviceDate.message}
+                </p>
+              )}
+            </div>
+            <Controller
+              control={control}
+              name="serviceDate"
+              render={({ field }) => (
+                <DatePicker
+                  value={field.value ? new Date(field.value) : undefined}
+                  onChange={(date) => {
+                    field.onChange(date ? date.toISOString().split('T')[0] : '');
+                    clearErrors('serviceDate');
+                  }}
+                  placeholder="Wybierz datę serwisu"
+                  className="!w-full h-[45px]"
+                />
+              )}
+            />
+          </div>
 
           {/* TYP SERWISU */}
           <div className="flex flex-col gap-1 relative pb-2">
             <div className="flex justify-between items-center">
-              <label className="text-[14px] font-medium text-content-secondary mb-[4px]">
+              <label className="text-[14px] font-medium text-content-secondary font-medium mb-[4px]">
                 Typ *
               </label>
               {errors.serviceType?.message && (
@@ -196,7 +237,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
           <label className="text-[14px] font-medium text-content-secondary mb-[4px]">Notatki</label>
           <textarea
             className={classNames(
-              'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] font-medium focus:border-info custom-transition outline-none focus:ring-0 bg-white text-content-primary placeholder:text-icon min-h-[100px] resize-none',
+              'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] font-medium focus:border-info custom-transition outline-none focus:ring-0 bg-bg-card text-content-primary placeholder:text-icon min-h-[100px] resize-none',
               errors.notes?.message ? 'border-alert' : 'border-icon',
             )}
             placeholder="Dodatkowe informacje o pojeździe ...."
@@ -211,22 +252,46 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
 
         {/* ZAŁĄCZNIK */}
         <div className="flex flex-col gap-1">
-          <label className="text-[14px] font-medium text-content-secondary mb-[4px]">
-            Załącznik (faktura/ zdjęcie )
+          <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
+            Załącznik (faktura / zdjęcie)
           </label>
-          <Controller
-            control={control}
-            name="attachment"
-            render={({ field }) => (
-              <Select
-                options={attachmentOptions}
-                value={field.value ?? null}
-                onChange={field.onChange}
-                placeholder="Załącz dokumenty"
-                className="w-full !h-[45px]"
-              />
-            )}
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".pdf,.png,.jpg,.jpeg"
+            className="hidden"
           />
+
+          {!currentAttachment ? (
+            /* Widok, gdy nie ma jeszcze wgranego pliku */
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full h-[45px] border border-dashed border-icon rounded-[7px] flex items-center justify-center gap-2 text-content-secondary hover:border-secondary hover:text-secondary custom-transition text-[14px]"
+            >
+              <Upload size={16} />
+              Załącz dokumenty z dysku
+            </button>
+          ) : (
+            /* Widok paska z wgranym już plikiem i opcją usunięcia */
+            <div className="w-full h-[45px] border border-icon rounded-[7px] bg-bg-section flex items-center justify-between px-4 text-[14px]">
+              <div className="flex items-center gap-2 text-content-primary truncate">
+                <Paperclip size={16} className="text-info shrink-0" />
+                <span className="truncate">
+                  {currentAttachment instanceof File ? currentAttachment.name : 'Załączony plik'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="text-content-secondary hover:text-alert custom-transition p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

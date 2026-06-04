@@ -16,7 +16,7 @@ export const NotificationBanner = ({
   isVisible,
   onClose,
   variant = 'success',
-  duration = 20000,
+  duration = 5000,
   className,
 }: Props) => {
   useEffect(() => {

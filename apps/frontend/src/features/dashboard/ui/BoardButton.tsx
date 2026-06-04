@@ -3,7 +3,7 @@ import { Plus, SquarePen, Trash2, ChevronRight } from 'lucide-react';
 
 type Props = {
   children?: React.ReactNode;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   size?: 'small' | 'medium' | 'big';
   variant?: 'default' | 'outline' | 'danger';
@@ -53,7 +53,7 @@ export const BoardButton = ({
   `;
 
   const disabledBtn = `
-    pointer-events-none opacity-50 cursor-default 
+    pointer-events-none opacity-50 cursor-default
   `;
 
   return (

@@ -41,15 +41,15 @@ export const ChangeEmailForm = ({ onClose, currentEmail }: Props) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
         <Input
-          label="Nowy e-mail"
-          placeholder="Nowy adres e-mail"
+          label="Nowy e-mail *"
+          placeholder="Nowy adres e-mail: mail@example.com"
           {...register('newEmail')}
           error={errors.newEmail?.message}
         />
 
         <Input
-          label="Powtórz e-mail"
-          placeholder="Nowy adres e-mail"
+          label="Powtórz e-mail *"
+          placeholder="Nowy adres e-mail: mail@example.com"
           {...register('confirmEmail')}
           error={errors.confirmEmail?.message}
         />

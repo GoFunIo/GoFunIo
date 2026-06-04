@@ -17,8 +17,8 @@ export const Input = forwardRef<HTMLInputElement, Props>(
     text-[14px] font-medium focus:border-info custom-transition
     outline-none focus:ring-0
 
-    bg-white dark:bg-bg-card
-    text-content-primary dark:text-white
+    bg-bg-card
+    text-content-primary 
     placeholder:text-icon
   `;
 
