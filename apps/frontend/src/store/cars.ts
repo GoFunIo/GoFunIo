@@ -111,7 +111,7 @@ export const activityArray = [
     date: '4 mar 2026',
     price: '2450.00',
     place: 'PZU',
-    type: 'insurance',
+    type: 'insurance_oc',
   },
   {
     id: 5,
@@ -120,7 +120,7 @@ export const activityArray = [
     date: '4 mar 2026',
     price: '1950.00',
     place: 'PZU',
-    type: 'insurance',
+    type: 'insurance_ac',
   },
   {
     id: 6,
