@@ -144,15 +144,15 @@ function RouteComponent() {
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
             title="Moje pojazdy"
-            value={3}
+            value={mockCars.length}
             subtitle="aktywnych"
             icon={<CarFront size={20} />}
           />
         </Link>
 
         <Link
-          to="/dashboard/my-cars/$carId"
-          params={{ carId: String(urgentAlert?.carId) }}
+          to={urgentAlert ? '/dashboard/my-cars/$carId' : '/dashboard/my-cars'}
+          params={urgentAlert ? { carId: String(urgentAlert.carId) } : undefined}
           className="block no-underline"
         >
           <DashboardCard
@@ -172,7 +172,7 @@ function RouteComponent() {
         <Link to="/dashboard/service">
           <DashboardCard
             title="Wpisów serwisowych"
-            value={4}
+            value={activityArray.length}
             subtitle="łącznie"
             icon={<Wrench size={20} />}
           />
