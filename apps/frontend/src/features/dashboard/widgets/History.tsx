@@ -7,6 +7,9 @@ import {
   ShieldAlert,
   HelpCircle,
   CalendarCog,
+  Cog,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { BoardButton } from '../ui/BoardButton';
 import { BlockWrapper } from '../ui/BlockWrapper';
@@ -26,12 +29,13 @@ type ButtonProps = {
 
 export type HistoryDataItem = {
   id: number;
-  title: string;
+  vehicleId: string;
+  notes: string | null;
   car: string;
-  date: string;
-  price: string;
-  place: string;
-  type: 'service' | 'oil' | 'inspection' | 'insurance_ac' | 'insurance_oc' | 'other';
+  serviceDate: string;
+  cost: number;
+  servicePlace: string;
+  serviceType: 'service' | 'oil' | 'inspection' | 'insurance_ac' | 'insurance_oc' | 'other';
 };
 
 type Props = {
@@ -40,6 +44,8 @@ type Props = {
   button?: ButtonProps;
   data?: HistoryDataItem[];
   className?: string;
+  onEditClick?: (item: HistoryDataItem) => void;
+  onDeleteClick?: (item: HistoryDataItem) => void;
 };
 
 const activityIcons = {
@@ -48,10 +54,27 @@ const activityIcons = {
   inspection: CalendarCog,
   insurance_ac: ShieldCheck,
   insurance_oc: ShieldAlert,
-  other: HelpCircle,
+  other: Cog,
 };
 
-export const History = ({ title, button, data = [], className, link }: Props) => {
+export const serviceTypeLabels: Record<string, string> = {
+  service: 'Pełny serwis',
+  oil: 'Wymiana oleju',
+  inspection: 'Przegląd techniczny',
+  other: 'Inne',
+  insurance_ac: 'Ubezpieczenie AC',
+  insurance_oc: 'Ubezpieczenie OC',
+};
+
+export const History = ({
+  title,
+  button,
+  data = [],
+  link,
+  onEditClick,
+  onDeleteClick,
+  className,
+}: Props) => {
   const navigate = useNavigate();
 
   return (
@@ -85,28 +108,57 @@ export const History = ({ title, button, data = [], className, link }: Props) =>
       ) : (
         <div className=" flex flex-col gap-[16px]">
           {data.map((item) => {
-            const IconComponent = activityIcons[item.type] || HelpCircle;
+            const IconComponent = activityIcons[item.serviceType] || HelpCircle;
 
             return (
               <div
-                className="not-last:pb-[10px] flex gap-[16px] not-last:border-b not-last:border-icon items-start"
+                className="not-last:pb-[10px] flex gap-[16px] not-last:border-b not-last:border-icon items-center justify-between"
                 key={item.id}
               >
-                <IconWrapper className="bg-info-bg text-info shrink-0 rounded-[6px]">
-                  <IconComponent size={20} strokeWidth={2} />
-                </IconWrapper>
+                <div className="flex gap-[16px] items-start">
+                  <IconWrapper className="bg-info-bg text-info shrink-0 rounded-[6px] mt-0.5">
+                    <IconComponent size={20} strokeWidth={2} />
+                  </IconWrapper>
 
-                <div className="">
-                  <p className="text-content-primary text-[14px]">{item.title}</p>
-                  <p className="text-[12px]">
-                    {item.car} - {item.date}
-                  </p>
+                  <div>
+                    <p className="text-content-primary text-[14px] font-medium">
+                      {item.notes || 'Brak opisu'}
+                    </p>
+                    <p className="text-[12px] text-content-secondary">
+                      {item.car} · {item.serviceDate}
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-auto">
-                  <p className="text-right text-content-primary font-bold text-[14px]">
-                    {item.price} zł
-                  </p>
-                  <p className="text-right text-[12px]">{item.place}</p>
+
+                <div className="flex items-center gap-4 ml-auto">
+                  <div className="text-right">
+                    <p className="text-content-primary font-bold text-[14px]">
+                      {item.cost.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł
+                    </p>
+                    <p className="text-[12px] text-content-secondary">{item.servicePlace}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {onEditClick && (
+                      <button
+                        onClick={() => onEditClick(item)}
+                        className="p-1.5 rounded-md text-content-secondary hover:text-primary hover:bg-background-secondary transition-colors"
+                        title="Edytuj wpis"
+                      >
+                        <Pencil size={14} strokeWidth={2.5} />
+                      </button>
+                    )}
+
+                    {onDeleteClick && (
+                      <button
+                        onClick={() => onDeleteClick(item)}
+                        className="p-1.5 rounded-md text-content-secondary hover:text-danger hover:bg-danger/10 transition-colors"
+                        title="Usuń wpis"
+                      >
+                        <Trash2 size={14} strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
