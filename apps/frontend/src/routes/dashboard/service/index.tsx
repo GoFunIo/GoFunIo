@@ -1,5 +1,6 @@
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVechiclesServicesForm';
+import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { AddServiceFormData } from '@/features/dashboard/lib/formValidationRules';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DeleteServiceConfirm } from '@/features/dashboard/ui/DeleteServiceConfirm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
