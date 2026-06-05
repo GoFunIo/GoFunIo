@@ -157,9 +157,13 @@ function RouteComponent() {
         >
           <DashboardCard
             title={urgentAlert?.type ?? 'Najbliższy termin'}
-            value={
-              mockCars.find((c) => c.id === urgentAlert?.carId)?.technicalInspectionExpiry ?? 'Brak'
-            }
+            value={(() => {
+              const car = mockCars.find((c) => c.id === urgentAlert?.carId);
+              if (!car || !urgentAlert) return 'Brak';
+              if (urgentAlert.type === 'Przegląd') return car.technicalInspectionExpiry;
+              if (urgentAlert.type === 'Ubezpieczenie OC') return car.ocExpiry;
+              return car.acExpiry;
+            })()}
             subtitle={urgentAlert?.carName ?? 'Brak danych'}
             icon={<Calendar size={20} />}
           />
@@ -211,17 +215,25 @@ function RouteComponent() {
               <div className="flex flex-col gap-[10px] ">
                 {sortedAlerts.map((alert) => {
                   return (
-                    <div className="flex items-center justify-between gap-[12px]" key={alert.id}>
-                      <div>
-                        <p className="text-[14px] text-content-primary font-medium leading-tight">
-                          {alert.carName}
-                        </p>
-                        <span className="text-[12px] text-content-secondary font-normal">
-                          {alert.type}
-                        </span>
+                    <Link
+                      key={alert.id}
+                      to="/dashboard/my-cars/$carId"
+                      params={{ carId: String(alert.carId) }}
+                      className="block no-underline hover:bg-background-secondary p-1 rounded-md transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-[12px]">
+                        <div>
+                          <p className="text-[14px] text-content-primary font-medium leading-tight">
+                            {alert.carName}
+                          </p>
+                          <span className="text-[12px] text-content-secondary font-normal">
+                            {alert.type}
+                          </span>
+                        </div>
+
+                        <DaysAmount days={alert.dateInfo.days} />
                       </div>
-                      <DaysAmount days={alert.dateInfo.days} />
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
