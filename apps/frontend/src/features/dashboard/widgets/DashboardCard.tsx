@@ -57,8 +57,9 @@ export const DashboardCard = ({
         'w-full border rounded-[7px] p-[25px] flex justify-between items-start custom-transition min-h-[100px]',
         {
           'bg-bg-card border-icon text-content-primary': variant === 'neutral',
-          'bg-alert-bg border-alert text-content-primary': variant === 'alert',
-          'bg-warning-bg border-warning text-content-primary': variant === 'warning',
+          'bg-alert-bg dark:bg-bg-card border-alert text-content-primary': variant === 'alert',
+          'bg-warning-bg dark:bg-bg-card border-warning text-content-primary':
+            variant === 'warning',
         },
       )}
     >
