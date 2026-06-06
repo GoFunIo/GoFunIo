@@ -23,8 +23,8 @@ const serviceTypeOptions = [
   { id: 1, value: 'Pełny serwis', label: 'Pełny serwis' },
   { id: 2, value: 'Wymiana oleju', label: 'Wymiana oleju' },
   { id: 3, value: 'Przegląd techniczny', label: 'Przegląd techniczny' },
-  { id: 4, value: 'Naprawa zawieszenia', label: 'Naprawa zawieszenia' },
-  { id: 5, value: 'Układ hamulcowy', label: 'Układ hamulcowy' },
+  { id: 4, value: 'Ubezpieczenie OC', label: 'Ubezpieczenie OC' },
+  { id: 5, value: 'Ubezpieczenia AC', label: 'Ubezpieczenia AC' },
   { id: 6, value: 'Inne', label: 'Inne' },
 ];
 
@@ -58,7 +58,8 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
       reset(initialData);
     } else {
       reset({
-        serviceType: '',
+        vehicleId: undefined,
+        serviceType: undefined,
         cost: undefined,
         attachment: undefined,
       });
@@ -138,6 +139,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
               <Select
                 options={carOptions}
                 value={field.value ?? null}
+                clearOption={false}
                 onChange={(val) => {
                   field.onChange(val);
                   clearErrors('vehicleId');
@@ -198,9 +200,10 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
               render={({ field }) => (
                 <Select
                   options={serviceTypeOptions}
-                  value={field.value ?? null}
+                  value={field.value ?? ''}
+                  clearOption={false}
                   onChange={(val) => {
-                    field.onChange(val);
+                    field.onChange(val ?? undefined);
                     clearErrors('serviceType');
                   }}
                   placeholder="Podaj rodzaj serwisu"
@@ -234,13 +237,13 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
 
         {/* NOTATKI */}
         <div className="flex flex-col gap-1">
-          <label className="text-[14px] font-medium text-content-secondary mb-[4px]">Notatki</label>
+          <label className="text-[14px] font-medium text-content-secondary mb-[4px]">Opis</label>
           <textarea
             className={classNames(
-              'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] font-medium focus:border-info custom-transition outline-none focus:ring-0 bg-bg-card text-content-primary placeholder:text-icon min-h-[100px] resize-none',
+              'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] font-medium focus:border-info custom-transition outline-none focus:ring-0 bg-bg-card text-content-primary placeholder:text-icon min-h-[50px] resize-none',
               errors.notes?.message ? 'border-alert' : 'border-icon',
             )}
-            placeholder="Dodatkowe informacje o pojeździe ...."
+            placeholder="Inne: określ czynność np. wymiana klocków hamulcowych, przegląd klimatyzacji itp "
             {...register('notes')}
           />
           {errors.notes?.message && (

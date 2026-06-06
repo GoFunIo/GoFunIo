@@ -15,11 +15,11 @@ type FormProps = {
 };
 
 const FUEL_OPTIONS = [
-  { id: 1, value: 'DIESEL', label: 'Diesel' },
-  { id: 2, value: 'BENZYNA', label: 'Benzyna' },
+  { id: 1, value: 'Diesel', label: 'Diesel' },
+  { id: 2, value: 'Benzyna', label: 'Benzyna' },
   { id: 3, value: 'LPG', label: 'LPG' },
-  { id: 4, value: 'HYBRYDA', label: 'Hybryda' },
-  { id: 5, value: 'ELEKTRYK', label: 'Elektryk' },
+  { id: 4, value: 'Hybryda', label: 'Hybryda' },
+  { id: 5, value: 'Elektryk', label: 'Elektryk' },
 ];
 
 export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) => {
@@ -269,7 +269,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
         <label className="text-[14px] font-medium text-content-secondary mb-[8px]">Notatki</label>
         <textarea
           className={classNames(
-            'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] focus:border-info custom-transition outline-none focus:ring-0 bg-white dark:bg-bg-card text-content-primary dark:text-white placeholder:text-icon min-h-[100px] resize-none',
+            'w-full rounded-[7px] px-[16px] py-[12px] border text-[14px] focus:border-info custom-transition outline-none focus:ring-0 bg-white dark:bg-bg-card text-content-primary dark:text-white placeholder:text-icon min-h-[50px] resize-none',
             errors.notes?.message ? 'border-alert' : 'border-icon',
           )}
           placeholder="Dodatkowe informacje o pojeździe...."

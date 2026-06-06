@@ -44,7 +44,13 @@ export const DatePicker = ({ value, onChange, placeholder = 'dd.mm.rrrr', classN
           value={value ? value.toLocaleDateString('pl-PL') : ''}
           placeholder={placeholder}
           type="text"
-          className="caret-transparent text-[14px] focus:outline-none placeholder:text-icon text-content-secondary z-9 cursor-pointer px-[8px] w-full h-full"
+          className={classNames(
+            'caret-transparent text-[14px] focus:outline-none placeholder:text-icon z-9 cursor-pointer px-[8px] w-full h-full',
+            {
+              'text-content-primary font-medium': !!value,
+              'text-content-secondary': !value,
+            },
+          )}
           onClick={() => setIsOpen((prev) => !prev)}
         />
         <ChevronUp

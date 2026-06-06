@@ -41,7 +41,7 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) =
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button className="absolute right-[25px] top-[25px]" onClick={() => setIsOpen(false)}>
-          <X className="cursor-pointer" />
+          <X className="cursor-pointer text-content-primary" />
         </button>
 
         {(title || subtitle) && (

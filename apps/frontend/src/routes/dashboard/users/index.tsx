@@ -1,6 +1,6 @@
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import { UserManagementFormData } from '@/features/dashboard/lib/formValidationRules';
-import { DeleteUserConfirm } from '@/features/dashboard/ui/DeleteUserConfirm';
+import { DeleteUserConfirm } from '@/features/dashboard/forms/DeleteUserConfirm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';

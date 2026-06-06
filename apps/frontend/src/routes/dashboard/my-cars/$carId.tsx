@@ -9,7 +9,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CarFront, Gauge } from 'lucide-react';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
+import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {

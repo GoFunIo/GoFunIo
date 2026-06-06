@@ -18,7 +18,7 @@ const car = {
   brand: 'BMW',
   model: 'Seria 5 (E60)',
   productionYear: '2004',
-  fuelType: 'GAS',
+  fuelType: 'Diesel',
   registrationNumber: 'SJ 0776A',
   currentMileage: 310000,
   vin: 'WBAAF71040BXXXXXX',
