@@ -19,9 +19,10 @@ type Props = {
   title: string;
   data?: CarReminderItem[];
   className?: string;
+  onRenewCar?: (id: number) => void;
 };
 
-export const Reminders = ({ title, data = [], className }: Props) => {
+export const Reminders = ({ title, data = [], className, onRenewCar }: Props) => {
   const activeReminders = data
     .flatMap((car) => {
       const inspection = calculateDaysToDate(car.technicalInspectionExpiry);
@@ -38,6 +39,7 @@ export const Reminders = ({ title, data = [], className }: Props) => {
         .filter((alert) => alert.days <= 60 || alert.isPast)
         .map((alert) => ({
           id: `${car.id}-${alert.type}`,
+          carId: car.id,
           carName: `${car.brand} ${car.model}`,
           plate: car.registrationNumber,
           type: alert.type,
@@ -119,7 +121,7 @@ export const Reminders = ({ title, data = [], className }: Props) => {
                   >
                     Ignoruj
                   </BoardButton> */}
-                  <BoardButton onClick={() => {}} size="small">
+                  <BoardButton onClick={() => onRenewCar?.(item.carId)} size="small">
                     Odnów
                   </BoardButton>
                 </div>

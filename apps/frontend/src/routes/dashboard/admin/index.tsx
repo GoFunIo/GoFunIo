@@ -7,12 +7,32 @@ import { CarFront, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-reac
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
+import { useState } from 'react';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 
 export const Route = createFileRoute('/dashboard/admin/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+  const selectedCar = mockCars.find((c) => c.id === selectedCarId);
+
+  const editModalTitle = selectedCar
+    ? `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`
+    : 'Edytuj pojazd';
+
+  const editModalSubtitle =
+    'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
+
+  const handleRenewCar = (id: number) => {
+    setSelectedCarId(id);
+    setIsEditModalOpen(true);
+  };
+
   // TEST - LOGIKA PZREGLĄDÓW
   const inspectionStats = mockCars.reduce(
     (acc, car) => {
@@ -65,7 +85,11 @@ function RouteComponent() {
     <>
       <DashboardHeader
         title="Pulpit floty"
-        subtitle="Alerty, finanse i aktywność w jednym miejscu."
+        subtitle="Alerty i aktywność w jednym miejscu."
+        button={{
+          label: 'Dodaj pojazd',
+          onClick: () => setIsModalOpen(true),
+        }}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -111,7 +135,27 @@ function RouteComponent() {
         </div>
       </BlockWrapper>
 
-      <Reminders data={mockCars} title="Pilne przypomnienia" />
+      <Reminders data={mockCars} title="Pilne przypomnienia" onRenewCar={handleRenewCar} />
+
+      {/* MODAL 1: DODAJ POJAZD */}
+      <Modal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        title="Dodaj pojazd"
+        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
+      >
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
+      </Modal>
+
+      {/* MODAL EDYCJI */}
+      <Modal
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        title={editModalTitle}
+        subtitle={editModalSubtitle}
+      >
+        <AddVehicleForm initialData={selectedCar} onClose={() => setIsEditModalOpen(false)} />
+      </Modal>
     </>
   );
 }

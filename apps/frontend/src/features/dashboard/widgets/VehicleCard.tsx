@@ -3,6 +3,7 @@ import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Calendar, CarFront, Gauge } from 'lucide-react';
+import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 
 export interface VehicleCardProps {
   vehicle: {
@@ -19,12 +20,13 @@ export interface VehicleCardProps {
     acExpiry: string;
     technicalInspectionExpiry: string;
     notes: string;
-    vti: number;
   };
   onDetailsClick: (id: number) => void;
 }
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
+  const { days } = calculateDaysToDate(vehicle.technicalInspectionExpiry);
+
   return (
     <BlockWrapper className="flex flex-col justify-between h-full">
       <div>
@@ -55,7 +57,7 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
             <div className="text-[13px] flex items-center gap-[6px]">
               <span className="text-content-secondary">Przegląd za:</span>
 
-              <DaysAmount days={vehicle.vti} />
+              <DaysAmount days={days} />
             </div>
           </div>
         </div>

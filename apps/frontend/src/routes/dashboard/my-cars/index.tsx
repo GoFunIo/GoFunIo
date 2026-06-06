@@ -32,8 +32,8 @@ function RouteComponent() {
           className="bg-wbg-card min-h-[250px]"
           title="Nie ma tu żadnych pojazdów. Dodaj pierwszy "
           button={{
-            label: 'Zobacz wszystko',
-            onClick: () => {},
+            label: 'Dodaj pojazd',
+            onClick: () => setIsModalOpen(true),
           }}
           icon={<CarFront size={48} className="text-primary" />}
         />
