@@ -36,8 +36,8 @@ type TermAlert = {
   dateInfo: DateDiffResult; //
 };
 
-//test subskrypcji
-const subscriptionStatus = 'warning' as 'info' | 'warning' | 'alert';
+// ZAMOCKOWANA DATA KOŃCA OKRESU PRÓBNEGO
+const USER_TRIAL_EXPIRY = '2026-06-12';
 
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
@@ -107,6 +107,16 @@ function RouteComponent() {
 
   const urgentAlert = sortedAlerts[0];
 
+  //test subskrypcji
+  const trialDaysResult = calculateDaysToDate(USER_TRIAL_EXPIRY);
+  const daysLeft = trialDaysResult.days;
+
+  const subscriptionStatus: 'info' | 'warning' | 'alert' = (() => {
+    if (daysLeft < 0) return 'alert';
+    if (daysLeft <= 7) return 'warning';
+    return 'info';
+  })();
+
   return (
     <>
       <DashboardHeader
@@ -126,7 +136,7 @@ function RouteComponent() {
       {subscriptionStatus === 'warning' && (
         <Banner
           variant="warning"
-          title="Okres próbny: pozostało 7 dni"
+          title={`Okres próbny: pozostało ${daysLeft} dni`}
           subtitle="Aktywuj plan, aby nie stracić dostępu do zarządzania flotą."
         />
       )}

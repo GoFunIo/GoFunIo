@@ -176,7 +176,7 @@ export const activityArray = [
     serviceType: 'other',
     attachment: null,
   },
-] as const;
+];
 
 export const actionsArray = [
   {

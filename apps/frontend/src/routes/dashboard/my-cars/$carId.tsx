@@ -8,11 +8,11 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { DeleteCarConfirm } from '@/features/dashboard/ui/DeleteCarConfirm';
+import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
-import { DeleteServiceConfirm } from '@/features/dashboard/ui/DeleteServiceConfirm';
+import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: ({ params }) => {
@@ -200,7 +200,7 @@ function RouteComponent() {
                   serviceType: (modalState as HistoryDataItem).serviceType,
                   serviceDate: (modalState as HistoryDataItem).serviceDate,
                   notes: (modalState as HistoryDataItem).notes,
-                  attachment: null,
+                  attachment: undefined,
                 }
               : {
                   vehicleId: String(car.id),
@@ -209,7 +209,7 @@ function RouteComponent() {
                   cost: undefined,
                   servicePlace: '',
                   notes: '',
-                  attachment: null,
+                  attachment: undefined,
                 }
           }
         />

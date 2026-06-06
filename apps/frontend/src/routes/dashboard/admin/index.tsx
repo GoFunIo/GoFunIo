@@ -1,22 +1,64 @@
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
-import { reminderArr } from '@/store/cars';
+import { mockCars } from '@/store/cars';
 import { createFileRoute } from '@tanstack/react-router';
-import { CarFront, TriangleAlert, Users, Wrench } from 'lucide-react';
+import { CarFront, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
+import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
+import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 
 export const Route = createFileRoute('/dashboard/admin/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  //test
+  // TEST - LOGIKA PZREGLĄDÓW
+  const inspectionStats = mockCars.reduce(
+    (acc, car) => {
+      const { days } = calculateDaysToDate(car.technicalInspectionExpiry);
+
+      if (days >= 0 && days <= 7) {
+        acc.days7++;
+      } else if (days > 7 && days <= 30) {
+        acc.days30++;
+      } else if (days > 30 && days <= 60) {
+        acc.days60++;
+      }
+      return acc;
+    },
+    { days7: 0, days30: 0, days60: 0 },
+  );
+
+  //  DYNAMICZNA LOGIKA DLA UBEZPIECZEŃ OC / AC
+  const insuranceStats = mockCars.reduce(
+    (acc, car) => {
+      const ocDiff = calculateDaysToDate(car.ocExpiry).days;
+      const acDiff = calculateDaysToDate(car.acExpiry).days;
+
+      // Find the closest expiry date for the vehicle
+      const nextInsurance = Math.min(ocDiff, acDiff);
+
+      if (nextInsurance >= 0 && nextInsurance <= 7) {
+        acc.days7++;
+      } else if (nextInsurance > 7 && nextInsurance <= 30) {
+        acc.days30++;
+      } else if (nextInsurance > 30 && nextInsurance <= 60) {
+        acc.days60++;
+      }
+      return acc;
+    },
+    { days7: 0, days30: 0, days60: 0 },
+  );
+
+  // 3. SUMOWANIE TYLKO PILNYCH ALERTÓW (Czerwone ≤ 7 oraz Pomarańczowe ≤ 30)
+  const totalUrgentReminders =
+    inspectionStats.days7 + inspectionStats.days30 + insuranceStats.days7 + insuranceStats.days30;
+
   const adminStats = {
-    totalFleetVehicles: 3,
+    totalFleetVehicles: mockCars.length,
     activeUsersCount: 2,
-    urgentReminders: 4,
+    urgentReminders: totalUrgentReminders,
   };
 
   return (
@@ -46,72 +88,30 @@ function RouteComponent() {
           value={adminStats.urgentReminders}
           subtitle="działania wymagane w ciągu 30 dni"
           icon={<TriangleAlert size={20} />}
-          isAlert={true} //
+          isAlert={true}
         />
       </div>
 
       <BlockWrapper>
-        <div className="">
-          <p className="text-[18px] text-content-primary font-semibold mb-[8px]">
-            Nadchodzące terminy
-          </p>
-          <p className="text-[14px] text-content-primary">
+        <div className="mb-6">
+          <p className="text-[18px] text-content-primary font-semibold mb-2">Nadchodzące terminy</p>
+          <p className="text-[14px] text-content-secondary">
             Liczba pojazdów wymagających uwagi w najbliższym czasie
           </p>
         </div>
 
-        <div className="mt-[24px] grid lg:grid-cols-2 grid-cols-1 gap-[24px] items-center justify-between">
-          <div className="p-[20px] rounded-[7px] border border-icon bg-bg-page">
-            <div className="flex gap-[12px] items-center">
-              <IconWrapper className="!w-[25px] !h-[25px]">
-                <Wrench className="text-info" size={16} />
-              </IconWrapper>
-              <p className="text-[14px] font-bold text-content-primary">Przeglądy techniczne</p>
-            </div>
+        <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
+          <AdminAlertBucket title="Przeglądy techniczne" icon={Wrench} stats={inspectionStats} />
 
-            <div className="mt-[24px] gap-[16px] grid sm:grid-cols-3 grid-cols-1">
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
-              </div>
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 30 dni</p>
-              </div>
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 60 dni</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-[20px] rounded-[7px] border border-icon bg-bg-page">
-            <div className="flex gap-[12px] items-center">
-              <IconWrapper className="!w-[25px] !h-[25px]">
-                <Wrench className="text-info" size={16} />
-              </IconWrapper>
-              <p className="text-[14px] font-bold text-content-primary">Ubezpieczenia (OC / AC)</p>
-            </div>
-
-            <div className="mt-[24px] gap-[16px] grid sm:grid-cols-3 grid-cols-1">
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
-              </div>
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
-              </div>
-              <div className="px-[12px] py-[12px] border border-icon rounded-[7px]">
-                <p className="text-center text-[25px] text-content-primary font-bold">0</p>
-                <p className="text-center text-[12px]">≤ 7 dni</p>
-              </div>
-            </div>
-          </div>
+          <AdminAlertBucket
+            title="Ubezpieczenia (OC / AC)"
+            icon={ShieldAlert}
+            stats={insuranceStats}
+          />
         </div>
       </BlockWrapper>
 
-      <Reminders data={reminderArr} title="Pilne przypomnienia" />
+      <Reminders data={mockCars} title="Pilne przypomnienia" />
     </>
   );
 }
