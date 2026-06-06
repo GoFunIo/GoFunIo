@@ -169,7 +169,7 @@ function RouteComponent() {
             title={urgentAlert?.type ?? 'Najbliższy termin'}
             value={(() => {
               const car = mockCars.find((c) => c.id === urgentAlert?.carId);
-              if (!car || !urgentAlert) return 'Brak';
+              if (!car || !urgentAlert) return '-';
               if (urgentAlert.type === 'Przegląd') return car.technicalInspectionExpiry;
               if (urgentAlert.type === 'Ubezpieczenie OC') return car.ocExpiry;
               return car.acExpiry;

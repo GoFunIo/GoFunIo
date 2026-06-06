@@ -29,12 +29,8 @@ function RouteComponent() {
       />
       {!mockCars || mockCars.length === 0 ? (
         <EmptyPlaceholder
-          className="bg-wbg-card min-h-[250px]"
+          className="bg-bg-card min-h-[250px]"
           title="Nie ma tu żadnych pojazdów. Dodaj pierwszy "
-          button={{
-            label: 'Dodaj pojazd',
-            onClick: () => setIsModalOpen(true),
-          }}
           icon={<CarFront size={48} className="text-primary" />}
         />
       ) : (
