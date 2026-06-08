@@ -68,21 +68,6 @@ function RouteComponent() {
           onClick: handleAddUserClick,
         }}
       />
-      <div className="flex gap-4 ">
-        <button
-          onClick={() => handleEditUserClick(mockUser)}
-          className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded hover:bg-blue-200 custom-transition"
-        >
-          Testuj Edycję (Marek Nowak)
-        </button>
-
-        <button
-          onClick={() => handleDeleteUserClick(mockUser)}
-          className="px-4 py-2 bg-red-100 text-red-700 font-medium rounded hover:bg-red-200 custom-transition"
-        >
-          Testuj Usuwanie (Marek Nowak)
-        </button>
-      </div>
 
       {usersData.length === 0 || !usersData ? (
         <BlockWrapper>
@@ -92,8 +77,8 @@ function RouteComponent() {
         <DataTable
           columns={usersColumns}
           data={usersData}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          onEdit={() => handleEditUserClick(mockUser)}
+          onDelete={() => handleDeleteUserClick(mockUser)}
           footer={false}
         />
       )}
