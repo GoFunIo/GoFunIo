@@ -1,18 +1,43 @@
 import { useUser } from '@/hooks/useUser';
-import { createFileRoute } from '@tanstack/react-router';
-import { AlertTriangle, CarFront } from 'lucide-react';
-import { actionsArr, activityArr, carSingleArr } from '@/store/cars';
+import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
+import { CarFront, Calendar, Wrench, LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { actionsArray, activityArray, mockCars } from '@/store/cars';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { Banner } from '@/features/dashboard/widgets/Banner';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { History } from '@/features/dashboard/widgets/History';
+import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
 import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
-import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-import { useState } from 'react';
+
+import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
+import { Banner } from '@/features/dashboard/widgets/Banner';
+import { ActionButton } from '@/features/dashboard/ui/ActionButton';
+import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
+import { calculateDaysToDate, DateDiffResult } from '@/utils/calculateDaysToDate';
+
+type QuickAction = {
+  id: number;
+  title: string;
+  icon: LucideIcon;
+  actionType: 'modal' | 'modal_service' | 'link';
+  href?: ToOptions['to'];
+};
+
+const typedActions = actionsArray as unknown as QuickAction[];
+
+type TermAlert = {
+  id: string;
+  carId: number;
+  carName: string;
+  type: 'Przegląd' | 'Ubezpieczenie OC' | 'Ubezpieczenie AC';
+  dateInfo: DateDiffResult; //
+};
+
+// ZAMOCKOWANA DATA KOŃCA OKRESU PRÓBNEGO
+const USER_TRIAL_EXPIRY = '2026-06-12';
 
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
@@ -20,14 +45,80 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 
 function RouteComponent() {
   const { data: user, isLoading } = useUser();
+  const navigate = useNavigate();
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState<boolean>(false);
 
   if (isLoading) return <h1 className="">Loading</h1>;
   if (!user) return null;
 
+  // FUNKCJA POMOCNICZA DO SZYBKIHC AKCJI
+  const handleActionClick = (
+    actionType: 'modal' | 'modal_service' | 'link',
+    href?: ToOptions['to'],
+  ) => {
+    if (actionType === 'link' && href) {
+      navigate({ to: href });
+      return;
+    }
+
+    if (actionType === 'modal') {
+      setIsModalOpen(true);
+      return;
+    }
+
+    if (actionType === 'modal_service') {
+      setIsServiceModalOpen(true);
+      return;
+    }
+  };
+
+  // nadchodzace terminy - sortuje wg najpilniejszych
+  const allAlerts: TermAlert[] = mockCars.flatMap((car) => {
+    return [
+      {
+        id: `${car.id}-inspection`,
+        carId: car.id,
+        carName: `${car.brand} ${car.model}`,
+        type: 'Przegląd' as const,
+        dateInfo: calculateDaysToDate(car.technicalInspectionExpiry),
+      },
+      {
+        id: `${car.id}-oc`,
+        carId: car.id,
+        carName: `${car.brand} ${car.model}`,
+        type: 'Ubezpieczenie OC' as const,
+        dateInfo: calculateDaysToDate(car.ocExpiry),
+      },
+      {
+        id: `${car.id}-ac`,
+        carId: car.id,
+        carName: `${car.brand} ${car.model}`,
+        type: 'Ubezpieczenie AC' as const,
+        dateInfo: calculateDaysToDate(car.acExpiry),
+      },
+    ];
+  });
+
+  const sortedAlerts = allAlerts
+    .filter((alert) => alert.dateInfo.days <= 30)
+    .sort((a, b) => a.dateInfo.days - b.dateInfo.days);
+
+  const urgentAlert = sortedAlerts[0];
+
+  //test subskrypcji
+  const trialDaysResult = calculateDaysToDate(USER_TRIAL_EXPIRY);
+  const daysLeft = trialDaysResult.days;
+
+  const subscriptionStatus: 'info' | 'warning' | 'alert' = (() => {
+    if (daysLeft < 0) return 'alert';
+    if (daysLeft <= 7) return 'warning';
+    return 'info';
+  })();
+
   return (
     <>
-      {/* header */}
       <DashboardHeader
         title={`Hello, ${user.email}`}
         subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
@@ -37,102 +128,122 @@ function RouteComponent() {
         }}
       />
 
-      {/* banner */}
-      <Banner title="Plan indywidualny" subtitle="Plan aktywny do 20.12.2026" variant="info" />
-      <Banner variant="warning" title="Plan indywidualby" subtitle="Plan aktywny do 20.12.2026" />
-      <Banner
-        variant="alert"
-        title="Plan indywidualby"
-        subtitle="Aplikacja działa w trybie tylko do odczytu — nie możesz dodawać ani edytować pojazdów i wpisów serwisowych."
-      />
+      {/* SEKCJA BANERÓW SUBSKRYPCJI */}
+      {subscriptionStatus === 'info' && (
+        <Banner variant="info" title="Plan indywidualny" subtitle="Plan aktywny do 20.12.2026" />
+      )}
 
-      {/* main 3 blocks with most important info  */}
-      <GridWrapper layout="3-unequal">
-        <BlockWrapper className="flex justify-between" variant="default">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {false && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px] pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper>
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
+      {subscriptionStatus === 'warning' && (
+        <Banner
+          variant="warning"
+          title={`Okres próbny: pozostało ${daysLeft} dni`}
+          subtitle="Aktywuj plan, aby nie stracić dostępu do zarządzania flotą."
+        />
+      )}
 
-        <BlockWrapper className="flex justify-between" variant="alert">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {true && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px]  pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper variant="alert">
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
+      {subscriptionStatus === 'alert' && (
+        <Banner
+          variant="alert"
+          title="Okres próbny zakończył się"
+          subtitle="Aplikacja działa w trybie tylko do odczytu — nie możesz dodawać ani edytować pojazdów i wpisów serwisowych."
+        />
+      )}
 
-        <BlockWrapper className="flex justify-between" variant="warning">
-          <div className="">
-            <p className="text-[14px]  pb-[5px]">Moje pojazdy</p>
-            <div className="flex gap-[12px] items-center">
-              <h3 className="">3</h3>
-              {false && <AlertTriangle className="text-alert" />}
-            </div>
-            <p className="text-[14px] pt-[5px]">aktywnych</p>
-          </div>
-          <IconWrapper variant="warning">
-            <CarFront />
-          </IconWrapper>
-        </BlockWrapper>
-      </GridWrapper>
+      {/* SIATKA STATYSTYK I ALERTÓW TERMINÓW */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Link to="/dashboard/my-cars" className="block no-underline">
+          <DashboardCard
+            title="Moje pojazdy"
+            value={mockCars.length}
+            subtitle="aktywnych"
+            icon={<CarFront size={20} />}
+          />
+        </Link>
+
+        <Link
+          to={urgentAlert ? '/dashboard/my-cars/$carId' : '/dashboard/my-cars'}
+          params={urgentAlert ? { carId: String(urgentAlert.carId) } : undefined}
+          className="block no-underline"
+        >
+          <DashboardCard
+            title={urgentAlert?.type ?? 'Najbliższy termin'}
+            value={(() => {
+              const car = mockCars.find((c) => c.id === urgentAlert?.carId);
+              if (!car || !urgentAlert) return '-';
+              if (urgentAlert.type === 'Przegląd') return car.technicalInspectionExpiry;
+              if (urgentAlert.type === 'Ubezpieczenie OC') return car.ocExpiry;
+              return car.acExpiry;
+            })()}
+            subtitle={urgentAlert?.carName ?? 'Brak danych'}
+            icon={<Calendar size={20} />}
+          />
+        </Link>
+
+        <Link to="/dashboard/service">
+          <DashboardCard
+            title="Wpisów serwisowych"
+            value={activityArray.length}
+            subtitle="łącznie"
+            icon={<Wrench size={20} />}
+          />
+        </Link>
+      </div>
 
       <GridWrapper layout="2-unequal">
-        {/* block with last activity */}
+        {/* HISTORIA SERWISOWA LEWA STRONA */}
         <History
-          data={activityArr}
+          data={activityArray as HistoryDataItem[]}
           link={{
-            label: 'Zobacz wszystko',
-            href: '/dashboard/timeline',
+            label: 'Zobacz pełną historię',
+            href: '/dashboard/service',
           }}
           title="Ostatnia aktywność"
         />
 
-        {/* block with quick actions */}
+        {/* SZYBKIE AKCJE PRAWA STRONA */}
         <BlockWrapper className="lg:col-span-1 h-fit">
-          <h4 className="text-content-primary">Szybkie akcje</h4>
-          <div className="flex flex-col gap-[12px] py-[16px] border-b border-icon">
-            {actionsArr.map((item) => {
-              const Icon = item.icon;
+          <h4 className="text-content-primary ">Szybkie akcje</h4>
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={item.onClick}
-                  className="custom-transition hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)] w-full text-[14px] text-content-secondary bg-bg-section min-h-[32px] flex items-center gap-[8px] px-[12px] cursor-pointer rounded-[7px]"
-                >
-                  <Icon className="text-content-primary" size={16} />
-                  {item.title}
-                </button>
-              );
-            })}
+          <div className="flex flex-col gap-[12px] py-6 border-b border-icon">
+            {typedActions.map((item) => (
+              <ActionButton
+                key={item.id}
+                title={item.title}
+                icon={item.icon}
+                onClick={() => handleActionClick(item.actionType, item.href)}
+              />
+            ))}
           </div>
-          <div className="pt-[12px]">
-            <p className="text-content-primary font-semibold text-[14px]">Nadchodzące przeglądy</p>
-            {!carSingleArr || carSingleArr.length === 0 ? (
-              <EmptyPlaceholder className="mt-[18px]" title="Brak aktualnych przegladów" />
+
+          <div className="pt-6">
+            <p className="text-content-primary font-semibold text-[14px] mb-4">
+              Nadchodzące terminy
+            </p>
+            {!mockCars || mockCars.length === 0 ? (
+              <EmptyPlaceholder className="" title="Brak aktualnych przeglądów" />
             ) : (
-              <div className="flex flex-col gap-[8px] mt-[18px]">
-                {carSingleArr.map((item) => {
+              <div className="flex flex-col gap-[10px] ">
+                {sortedAlerts.map((alert) => {
                   return (
-                    <div className="flex items-center justify-between gap-[12px]" key={item.id}>
-                      <p className="text-[14px] text-content-secondary">{item.title}</p>
-                      <DaysAmount days={item.termin} />
-                    </div>
+                    <Link
+                      key={alert.id}
+                      to="/dashboard/my-cars/$carId"
+                      params={{ carId: String(alert.carId) }}
+                      className="block no-underline hover:bg-background-secondary p-1 rounded-md transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-[12px]">
+                        <div>
+                          <p className="text-[14px] text-content-primary font-medium leading-tight">
+                            {alert.carName}
+                          </p>
+                          <span className="text-[12px] text-content-secondary font-normal">
+                            {alert.type}
+                          </span>
+                        </div>
+
+                        <DaysAmount days={alert.dateInfo.days} />
+                      </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -141,6 +252,7 @@ function RouteComponent() {
         </BlockWrapper>
       </GridWrapper>
 
+      {/* MODAL 1: DODAJ POJAZD */}
       <Modal
         isOpen={isModalOpen}
         setIsOpen={setIsModalOpen}
@@ -148,6 +260,18 @@ function RouteComponent() {
         subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
       >
         <AddVehicleForm onClose={() => setIsModalOpen(false)} />
+      </Modal>
+
+      {/* MODAL 2: DODAJ WPIS SERWISOWY */}
+      <Modal
+        isOpen={isServiceModalOpen}
+        setIsOpen={setIsServiceModalOpen}
+        title="Dodaj wpis serwisowy"
+        subtitle="Wprowadź szczegóły wykonanej naprawy lub serwisu."
+      >
+        <div className="p-4 text-center text-content-secondary">
+          <AddVehicleServiceForm onClose={() => setIsServiceModalOpen(false)} />
+        </div>
       </Modal>
     </>
   );

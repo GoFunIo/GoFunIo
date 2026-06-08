@@ -55,7 +55,11 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
 
   useEffect(() => {
     if (initialData) {
-      reset(initialData);
+      const { attachment, ...rest } = initialData;
+      reset({
+        ...rest,
+        attachment: attachment === null ? undefined : attachment,
+      } as AddServiceFormData);
     } else {
       reset({
         vehicleId: undefined,

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
 import { DatePicker } from '../ui/DatePicker';
 import { Select } from '../ui/Select';
+import { useEffect } from 'react';
 
 type FormProps = {
   className?: string;
@@ -33,6 +34,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
     control,
     formState: { errors },
     handleSubmit,
+    reset,
   } = useForm<AddVehicleFormData>({
     resolver: yupResolver(AddVehicleSchema) as Resolver<AddVehicleFormData>,
     reValidateMode: 'onChange',
@@ -40,6 +42,10 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
     shouldFocusError: false,
     defaultValues: initialData || {},
   });
+
+  useEffect(() => {
+    reset(initialData || {});
+  }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<AddVehicleFormData> = async (data) => {
     setLoading(true);
@@ -282,7 +288,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
         )}
       </div>
 
-      <div className="flex justify-end gap-4 pt-4 mt-6">
+      <div className="flex justify-end gap-4 pt-4 border-t border-gray-100 mt-6">
         <BoardButton
           type="button"
           variant="outline"
