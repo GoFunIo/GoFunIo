@@ -81,7 +81,7 @@ export const History = ({
 
   return (
     <BlockWrapper className={classNames('h-fit', className)}>
-      <div className="justify-between flex gap-[16px] items-center flex-wrap">
+      <div className="justify-between flex gap-[16px] items-center flex-wrap mb-[32px]">
         <div className="flex gap-[10px] items-center">
           <Activity className="text-secondary" size={20} />
           <h4 className="">{title}</h4>
