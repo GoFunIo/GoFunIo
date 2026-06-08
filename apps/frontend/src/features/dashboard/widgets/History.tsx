@@ -16,6 +16,7 @@ import { BlockWrapper } from '../ui/BlockWrapper';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { IconWrapper } from '../ui/IconWrapper';
 import { ToOptions, useNavigate } from '@tanstack/react-router';
+import { Pagination } from '../ui/Pagination';
 
 type LinkProps = {
   label: string;
@@ -36,6 +37,7 @@ export type HistoryDataItem = {
   cost: number;
   servicePlace: string;
   serviceType: 'service' | 'oil' | 'inspection' | 'insurance_ac' | 'insurance_oc' | 'other';
+  attachment: null;
 };
 
 type Props = {
@@ -79,25 +81,23 @@ export const History = ({
 
   return (
     <BlockWrapper className={classNames('h-fit', className)}>
-      <div className="flex gap-[10px] items-center mb-6">
-        <Activity className="text-secondary" size={20} />
-        <h4 className="">{title}</h4>
-        {link && (
-          <BoardButton
-            size="small"
-            variant="outline"
-            className="ml-[auto]"
-            onClick={() => navigate({ to: link.href })}
-          >
-            {link.label}
-          </BoardButton>
-        )}
-
-        {button && (
-          <BoardButton size="small" onClick={button.onClick} className="ml-[auto]">
-            {button.label}
-          </BoardButton>
-        )}
+      <div className="justify-between flex gap-[16px] items-center flex-wrap">
+        <div className="flex gap-[10px] items-center">
+          <Activity className="text-secondary" size={20} />
+          <h4 className="">{title}</h4>
+        </div>
+        <div className="flex items-center gap-[16px]">
+          {link && (
+            <BoardButton size="small" variant="outline" onClick={() => navigate({ to: link.href })}>
+              {link?.label}
+            </BoardButton>
+          )}
+          {button && (
+            <BoardButton size="small" onClick={button.onClick} icon="add">
+              {button?.label}
+            </BoardButton>
+          )}
+        </div>
       </div>
 
       {!data || data.length === 0 ? (
@@ -163,6 +163,8 @@ export const History = ({
               </div>
             );
           })}
+
+          <Pagination className="mt-[18px]" />
         </div>
       )}
     </BlockWrapper>

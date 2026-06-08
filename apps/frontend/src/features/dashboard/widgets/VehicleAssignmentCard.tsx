@@ -10,7 +10,7 @@ export type Vehicle = {
   fuelType: string;
   registrationNumber: string;
   currentMileage: number;
-  vti: number;
+  // vti: number; ???
   currentOwner?: string;
 };
 

@@ -133,6 +133,10 @@ function RouteComponent() {
       <GridWrapper layout="2-unequal">
         <History
           data={singleCarHistory}
+          link={{
+            label: 'Zobacz pełną historię',
+            href: '/dashboard/service',
+          }}
           button={{
             label: 'Dodaj wpis',
             onClick: () => setModalState(true),

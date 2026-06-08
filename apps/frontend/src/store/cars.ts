@@ -1,3 +1,4 @@
+import { HistoryDataItem } from '@/features/dashboard/widgets/History';
 import { Activity, CarFront, Plus, Wrench } from 'lucide-react';
 
 const timeline = {
@@ -75,7 +76,7 @@ export const carsArr = Array.from({ length: 15 }, (_, i) => ({ ...car, id: i + 1
 export const timelineArr = Array.from({ length: 5 }, (_, i) => ({ ...timeline, id: i + 1 }));
 export const reminderArr = Array.from({ length: 5 }, (_, i) => ({ ...reminder, id: i + 1 }));
 
-export const activityArray = [
+export const activityArray: HistoryDataItem[] = [
   {
     id: 1,
     vehicleId: '1',
