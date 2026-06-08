@@ -1,6 +1,7 @@
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
-import { UserManagementFormData } from '@/features/dashboard/lib/formValidationRules';
 import { DeleteUserConfirm } from '@/features/dashboard/forms/DeleteUserConfirm';
+import { UserManagementFormData } from '@/features/dashboard/lib/formValidationRules';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
@@ -67,7 +68,7 @@ function RouteComponent() {
           onClick: handleAddUserClick,
         }}
       />
-      <div className="flex gap-4 mt-4">
+      <div className="flex gap-4 ">
         <button
           onClick={() => handleEditUserClick(mockUser)}
           className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded hover:bg-blue-200 custom-transition"

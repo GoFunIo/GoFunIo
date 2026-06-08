@@ -83,7 +83,7 @@ function RouteComponent() {
       />
 
       {/* PRZYCISKI TESTOWE LOGIKI */}
-      <div className="flex gap-4 mt-4 p-4 bg-background-secondary rounded-[7px] border border-icon/20">
+      <div className="flex gap-4 p-4 bg-background-secondary rounded-[7px] border border-icon/20">
         <button
           onClick={() => setModalState(mockServiceEntry)}
           className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded hover:bg-blue-200 custom-transition text-[14px]"
