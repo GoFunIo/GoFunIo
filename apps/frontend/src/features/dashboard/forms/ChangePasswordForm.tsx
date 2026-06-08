@@ -50,7 +50,7 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
         <div className="max-w-[400px]">
           <Input
             type="password"
-            label="Obecne hasło"
+            label="Obecne hasło *"
             placeholder="Obecne hasło"
             className={inputStyles}
             {...register('currentPassword')}
@@ -66,7 +66,7 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
           <Input
             type="password"
-            label="Nowe hasło"
+            label="Nowe hasło *"
             placeholder="Nowe hasło"
             className={inputStyles}
             {...register('newPassword')}
@@ -75,7 +75,7 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
 
           <Input
             type="password"
-            label="Powtórz nowe hasło"
+            label="Powtórz nowe hasło *"
             placeholder="Powtórz nowe hasło"
             className={inputStyles}
             {...register('confirmPassword')}

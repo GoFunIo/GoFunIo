@@ -62,7 +62,7 @@ export const Select = ({
 
   return (
     <div
-      className={classNames('relative min-w-[250px] w-fit h-[35px]', className)}
+      className={classNames('relative  w-full ', className)}
       ref={selectRef}
       tabIndex={0}
       onBlur={handleBlur}
@@ -70,7 +70,7 @@ export const Select = ({
       <button
         type="button"
         className={classNames(
-          'flex items-center justify-between cursor-pointer bg-bg-page px-[8px] rounded-[5px] w-full h-full outline-none ',
+          'flex items-center justify-between cursor-pointer bg-bg-card px-[8px] rounded-[7px] w-full h-[45px] outline-none ',
           error ? 'border border-alert' : 'border border-icon',
         )}
         onClick={() => setIsOpen((prev) => !prev)}
@@ -91,7 +91,7 @@ export const Select = ({
         />
       </button>
       {isOpen && (
-        <div className="scrollbar-dashboard overflow-y-auto max-h-[240px] flex flex-col gap-[4px] absolute mt-[6px] bg-bg-page border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)] z-[99]">
+        <div className="scrollbar-dashboard overflow-y-auto max-h-[240px] flex flex-col gap-[4px] absolute mt-[6px] bg-bg-card border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)] z-[99]">
           {clearOption && (
             <span
               onClick={() => handleSelect(null)}
