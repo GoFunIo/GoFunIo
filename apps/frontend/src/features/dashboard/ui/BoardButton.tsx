@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { Plus, SquarePen, Trash2, ChevronRight, RefreshCcw } from 'lucide-react';
+import { Plus, SquarePen, Trash2, ChevronRight, RefreshCcw, ArrowUpRight } from 'lucide-react';
 
 type Props = {
   children?: React.ReactNode;
@@ -7,7 +7,7 @@ type Props = {
   type?: 'button' | 'submit' | 'reset';
   size?: 'small' | 'medium' | 'big' | 'square';
   variant?: 'default' | 'outline' | 'danger';
-  icon?: 'add' | 'edit' | 'delete' | 'arrow' | 'refresh';
+  icon?: 'add' | 'edit' | 'delete' | 'arrow' | 'refresh' | 'ArrowUpRight';
   className?: string;
   disabled?: boolean;
 };
@@ -83,6 +83,7 @@ export const BoardButton = ({
       {icon && icon === 'edit' && <SquarePen size={18} />}
       {icon && icon === 'delete' && <Trash2 size={18} />}
       {icon && icon === 'refresh' && <RefreshCcw size={18} />}
+      {icon && icon === 'ArrowUpRight' && <ArrowUpRight size={18} />}
       {children}
       {icon && icon === 'arrow' && <ChevronRight size={16} className="shrink-0" />}
     </button>

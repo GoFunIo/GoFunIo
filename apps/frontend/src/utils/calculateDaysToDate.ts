@@ -5,10 +5,6 @@ export interface DateDiffResult {
   text: string;
 }
 
-/**
- * Funkcja oblicza różnicę dni między dniem dzisiejszym a datą docelową.
- * @param dateString Data w formacie "YYYY-MM-DD"
- */
 export const calculateDaysToDate = (dateString: string): DateDiffResult => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
