@@ -5,7 +5,7 @@ interface SwitcherProps {
 
 export const Switcher = ({ activeCycle, onChange }: SwitcherProps) => {
   return (
-    <div className="flex justify-center mt-[50px] mb-[50px]">
+    <div className="flex justify-center mt-6 mb-6">
       <div className="inline-flex bg-primary p-1 rounded-full relative items-center">
         <div
           className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-full transition-transform duration-300 ease-in-out shadow-sm

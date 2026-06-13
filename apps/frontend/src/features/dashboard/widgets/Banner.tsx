@@ -57,7 +57,7 @@ export const Banner = ({ variant = 'info', title, subtitle, className, size = 'b
       </div>
 
       <BoardButton
-        onClick={() => navigate({ to: '/dashboard/payments' })}
+        onClick={() => navigate({ to: '/dashboard/settings/payments' })}
         size="small"
         className="w-full sm:w-auto shrink-0"
       >

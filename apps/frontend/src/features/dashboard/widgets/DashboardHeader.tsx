@@ -6,8 +6,8 @@ type ButtonProps = {
 };
 
 type Props = {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   button?: ButtonProps;
 };
 
