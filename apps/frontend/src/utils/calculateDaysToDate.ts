@@ -1,8 +1,8 @@
 export interface DateDiffResult {
-  days: number; // Różnica w dniach (może być ujemna, jeśli termin minął)
-  absDays: number; // Zawsze dodatnia liczba dni (do wyświetlenia na kafelku)
-  isPast: boolean; // Czy termin już minął (dzisiejszy dzień to nadal false)
-  text: string; // Gotowy, sformatowany tekst po polsku
+  days: number;
+  absDays: number;
+  isPast: boolean;
+  text: string;
 }
 
 /**

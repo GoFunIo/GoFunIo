@@ -12,7 +12,7 @@ type BucketProps = {
 };
 
 export const AdminAlertBucket = ({ title, icon: Icon, stats }: BucketProps) => {
-  const baseItemStyle = 'px-2 py-2 border rounded-[7px] bg-bg-card text-center transition-colors';
+  const baseItemStyle = 'px-4 py-4 border rounded-[7px] bg-bg-card text-center transition-colors';
   const labelStyle = 'text-[12px] text-content-secondary font-medium';
   const baseNumberStyle = 'text-[24px] font-bold leading-none mb-1';
 

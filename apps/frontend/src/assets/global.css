@@ -36,7 +36,7 @@ body,
 
   --info-bg: 232 240 254; /* #E8F0FE */
   --warning-bg: 254 247 224; /* #FEF7E0 */
-  --alert-bg: 252 232 230; /* #FCE8E6 */
+  --alert-bg: 255 240 241; /* #FFF0F1 */
   --success-bg: 230 244 234; /* #E6F4EA */
 
   --info-bg-icon: 207 228 255; /* #CFE4FF */

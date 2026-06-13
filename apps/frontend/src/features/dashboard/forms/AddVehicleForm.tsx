@@ -13,6 +13,7 @@ type FormProps = {
   className?: string;
   onClose: () => void;
   initialData?: Partial<AddVehicleFormData> & { id?: string | number };
+  isRenewalMode?: boolean;
 };
 
 const FUEL_OPTIONS = [
@@ -23,7 +24,12 @@ const FUEL_OPTIONS = [
   { id: 5, value: 'Elektryk', label: 'Elektryk' },
 ];
 
-export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) => {
+export const AddVehicleForm = ({
+  className,
+  onClose,
+  initialData,
+  isRenewalMode = false,
+}: FormProps) => {
   const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
 
@@ -89,6 +95,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
           className={inputStyles}
           {...register('brand')}
           onFocus={() => clearErrors('brand')}
+          disabled={isRenewalMode}
         />
         <Input
           label="Model *"
@@ -97,10 +104,15 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
           className={inputStyles}
           {...register('model')}
           onFocus={() => clearErrors('model')}
+          disabled={isRenewalMode}
         />
 
         {/* Rok Produkcji */}
-        <div className="flex flex-col gap-1 ">
+        <div
+          className={classNames('flex flex-col gap-1 transition-opacity', {
+            'opacity-60 select-none pointer-events-none': isRenewalMode,
+          })}
+        >
           <div className="flex justify-between items-center">
             <label className="text-[14px] font-medium text-content-secondary">Rok Produkcji</label>
             {errors.productionYear?.message && (
@@ -124,7 +136,11 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
         </div>
 
         {/* Rodzaj paliwa */}
-        <div className="flex flex-col gap-1">
+        <div
+          className={classNames('flex flex-col gap-1 transition-opacity', {
+            'opacity-60 select-none pointer-events-none': isRenewalMode,
+          })}
+        >
           <div className="flex justify-between items-center">
             <label className="text-[14px] font-medium text-content-secondary">Rodzaj paliwa</label>
             {errors.fuelType?.message && (
@@ -157,6 +173,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
           onChange={(e) => {
             e.target.value = e.target.value.toUpperCase();
           }}
+          disabled={isRenewalMode}
         />
         <Input
           label="Nr Rejestracyjny *"
@@ -168,6 +185,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
             e.target.value = e.target.value.replace(/\s/g, '').toUpperCase();
           }}
           onFocus={() => clearErrors('registrationNumber')}
+          disabled={isRenewalMode}
         />
         <Input
           label="Aktualny przebieg (km)"
@@ -176,10 +194,15 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
           error={errors.currentMileage?.message}
           className={inputStyles}
           {...register('currentMileage')}
+          disabled={isRenewalMode}
         />
 
         {/* Data zakupu */}
-        <div className="flex flex-col gap-1">
+        <div
+          className={classNames('flex flex-col gap-1 transition-opacity', {
+            'opacity-60 select-none pointer-events-none': isRenewalMode,
+          })}
+        >
           <div className="flex justify-between items-center">
             <label className="text-[14px] font-medium text-content-secondary">Data zakupu</label>
             {errors.purchaseDate?.message && (
@@ -198,6 +221,7 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
                 className="!w-full h-[40px]"
               />
             )}
+            disabled={isRenewalMode}
           />
         </div>
       </div>
@@ -271,7 +295,11 @@ export const AddVehicleForm = ({ className, onClose, initialData }: FormProps) =
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 mt-4">
+      <div
+        className={classNames('flex flex-col gap-1 transition-opacity mt-4', {
+          'opacity-60 select-none pointer-events-none': isRenewalMode,
+        })}
+      >
         <label className="text-[14px] font-medium text-content-secondary mb-[8px]">Notatki</label>
         <textarea
           className={classNames(

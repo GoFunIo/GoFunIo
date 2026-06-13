@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
@@ -67,6 +67,30 @@ function RouteComponent() {
     return sum + item.cost;
   }, 0);
 
+  const serviceInitialData = useMemo(() => {
+    if (isServiceEditMode) {
+      const editItem = modalState as HistoryDataItem;
+      return {
+        vehicleId: String(car.id),
+        servicePlace: editItem.servicePlace,
+        cost: editItem.cost,
+        serviceType: editItem.serviceType,
+        serviceDate: editItem.serviceDate,
+        notes: editItem.notes,
+        attachment: undefined,
+      };
+    }
+    return {
+      vehicleId: String(car.id),
+      serviceDate: new Date().toISOString().split('T')[0],
+      serviceType: '',
+      cost: undefined,
+      servicePlace: '',
+      notes: '',
+      attachment: undefined,
+    };
+  }, [modalState, isServiceEditMode, car.id]);
+
   return (
     <>
       {/* 1. LINK POWROTNY */}
@@ -109,7 +133,7 @@ function RouteComponent() {
       </div>
 
       {/* 3. SIATKA TRZECH  KAFELKÓW  */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <GridWrapper layout={'3-equal'}>
         <DashboardCard
           title="przegląd"
           value={car.technicalInspectionExpiry || ''}
@@ -127,7 +151,7 @@ function RouteComponent() {
           value={car.acExpiry || ''}
           icon={<ShieldCheck size={20} />}
         />
-      </div>
+      </GridWrapper>
 
       {/* 4. HISTORIA SERWISÓW POJEDYŃCZEGO AUTA   + SPECYFIKACJA  */}
       <GridWrapper layout="2-unequal">
@@ -195,27 +219,7 @@ function RouteComponent() {
         <AddVehicleServiceForm
           key={isServiceEditMode ? (modalState as HistoryDataItem).id : 'new'}
           onClose={() => setModalState(null)}
-          initialData={
-            isServiceEditMode
-              ? {
-                  vehicleId: String(car.id),
-                  servicePlace: (modalState as HistoryDataItem).servicePlace,
-                  cost: (modalState as HistoryDataItem).cost,
-                  serviceType: (modalState as HistoryDataItem).serviceType,
-                  serviceDate: (modalState as HistoryDataItem).serviceDate,
-                  notes: (modalState as HistoryDataItem).notes,
-                  attachment: undefined,
-                }
-              : {
-                  vehicleId: String(car.id),
-                  serviceDate: new Date().toISOString().split('T')[0],
-                  serviceType: '',
-                  cost: undefined,
-                  servicePlace: '',
-                  notes: '',
-                  attachment: undefined,
-                }
-          }
+          initialData={serviceInitialData}
         />
       </Modal>
 

@@ -10,12 +10,14 @@ type Props = {
   variant?: Variant;
   title: string;
   subtitle: string;
+  size?: 'small' | 'big';
 };
 
-export const Banner = ({ variant = 'info', title, subtitle, className }: Props) => {
+export const Banner = ({ variant = 'info', title, subtitle, className, size = 'big' }: Props) => {
   const navigate = useNavigate();
   const { border, bg } = getVariantStyles(variant);
 
+  const isSmall = size === 'small';
   const buttonText = variant === 'info' ? 'Zmień plan' : 'Aktywuj plan';
 
   return (
@@ -24,6 +26,10 @@ export const Banner = ({ variant = 'info', title, subtitle, className }: Props) 
         'w-full flex sm:flex-nowrap flex-wrap items-center gap-x-[24px] gap-y-[14px] px-[23px] py-[16px] rounded-[7px] border custom-transition',
         border,
         bg,
+        {
+          'sm:flex-nowrap flex-wrap gap-y-[14px] px-[23px] py-[16px]': !isSmall,
+          'flex-nowrap px-[16px] py-[10px]': isSmall,
+        },
         className,
       )}
     >
@@ -32,8 +38,22 @@ export const Banner = ({ variant = 'info', title, subtitle, className }: Props) 
       </IconWrapper>
 
       <div className="mr-auto min-w-[200px]">
-        <p className="pb-[4px] text-content-primary font-semibold text-[16px]/[21px]">{title}</p>
-        <p className="text-content-secondary font-normal text-[14px]/[21px]">{subtitle}</p>
+        <p
+          className={classNames('text-content-primary font-semibold truncate', {
+            'text-[16px]/[21px] pb-[4px]': !isSmall,
+            'text-[14px]/[18px] pb-[2px]': isSmall,
+          })}
+        >
+          {title}
+        </p>
+        <p
+          className={classNames('text-content-secondary font-normal truncate', {
+            'text-[14px]/[21px]': !isSmall,
+            'text-[12px]/[16px]': isSmall,
+          })}
+        >
+          {subtitle}
+        </p>
       </div>
 
       <BoardButton

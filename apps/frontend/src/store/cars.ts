@@ -1,5 +1,5 @@
 import { HistoryDataItem } from '@/features/dashboard/widgets/History';
-import { Activity, CarFront, Plus, Wrench } from 'lucide-react';
+import { Activity, CarFront, Plus, Users, Wrench } from 'lucide-react';
 
 const timeline = {
   id: 1,
@@ -183,7 +183,7 @@ export const actionsArray = [
     id: 1,
     title: 'Dodaj pojazd',
     icon: Plus,
-    actionType: 'modal',
+    actionType: 'modal_car',
   },
   {
     id: 2,
@@ -193,6 +193,12 @@ export const actionsArray = [
   },
   {
     id: 3,
+    title: 'Dodaj uzytkownika',
+    icon: Users,
+    actionType: 'modal_user',
+  },
+  {
+    id: 4,
     title: 'Oś czasu serwisu',
     icon: Activity,
     actionType: 'link',
@@ -219,7 +225,7 @@ export const mockCars = [
   {
     id: 2,
     brand: 'Toyota',
-    model: 'Corolla (E210)',
+    model: 'Corolla ',
     productionYear: '2020',
     fuelType: 'Hybryda',
     registrationNumber: 'WI 982XF',
@@ -234,7 +240,7 @@ export const mockCars = [
   {
     id: 3,
     brand: 'Ford',
-    model: 'Transit Custom',
+    model: 'Transit ',
     productionYear: '2018',
     fuelType: 'Diesel',
     registrationNumber: 'PO 4421M',
@@ -249,7 +255,7 @@ export const mockCars = [
   {
     id: 4,
     brand: 'Volkswagen',
-    model: 'Passat B8',
+    model: 'Passat ',
     productionYear: '2016',
     fuelType: 'Elektyk',
     registrationNumber: 'KR 772TT',
@@ -264,7 +270,7 @@ export const mockCars = [
   {
     id: 5,
     brand: 'Audi',
-    model: 'A4 B9',
+    model: 'A4 ',
     productionYear: '2019',
     fuelType: 'Benzyna',
     registrationNumber: 'GD 552XX',

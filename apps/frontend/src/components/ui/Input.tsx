@@ -11,6 +11,7 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
 export const Input = forwardRef<HTMLInputElement, Props>(
   ({ name, label, placeholder = 'Type me', className, error, errorStyle, ...props }, ref) => {
     const hasError = Boolean(error);
+    const isDisabled = props.disabled;
 
     const mainInputStyles = `
     w-full min-h-[45px] rounded-[7px] px-[16px] border
@@ -18,7 +19,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(
     outline-none focus:ring-0
 
     bg-bg-card
-    text-content-primary 
+    text-content-primary
     placeholder:text-icon
   `;
 
@@ -34,6 +35,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(
             className={classNames(
               'shrink-0 text-[14px] font-medium leading-none',
               hasError ? 'text-alert' : 'text-content-secondary ',
+              { 'opacity-60 select-none': isDisabled },
             )}
           >
             {label}
@@ -56,6 +58,10 @@ export const Input = forwardRef<HTMLInputElement, Props>(
             mainInputStyles,
             className,
             hasError ? 'border-alert' : 'border-icon',
+            {
+              'text-content-secondary opacity-60 cursor-not-allowed select-none pointer-events-none':
+                isDisabled,
+            },
           )}
           {...props}
         />
