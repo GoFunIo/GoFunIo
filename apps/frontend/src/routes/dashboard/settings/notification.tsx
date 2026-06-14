@@ -147,7 +147,7 @@ function RouteComponent() {
             </div>
 
             <div className="mb-[24px]">
-              <p className="text-[14px] text-content-secondary mb-1">
+              <p className="text-[14px] text-content-secondary">
                 Dodaj własne (liczba dni przed terminem)
               </p>
               <div className="flex items-center gap-[16px] max-w-[300px]">

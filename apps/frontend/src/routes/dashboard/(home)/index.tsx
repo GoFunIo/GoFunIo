@@ -173,6 +173,10 @@ function RouteComponent() {
     return undefined;
   }, [modalState, isServiceEditMode]);
 
+  const limitedActivityHistory = useMemo(() => {
+    return (activityArray as HistoryDataItem[]).slice(0, 5);
+  }, []);
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full ">
@@ -251,7 +255,7 @@ function RouteComponent() {
       <GridWrapper layout="2-unequal">
         {/* HISTORIA SERWISOWA LEWA STRONA */}
         <History
-          data={activityArray as HistoryDataItem[]}
+          data={limitedActivityHistory}
           link={{
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
@@ -290,7 +294,6 @@ function RouteComponent() {
                 </span>
               </div>
 
-              {/* Ubezpieczenia */}
               <div className="flex justify-between items-center text-[14px]">
                 <div className="flex items-center gap-4 text-content-primary">
                   <ShieldAlert size={16} className="text-content-primary" />
@@ -301,8 +304,8 @@ function RouteComponent() {
                 </span>
               </div>
 
-              {/* Linia podsumowująca */}
-              <div className="border-t border-icon pt-4 flex justify-between items-center">
+              <hr className="border-t border-icon my-4" />
+              <div className="flex justify-between items-center">
                 <span className="text-[14px] font-bold text-content-primary">Suma wydatków</span>
                 <span className="text-[16px] font-black text-content-primary">
                   {expensesSummary.total.toFixed(2)} zł

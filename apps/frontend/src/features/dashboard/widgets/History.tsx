@@ -173,7 +173,7 @@ export const History = ({
             })}
           </div>
 
-          <Pagination className="mt-[18px]" />
+          <Pagination className="mt-4" />
         </div>
       )}
     </BlockWrapper>
