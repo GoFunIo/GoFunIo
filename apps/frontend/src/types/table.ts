@@ -23,4 +23,5 @@ export interface UsersTable {
   email: string;
   role: string;
   carsAmount: number;
+  assignedVehicleId: string;
 }

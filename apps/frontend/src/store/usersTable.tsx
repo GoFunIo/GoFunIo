@@ -1,16 +1,31 @@
-import { Column, UsersTable } from '@/types/table';
+export interface UsersTable {
+  id: string | number;
+  user: string;
+  email: string;
+  role: 'Admin' | 'User';
+  assignedVehicleId: string | number;
+}
 
-export const usersColumns: Column<UsersTable>[] = [
-  { header: 'Użytkownik', accessor: 'user' },
-  { header: 'E-mail', accessor: 'email' },
-  { header: 'Rola', accessor: 'role' },
-  { header: 'Liczba pojazdów', accessor: 'carsAmount' },
+export const initialUsersData: UsersTable[] = [
+  {
+    id: '1',
+    user: 'Anna Kowalska',
+    email: 'anna.k@gmail.com',
+    role: 'User',
+    assignedVehicleId: '1',
+  },
+  {
+    id: '2',
+    user: 'Marek Nowak',
+    email: 'admin@autokeep.pl',
+    role: 'Admin',
+    assignedVehicleId: 'none',
+  },
+  {
+    id: '3',
+    user: 'Jan Nowak',
+    email: 'jan.n@gmail.com',
+    role: 'User',
+    assignedVehicleId: '2',
+  },
 ];
-
-export const usersData: UsersTable[] = [
-  { id: '1', user: 'Anna Kowalska', email: 'anna.k@gmail.com', role: 'Użytkownik', carsAmount: 1 },
-  { id: '2', user: 'Anna Kowalska', email: 'anna.k@gmail.com', role: 'Użytkownik', carsAmount: 1 },
-  { id: '3', user: 'Anna Kowalska', email: 'anna.k@gmail.com', role: 'Użytkownik', carsAmount: 1 },
-];
-
-// export const usersData = []

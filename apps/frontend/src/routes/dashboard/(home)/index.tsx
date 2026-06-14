@@ -3,7 +3,7 @@ import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
 import { actionsArray, activityArray, mockCars } from '@/store/cars';
-import { createFileRoute, ToOptions, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
 import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
@@ -194,27 +194,32 @@ function RouteComponent() {
 
       {/* KARTY STATYSTYK */}
       <GridWrapper layout={'3-equal'}>
-        <DashboardCard
-          title="Pojazdy we flocie"
-          value={adminStats.totalFleetVehicles}
-          subtitle="aktywne"
-          icon={<CarFront size={20} />}
-        />
+        <Link to="/dashboard/my-cars" className="block no-underline">
+          <DashboardCard
+            title="Pojazdy we flocie"
+            value={adminStats.totalFleetVehicles}
+            subtitle="aktywne"
+            icon={<CarFront size={20} />}
+          />
+        </Link>
+        <Link to="/dashboard/settings/users" className="block no-underline">
+          <DashboardCard
+            title="Aktywni użytkownicy"
+            value={adminStats.activeUsersCount}
+            subtitle="osoby mają pojazdy w systemie"
+            icon={<Users size={20} />}
+          />
+        </Link>
 
-        <DashboardCard
-          title="Aktywni użytkownicy"
-          value={adminStats.activeUsersCount}
-          subtitle="osoby mają pojazdy w systemie"
-          icon={<Users size={20} />}
-        />
-
-        <DashboardCard
-          title="Pilne przypomnienia"
-          value={adminStats.urgentReminders}
-          subtitle="działania wymagane w ciągu 30 dni"
-          icon={<TriangleAlert size={20} />}
-          isAlert={true}
-        />
+        <Link to="/dashboard/notifications" className="block no-underline">
+          <DashboardCard
+            title="Pilne przypomnienia"
+            value={adminStats.urgentReminders}
+            subtitle="działania wymagane w ciągu 30 dni"
+            icon={<TriangleAlert size={20} />}
+            isAlert={true}
+          />
+        </Link>
       </GridWrapper>
 
       {/* NADCHODZĄCE TERMINY */}
