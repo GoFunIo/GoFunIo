@@ -14,14 +14,11 @@ import { Route as publicRouteRouteImport } from './routes/(public)/route';
 import { Route as authRouteRouteImport } from './routes/(auth)/route';
 import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/settings/route';
 import { Route as DashboardVehicleAssignmentsIndexRouteImport } from './routes/dashboard/vehicle-assignments/index';
-import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index';
 import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index';
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index';
 import { Route as DashboardServiceIndexRouteImport } from './routes/dashboard/service/index';
-import { Route as DashboardPaymentsIndexRouteImport } from './routes/dashboard/payments/index';
 import { Route as DashboardNotificationsIndexRouteImport } from './routes/dashboard/notifications/index';
 import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-cars/index';
-import { Route as DashboardAdminIndexRouteImport } from './routes/dashboard/admin/index';
 import { Route as DashboardhomeIndexRouteImport } from './routes/dashboard/(home)/index';
 import { Route as publichomeIndexRouteImport } from './routes/(public)/(home)/index';
 import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify-email/index';
@@ -34,6 +31,7 @@ import { Route as DashboardSettingsProfileRouteImport } from './routes/dashboard
 import { Route as DashboardSettingsPaymentsRouteImport } from './routes/dashboard/settings/payments';
 import { Route as DashboardSettingsNotificationRouteImport } from './routes/dashboard/settings/notification';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
+import { Route as Dashboardhome______indexRouteImport } from './routes/dashboard/(home)/_______index';
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
@@ -58,11 +56,6 @@ const DashboardVehicleAssignmentsIndexRoute = DashboardVehicleAssignmentsIndexRo
   path: '/vehicle-assignments/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
 const DashboardTimelineIndexRoute = DashboardTimelineIndexRouteImport.update({
   id: '/timeline/',
   path: '/timeline/',
@@ -78,11 +71,6 @@ const DashboardServiceIndexRoute = DashboardServiceIndexRouteImport.update({
   path: '/service/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
-const DashboardPaymentsIndexRoute = DashboardPaymentsIndexRouteImport.update({
-  id: '/payments/',
-  path: '/payments/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
 const DashboardNotificationsIndexRoute = DashboardNotificationsIndexRouteImport.update({
   id: '/notifications/',
   path: '/notifications/',
@@ -91,11 +79,6 @@ const DashboardNotificationsIndexRoute = DashboardNotificationsIndexRouteImport.
 const DashboardMyCarsIndexRoute = DashboardMyCarsIndexRouteImport.update({
   id: '/my-cars/',
   path: '/my-cars/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any);
-const DashboardAdminIndexRoute = DashboardAdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
 const DashboardhomeIndexRoute = DashboardhomeIndexRouteImport.update({
@@ -158,6 +141,10 @@ const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
   path: '/my-cars/$carId',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
+const Dashboardhome______indexRoute = Dashboardhome______indexRouteImport.update({
+  id: '/(home)/_______index',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
@@ -174,17 +161,15 @@ export interface FileRoutesByFullPath {
   '/verify-email/': typeof authVerifyEmailIndexRoute;
   '/': typeof publichomeIndexRoute;
   '/dashboard/': typeof DashboardhomeIndexRoute;
-  '/dashboard/admin/': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
-  '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
   '/dashboard/service/': typeof DashboardServiceIndexRoute;
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
-  '/dashboard/users/': typeof DashboardUsersIndexRoute;
   '/dashboard/vehicle-assignments/': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRoutesByTo {
+  '/dashboard': typeof DashboardhomeIndexRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute;
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute;
@@ -196,15 +181,11 @@ export interface FileRoutesByTo {
   '/signup': typeof authSignupIndexRoute;
   '/verify-email': typeof authVerifyEmailIndexRoute;
   '/': typeof publichomeIndexRoute;
-  '/dashboard': typeof DashboardhomeIndexRoute;
-  '/dashboard/admin': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications': typeof DashboardNotificationsIndexRoute;
-  '/dashboard/payments': typeof DashboardPaymentsIndexRoute;
   '/dashboard/service': typeof DashboardServiceIndexRoute;
   '/dashboard/settings': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline': typeof DashboardTimelineIndexRoute;
-  '/dashboard/users': typeof DashboardUsersIndexRoute;
   '/dashboard/vehicle-assignments': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRoutesById {
@@ -213,6 +194,7 @@ export interface FileRoutesById {
   '/(public)': typeof publicRouteRouteWithChildren;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren;
+  '/dashboard/(home)/_______index': typeof Dashboardhome______indexRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute;
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute;
@@ -225,14 +207,11 @@ export interface FileRoutesById {
   '/(auth)/verify-email/': typeof authVerifyEmailIndexRoute;
   '/(public)/(home)/': typeof publichomeIndexRoute;
   '/dashboard/(home)/': typeof DashboardhomeIndexRoute;
-  '/dashboard/admin/': typeof DashboardAdminIndexRoute;
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute;
   '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute;
-  '/dashboard/payments/': typeof DashboardPaymentsIndexRoute;
   '/dashboard/service/': typeof DashboardServiceIndexRoute;
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute;
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
-  '/dashboard/users/': typeof DashboardUsersIndexRoute;
   '/dashboard/vehicle-assignments/': typeof DashboardVehicleAssignmentsIndexRoute;
 }
 export interface FileRouteTypes {
@@ -252,17 +231,15 @@ export interface FileRouteTypes {
     | '/verify-email/'
     | '/'
     | '/dashboard/'
-    | '/dashboard/admin/'
     | '/dashboard/my-cars/'
     | '/dashboard/notifications/'
-    | '/dashboard/payments/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
-    | '/dashboard/users/'
     | '/dashboard/vehicle-assignments/';
   fileRoutesByTo: FileRoutesByTo;
   to:
+    | '/dashboard'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
@@ -274,15 +251,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/verify-email'
     | '/'
-    | '/dashboard'
-    | '/dashboard/admin'
     | '/dashboard/my-cars'
     | '/dashboard/notifications'
-    | '/dashboard/payments'
     | '/dashboard/service'
     | '/dashboard/settings'
     | '/dashboard/timeline'
-    | '/dashboard/users'
     | '/dashboard/vehicle-assignments';
   id:
     | '__root__'
@@ -290,6 +263,7 @@ export interface FileRouteTypes {
     | '/(public)'
     | '/dashboard'
     | '/dashboard/settings'
+    | '/dashboard/(home)/_______index'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
@@ -302,14 +276,11 @@ export interface FileRouteTypes {
     | '/(auth)/verify-email/'
     | '/(public)/(home)/'
     | '/dashboard/(home)/'
-    | '/dashboard/admin/'
     | '/dashboard/my-cars/'
     | '/dashboard/notifications/'
-    | '/dashboard/payments/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
-    | '/dashboard/users/'
     | '/dashboard/vehicle-assignments/';
   fileRoutesById: FileRoutesById;
 }
@@ -356,13 +327,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardVehicleAssignmentsIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/users/': {
-      id: '/dashboard/users/';
-      path: '/users';
-      fullPath: '/dashboard/users/';
-      preLoaderRoute: typeof DashboardUsersIndexRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
     '/dashboard/timeline/': {
       id: '/dashboard/timeline/';
       path: '/timeline';
@@ -384,13 +348,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardServiceIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
-    '/dashboard/payments/': {
-      id: '/dashboard/payments/';
-      path: '/payments';
-      fullPath: '/dashboard/payments/';
-      preLoaderRoute: typeof DashboardPaymentsIndexRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
     '/dashboard/notifications/': {
       id: '/dashboard/notifications/';
       path: '/notifications';
@@ -403,13 +360,6 @@ declare module '@tanstack/react-router' {
       path: '/my-cars';
       fullPath: '/dashboard/my-cars/';
       preLoaderRoute: typeof DashboardMyCarsIndexRouteImport;
-      parentRoute: typeof DashboardRouteRoute;
-    };
-    '/dashboard/admin/': {
-      id: '/dashboard/admin/';
-      path: '/admin';
-      fullPath: '/dashboard/admin/';
-      preLoaderRoute: typeof DashboardAdminIndexRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
     '/dashboard/(home)/': {
@@ -496,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMyCarsCarIdRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
+    '/dashboard/(home)/_______index': {
+      id: '/dashboard/(home)/_______index';
+      path: '';
+      fullPath: '/dashboard';
+      preLoaderRoute: typeof Dashboardhome______indexRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
   }
 }
 
@@ -549,29 +506,25 @@ const DashboardSettingsRouteRouteWithChildren = DashboardSettingsRouteRoute._add
 
 interface DashboardRouteRouteChildren {
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren;
+  Dashboardhome______indexRoute: typeof Dashboardhome______indexRoute;
   DashboardMyCarsCarIdRoute: typeof DashboardMyCarsCarIdRoute;
   DashboardhomeIndexRoute: typeof DashboardhomeIndexRoute;
-  DashboardAdminIndexRoute: typeof DashboardAdminIndexRoute;
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute;
   DashboardNotificationsIndexRoute: typeof DashboardNotificationsIndexRoute;
-  DashboardPaymentsIndexRoute: typeof DashboardPaymentsIndexRoute;
   DashboardServiceIndexRoute: typeof DashboardServiceIndexRoute;
   DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute;
-  DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute;
   DashboardVehicleAssignmentsIndexRoute: typeof DashboardVehicleAssignmentsIndexRoute;
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
+  Dashboardhome______indexRoute: Dashboardhome______indexRoute,
   DashboardMyCarsCarIdRoute: DashboardMyCarsCarIdRoute,
   DashboardhomeIndexRoute: DashboardhomeIndexRoute,
-  DashboardAdminIndexRoute: DashboardAdminIndexRoute,
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
   DashboardNotificationsIndexRoute: DashboardNotificationsIndexRoute,
-  DashboardPaymentsIndexRoute: DashboardPaymentsIndexRoute,
   DashboardServiceIndexRoute: DashboardServiceIndexRoute,
   DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
-  DashboardUsersIndexRoute: DashboardUsersIndexRoute,
   DashboardVehicleAssignmentsIndexRoute: DashboardVehicleAssignmentsIndexRoute,
 };
 

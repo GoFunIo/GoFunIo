@@ -22,11 +22,11 @@ export const PricingDashboardCard = ({ plan, billingCycle }: PricingDashboardCar
         <h4 className="mb-4 text-content-primary">{plan.name}</h4>
 
         <div className="mb-6 flex items-baseline gap-1">
-          <span className="text-5xl text-content-primary tracking-tight">
+          <span className="text-5xl text-content-primary font-bold tracking-tight">
             {billingCycle === 'monthly' ? plan.price.monthly : plan.price.yearly}
           </span>
           <span className="text-xl font-bold text-content-primary">PLN</span>
-          <span className="text-[14px] ml-1 text-content-primary">
+          <span className="text-[14px] ml-1 text-content-secondary">
             /{billingCycle === 'monthly' ? 'miesiąc' : 'rok'}
           </span>
         </div>

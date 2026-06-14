@@ -11,14 +11,26 @@ type Props = {
   title: string;
   subtitle: string;
   size?: 'small' | 'big';
+  showButton?: boolean;
+  buttonLabel?: string;
+  buttonTo?: string;
 };
 
-export const Banner = ({ variant = 'info', title, subtitle, className, size = 'big' }: Props) => {
+export const Banner = ({
+  variant = 'info',
+  title,
+  subtitle,
+  className,
+  size = 'big',
+  showButton = true,
+  buttonLabel,
+  buttonTo = '/dashboard/settings/payments',
+}: Props) => {
   const navigate = useNavigate();
   const { border, bg } = getVariantStyles(variant);
 
   const isSmall = size === 'small';
-  const buttonText = variant === 'info' ? 'Zmień plan' : 'Aktywuj plan';
+  const buttonText = buttonLabel ?? (variant === 'info' ? 'Zmień plan' : 'Aktywuj plan');
 
   return (
     <div
@@ -56,13 +68,15 @@ export const Banner = ({ variant = 'info', title, subtitle, className, size = 'b
         </p>
       </div>
 
-      <BoardButton
-        onClick={() => navigate({ to: '/dashboard/settings/payments' })}
-        size="small"
-        className="w-full sm:w-auto shrink-0"
-      >
-        {buttonText}
-      </BoardButton>
+      {showButton && (
+        <BoardButton
+          onClick={() => navigate({ to: buttonTo })}
+          size="small"
+          className="w-full sm:w-auto shrink-0"
+        >
+          {buttonText}
+        </BoardButton>
+      )}
     </div>
   );
 };

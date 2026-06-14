@@ -1,43 +1,36 @@
 import { useUser } from '@/hooks/useUser';
-import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
-import { CarFront, Calendar, Wrench, LucideIcon } from 'lucide-react';
-import { useState } from 'react';
-import { actionsArray, activityArray, mockCars } from '@/store/cars';
-import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
-import { DaysAmount } from '@/features/dashboard/ui/DaysAmount';
-import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
-import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { Reminders } from '@/features/dashboard/widgets/Reminders';
+import { actionsArray, activityArray, mockCars } from '@/store/cars';
+import { createFileRoute, ToOptions, useNavigate } from '@tanstack/react-router';
+import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
+import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
+import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
+import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
+import { useMemo, useState } from 'react';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-
-import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { Banner } from '@/features/dashboard/widgets/Banner';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
-import { calculateDaysToDate, DateDiffResult } from '@/utils/calculateDaysToDate';
+import { History, HistoryDataItem, serviceTypeLabels } from '@/features/dashboard/widgets/History';
+import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
+import {
+  DeleteServiceConfirm,
+  ServiceEntryType,
+} from '@/features/dashboard/forms/DeleteServiceConfirm';
 
 type QuickAction = {
   id: number;
   title: string;
   icon: LucideIcon;
-  actionType: 'modal' | 'modal_service' | 'link';
+  actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link';
   href?: ToOptions['to'];
 };
 
 const typedActions = actionsArray as unknown as QuickAction[];
-
-type TermAlert = {
-  id: string;
-  carId: number;
-  carName: string;
-  type: 'Przegląd' | 'Ubezpieczenie OC' | 'Ubezpieczenie AC';
-  dateInfo: DateDiffResult; //
-};
-
-// ZAMOCKOWANA DATA KOŃCA OKRESU PRÓBNEGO
-const USER_TRIAL_EXPIRY = '2026-06-12';
 
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
@@ -47,15 +40,80 @@ function RouteComponent() {
   const { data: user, isLoading } = useUser();
   const navigate = useNavigate();
 
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState<boolean>(false);
-
   if (isLoading) return <h1 className="">Loading</h1>;
   if (!user) return null;
 
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+  const selectedCar = mockCars.find((c) => c.id === selectedCarId);
+
+  const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
+  const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditCarModalOpen, setIsEditCarModalOpen] = useState<boolean>(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState<boolean>(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+
+  const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
+
+  const editCarModalTitle = selectedCar
+    ? `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`
+    : 'Edytuj dane pojazdu';
+
+  const handleRenewCar = (id: number) => {
+    setSelectedCarId(id);
+    setIsEditCarModalOpen(true);
+  };
+
+  // TEST - LOGIKA PZREGLĄDÓW
+  const inspectionStats = mockCars.reduce(
+    (acc, car) => {
+      const { days } = calculateDaysToDate(car.technicalInspectionExpiry);
+
+      if (days <= 7) {
+        acc.days7++;
+      } else if (days > 7 && days <= 30) {
+        acc.days30++;
+      } else if (days > 30 && days <= 60) {
+        acc.days60++;
+      }
+      return acc;
+    },
+    { days7: 0, days30: 0, days60: 0 },
+  );
+
+  //  DYNAMICZNA LOGIKA DLA UBEZPIECZEŃ OC / AC
+  const insuranceStats = mockCars.reduce(
+    (acc, car) => {
+      const ocDiff = calculateDaysToDate(car.ocExpiry).days;
+      const acDiff = calculateDaysToDate(car.acExpiry).days;
+
+      if (ocDiff <= 7) acc.days7++;
+      else if (ocDiff <= 30) acc.days30++;
+      else if (ocDiff <= 60) acc.days60++;
+
+      if (acDiff <= 7) acc.days7++;
+      else if (acDiff <= 30) acc.days30++;
+      else if (acDiff <= 60) acc.days60++;
+
+      return acc;
+    },
+    { days7: 0, days30: 0, days60: 0 },
+  );
+
+  // 3. SUMOWANIE TYLKO PILNYCH ALERTÓW (Czerwone ≤ 7 oraz Pomarańczowe ≤ 30)
+  const totalUrgentReminders =
+    inspectionStats.days7 + inspectionStats.days30 + insuranceStats.days7 + insuranceStats.days30;
+
+  const adminStats = {
+    totalFleetVehicles: mockCars.length,
+    activeUsersCount: 2,
+    urgentReminders: totalUrgentReminders,
+  };
+
   // FUNKCJA POMOCNICZA DO SZYBKIHC AKCJI
   const handleActionClick = (
-    actionType: 'modal' | 'modal_service' | 'link',
+    actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link',
     href?: ToOptions['to'],
   ) => {
     if (actionType === 'link' && href) {
@@ -63,8 +121,13 @@ function RouteComponent() {
       return;
     }
 
-    if (actionType === 'modal') {
+    if (actionType === 'modal_car') {
       setIsModalOpen(true);
+      return;
+    }
+
+    if (actionType === 'modal_user') {
+      setIsUserModalOpen(true);
       return;
     }
 
@@ -74,120 +137,111 @@ function RouteComponent() {
     }
   };
 
-  // nadchodzace terminy - sortuje wg najpilniejszych
-  const allAlerts: TermAlert[] = mockCars.flatMap((car) => {
-    return [
-      {
-        id: `${car.id}-inspection`,
-        carId: car.id,
-        carName: `${car.brand} ${car.model}`,
-        type: 'Przegląd' as const,
-        dateInfo: calculateDaysToDate(car.technicalInspectionExpiry),
-      },
-      {
-        id: `${car.id}-oc`,
-        carId: car.id,
-        carName: `${car.brand} ${car.model}`,
-        type: 'Ubezpieczenie OC' as const,
-        dateInfo: calculateDaysToDate(car.ocExpiry),
-      },
-      {
-        id: `${car.id}-ac`,
-        carId: car.id,
-        carName: `${car.brand} ${car.model}`,
-        type: 'Ubezpieczenie AC' as const,
-        dateInfo: calculateDaysToDate(car.acExpiry),
-      },
-    ];
-  });
+  // DYNAMICZNE OBLICZANIE PODSUMOWANIA WYDATKÓW
+  const expensesSummary = useMemo(() => {
+    let servicesAndRepairs = 0;
+    let insurance = 0;
 
-  const sortedAlerts = allAlerts
-    .filter((alert) => alert.dateInfo.days <= 30)
-    .sort((a, b) => a.dateInfo.days - b.dateInfo.days);
+    (activityArray as HistoryDataItem[]).forEach((item) => {
+      if (item.serviceType === 'insurance_oc' || item.serviceType === 'insurance_ac') {
+        insurance += item.cost;
+      } else {
+        servicesAndRepairs += item.cost;
+      }
+    });
 
-  const urgentAlert = sortedAlerts[0];
+    return {
+      servicesAndRepairs,
+      insurance,
+      total: servicesAndRepairs + insurance,
+    };
+  }, []);
 
-  //test subskrypcji
-  const trialDaysResult = calculateDaysToDate(USER_TRIAL_EXPIRY);
-  const daysLeft = trialDaysResult.days;
-
-  const subscriptionStatus: 'info' | 'warning' | 'alert' = (() => {
-    if (daysLeft < 0) return 'alert';
-    if (daysLeft <= 7) return 'warning';
-    return 'info';
-  })();
+  const serviceInitialData = useMemo(() => {
+    if (isServiceEditMode) {
+      const editItem = modalState as HistoryDataItem;
+      return {
+        vehicleId: editItem.vehicleId,
+        servicePlace: editItem.servicePlace,
+        cost: editItem.cost,
+        serviceType: editItem.serviceType,
+        serviceDate: editItem.serviceDate,
+        notes: editItem.notes,
+        attachment: undefined,
+      };
+    }
+    return undefined;
+  }, [modalState, isServiceEditMode]);
 
   return (
     <>
-      <DashboardHeader
-        title={`Hello, ${user.email}`}
-        subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
-        button={{
-          label: 'Dodaj pojazd',
-          onClick: () => setIsModalOpen(true),
-        }}
-      />
-
-      {/* SEKCJA BANERÓW SUBSKRYPCJI */}
-      {subscriptionStatus === 'info' && (
-        <Banner variant="info" title="Plan indywidualny" subtitle="Plan aktywny do 20.12.2026" />
-      )}
-
-      {subscriptionStatus === 'warning' && (
-        <Banner
-          variant="warning"
-          title={`Okres próbny: pozostało ${daysLeft} dni`}
-          subtitle="Aktywuj plan, aby nie stracić dostępu do zarządzania flotą."
-        />
-      )}
-
-      {subscriptionStatus === 'alert' && (
-        <Banner
-          variant="alert"
-          title="Okres próbny zakończył się"
-          subtitle="Aplikacja działa w trybie tylko do odczytu — nie możesz dodawać ani edytować pojazdów i wpisów serwisowych."
-        />
-      )}
-
-      {/* SIATKA STATYSTYK I ALERTÓW TERMINÓW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link to="/dashboard/my-cars" className="block no-underline">
-          <DashboardCard
-            title="Moje pojazdy"
-            value={mockCars.length}
-            subtitle="aktywnych"
-            icon={<CarFront size={20} />}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full ">
+        <div className="lg:col-span-6">
+          <DashboardHeader
+            title={`Hello, ${user.email}`}
+            subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
           />
-        </Link>
-
-        <Link
-          to={urgentAlert ? '/dashboard/my-cars/$carId' : '/dashboard/my-cars'}
-          params={urgentAlert ? { carId: String(urgentAlert.carId) } : undefined}
-          className="block no-underline"
-        >
-          <DashboardCard
-            title={urgentAlert?.type ?? 'Najbliższy termin'}
-            value={(() => {
-              const car = mockCars.find((c) => c.id === urgentAlert?.carId);
-              if (!car || !urgentAlert) return '-';
-              if (urgentAlert.type === 'Przegląd') return car.technicalInspectionExpiry;
-              if (urgentAlert.type === 'Ubezpieczenie OC') return car.ocExpiry;
-              return car.acExpiry;
-            })()}
-            subtitle={urgentAlert?.carName ?? 'Brak danych'}
-            icon={<Calendar size={20} />}
+        </div>
+        <div className="lg:col-span-6">
+          <Banner
+            size="small"
+            variant="warning"
+            title="Okres próbny: pozostało 2 dni"
+            subtitle="Aktywuj plan, aby nie stracić dostępu"
           />
-        </Link>
-
-        <Link to="/dashboard/service">
-          <DashboardCard
-            title="Wpisów serwisowych"
-            value={activityArray.length}
-            subtitle="łącznie"
-            icon={<Wrench size={20} />}
-          />
-        </Link>
+        </div>
       </div>
+
+      {/* KARTY STATYSTYK */}
+      <GridWrapper layout={'3-equal'}>
+        <DashboardCard
+          title="Pojazdy we flocie"
+          value={adminStats.totalFleetVehicles}
+          subtitle="aktywne"
+          icon={<CarFront size={20} />}
+        />
+
+        <DashboardCard
+          title="Aktywni użytkownicy"
+          value={adminStats.activeUsersCount}
+          subtitle="osoby mają pojazdy w systemie"
+          icon={<Users size={20} />}
+        />
+
+        <DashboardCard
+          title="Pilne przypomnienia"
+          value={adminStats.urgentReminders}
+          subtitle="działania wymagane w ciągu 30 dni"
+          icon={<TriangleAlert size={20} />}
+          isAlert={true}
+        />
+      </GridWrapper>
+
+      {/* NADCHODZĄCE TERMINY */}
+      <BlockWrapper>
+        <div className="mb-6">
+          <p className="text-[18px] text-content-primary font-semibold mb-2">Nadchodzące terminy</p>
+          <p className="text-[14px] text-content-secondary">
+            Liczba pojazdów wymagających uwagi w najbliższym czasie
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
+          <div className="flex flex-col gap-4">
+            <AdminAlertBucket title="Przeglądy techniczne" icon={Wrench} stats={inspectionStats} />
+            <Reminders data={mockCars} filterType="inspection" onRenewCar={handleRenewCar} />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <AdminAlertBucket
+              title="Ubezpieczenia (OC / AC)"
+              icon={ShieldAlert}
+              stats={insuranceStats}
+            />
+            <Reminders data={mockCars} filterType="insurance" onRenewCar={handleRenewCar} />
+          </div>
+        </div>
+      </BlockWrapper>
 
       <GridWrapper layout="2-unequal">
         {/* HISTORIA SERWISOWA LEWA STRONA */}
@@ -197,62 +251,64 @@ function RouteComponent() {
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
           }}
+          onEditClick={(item) => setModalState(item)}
+          onDeleteClick={(item) => setDeleteModalState(item)}
           title="Ostatnia aktywność"
         />
 
         {/* SZYBKIE AKCJE PRAWA STRONA */}
-        <BlockWrapper className="lg:col-span-1 h-fit">
-          <h4 className="text-content-primary ">Szybkie akcje</h4>
+        <div className=" flex flex-col gap-6">
+          <BlockWrapper className="lg:col-span-1 h-fit">
+            <h4 className="text-content-primary ">Szybkie akcje</h4>
 
-          <div className="flex flex-col gap-[12px] py-6 border-b border-icon">
-            {typedActions.map((item) => (
-              <ActionButton
-                key={item.id}
-                title={item.title}
-                icon={item.icon}
-                onClick={() => handleActionClick(item.actionType, item.href)}
-              />
-            ))}
-          </div>
-
-          <div className="pt-6">
-            <p className="text-content-primary font-semibold text-[14px] mb-4">
-              Nadchodzące terminy
-            </p>
-            {!mockCars || mockCars.length === 0 ? (
-              <EmptyPlaceholder className="" title="Brak aktualnych przeglądów" />
-            ) : (
-              <div className="flex flex-col gap-[10px] ">
-                {sortedAlerts.map((alert) => {
-                  return (
-                    <Link
-                      key={alert.id}
-                      to="/dashboard/my-cars/$carId"
-                      params={{ carId: String(alert.carId) }}
-                      className="block no-underline hover:bg-background-secondary p-1 rounded-md transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-[12px]">
-                        <div>
-                          <p className="text-[14px] text-content-primary font-medium leading-tight">
-                            {alert.carName}
-                          </p>
-                          <span className="text-[12px] text-content-secondary font-normal">
-                            {alert.type}
-                          </span>
-                        </div>
-
-                        <DaysAmount days={alert.dateInfo.days} />
-                      </div>
-                    </Link>
-                  );
-                })}
+            <div className="flex flex-col gap-[12px] pt-6 ">
+              {typedActions.map((item) => (
+                <ActionButton
+                  key={item.id}
+                  title={item.title}
+                  icon={item.icon}
+                  onClick={() => handleActionClick(item.actionType, item.href)}
+                />
+              ))}
+            </div>
+          </BlockWrapper>
+          <BlockWrapper>
+            <h4 className="text-content-primary mb-6">Podsumowanie wydatków</h4>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center text-[14px]">
+                <div className="flex items-center gap-4 text-content-primary">
+                  <Wrench size={16} className="text-content-primary" />
+                  <span>Serwisy i naprawy</span>
+                </div>
+                <span className="font-bold text-content-primary">
+                  {expensesSummary.servicesAndRepairs.toFixed(2)} zł
+                </span>
               </div>
-            )}
-          </div>
-        </BlockWrapper>
+
+              {/* Ubezpieczenia */}
+              <div className="flex justify-between items-center text-[14px]">
+                <div className="flex items-center gap-4 text-content-primary">
+                  <ShieldAlert size={16} className="text-content-primary" />
+                  <span>Ubezpieczenia</span>
+                </div>
+                <span className="font-bold text-content-primary">
+                  {expensesSummary.insurance.toFixed(2)} zł
+                </span>
+              </div>
+
+              {/* Linia podsumowująca */}
+              <div className="border-t border-icon pt-4 flex justify-between items-center">
+                <span className="text-[14px] font-bold text-content-primary">Suma wydatków</span>
+                <span className="text-[16px] font-black text-content-primary">
+                  {expensesSummary.total.toFixed(2)} zł
+                </span>
+              </div>
+            </div>
+          </BlockWrapper>
+        </div>
       </GridWrapper>
 
-      {/* MODAL 1: DODAJ POJAZD */}
+      {/* MODAL 1: DODANIE SAMOCHODU */}
       <Modal
         isOpen={isModalOpen}
         setIsOpen={setIsModalOpen}
@@ -262,6 +318,21 @@ function RouteComponent() {
         <AddVehicleForm onClose={() => setIsModalOpen(false)} />
       </Modal>
 
+      {/* MODAL 1a: EDYCJA DANYCH SAMOCHODU SAMOCHODU */}
+
+      <Modal
+        isOpen={isEditCarModalOpen}
+        setIsOpen={setIsEditCarModalOpen}
+        title={editCarModalTitle}
+        subtitle="Zaktualizuj ubezpieczenia lub badania techniczne pojazdu."
+      >
+        <AddVehicleForm
+          initialData={selectedCar}
+          onClose={() => setIsEditCarModalOpen(false)}
+          isRenewalMode={true}
+        />
+      </Modal>
+
       {/* MODAL 2: DODAJ WPIS SERWISOWY */}
       <Modal
         isOpen={isServiceModalOpen}
@@ -269,9 +340,69 @@ function RouteComponent() {
         title="Dodaj wpis serwisowy"
         subtitle="Wprowadź szczegóły wykonanej naprawy lub serwisu."
       >
-        <div className="p-4 text-center text-content-secondary">
+        <div className=" text-center text-content-secondary">
           <AddVehicleServiceForm onClose={() => setIsServiceModalOpen(false)} />
         </div>
+      </Modal>
+
+      {/* MODAL 3: DODAJ UŻYTKOWNIKA */}
+      <Modal
+        isOpen={isUserModalOpen}
+        setIsOpen={setIsUserModalOpen}
+        title="Dodaj użytkownika"
+        subtitle="Wprowadź dane nowego kierowcy lub administratora systemu."
+      >
+        <AddEditUserForm onClose={() => setIsUserModalOpen(false)} />
+      </Modal>
+
+      {/* MODAL 4: EDYCJA WPISU SERWISOWEGO  */}
+      <Modal
+        isOpen={isServiceEditMode}
+        setIsOpen={(open) => !open && setModalState(null)}
+        title="Edytuj wpis serwisowy"
+        subtitle="Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi."
+      >
+        <AddVehicleServiceForm
+          key={isServiceEditMode ? (modalState as HistoryDataItem).id : 'edit-none'}
+          initialData={serviceInitialData}
+          onClose={() => setModalState(null)}
+        />
+      </Modal>
+
+      {/* MODAL 5: USUNIECIE  WPISU SERWISOWEGO  */}
+      <Modal
+        isOpen={!!deleteModalState}
+        setIsOpen={(open) => !open && setDeleteModalState(null)}
+        title="Usuń wpis serwisowy"
+        subtitle="Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna."
+      >
+        {deleteModalState && (
+          <DeleteServiceConfirm
+            service={
+              {
+                id: deleteModalState.id,
+                vehicleId: deleteModalState.vehicleId,
+                serviceType:
+                  serviceTypeLabels[deleteModalState.serviceType] || 'Czynność serwisowa',
+                servicePlace: deleteModalState.servicePlace,
+                serviceDate: deleteModalState.serviceDate,
+                cost: deleteModalState.cost,
+                carBrand: deleteModalState.car.split(' ')[0] || '',
+                carModel: deleteModalState.car.split(' ').slice(1).join(' ') || '',
+                registrationNumber: '',
+              } as ServiceEntryType
+            }
+            onClose={() => setDeleteModalState(null)}
+            onConfirm={async () => {
+              try {
+                console.log('Usuwanie wpisu o ID:', deleteModalState.id);
+                setDeleteModalState(null);
+              } catch (error) {
+                console.error('Błąd podczas usuwania wpisu:', error);
+              }
+            }}
+          />
+        )}
       </Modal>
     </>
   );
