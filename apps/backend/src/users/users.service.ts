@@ -26,7 +26,13 @@ export class UsersService {
     email: string,
     password: string,
     extra: Partial<
-      Pick<User, 'verificationTokenHash' | 'verificationTokenExpiresAt'>
+      Pick<
+        User,
+        | 'verificationTokenHash'
+        | 'verificationTokenExpiresAt'
+        | 'passwordResetTokenHash'
+        | 'passwordResetTokenExpiresAt'
+      >
     > = {},
   ): Promise<User> {
     const user = this.usersRepository.create({ email, password, ...extra });
@@ -42,6 +48,26 @@ export class UsersService {
       ])
       .where('user.verificationTokenHash = :hash', { hash })
       .getOne();
+  }
+
+  async consumePasswordResetToken(
+    tokenHash: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    const result = await this.usersRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        password: newPassword,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
+        passwordVersion: () => '"passwordVersion" + 1',
+      })
+      .where('"passwordResetTokenHash" = :hash', { hash: tokenHash })
+      .andWhere('"passwordResetTokenExpiresAt" > :now', { now: new Date() })
+      .execute();
+
+    return (result.affected ?? 0) > 0;
   }
 
   async update(id: number, attrs: Partial<User>): Promise<User> {

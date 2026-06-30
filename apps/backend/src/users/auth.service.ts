@@ -17,6 +17,10 @@ import {
   USER_REGISTERED_EVENT,
   UserRegisteredEvent,
 } from './events/user-registered.event';
+import {
+  PASSWORD_RESET_REQUESTED_EVENT,
+  PasswordResetRequestedEvent,
+} from './events/password-reset-requested.event';
 
 const scrypt = promisify(_scrypt);
 const SALT_BYTES = 16;
@@ -33,6 +37,12 @@ function isUniqueViolation(err: unknown): boolean {
   return code != null && UNIQUE_VIOLATION_CODES.has(code);
 }
 
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(SALT_BYTES).toString('hex');
+  const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
+  return salt + '.' + hash.toString('hex');
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -42,9 +52,7 @@ export class AuthService {
   ) {}
 
   async signup(email: string, password: string, origin?: string) {
-    const salt = randomBytes(SALT_BYTES).toString('hex');
-    const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
-    const result = salt + '.' + hash.toString('hex');
+    const result = await hashPassword(password);
 
     const ttlHours = this.config.get<number>(
       'VERIFICATION_TOKEN_TTL_HOURS',
@@ -141,5 +149,48 @@ export class AuthService {
       USER_REGISTERED_EVENT,
       new UserRegisteredEvent(user.id, user.email, token, origin),
     );
+  }
+
+  async requestPasswordReset(email: string, origin?: string): Promise<void> {
+    const [user] = await this.usersService.findByEmail(email);
+    // ponytail: silent no-op for missing email (anti-enumeration); verified + unverified allowed
+    if (!user) {
+      return;
+    }
+
+    const ttlHours = this.config.get<number>(
+      'PASSWORD_RESET_TOKEN_TTL_HOURS',
+      24,
+    );
+    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+
+    await this.usersService.update(user.id, {
+      passwordResetTokenHash: tokenHash,
+      passwordResetTokenExpiresAt: expiresAt,
+    });
+
+    this.eventEmitter.emit(
+      PASSWORD_RESET_REQUESTED_EVENT,
+      new PasswordResetRequestedEvent(
+        user.id,
+        user.email,
+        token,
+        ttlHours,
+        origin,
+      ),
+    );
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = hashVerificationToken(token);
+    const password = await hashPassword(newPassword);
+    const consumed = await this.usersService.consumePasswordResetToken(
+      tokenHash,
+      password,
+    );
+
+    if (!consumed) {
+      throw new BadRequestException('Invalid or expired token');
+    }
   }
 }

@@ -5,6 +5,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
 import { join } from 'path';
 import { MailService } from './mail.service';
 import { UserRegisteredListener } from './listeners/user-registered.listener';
+import { PasswordResetRequestedListener } from './listeners/password-reset-requested.listener';
 import { FrontendUrlResolver } from '../common/frontend-url.resolver';
 
 @Module({
@@ -33,7 +34,12 @@ import { FrontendUrlResolver } from '../common/frontend-url.resolver';
       }),
     }),
   ],
-  providers: [MailService, UserRegisteredListener, FrontendUrlResolver],
+  providers: [
+    MailService,
+    UserRegisteredListener,
+    PasswordResetRequestedListener,
+    FrontendUrlResolver,
+  ],
   exports: [MailService],
 })
 export class MailModule {}
