@@ -4,6 +4,7 @@ declare global {
   namespace CookieSessionInterfaces {
     interface CookieSessionObject {
       userId?: number | null;
+      passwordVersion?: number | null;
     }
   }
 }

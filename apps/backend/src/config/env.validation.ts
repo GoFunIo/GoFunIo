@@ -55,6 +55,12 @@ export class EnvVars {
   @Max(24 * 30)
   VERIFICATION_TOKEN_TTL_HOURS: number = 24;
 
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(24 * 30)
+  PASSWORD_RESET_TOKEN_TTL_HOURS: number = 24;
+
   /** When set, uses PostgreSQL (e.g. Neon). Omit for local SQLite. */
   @IsOptional()
   @IsString()

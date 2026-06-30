@@ -18,6 +18,9 @@ export class User {
   @Column()
   password!: string;
 
+  @Column({ default: 1 })
+  passwordVersion!: number;
+
   @Column({ default: false })
   isVerified!: boolean;
 
@@ -26,6 +29,12 @@ export class User {
 
   @Column({ type: 'timestamptz', nullable: true, select: false })
   verificationTokenExpiresAt!: Date | null;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  passwordResetTokenHash!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true, select: false })
+  passwordResetTokenExpiresAt!: Date | null;
 
   @AfterInsert()
   logInsert() {

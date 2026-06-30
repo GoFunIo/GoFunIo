@@ -33,4 +33,31 @@ export class MailService {
       );
     }
   }
+
+  async sendPasswordResetEmail(
+    email: string,
+    token: string,
+    ttlHours: number,
+    origin?: string,
+  ): Promise<void> {
+    const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
+    const resetUrl = `${base}/reset-password?token=${token}`;
+
+    try {
+      await this.mailer.sendMail({
+        to: email,
+        subject: 'Reset your GoFunIo password',
+        template: 'reset-password',
+        context: { resetUrl, ttlHours },
+      });
+    } catch (err) {
+      this.logger.error({
+        event: 'password-reset.requested',
+        email,
+        message: 'password_reset.mail_failed',
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+  }
 }
