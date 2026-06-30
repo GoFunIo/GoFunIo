@@ -30,6 +30,19 @@ npm install -g pnpm
 pnpm install
 ```
 
+## Local database (PostgreSQL)
+
+From the repo root:
+
+```bash
+pnpm db:up
+cp apps/backend/.env.example apps/backend/.env   # if you don't have .env yet
+pnpm migration:run
+pnpm dev:backend
+```
+
+Stop Postgres: `pnpm db:down`. Logs: `pnpm db:logs`.
+
 ## Instructions for running a project ( from the root of the project ):
 
 Running frontend only ( hosted on localhost:5173 ):

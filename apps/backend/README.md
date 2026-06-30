@@ -31,6 +31,19 @@
 $ pnpm install
 ```
 
+## Local database (PostgreSQL)
+
+From the **repo root**:
+
+```bash
+pnpm db:up
+cp apps/backend/.env.example apps/backend/.env   # if you don't have .env yet
+pnpm migration:run
+pnpm dev:backend
+```
+
+`DATABASE_URL` in `.env.example` points at the Docker Postgres on `localhost:5432`.
+
 ## Dev email (Mailtrap)
 
 1. Copy [`.env.example`](./.env.example) to `.env` and set `COOKIE_KEY`, `FRONTEND_URL` (must match your frontend origin, e.g. `http://localhost:5173`).
