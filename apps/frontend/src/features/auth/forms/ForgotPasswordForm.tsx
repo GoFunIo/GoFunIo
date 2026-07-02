@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { ForgotPasswordSchema } from '../lib/formValidationRules';
 import { ForgotPasswordFormData, ForgotPasswordInputs } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
+import { requestPasswordReset } from '../auth.api';
 
 type FormProps = {
   className?: string;
@@ -27,7 +28,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     shouldFocusError: false,
   });
 
-  const resetPassword: SubmitHandler<ForgotPasswordInputs> = async () => {
+  const resetPassword: SubmitHandler<ForgotPasswordInputs> = async ({ email }) => {
     setLoading(true);
 
     setError('root', {
@@ -36,6 +37,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     });
 
     try {
+      await requestPasswordReset(email);
       setSuccess(true);
     } catch {
     } finally {
