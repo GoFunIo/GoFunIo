@@ -39,7 +39,21 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     try {
       await requestPasswordReset(email);
       setSuccess(true);
-    } catch {
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
+
+      if (status === 429) {
+        setError('root', {
+          type: 'server',
+          message: 'Wysłano zbyt wiele żądań. Spróbuj ponownie za chwilę.',
+        });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
     } finally {
       setLoading(false);
     }

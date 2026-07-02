@@ -51,6 +51,11 @@ export const ResetPasswordForm = ({ className, setSuccess, setExpired, token }: 
 
       if (status === 400) {
         setExpired(true);
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
       }
     } finally {
       setLoading(false);
