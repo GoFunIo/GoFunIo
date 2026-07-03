@@ -8,6 +8,7 @@ import { ResetPasswordSchema } from '../lib/formValidationRules';
 import { ResetPassordInputs, ResetPasswordFormData } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
 import { resetPassword } from '../auth.api';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
@@ -63,11 +64,8 @@ export const ResetPasswordForm = ({ className, setSuccess, setExpired, token }: 
   };
 
   return (
-    <form
-      noValidate
-      onSubmit={handleSubmit(changePassword)}
-      className={classNames('relative', className)}
-    >
+    <form onSubmit={handleSubmit(changePassword)} className={classNames('relative', className)}>
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-[10px]">
         <Input
           type="password"

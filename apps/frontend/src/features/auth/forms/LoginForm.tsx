@@ -9,6 +9,7 @@ import classNames from 'classnames';
 import { LoginSchema } from '../lib/formValidationRules';
 import { LoginFormData, LoginInputs } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
@@ -82,11 +83,7 @@ export const LoginForm = ({ className }: FormProps) => {
 
   return (
     <form onSubmit={handleSubmit(login)} className={classNames('relative', className)}>
-      {errors.root?.message && (
-        <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
-          {errors.root.message}
-        </p>
-      )}
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-[10px]">
         <Input
           label="E-mail"

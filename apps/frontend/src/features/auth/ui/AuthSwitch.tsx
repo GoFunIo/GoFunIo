@@ -10,7 +10,7 @@ type Props = {
 
 export const AuthSwitch = ({ type, className, customLabel, hasTitle = true }: Props) => {
   return (
-    <div className={classNames('flex justify-center gap-2', className)}>
+    <div className={classNames('flex justify-center gap-2 flex-wrap', className)}>
       {hasTitle && (
         <p className="text-[14px] font-medium">
           {type === 'login' && 'Masz juz konto?'}

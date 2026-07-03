@@ -7,6 +7,7 @@ import { ForgotPasswordSchema } from '../lib/formValidationRules';
 import { ForgotPasswordFormData, ForgotPasswordInputs } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
 import { requestPasswordReset } from '../auth.api';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
@@ -61,11 +62,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
 
   return (
     <form onSubmit={handleSubmit(resetPassword)} className={classNames('relative', className)}>
-      {errors.root?.message && (
-        <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
-          {errors.root.message}
-        </p>
-      )}
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <Input
         label="E-mail"
         placeholder="email@example.com"
