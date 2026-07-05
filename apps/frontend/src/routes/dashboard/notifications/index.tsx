@@ -45,14 +45,14 @@ function RouteComponent() {
             </BoardButton>
           </div>
         </div>
-        <div className="flex items-center justify-end flex-1">
+        <div className="flex items-center justify-end sm:w-fit w-full">
           <h2 className="text-[14px] font-bold text-dark mr-[24px]">Pojazd:</h2>
           <Select
             value={car}
             onChange={(value) => setCar(value)}
             placeholder="Wszystkie pojazdy"
             options={carList}
-            className="w-full sm:min-w-[320px]"
+            className="sm:min-w-[320px]"
           />
         </div>
       </div>
