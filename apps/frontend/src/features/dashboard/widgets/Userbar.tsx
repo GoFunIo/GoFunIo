@@ -73,14 +73,15 @@ export const Userbar = () => {
         <div className="ml-[auto] h-full flex items-center">
           <ThemeToggle />
 
-          <div
-            onClick={() => setDropdown(dropdown === 'alerts' ? null : 'alerts')}
-            className="px-4 relative flex items-center h-full cursor-pointer"
-            ref={alertsRef}
-          >
-            <div className="relative">
-              <div className="absolute -top-[2px] right-[2px] w-[6px] h-[6px] bg-alert rounded-full"></div>
-              <Bell className="text-content-primary" size={20} />
+          <div className="relative h-full" ref={alertsRef}>
+            <div
+              className="relative cursor-pointer px-4 h-full flex items-center justify-center"
+              onClick={() => setDropdown(dropdown === 'alerts' ? null : 'alerts')}
+            >
+              <div className="relative">
+                <div className="absolute -top-[2px] right-[2px] w-[6px] h-[6px] bg-alert rounded-full"></div>
+                <Bell className="text-content-primary" size={20} />
+              </div>
             </div>
 
             <div
@@ -109,19 +110,22 @@ export const Userbar = () => {
                 </div>
               </div>
               <div className="">
-                <Link to="/dashboard/notifications" className="text-[12px] font-medium text-info">
+                <Link
+                  onClick={() => setDropdown(null)}
+                  to="/dashboard/notifications"
+                  className="text-[12px] font-medium text-info"
+                >
                   Zobacz wszystkie powiadomienia
                 </Link>
               </div>
             </div>
           </div>
 
-          <div
-            className="relative h-full"
-            ref={settingsRef}
-            onClick={() => setDropdown(dropdown === 'settings' ? null : 'settings')}
-          >
-            <div className="cursor-pointer flex items-center gap-[8px] h-full md:pr-[32px] pr-[15px]">
+          <div className="relative h-full" ref={settingsRef}>
+            <div
+              onClick={() => setDropdown(dropdown === 'settings' ? null : 'settings')}
+              className="cursor-pointer flex items-center gap-[8px] h-full md:pr-[32px] pr-[15px]"
+            >
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center">
                 <p className="text-[12px] font-normal text-white">{getInitials()}</p>
               </div>
@@ -139,7 +143,7 @@ export const Userbar = () => {
               )}
             >
               <Link
-                // onClick={() => setSettings(false)}
+                onClick={() => setDropdown(null)}
                 to="/dashboard/settings"
                 className="hover:bg-bg-section p-[8px] flex items-center gap-[8px]"
               >
