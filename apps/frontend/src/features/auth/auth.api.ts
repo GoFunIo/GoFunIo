@@ -134,3 +134,34 @@ export const verifyEmail = async (token: string) => {
 
   return data;
 };
+
+export const requestPasswordReset = async (email: string) => {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    throw { status: res.status, message: 'Request failed' };
+  }
+};
+
+export const resetPassword = async (token: string, password: string) => {
+  const res = await fetch(`${API_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ token: token.trim(), password }),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Reset hasła nie powiódł się',
+    };
+  }
+};

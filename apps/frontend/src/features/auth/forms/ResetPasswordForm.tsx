@@ -7,12 +7,17 @@ import { PasswordRequirements } from '../ui/PasswordRequirements';
 import { ResetPasswordSchema } from '../lib/formValidationRules';
 import { ResetPassordInputs, ResetPasswordFormData } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
+import { resetPassword } from '../auth.api';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
+  setSuccess: React.Dispatch<React.SetStateAction<boolean>>;
+  setExpired: React.Dispatch<React.SetStateAction<boolean>>;
+  token: string;
 };
 
-export const ResetPasswordForm = ({ className }: FormProps) => {
+export const ResetPasswordForm = ({ className, setSuccess, setExpired, token }: FormProps) => {
   const { loading, setLoading } = useLoading();
 
   const {
@@ -30,7 +35,7 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
 
   const password = watch('password', '');
 
-  const changePassword: SubmitHandler<ResetPassordInputs> = async () => {
+  const changePassword: SubmitHandler<ResetPassordInputs> = async ({ password }) => {
     setLoading(true);
 
     setError('root', {
@@ -39,18 +44,28 @@ export const ResetPasswordForm = ({ className }: FormProps) => {
     });
 
     try {
-    } catch {
+      await resetPassword(token, password);
+      setSuccess(true);
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
+
+      if (status === 400) {
+        setExpired(true);
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form
-      noValidate
-      onSubmit={handleSubmit(changePassword)}
-      className={classNames('relative', className)}
-    >
+    <form onSubmit={handleSubmit(changePassword)} className={classNames('relative', className)}>
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-[10px]">
         <Input
           type="password"

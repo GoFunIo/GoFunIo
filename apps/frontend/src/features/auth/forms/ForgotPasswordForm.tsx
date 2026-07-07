@@ -6,6 +6,8 @@ import classNames from 'classnames';
 import { ForgotPasswordSchema } from '../lib/formValidationRules';
 import { ForgotPasswordFormData, ForgotPasswordInputs } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
+import { requestPasswordReset } from '../auth.api';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
@@ -27,7 +29,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     shouldFocusError: false,
   });
 
-  const resetPassword: SubmitHandler<ForgotPasswordInputs> = async () => {
+  const resetPassword: SubmitHandler<ForgotPasswordInputs> = async ({ email }) => {
     setLoading(true);
 
     setError('root', {
@@ -36,8 +38,23 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
     });
 
     try {
+      await requestPasswordReset(email);
       setSuccess(true);
-    } catch {
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
+
+      if (status === 429) {
+        setError('root', {
+          type: 'server',
+          message: 'Wysłano zbyt wiele żądań. Spróbuj ponownie za chwilę.',
+        });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -45,11 +62,7 @@ export const ForgotPasswordForm = ({ className, setSuccess }: FormProps) => {
 
   return (
     <form onSubmit={handleSubmit(resetPassword)} className={classNames('relative', className)}>
-      {errors.root?.message && (
-        <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
-          {errors.root.message}
-        </p>
-      )}
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <Input
         label="E-mail"
         placeholder="email@example.com"

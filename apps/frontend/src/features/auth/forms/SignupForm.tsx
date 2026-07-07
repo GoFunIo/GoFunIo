@@ -8,6 +8,7 @@ import { PasswordRequirements } from '../ui/PasswordRequirements';
 import { SignupSchema } from '../lib/formValidationRules';
 import { SignupFormData, SignupInputs } from '../types/FormTypes';
 import { useLoading } from '@/hooks/useLoading';
+import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
@@ -68,25 +69,14 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(createAccount)} className={classNames('relative', className)}>
-      {errors.root?.message && (
-        <p className="absolute top-[2px] w-full text-center text-[14px] font-medium text-alert">
-          {errors.root.message}
-        </p>
-      )}
-
+    <form onSubmit={handleSubmit(createAccount)} className={classNames('', className)}>
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-[10px]">
         <Input
           label="E-mail"
           placeholder="email@example.com"
           error={errors.email?.message}
           {...register('email')}
-          // {...register('email', {
-          //   onChange: () => {
-          //     clearErrors('root');
-          //     clearErrors('email');
-          //   },
-          // })}
         />
         <Input
           type="password"
@@ -94,12 +84,6 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
           placeholder="• • • • • • • •"
           error={errors.password?.message}
           {...register('password')}
-          // {...register('password', {
-          //   onChange: () => {
-          //     clearErrors('root');
-          //     clearErrors('password');
-          //   },
-          // })}
         />
         <Input
           type="password"
@@ -107,12 +91,6 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
           placeholder="• • • • • • • •"
           error={errors.passwordConfirm?.message}
           {...register('passwordConfirm')}
-          // {...register('passwordConfirm', {
-          //   onChange: () => {
-          //     clearErrors('root');
-          //     clearErrors('passwordConfirm');
-          //   },
-          // })}
         />
       </div>
 
