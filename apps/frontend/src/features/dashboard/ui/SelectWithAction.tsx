@@ -1,70 +1,101 @@
 import classNames from 'classnames';
-import { ArrowRight } from 'lucide-react';
-import { Select } from './Select';
-
-type Value = string | number | null;
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 type Option = {
-  id: number;
-  value: Value;
+  value: string | number;
   label: string;
+  disabled?: boolean;
 };
 
 type Props = {
   options: Option[];
-  value: Value;
-  onChange: (value: Value) => void;
+  value: string | number;
+  onChange: (value: string | number) => void;
   placeholder?: string;
-  clearOption?: boolean;
-  onAction: (value: Value) => void;
   className?: string;
 };
 
 export const SelectWithAction = ({
-  options,
+  options = [],
   value,
   onChange,
-  placeholder,
-  clearOption = true,
-  onAction,
+  placeholder = '-- Brak przypisania --',
   className,
 }: Props) => {
-  const isButtonActive = value !== null;
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement | null>(null);
 
-  const handleButtonClick = () => {
-    if (isButtonActive) {
-      onAction(value);
-    }
+  const selected = options.find((item) => String(item.value) === String(value));
+  const hasSavedValue = value !== undefined && value !== null && value !== 'none' && value !== '';
+
+  const handleSelect = (itemValue: string | number, isDisabled?: boolean) => {
+    if (isDisabled) return;
+    onChange(itemValue);
+    setIsOpen(false);
   };
 
-  const forcedSelectStyles = '!w-full !min-w-0 [&_input]:!w-full [&_input]:!min-w-0';
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
 
   return (
-    <div className={classNames('flex items-center gap-2 w-full', className)}>
-      <div className="flex-1 min-w-0">
-        <Select
-          options={options}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          clearOption={clearOption}
-          className={classNames('w-full', forcedSelectStyles)}
-        />
-      </div>
-
+    <div
+      className={classNames('relative w-full min-w-[250px] max-w-[320px]', className)}
+      ref={selectRef}
+    >
       <button
-        onClick={handleButtonClick}
-        disabled={!isButtonActive}
-        className={classNames(
-          'w-[35px] h-[35px] rounded-[3px] text-white flex items-center justify-center transition-all duration-150 shrink-0',
-          {
-            'bg-primary hover:bg-secondary cursor-pointer': isButtonActive,
-            'bg-primary opacity-60 cursor-not-allowed': !isButtonActive,
-          },
-        )}
+        type="button"
+        className="flex items-center justify-between cursor-pointer bg-bg-card border border-icon px-[14px] rounded-[3px] w-full h-[40px] outline-none text-content-primary focus:border-info custom-transition"
+        onClick={() => setIsOpen((prev) => !prev)}
       >
-        <ArrowRight size={18} />
+        <p
+          className={classNames('text-left text-[14px] truncate pr-4', {
+            'text-content-secondary font-semibold': hasSavedValue,
+            'text-icon': !hasSavedValue,
+          })}
+        >
+          {selected ? selected.label : placeholder}
+        </p>
+        <ChevronDown
+          size={16}
+          className={classNames('text-content-secondary custom-transition shrink-0', {
+            'rotate-180': isOpen,
+          })}
+        />
       </button>
+
+      {isOpen && (
+        <div className="scrollbar-dashboard overflow-y-auto max-h-[240px] flex flex-col gap-[4px] absolute mt-[6px] bg-bg-card border border-icon rounded-[3px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)] z-[99]">
+          {options.map((item, index) => {
+            const isCurrent = String(item.value) === String(value);
+
+            return (
+              <span
+                key={`${item.value}-${index}`}
+                onClick={() => handleSelect(item.value, item.disabled)}
+                className={classNames(
+                  'p-[8px] text-[14px] rounded-[3px] truncate text-left',
+                  item.disabled
+                    ? 'text-icon cursor-not-allowed bg-transparent'
+                    : 'cursor-pointer text-content-secondary hover:text-content-primary hover:bg-bg-section custom-transition',
+                  {
+                    'text-content-primary bg-bg-section font-medium': isCurrent && !item.disabled,
+                  },
+                )}
+              >
+                {item.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

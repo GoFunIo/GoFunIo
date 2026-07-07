@@ -1,15 +1,4 @@
-import {
-  Bell,
-  CarFront,
-  CreditCard,
-  History,
-  LayoutDashboard,
-  Settings,
-  Shield,
-  Users,
-  Warehouse,
-  Wrench,
-} from 'lucide-react';
+import { Bell, CarFront, History, LayoutDashboard, Settings, Wrench } from 'lucide-react';
 
 const baseRoute = '/dashboard';
 
@@ -45,37 +34,13 @@ export const sidebar = [
       href: `${baseRoute}/notifications`,
       icon: Bell,
     },
+  ],
+  [
     {
       id: 6,
       title: 'Ustawienia',
       href: `${baseRoute}/settings`,
       icon: Settings,
-    },
-  ],
-  [
-    {
-      id: 7,
-      title: 'Płatność',
-      href: `${baseRoute}/payments`,
-      icon: CreditCard,
-    },
-    {
-      id: 8,
-      title: 'Admin',
-      href: `${baseRoute}/admin`,
-      icon: Shield,
-    },
-    {
-      id: 9,
-      title: 'Użytkownicy',
-      href: `${baseRoute}/users`,
-      icon: Users,
-    },
-    {
-      id: 10,
-      title: 'Przypisanie pojazdów',
-      href: `${baseRoute}/vehicle-assignments`,
-      icon: Warehouse,
     },
   ],
 ];

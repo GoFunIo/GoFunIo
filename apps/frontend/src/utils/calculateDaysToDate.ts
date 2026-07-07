@@ -1,14 +1,10 @@
 export interface DateDiffResult {
-  days: number; // Różnica w dniach (może być ujemna, jeśli termin minął)
-  absDays: number; // Zawsze dodatnia liczba dni (do wyświetlenia na kafelku)
-  isPast: boolean; // Czy termin już minął (dzisiejszy dzień to nadal false)
-  text: string; // Gotowy, sformatowany tekst po polsku
+  days: number;
+  absDays: number;
+  isPast: boolean;
+  text: string;
 }
 
-/**
- * Funkcja oblicza różnicę dni między dniem dzisiejszym a datą docelową.
- * @param dateString Data w formacie "YYYY-MM-DD"
- */
 export const calculateDaysToDate = (dateString: string): DateDiffResult => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

@@ -3,11 +3,11 @@ import { Check } from 'lucide-react';
 
 interface Plan {
   name: string;
-  description: string;
+  description?: string;
   price: { monthly: number; yearly: number };
   buttonText: string;
   features: string[];
-  highlight: boolean;
+  highlight?: boolean;
 }
 
 interface PricingDashboardCardProps {
@@ -16,69 +16,30 @@ interface PricingDashboardCardProps {
 }
 
 export const PricingDashboardCard = ({ plan, billingCycle }: PricingDashboardCardProps) => {
-  const isPro = plan.highlight;
-
   return (
-    <div
-      className={`group relative px-8 py-10 rounded-[15px] flex flex-col transition-all duration-300 border shadow-card h-full
-        ${
-          isPro
-            ? 'bg-primary text-white border-secondary lg:scale-y-105 z-10 hover:shadow-hover hover:-translate-y-1'
-            : 'bg-bg-card text-content-primary border-transparent hover:shadow-hover hover:border-secondary hover:bg-bg-section hover:-translate-y-1'
-        }
-      `}
-    >
+    <div className="group relative px-8 py-8 rounded-[15px] flex flex-col transition-all duration-300 border border-icon shadow-card h-full bg-bg-card">
       <div className="flex flex-col flex-1">
-        <div className="mb-6">
-          <h4
-            className={`mb-4 ${isPro ? 'text-white' : 'text-content-primary group-hover:text-primary'}`}
-          >
-            {plan.name}
-          </h4>
-          <p
-            className={`${isPro ? 'text-white/80' : 'text-content-secondary'} text-[14px] leading-relaxed`}
-          >
-            {plan.description}
-          </p>
-        </div>
+        <h4 className="mb-4 text-content-primary">{plan.name}</h4>
 
         <div className="mb-6 flex items-baseline gap-1">
-          <span className="text-5xl font-black tracking-tight">
+          <span className="text-5xl text-content-primary font-bold tracking-tight">
             {billingCycle === 'monthly' ? plan.price.monthly : plan.price.yearly}
           </span>
-          <span className="text-xl font-bold">PLN</span>
-          <span className={`text-[14px] ml-1 ${isPro ? 'text-white/70' : 'text-content-muted'}`}>
+          <span className="text-xl font-bold text-content-primary">PLN</span>
+          <span className="text-[14px] ml-1 text-content-secondary">
             /{billingCycle === 'monthly' ? 'miesiąc' : 'rok'}
           </span>
         </div>
 
-        <Button
-          className={`w-full rounded-[7px] mb-8 ${
-            isPro ? 'bg-white! text-primary! hover:bg-bg-page!' : ''
-          }`}
-        >
-          {plan.buttonText}
-        </Button>
+        <Button className={`w-full rounded-[7px] mb-8 `}>{plan.buttonText}</Button>
 
-        <ul className="space-y-4 mt-auto border-t border-icon/20 pt-6">
+        <ul className="space-y-4 mt-auto ">
           {plan.features.map((feature, idx) => (
             <li key={idx} className="flex items-start gap-3">
-              <div
-                className={`flex-shrink-0 w-5 h-5 rounded-[3px] flex items-center justify-center ${
-                  isPro ? 'bg-white' : 'bg-primary'
-                }`}
-              >
-                <Check
-                  size={14}
-                  strokeWidth={3}
-                  className={isPro ? 'text-primary' : 'text-white'}
-                />
+              <div className="flex-shrink-0 w-5 h-5 rounded-[3px] flex items-center justify-center bg-primary">
+                <Check size={14} strokeWidth={3} className="text-white" />
               </div>
-              <span
-                className={`text-[14px] leading-[18px] ${isPro ? 'text-white/90' : 'text-content-secondary'}`}
-              >
-                {feature}
-              </span>
+              <span className="text-[14px] leading-[18px] text-content-secondary">{feature}</span>
             </li>
           ))}
         </ul>

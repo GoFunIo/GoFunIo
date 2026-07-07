@@ -9,6 +9,7 @@ type Props = {
   onChange: (value: Date | undefined) => void;
   placeholder?: string;
   className?: string;
+  isRenewalMode?: boolean;
 };
 
 const formatWeekdayName = (date: Date) => {
@@ -16,7 +17,13 @@ const formatWeekdayName = (date: Date) => {
   return days[date.getDay() === 0 ? 6 : date.getDay() - 1];
 };
 
-export const DatePicker = ({ value, onChange, placeholder = 'dd.mm.rrrr', className }: Props) => {
+export const DatePicker = ({
+  value,
+  onChange,
+  placeholder = 'dd.mm.rrrr',
+  className,
+  isRenewalMode = false,
+}: Props) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,14 +60,16 @@ export const DatePicker = ({ value, onChange, placeholder = 'dd.mm.rrrr', classN
           )}
           onClick={() => setIsOpen((prev) => !prev)}
         />
-        <ChevronUp
-          size={20}
-          className={classNames('absolute right-2 text-content-secondary', {
-            'rotate-180': isOpen,
-          })}
-        />
+        {!isRenewalMode && (
+          <ChevronUp
+            size={20}
+            className={classNames('absolute right-2 text-content-secondary transition-transform', {
+              'rotate-180': isOpen,
+            })}
+          />
+        )}
       </div>
-      {isOpen && (
+      {!isRenewalMode && isOpen && (
         <div className="z-99 flex flex-col gap-[4px] absolute top-[50px] bg-bg-card border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
           <DayPicker
             mode="single"

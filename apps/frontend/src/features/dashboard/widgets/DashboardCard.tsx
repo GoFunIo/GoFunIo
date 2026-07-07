@@ -28,7 +28,18 @@ export const DashboardCard = ({
     displayValue = text;
 
     if (isPast) {
-      displayTitle = 'Termin minął:';
+      const lowerTitle = title.toLowerCase();
+
+      if (lowerTitle.includes('przegląd')) {
+        displayTitle = 'Termin przeglądu minął:';
+      } else if (lowerTitle.includes('oc')) {
+        displayTitle = 'Termin OC minął:';
+      } else if (lowerTitle.includes('ac')) {
+        displayTitle = 'Termin AC minął:';
+      } else {
+        displayTitle = `Termin ${lowerTitle} minął:`;
+      }
+
       variant = 'alert';
       showAlertIcon = true;
     } else {
@@ -69,7 +80,7 @@ export const DashboardCard = ({
         </span>
 
         <div className="flex items-center gap-6 mb-1.5">
-          <span className="text-[30px] font-bold leading-none tracking-tight">{displayValue}</span>
+          <span className="text-[28px] font-bold leading-none tracking-tight">{displayValue}</span>
           {showAlertIcon && (
             <TriangleAlert size={22} className="text-alert shrink-0" strokeWidth={2} />
           )}

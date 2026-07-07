@@ -1,9 +1,8 @@
 import classNames from 'classnames';
-import { BlockWrapper } from '../ui/BlockWrapper';
 import { BoardButton } from '../ui/BoardButton';
-import { AlertTriangle } from 'lucide-react';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
+import { AlertTriangle } from 'lucide-react';
 
 export interface CarReminderItem {
   id: number;
@@ -16,13 +15,12 @@ export interface CarReminderItem {
 }
 
 type Props = {
-  title: string;
   data?: CarReminderItem[];
-  className?: string;
   onRenewCar?: (id: number) => void;
+  filterType?: 'inspection' | 'insurance';
 };
 
-export const Reminders = ({ title, data = [], className, onRenewCar }: Props) => {
+export const Reminders = ({ data = [], onRenewCar, filterType }: Props) => {
   const activeReminders = data
     .flatMap((car) => {
       const inspection = calculateDaysToDate(car.technicalInspectionExpiry);
@@ -30,13 +28,31 @@ export const Reminders = ({ title, data = [], className, onRenewCar }: Props) =>
       const ac = calculateDaysToDate(car.acExpiry);
 
       const carAlerts = [
-        { type: 'Przegląd techniczny', ...inspection },
-        { type: 'Ubezpieczenie OC', ...oc },
-        { type: 'Ubezpieczenie AC', ...ac },
+        {
+          type: 'Przegląd techniczny',
+          days: inspection.days,
+          isPast: inspection.isPast,
+          text: inspection.text,
+        },
+        { type: 'Ubezpieczenie OC', days: oc.days, isPast: oc.isPast, text: oc.text },
+        { type: 'Ubezpieczenie AC', days: ac.days, isPast: ac.isPast, text: ac.text },
       ];
 
       return carAlerts
-        .filter((alert) => alert.days <= 60 || alert.isPast)
+        .filter((alert) => alert.days <= 30 || alert.isPast)
+        .filter((alert) => {
+          if (!filterType) return true;
+
+          if (filterType === 'inspection') {
+            return alert.type === 'Przegląd techniczny';
+          }
+
+          if (filterType === 'insurance') {
+            return alert.type === 'Ubezpieczenie OC' || alert.type === 'Ubezpieczenie AC';
+          }
+
+          return true;
+        })
         .map((alert) => ({
           id: `${car.id}-${alert.type}`,
           carId: car.id,
@@ -49,15 +65,11 @@ export const Reminders = ({ title, data = [], className, onRenewCar }: Props) =>
         }));
     })
 
-    .sort((a, b) => a.days - b.days);
+    .sort((a, b) => a.days - b.days)
+    .slice(0, 5);
 
   return (
-    <BlockWrapper className={classNames('h-fit', className)}>
-      <div className="flex gap-[10px] items-center mb-6">
-        <AlertTriangle className="text-alert" size={24} />
-        <h4 className="text-[18px] font-bold text-content-primary">{title}</h4>
-      </div>
-
+    <>
       {activeReminders.length === 0 ? (
         <EmptyPlaceholder title="Brak pilnych przypomnień" className="min-h-[240px] " />
       ) : (
@@ -67,7 +79,7 @@ export const Reminders = ({ title, data = [], className, onRenewCar }: Props) =>
             const isWarning = item.days > 7 && item.days <= 30;
 
             const badgeText = item.isPast
-              ? 'Przeterminowane'
+              ? 'Po terminie'
               : isCritical
                 ? 'Krytyczne'
                 : 'Nadchodzące';
@@ -76,7 +88,7 @@ export const Reminders = ({ title, data = [], className, onRenewCar }: Props) =>
               <div
                 key={item.id}
                 className={classNames(
-                  'gap-[16px] grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 items-start p-[15px] border-l-[5px] border-r-[1px] border-t-[1px] border-b-[1px] rounded-[7px]  transition-colors dark:bg-bg-card',
+                  'flex flex-col sm:flex-row md:items-center md:justify-between gap-4 p-[15px] border-l-[5px] rounded-[7px] transition-colors dark:bg-bg-card ',
                   {
                     'border-alert': isCritical,
                     'border-warning': isWarning,
@@ -89,47 +101,50 @@ export const Reminders = ({ title, data = [], className, onRenewCar }: Props) =>
                   },
                 )}
               >
-                <div className="">
-                  <p className="mb-2 text-[14px] text-content-primary font-bold">
+                <div className="flex flex-col">
+                  <p className="mb-1 text-[14px] text-content-primary font-bold">
                     {item.carName}
-                    <span className="text-content-secondary font-normal"> ({item.plate})</span>
+                    <span className="text-[12px] text-content-secondary font-normal">
+                      {'  ·  '} {item.plate}
+                    </span>
                   </p>
                   <p className="text-[12px] text-content-secondary">
-                    {item.type} — {item.isPast ? 'minął' : 'termin za'} {item.text}
+                    {item.type} {'  ·  '}
+                    {item.text.toLowerCase() === 'dzisiaj'
+                      ? 'termin mija dzisiaj'
+                      : `${item.isPast ? 'termin minął' : 'termin za'} ${item.text}`}
                   </p>
                 </div>
 
-                <p
-                  className={classNames(
-                    'lg:order-none md:order-2 order-0 text-[12px] font-semibold text-white rounded-[3px] h-[30px] min-w-[120px] w-fit flex items-center justify-center transition-colors',
-                    {
-                      'bg-alert': isCritical,
-                      'bg-warning': isWarning,
-                      'bg-info': !isCritical && !isWarning,
-                    },
-                  )}
-                >
-                  {badgeText}
-                </p>
+                <div className=" flex gap-4 items-center shrink-0 sm: justify-between">
+                  <div className="flex gap-4 items-center">
+                    {isCritical && <AlertTriangle className="text-alert shrink-0" size={25} />}
+                    <p
+                      className={classNames(
+                        'text-[12px] font-semibold text-white rounded-[3px] h-[30px] min-w-[100px] w-fit flex items-center justify-center transition-colors',
+                        {
+                          'bg-alert': isCritical,
+                          'bg-warning': isWarning,
+                          'bg-info': !isCritical && !isWarning,
+                        },
+                      )}
+                    >
+                      {badgeText}
+                    </p>
+                  </div>
 
-                <div className="md:ml-auto flex gap-[16px]">
-                  {/* <BoardButton
-                    onClick={() => {}}
-                    size="small"
-                    variant="outline"
-                    className="dark:text-white dark:bg-bg-section"
-                  >
-                    Ignoruj
-                  </BoardButton> */}
-                  <BoardButton onClick={() => onRenewCar?.(item.carId)} size="small">
-                    Odnów
-                  </BoardButton>
+                  <BoardButton
+                    onClick={() => onRenewCar?.(item.carId)}
+                    size="square"
+                    icon="refresh"
+                    variant="default"
+                  ></BoardButton>
                 </div>
               </div>
             );
           })}
         </div>
       )}
-    </BlockWrapper>
+    </>
   );
 };

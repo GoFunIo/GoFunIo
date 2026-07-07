@@ -107,64 +107,73 @@ export const History = ({
         />
       ) : (
         <div className=" flex flex-col gap-[16px]">
-          {data.map((item) => {
-            const IconComponent = activityIcons[item.serviceType] || HelpCircle;
+          <div className="flex flex-col gap-4 mb-4">
+            {data.map((item) => {
+              const IconComponent = activityIcons[item.serviceType] || HelpCircle;
+              const baseLabel = serviceTypeLabels[item.serviceType] || 'Inna aktywność';
+              const displayTitle =
+                item.serviceType === 'other' && item.notes
+                  ? `${baseLabel}: ${item.notes.toLowerCase()}`
+                  : baseLabel;
 
-            return (
-              <div
-                className="not-last:pb-[10px] flex gap-[16px] not-last:border-b not-last:border-icon items-center justify-between"
-                key={item.id}
-              >
-                <div className="flex gap-[16px] items-start">
-                  <IconWrapper className="bg-info-bg text-info shrink-0 rounded-[6px] mt-0.5">
-                    <IconComponent size={20} strokeWidth={2} />
+              return (
+                <div
+                  className=" flex flex-row gap-3 sm:gap-[16px] not-last:pb-[16px] not-last:border-b not-last:border-icon sm:items-center w-full"
+                  key={item.id}
+                >
+                  <IconWrapper className="bg-info-bg text-info shrink-0 rounded-[3px] p-2 ">
+                    <IconComponent size={18} strokeWidth={2.2} />
                   </IconWrapper>
 
-                  <div>
-                    <p className="text-content-primary text-[14px] font-medium">
-                      {item.notes || 'Brak opisu'}
-                    </p>
-                    <p className="text-[12px] text-content-secondary">
-                      {item.car} · {item.serviceDate}
-                    </p>
+                  <div className="flex flex-col md:flex-row gap-4  md:items-center justify-between w-full min-w-0">
+                    <div>
+                      <p className="text-content-primary text-[14px] font-medium leading-tight mb-[2px]">
+                        {displayTitle}
+                      </p>
+                      <p className="text-[12px] text-content-secondary ">
+                        {item.car} · {item.serviceDate}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-row justify-between items-center gap-4">
+                      <div className="sm:text-right sm:ml-auto flex flex-col sm:justify-center">
+                        <p className="text-content-primary font-bold text-[14px]">
+                          {item.cost.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł
+                        </p>
+                        <p className="text-[12px] text-content-secondary mt-0.5 sm:mt-0">
+                          {item.servicePlace}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 shrink-0 ">
+                        {onEditClick && (
+                          <button
+                            onClick={() => onEditClick(item)}
+                            className=" text-content-secondary hover:text-primary cursor-pointer"
+                            title="Edytuj wpis"
+                          >
+                            <Pencil size={14} strokeWidth={2.5} />
+                          </button>
+                        )}
+
+                        {onDeleteClick && (
+                          <button
+                            onClick={() => onDeleteClick(item)}
+                            className="text-content-secondary hover:text-alert cursor-pointer"
+                            title="Usuń wpis"
+                          >
+                            <Trash2 size={14} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                <div className="flex items-center gap-4 ml-auto">
-                  <div className="text-right">
-                    <p className="text-content-primary font-bold text-[14px]">
-                      {item.cost.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł
-                    </p>
-                    <p className="text-[12px] text-content-secondary">{item.servicePlace}</p>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {onEditClick && (
-                      <button
-                        onClick={() => onEditClick(item)}
-                        className="p-1.5 rounded-md text-content-secondary hover:text-primary hover:bg-background-secondary transition-colors"
-                        title="Edytuj wpis"
-                      >
-                        <Pencil size={14} strokeWidth={2.5} />
-                      </button>
-                    )}
-
-                    {onDeleteClick && (
-                      <button
-                        onClick={() => onDeleteClick(item)}
-                        className="p-1.5 rounded-md text-content-secondary hover:text-danger hover:bg-danger/10 transition-colors"
-                        title="Usuń wpis"
-                      >
-                        <Trash2 size={14} strokeWidth={2.5} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          <Pagination className="mt-[18px]" />
+          <Pagination className="mt-4" />
         </div>
       )}
     </BlockWrapper>
