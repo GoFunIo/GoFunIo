@@ -21,6 +21,10 @@ function postgresSsl(): { rejectUnauthorized: false } | undefined {
 
 export function buildTypeOrmOptions(): TypeOrmModuleOptions {
   if (usePostgres()) {
+    const schema =
+      process.env.NODE_ENV === 'test'
+        ? process.env.DATABASE_SCHEMA?.trim()
+        : undefined;
     return {
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -29,6 +33,12 @@ export function buildTypeOrmOptions(): TypeOrmModuleOptions {
       ssl: postgresSsl(),
       migrations: [join(__dirname, '..', 'migrations', '*.{js,ts}')],
       migrationsRun: process.env.RUN_MIGRATIONS === 'true',
+      ...(schema
+        ? {
+            schema,
+            extra: { options: `-c search_path=${schema},public` },
+          }
+        : {}),
     };
   }
 

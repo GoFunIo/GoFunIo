@@ -32,6 +32,7 @@ export class CurrentUserInterceptor implements NestInterceptor {
       if (!user) {
         session.userId = null;
         session.passwordVersion = null;
+        delete (session as { user?: unknown }).user;
         return next.handle();
       }
 
@@ -39,6 +40,7 @@ export class CurrentUserInterceptor implements NestInterceptor {
       if (sessionVersion !== user.passwordVersion) {
         session.userId = null;
         session.passwordVersion = null;
+        delete (session as { user?: unknown }).user;
         return next.handle();
       }
 

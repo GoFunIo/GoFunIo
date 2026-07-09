@@ -58,6 +58,7 @@ export class UsersController {
   signout(@Session() session: SessionData): void {
     session.userId = null;
     session.passwordVersion = null;
+    delete (session as { user?: unknown }).user;
   }
 
   @Get('me')
