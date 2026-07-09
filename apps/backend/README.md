@@ -44,12 +44,28 @@ pnpm dev:backend
 
 `DATABASE_URL` in `.env.example` points at the Docker Postgres on `localhost:5432`.
 
-## Dev email (Mailtrap)
+## Email
 
-1. Copy [`.env.example`](./.env.example) to `.env` and set `COOKIE_KEY`, `FRONTEND_URL` (must match your frontend origin, e.g. `http://localhost:5173`).
-2. In [Mailtrap](https://mailtrap.io) → **Email Testing** → pick an inbox → **SMTP** → use host `smtp.mailtrap.io`, port **587**, and the **username / password** shown there as `MAIL_USER` and `MAIL_PASS`.
-3. Set `MAIL_FROM` to any sender string you like (Mailtrap accepts it for testing).
-4. Run `pnpm run start:dev`. Signup or **resend verification** delivers messages to that Mailtrap inbox; links use `FRONTEND_URL` + `/verify-email?token=…`.
+Copy [`.env.example`](./.env.example) to `.env` and set `COOKIE_KEY`, `FRONTEND_URL` (must match your frontend origin, e.g. `http://localhost:5173`).
+
+### Local dev (Mailtrap)
+
+1. In [Mailtrap](https://mailtrap.io) → **Email Testing** → pick an inbox → **SMTP**.
+2. Set `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=587`, and the inbox username/password as `MAIL_USER` / `MAIL_PASS`.
+3. `MAIL_FROM` can be any string (Mailtrap accepts it for testing).
+4. Run `pnpm run start:dev`. Signup, **resend verification**, and **forgot password** deliver to that Mailtrap inbox.
+
+### Staging / production (Resend)
+
+1. Create a [Resend](https://resend.com) account and **verify your sending domain** (required — no shared sender).
+2. Create an API key and set:
+   - `MAIL_HOST=smtp.resend.com`
+   - `MAIL_PORT=465`
+   - `MAIL_USER=resend` (literal string)
+   - `MAIL_PASS=re_…` (your API key)
+   - `MAIL_FROM="GoFunIo <no-reply@yourdomain.com>"` (must use the verified domain)
+3. No code changes needed — existing nodemailer SMTP transport works with Resend relay.
+4. Check delivery in the Resend dashboard **Emails** tab.
 
 ## Compile and run the project
 

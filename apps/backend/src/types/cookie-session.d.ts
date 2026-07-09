@@ -3,7 +3,7 @@ import 'cookie-session';
 declare global {
   namespace CookieSessionInterfaces {
     interface CookieSessionObject {
-      userId?: number | null;
+      userId?: string | null;
       passwordVersion?: number | null;
     }
   }

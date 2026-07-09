@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
 import { randomBytes, scrypt as _scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
-import { QueryFailedError } from 'typeorm';
 import {
   generateVerificationToken,
   hashVerificationToken,
@@ -21,6 +21,8 @@ import {
   PASSWORD_RESET_REQUESTED_EVENT,
   PasswordResetRequestedEvent,
 } from './events/password-reset-requested.event';
+import { Company } from '../companies/companies.entity';
+import { User, UserRole } from './users.entity';
 
 const scrypt = promisify(_scrypt);
 const SALT_BYTES = 16;
@@ -49,6 +51,7 @@ export class AuthService {
     private usersService: UsersService,
     private eventEmitter: EventEmitter2,
     private config: ConfigService,
+    private dataSource: DataSource,
   ) {}
 
   async signup(email: string, password: string, origin?: string) {
@@ -60,11 +63,23 @@ export class AuthService {
     );
     const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
 
-    let user;
+    let user: User;
     try {
-      user = await this.usersService.create(email, result, {
-        verificationTokenHash: tokenHash,
-        verificationTokenExpiresAt: expiresAt,
+      user = await this.dataSource.transaction(async (manager) => {
+        // placeholder until company profile filled in settings
+        const company = manager.create(Company, { name: 'Moja firma' });
+        const savedCompany = await manager.save(company);
+
+        const newUser = manager.create(User, {
+          companyId: savedCompany.id,
+          email,
+          password: result,
+          role: UserRole.ADMIN,
+          verificationTokenHash: tokenHash,
+          verificationTokenExpiresAt: expiresAt,
+        });
+
+        return manager.save(newUser);
       });
     } catch (err) {
       if (isUniqueViolation(err)) {
@@ -82,7 +97,7 @@ export class AuthService {
   }
 
   async signin(email: string, password: string) {
-    const [user] = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findOneByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -100,9 +115,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.isVerified) {
+    if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('Email not verified');
     }
+
+    await this.usersService.update(user.id, { lastLoginAt: new Date() });
 
     return user;
   }
@@ -114,7 +131,7 @@ export class AuthService {
 
     if (
       !user ||
-      user.isVerified ||
+      user.emailVerifiedAt ||
       !user.verificationTokenExpiresAt ||
       user.verificationTokenExpiresAt.getTime() < Date.now()
     ) {
@@ -122,15 +139,15 @@ export class AuthService {
     }
 
     await this.usersService.update(user.id, {
-      isVerified: true,
+      emailVerifiedAt: new Date(),
       verificationTokenHash: null,
       verificationTokenExpiresAt: null,
     });
   }
 
   async resendVerification(email: string, origin?: string): Promise<void> {
-    const [user] = await this.usersService.findByEmail(email);
-    if (!user || user.isVerified) {
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user || user.emailVerifiedAt) {
       return;
     }
 
@@ -152,8 +169,8 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string, origin?: string): Promise<void> {
-    const [user] = await this.usersService.findByEmail(email);
-    // ponytail: silent no-op for missing email (anti-enumeration); verified + unverified allowed
+    const user = await this.usersService.findOneByEmail(email);
+    // silent no-op for missing email (anti-enumeration); verified + unverified allowed
     if (!user) {
       return;
     }

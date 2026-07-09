@@ -1,5 +1,6 @@
 import { join } from 'path';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { Company } from '../companies/companies.entity';
 import { User } from '../users/users.entity';
 
 function usePostgres(): boolean {
@@ -23,7 +24,7 @@ export function buildTypeOrmOptions(): TypeOrmModuleOptions {
     return {
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [User],
+      entities: [User, Company],
       synchronize: false,
       ssl: postgresSsl(),
       migrations: [join(__dirname, '..', 'migrations', '*.{js,ts}')],
@@ -34,7 +35,7 @@ export function buildTypeOrmOptions(): TypeOrmModuleOptions {
   return {
     type: 'sqlite',
     database: process.env.DATABASE_PATH ?? 'db.sqlite',
-    entities: [User],
+    entities: [User, Company],
     synchronize: process.env.NODE_ENV !== 'production',
   };
 }

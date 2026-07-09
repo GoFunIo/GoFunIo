@@ -1,0 +1,312 @@
+Table companies {
+  id uuid [pk]
+  name varchar(255) [not null]
+  email varchar(255)
+  phone varchar(50)
+  taxId varchar(50)
+  address text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table users {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  email varchar(255) [not null]
+  password varchar(255) [not null]
+  first_name varchar(100)
+  last_name varchar(100)
+  role user_role [not null]
+  email_verified_at timestamp
+  last_login_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (email) [unique]
+  }
+}
+
+Enum user_role {
+  ADMIN
+  MANAGER
+}
+
+Table vehicles {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+
+  brand varchar(100) [not null]
+  model varchar(100) [not null]
+  plate_number varchar(30) [not null]
+  vin varchar(17)
+  production_year int
+  fuel_type fuel_type
+  current_mileage int
+  purchase_date date
+  notes text
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (company_id)
+    (company_id, plate_number)
+    (company_id, vin)
+  }
+}
+
+Enum fuel_type {
+  PETROL
+  DIESEL
+  LPG
+  HYBRID
+  ELECTRIC
+  HYDROGEN
+  OTHER
+}
+
+Table manager_vehicle_assignments {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  manager_id uuid [not null, ref: > users.id]
+  vehicle_id uuid [not null, ref: > vehicles.id]
+  created_at timestamp [not null]
+
+  indexes {
+    (manager_id, vehicle_id) [unique]
+    (company_id, manager_id)
+    (company_id, vehicle_id)
+  }
+}
+
+Table drivers {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255)
+  phone varchar(50)
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (company_id)
+  }
+}
+
+Table driver_vehicle_assignments {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  driver_id uuid [not null, ref: > drivers.id]
+  vehicle_id uuid [not null, ref: > vehicles.id]
+  assigned_from date
+  assigned_to date
+  created_at timestamp [not null]
+
+  indexes {
+    (company_id, driver_id)
+    (company_id, vehicle_id)
+  }
+}
+
+Table service_entries {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  vehicle_id uuid [not null, ref: > vehicles.id]
+  created_by_user_id uuid [ref: > users.id]
+
+  service_date date [not null]
+  type service_type [not null]
+  cost decimal(10,2)
+  currency varchar(3) [not null]
+  service_place varchar(255)
+  mileage int
+  notes text
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (company_id, vehicle_id, service_date)
+    (company_id, service_date)
+  }
+}
+
+Enum service_type {
+  TECHNICAL_INSPECTION
+  OIL_CHANGE
+  REPAIR
+  SERVICE
+  OC_PURCHASE
+  AC_PURCHASE
+  OTHER
+}
+
+Table service_attachments {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  service_entry_id uuid [not null, ref: > service_entries.id]
+
+  file_name varchar(255) [not null]
+  storage_key text [not null]
+  public_url text
+  mime_type varchar(100)
+  file_size int
+
+  created_at timestamp [not null]
+
+  indexes {
+    (company_id, service_entry_id)
+  }
+}
+
+Table vehicle_deadlines {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  vehicle_id uuid [not null, ref: > vehicles.id]
+  source_service_entry_id uuid [ref: > service_entries.id]
+
+  type deadline_type [not null]
+  title varchar(255)
+  due_date date [not null]
+  status deadline_status [not null]
+  notes text
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (company_id, vehicle_id, due_date)
+    (company_id, due_date)
+    (company_id, type, due_date)
+  }
+}
+
+Enum deadline_type {
+  OC
+  AC
+  TECHNICAL_INSPECTION
+  OIL_CHANGE
+  SERVICE
+  LEASING
+  VIGNETTE
+  TIRES_CHANGE
+  OTHER
+}
+
+Enum deadline_status {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+Table notification_rules {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  vehicle_id uuid [ref: > vehicles.id]
+
+  deadline_type deadline_type
+  days_before int [not null]
+  channel notification_channel [not null]
+  enabled boolean [not null]
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (company_id)
+    (company_id, vehicle_id)
+  }
+}
+
+Enum notification_channel {
+  EMAIL
+}
+
+Table notification_jobs {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  vehicle_id uuid [not null, ref: > vehicles.id]
+  deadline_id uuid [not null, ref: > vehicle_deadlines.id]
+  notification_rule_id uuid [ref: > notification_rules.id]
+
+  channel notification_channel [not null]
+  recipient_email varchar(255) [not null]
+  subject varchar(255) [not null]
+  body text
+
+  send_at timestamp [not null]
+  status notification_status [not null]
+  sent_at timestamp
+  failed_at timestamp
+  failure_reason text
+  retry_count int [not null]
+
+  created_at timestamp [not null]
+
+  indexes {
+    (company_id, status, send_at)
+    (company_id, vehicle_id)
+    (deadline_id)
+  }
+}
+
+Enum notification_status {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+Table subscriptions {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  plan subscription_plan [not null]
+  status subscription_status [not null]
+  trial_ends_at timestamp
+  current_period_ends_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Enum subscription_plan {
+  FREE
+  BASIC
+  PRO
+  FLEET
+}
+
+Enum subscription_status {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+Table audit_logs {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  actor_user_id uuid [ref: > users.id]
+
+  action varchar(100) [not null]
+  entity_type varchar(100) [not null]
+  entity_id uuid [not null]
+
+  old_values jsonb
+  new_values jsonb
+
+  created_at timestamp [not null]
+
+  indexes {
+    (company_id, created_at)
+    (company_id, entity_type, entity_id)
+  }
+}

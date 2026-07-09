@@ -13,7 +13,7 @@ export class AddPasswordVersionToUsers1745000000002 implements MigrationInterfac
       }),
     );
 
-    // ponytail: fix drift if 1745000000001 ran with timestamp before timestamptz change
+    // fix drift if 1745000000001 ran with timestamp before timestamptz change
     await queryRunner.query(
       `ALTER TABLE "users" ALTER COLUMN "passwordResetTokenExpiresAt" TYPE timestamptz USING "passwordResetTokenExpiresAt" AT TIME ZONE 'UTC'`,
     );

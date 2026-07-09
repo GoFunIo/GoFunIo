@@ -1,5 +1,6 @@
 import { resolve } from 'path';
 import { DataSource } from 'typeorm';
+import { Company } from './companies/companies.entity';
 import { User } from './users/users.entity';
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -18,7 +19,7 @@ export default new DataSource({
   type: 'postgres',
   url: databaseUrl,
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-  entities: [User],
+  entities: [User, Company],
   migrations: [resolve(__dirname, 'migrations', '*.{ts,js}')],
   synchronize: false,
 });

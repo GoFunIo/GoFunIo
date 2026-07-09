@@ -10,33 +10,17 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(email: string): Promise<User[]> {
-    return this.usersRepository.find({ where: { email } });
-  }
-
-  async findOneById(id: number): Promise<User | null> {
+  async findOneById(id: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async findByEmail(email: string): Promise<User[]> {
-    return this.usersRepository.findBy({ email });
+  async findOneByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findOneBy({ email });
   }
 
-  async create(
-    email: string,
-    password: string,
-    extra: Partial<
-      Pick<
-        User,
-        | 'verificationTokenHash'
-        | 'verificationTokenExpiresAt'
-        | 'passwordResetTokenHash'
-        | 'passwordResetTokenExpiresAt'
-      >
-    > = {},
-  ): Promise<User> {
-    const user = this.usersRepository.create({ email, password, ...extra });
-    return this.usersRepository.save(user);
+  async create(user: Partial<User>): Promise<User> {
+    const entity = this.usersRepository.create(user);
+    return this.usersRepository.save(entity);
   }
 
   async findOneByVerificationTokenHash(hash: string): Promise<User | null> {
@@ -70,7 +54,7 @@ export class UsersService {
     return (result.affected ?? 0) > 0;
   }
 
-  async update(id: number, attrs: Partial<User>): Promise<User> {
+  async update(id: string, attrs: Partial<User>): Promise<User> {
     const user = await this.findOneById(id);
 
     if (!user) {
@@ -81,13 +65,13 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const user = await this.findOneById(id);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    await this.usersRepository.remove(user);
+    await this.usersRepository.softDelete(id);
   }
 }
