@@ -78,6 +78,10 @@ export class EnvVars {
   /** Run pending TypeORM migrations on app startup (staging/production). */
   @IsOptional()
   RUN_MIGRATIONS?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  GOOGLE_CLIENT_ID!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {

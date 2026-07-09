@@ -21,6 +21,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     companyId: 'company-1',
     email: 'test@example.com',
     password: 'salt.hash',
+    googleId: null,
     firstName: null,
     lastName: null,
     role: UserRole.ADMIN,
@@ -46,6 +47,7 @@ describe('UsersController', () => {
       AuthService,
       | 'signup'
       | 'signin'
+      | 'signInWithGoogle'
       | 'verifyEmail'
       | 'resendVerification'
       | 'requestPasswordReset'
@@ -57,6 +59,7 @@ describe('UsersController', () => {
     authService = {
       signup: jest.fn(),
       signin: jest.fn(),
+      signInWithGoogle: jest.fn(),
       verifyEmail: jest.fn(),
       resendVerification: jest.fn(),
       requestPasswordReset: jest.fn(),
@@ -115,6 +118,24 @@ describe('UsersController', () => {
       expect(authService.signin).toHaveBeenCalledWith(user.email, 'secret');
       expect(session.userId).toBe(user.id);
       expect(session.passwordVersion).toBe(3);
+      expect(result).toBe(user);
+    });
+  });
+
+  describe('googleSignIn', () => {
+    it('delegates to AuthService and stores user in session', async () => {
+      const user = makeUser({ passwordVersion: 4, password: null });
+      authService.signInWithGoogle.mockResolvedValue(user);
+      const session = {} as SessionData;
+
+      const result = await controller.googleSignIn(
+        { credential: 'google-id-token' },
+        session,
+      );
+
+      expect(authService.signInWithGoogle).toHaveBeenCalledWith('google-id-token');
+      expect(session.userId).toBe(user.id);
+      expect(session.passwordVersion).toBe(4);
       expect(result).toBe(user);
     });
   });

@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
 import { randomBytes, scrypt as _scrypt, timingSafeEqual } from 'crypto';
@@ -37,6 +39,12 @@ function isUniqueViolation(err: unknown): boolean {
   if (!(err instanceof QueryFailedError)) return false;
   const code = (err.driverError as { code?: string } | undefined)?.code;
   return code != null && UNIQUE_VIOLATION_CODES.has(code);
+}
+
+function canAutoLinkGoogleAccount(payload: TokenPayload): boolean {
+  return Boolean(
+    payload.email?.toLowerCase().endsWith('@gmail.com') || payload.hd,
+  );
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -99,7 +107,7 @@ export class AuthService {
   async signin(email: string, password: string) {
     const user = await this.usersService.findOneByEmail(email);
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -122,6 +130,96 @@ export class AuthService {
     await this.usersService.update(user.id, { lastLoginAt: new Date() });
 
     return user;
+  }
+
+  async signInWithGoogle(credential: string): Promise<User> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    let payload: TokenPayload | undefined;
+
+    try {
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+      payload = ticket.getPayload();
+      if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+        throw new UnauthorizedException('Invalid Google token');
+      }
+    } catch (err) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const { sub: googleId, email } = payload;
+
+    const existingByGoogle =
+      await this.usersService.findOneByGoogleId(googleId);
+    if (existingByGoogle) {
+      await this.usersService.update(existingByGoogle.id, {
+        lastLoginAt: new Date(),
+      });
+      return existingByGoogle;
+    }
+
+    const existingByEmail = await this.usersService.findOneByEmail(email);
+    if (existingByEmail) {
+      if (existingByEmail.googleId && existingByEmail.googleId !== googleId) {
+        throw new ConflictException('Google account conflict');
+      }
+      if (!existingByEmail.emailVerifiedAt) {
+        throw new ConflictException('Verify email before linking Google');
+      }
+      if (!canAutoLinkGoogleAccount(payload)) {
+        throw new ConflictException(
+          'Sign in with password before linking Google',
+        );
+      }
+      if (!existingByEmail.googleId) {
+        await this.usersService.update(existingByEmail.id, {
+          googleId,
+          lastLoginAt: new Date(),
+        });
+        existingByEmail.googleId = googleId;
+      }
+      return existingByEmail;
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const company = manager.create(Company, { name: 'Moja firma' });
+        const savedCompany = await manager.save(company);
+
+        const newUser = manager.create(User, {
+          companyId: savedCompany.id,
+          email,
+          password: null,
+          googleId,
+          firstName: payload.given_name ?? null,
+          lastName: payload.family_name ?? null,
+          role: UserRole.ADMIN,
+          emailVerifiedAt: new Date(),
+        });
+
+        return manager.save(newUser);
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        const concurrentUser =
+          await this.usersService.findOneByGoogleId(googleId);
+        if (concurrentUser) {
+          return concurrentUser;
+        }
+        throw new ConflictException('Email already in use');
+      }
+      throw err;
+    }
   }
 
   async verifyEmail(token: string): Promise<void> {
@@ -175,6 +273,7 @@ export class AuthService {
       return;
     }
 
+    const isFirstPassword = user.password == null;
     const ttlHours = this.config.get<number>(
       'PASSWORD_RESET_TOKEN_TTL_HOURS',
       24,
@@ -194,6 +293,7 @@ export class AuthService {
         token,
         ttlHours,
         origin,
+        isFirstPassword,
       ),
     );
   }

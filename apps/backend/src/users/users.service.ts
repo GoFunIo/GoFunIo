@@ -18,6 +18,10 @@ export class UsersService {
     return this.usersRepository.findOneBy({ email });
   }
 
+  async findOneByGoogleId(googleId: string): Promise<User | null> {
+    return this.usersRepository.findOneBy({ googleId });
+  }
+
   async create(user: Partial<User>): Promise<User> {
     const entity = this.usersRepository.create(user);
     return this.usersRepository.save(entity);

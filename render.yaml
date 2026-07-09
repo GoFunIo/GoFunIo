@@ -1,5 +1,5 @@
 # Render Blueprint — optional. You can also create the Web Service manually in the dashboard.
-# Set secret env vars (DATABASE_URL, COOKIE_KEY, RESEND_API_KEY, MAIL_FROM) in the Render UI.
+# Set secret env vars in the Render UI.
 
 services:
   - type: web
@@ -11,11 +11,11 @@ services:
     healthCheckPath: /status
     envVars:
       - key: NODE_VERSION
-        value: '22'
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: RUN_MIGRATIONS
-        value: 'true'
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: COOKIE_KEY
@@ -29,4 +29,6 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
         sync: false

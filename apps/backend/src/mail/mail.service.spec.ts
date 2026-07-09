@@ -85,6 +85,27 @@ describe('MailService', () => {
     });
   });
 
+  it('sendPasswordResetEmail uses set-password template for first password', async () => {
+    await service.sendPasswordResetEmail(
+      'google@example.com',
+      'set789',
+      24,
+      'http://localhost:5173',
+      true,
+    );
+
+    expect(renderSpy).toHaveBeenCalledWith('set-password', {
+      resetUrl: 'http://localhost:5173/reset-password?token=set789',
+      ttlHours: 24,
+    });
+    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+      from: 'GoFunIo <no-reply@test.com>',
+      to: 'google@example.com',
+      subject: 'Set your GoFunIo password',
+      html: '<html>rendered</html>',
+    });
+  });
+
   it('sendVerificationEmail logs and swallows Resend errors', async () => {
     sendSpy.mockRejectedValue(new Error('Resend API 500: server error'));
     const errorSpy = jest.spyOn(service['logger'], 'error');
