@@ -48,24 +48,38 @@ pnpm dev:backend
 
 Copy [`.env.example`](./.env.example) to `.env` and set `COOKIE_KEY`, `FRONTEND_URL` (must match your frontend origin, e.g. `http://localhost:5173`).
 
-### Local dev (Mailtrap)
+Mail is sent via the [Resend HTTP API](https://resend.com/docs/api-reference/emails/send-email) (HTTPS port 443), which works on Render free tier — SMTP ports 25/465/587 are blocked there.
 
-1. In [Mailtrap](https://mailtrap.io) → **Email Testing** → pick an inbox → **SMTP**.
-2. Set `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=587`, and the inbox username/password as `MAIL_USER` / `MAIL_PASS`.
-3. `MAIL_FROM` can be any string (Mailtrap accepts it for testing).
-4. Run `pnpm run start:dev`. Signup, **resend verification**, and **forgot password** deliver to that Mailtrap inbox.
+### Local dev
 
-### Staging / production (Resend)
+1. Create a [Resend](https://resend.com) account and API key.
+2. Set `RESEND_API_KEY=re_…` and `MAIL_FROM="GoFunIo Dev <onboarding@resend.dev>"` (Resend sandbox sender for testing).
+3. Run `pnpm run start:dev`. Signup, **resend verification**, and **forgot password** appear in the Resend dashboard **Emails** tab.
 
-1. Create a [Resend](https://resend.com) account and **verify your sending domain** (required — no shared sender).
-2. Create an API key and set:
-   - `MAIL_HOST=smtp.resend.com`
-   - `MAIL_PORT=465`
-   - `MAIL_USER=resend` (literal string)
-   - `MAIL_PASS=re_…` (your API key)
+### Staging / production
+
+1. **Verify your sending domain** in Resend (required — no shared sender in prod).
+2. Create a separate API key per environment and set in Render:
+   - `RESEND_API_KEY=re_…`
    - `MAIL_FROM="GoFunIo <no-reply@yourdomain.com>"` (must use the verified domain)
-3. No code changes needed — existing nodemailer SMTP transport works with Resend relay.
-4. Check delivery in the Resend dashboard **Emails** tab.
+3. Remove any legacy `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS` env vars.
+4. Redeploy and check delivery in the Resend dashboard **Emails** tab.
+
+### Render setup checklist
+
+1. Rotate any API key that was ever exposed (e.g. in screenshots or logs).
+2. In Render → **Environment**:
+   - Add `RESEND_API_KEY` (new key)
+   - Keep/update `MAIL_FROM`
+   - Delete `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`
+3. Redeploy the web service.
+4. Resend verification:
+   ```bash
+   curl -X POST 'https://gofunio.onrender.com/auth/resend-verification' \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"you@example.com"}'
+   ```
+5. Confirm `204` response, then check Resend dashboard and inbox (including spam).
 
 ## Compile and run the project
 

@@ -30,20 +30,7 @@ export class EnvVars {
 
   @IsString()
   @IsNotEmpty()
-  MAIL_HOST!: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  MAIL_PORT!: number;
-
-  @IsString()
-  @IsNotEmpty()
-  MAIL_USER!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  MAIL_PASS!: string;
+  RESEND_API_KEY!: string;
 
   @IsString()
   @IsNotEmpty()

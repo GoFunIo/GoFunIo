@@ -1,15 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
 import { FrontendUrlResolver } from '../common/frontend-url.resolver';
+import { sendResendEmail } from './resend.client';
+import { renderMailTemplate } from './template-renderer';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly apiKey: string;
+  private readonly from: string;
 
   constructor(
-    private readonly mailer: MailerService,
+    config: ConfigService,
     private readonly frontendUrl: FrontendUrlResolver,
-  ) {}
+  ) {
+    this.apiKey = config.getOrThrow<string>('RESEND_API_KEY');
+    this.from = config.getOrThrow<string>('MAIL_FROM');
+  }
 
   async sendVerificationEmail(
     email: string,
@@ -18,13 +25,14 @@ export class MailService {
   ): Promise<void> {
     const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
     const verificationUrl = `${base}/verify-email?token=${token}`;
+    const html = renderMailTemplate('verify-email', { verificationUrl });
 
     try {
-      await this.mailer.sendMail({
+      await sendResendEmail(this.apiKey, {
+        from: this.from,
         to: email,
         subject: 'Verify your GoFunIo email',
-        template: 'verify-email',
-        context: { verificationUrl },
+        html,
       });
     } catch (err) {
       this.logger.error(
@@ -42,13 +50,14 @@ export class MailService {
   ): Promise<void> {
     const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
     const resetUrl = `${base}/reset-password?token=${token}`;
+    const html = renderMailTemplate('reset-password', { resetUrl, ttlHours });
 
     try {
-      await this.mailer.sendMail({
+      await sendResendEmail(this.apiKey, {
+        from: this.from,
         to: email,
         subject: 'Reset your GoFunIo password',
-        template: 'reset-password',
-        context: { resetUrl, ttlHours },
+        html,
       });
     } catch (err) {
       this.logger.error({

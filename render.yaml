@@ -1,5 +1,5 @@
 # Render Blueprint — optional. You can also create the Web Service manually in the dashboard.
-# Set secret env vars (DATABASE_URL, COOKIE_KEY, MAIL_*) in the Render UI.
+# Set secret env vars (DATABASE_URL, COOKIE_KEY, RESEND_API_KEY, MAIL_FROM) in the Render UI.
 
 services:
   - type: web
@@ -26,13 +26,7 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      - key: MAIL_HOST
-        sync: false
-      - key: MAIL_PORT
-        value: '587'
-      - key: MAIL_USER
-        sync: false
-      - key: MAIL_PASS
+      - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false
