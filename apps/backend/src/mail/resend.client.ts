@@ -18,7 +18,9 @@ export async function sendResendEmail(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'User-Agent': 'gofunio-backend/1.0',
     },
+    signal: AbortSignal.timeout(10_000),
     body: JSON.stringify({
       from: input.from,
       to: [input.to],
