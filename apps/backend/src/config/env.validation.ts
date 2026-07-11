@@ -48,15 +48,10 @@ export class EnvVars {
   @Max(24 * 30)
   PASSWORD_RESET_TOKEN_TTL_HOURS: number = 24;
 
-  /** When set, uses PostgreSQL (e.g. Neon). Omit for local SQLite. */
-  @IsOptional()
+  /** PostgreSQL connection string. */
   @IsString()
-  DATABASE_URL?: string;
-
-  /** SQLite file path when DATABASE_URL is not set. */
-  @IsOptional()
-  @IsString()
-  DATABASE_PATH?: string;
+  @IsNotEmpty()
+  DATABASE_URL!: string;
 
   /** Comma-separated origins; defaults to FRONTEND_URL when omitted. */
   @IsOptional()

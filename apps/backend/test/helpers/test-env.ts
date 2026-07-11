@@ -6,6 +6,6 @@ process.env.MAIL_FROM = 'test@test.local';
 process.env.DATABASE_URL =
   process.env.TEST_DATABASE_URL ??
   'postgresql://gofunio:gofunio@localhost:5432/gofunio';
-delete process.env.DATABASE_PATH;
 process.env.RUN_MIGRATIONS = 'false';
-process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
+process.env.GOOGLE_CLIENT_ID =
+  'test-google-client-id.apps.googleusercontent.com';
