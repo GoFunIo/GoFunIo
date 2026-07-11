@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { User } from './users.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -14,12 +14,27 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async findOneByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ email });
+  private activeUsers(): SelectQueryBuilder<User> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .innerJoinAndSelect('user.company', 'company')
+      .andWhere('company."deletedAt" IS NULL');
   }
 
-  async findOneByGoogleId(googleId: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ googleId });
+  async findActiveById(id: string): Promise<User | null> {
+    return this.activeUsers().andWhere('user.id = :id', { id }).getOne();
+  }
+
+  async findActiveByEmail(email: string): Promise<User | null> {
+    return this.activeUsers()
+      .andWhere('user.email = :email', { email })
+      .getOne();
+  }
+
+  async findActiveByGoogleId(googleId: string): Promise<User | null> {
+    return this.activeUsers()
+      .andWhere('user.googleId = :googleId', { googleId })
+      .getOne();
   }
 
   async create(user: Partial<User>): Promise<User> {
@@ -28,13 +43,12 @@ export class UsersService {
   }
 
   async findOneByVerificationTokenHash(hash: string): Promise<User | null> {
-    return this.usersRepository
-      .createQueryBuilder('user')
+    return this.activeUsers()
       .addSelect([
         'user.verificationTokenHash',
         'user.verificationTokenExpiresAt',
       ])
-      .where('user.verificationTokenHash = :hash', { hash })
+      .andWhere('user.verificationTokenHash = :hash', { hash })
       .getOne();
   }
 
@@ -53,6 +67,14 @@ export class UsersService {
       })
       .where('"passwordResetTokenHash" = :hash', { hash: tokenHash })
       .andWhere('"passwordResetTokenExpiresAt" > :now', { now: new Date() })
+      .andWhere('"deletedAt" IS NULL')
+      .andWhere(
+        `EXISTS (
+          SELECT 1 FROM "companies" "company"
+          WHERE "company"."id" = "companyId"
+          AND "company"."deletedAt" IS NULL
+        )`,
+      )
       .execute();
 
     return (result.affected ?? 0) > 0;

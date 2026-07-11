@@ -1,4 +1,10 @@
-import { IsString, Length, Matches, MinLength } from 'class-validator';
+import {
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { VERIFICATION_TOKEN_HEX_LENGTH } from '../verification-token.util';
 
 export class ResetPasswordDto {
@@ -9,5 +15,6 @@ export class ResetPasswordDto {
 
   @IsString()
   @MinLength(8)
+  @MaxLength(128)
   password!: string;
 }

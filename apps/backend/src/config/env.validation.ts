@@ -2,11 +2,13 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
   Max,
+  MinLength,
   Min,
   validateSync,
 } from 'class-validator';
@@ -23,6 +25,7 @@ export class EnvVars {
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(32)
   COOKIE_KEY!: string;
 
   @IsUrl({ require_tld: false })
@@ -72,6 +75,7 @@ export class EnvVars {
 
   /** Run pending TypeORM migrations on app startup (staging/production). */
   @IsOptional()
+  @IsIn(['true', 'false'])
   RUN_MIGRATIONS?: string;
 
   @IsString()
@@ -89,6 +93,16 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
       'Invalid environment configuration:\n' +
         errors.map((e) => e.toString()).join('\n'),
     );
+  }
+
+  for (const origin of validated.CORS_ORIGINS?.split(',') ?? []) {
+    const value = origin.trim();
+    if (!value) continue;
+    try {
+      if (new URL(value).origin !== value) throw new Error();
+    } catch {
+      throw new Error(`Invalid CORS origin: ${value}`);
+    }
   }
   return validated;
 }

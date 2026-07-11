@@ -3,7 +3,6 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -17,14 +16,6 @@ export enum UserRole {
 }
 
 @Entity('users')
-@Index(['email'], {
-  unique: true,
-  where: '"deletedAt" IS NULL',
-})
-@Index(['googleId'], {
-  unique: true,
-  where: '"deletedAt" IS NULL AND "googleId" IS NOT NULL',
-})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

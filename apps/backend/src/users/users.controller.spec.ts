@@ -3,10 +3,10 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
-import { UsersService } from './users.service';
-import { CurrentUserInterceptor } from './interceptors/current-user.interceptor';
 import { User, UserRole } from './users.entity';
 import type { SessionData } from '../types/session.types';
+import { SessionAuthGuard } from './guards/session-auth.guard';
+import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -68,13 +68,13 @@ describe('UsersController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [
-        { provide: AuthService, useValue: authService },
-        CurrentUserInterceptor,
-        { provide: UsersService, useValue: { findOneById: jest.fn() } },
-      ],
+      providers: [{ provide: AuthService, useValue: authService }],
     })
       .overrideGuard(ThrottlerGuard)
+      .useClass(MockThrottlerGuard)
+      .overrideGuard(SessionAuthGuard)
+      .useClass(MockThrottlerGuard)
+      .overrideGuard(AllowedOriginGuard)
       .useClass(MockThrottlerGuard)
       .compile();
 
@@ -133,7 +133,9 @@ describe('UsersController', () => {
         session,
       );
 
-      expect(authService.signInWithGoogle).toHaveBeenCalledWith('google-id-token');
+      expect(authService.signInWithGoogle).toHaveBeenCalledWith(
+        'google-id-token',
+      );
       expect(session.userId).toBe(user.id);
       expect(session.passwordVersion).toBe(4);
       expect(result).toBe(user);
@@ -141,18 +143,16 @@ describe('UsersController', () => {
   });
 
   describe('signout', () => {
-    it('clears session userId, passwordVersion and cached user', () => {
+    it('clears session userId and passwordVersion', () => {
       const session = {
         userId: 'user-1',
         passwordVersion: 2,
-        user: makeUser(),
-      } as SessionData & { user: User };
+      } as SessionData;
 
       controller.signout(session);
 
       expect(session.userId).toBeNull();
       expect(session.passwordVersion).toBeNull();
-      expect(session.user).toBeUndefined();
     });
   });
 

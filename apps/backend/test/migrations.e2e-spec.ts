@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { DataSource } from 'typeorm';
 import { CreateInitialSchema1748000000000 } from '../src/migrations/1748000000000-CreateInitialSchema';
+import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000000-NormalizeUserIdentity';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -14,7 +15,10 @@ describe('database migrations', () => {
       url: process.env.DATABASE_URL,
       schema,
       extra: { options: `-c search_path=${schema},public` },
-      migrations: [CreateInitialSchema1748000000000],
+      migrations: [
+        CreateInitialSchema1748000000000,
+        NormalizeUserIdentity1749000000000,
+      ],
     });
 
     await admin.initialize();
@@ -67,7 +71,7 @@ describe('database migrations', () => {
             `${schema}.users`,
           ])
         )[0].regclass,
-      ).toBeNull();
+      ).not.toBeNull();
 
       await database.runMigrations();
       expect(

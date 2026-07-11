@@ -5,19 +5,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieSession from 'cookie-session';
 import { toMilliseconds } from './common/duration.util';
-
-function resolveCorsOrigins(
-  frontendUrl: string,
-  corsOrigins?: string,
-): string | string[] {
-  if (corsOrigins?.trim()) {
-    return corsOrigins
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean);
-  }
-  return frontendUrl;
-}
+import { resolveAllowedOrigins } from './common/allowed-origins';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -32,7 +20,10 @@ async function bootstrap() {
   }
 
   app.enableCors({
-    origin: resolveCorsOrigins(frontendUrl, config.get<string>('CORS_ORIGINS')),
+    origin: resolveAllowedOrigins(
+      frontendUrl,
+      config.get<string>('CORS_ORIGINS'),
+    ),
     credentials: true,
   });
   app.use(
@@ -41,12 +32,17 @@ async function bootstrap() {
       keys: [cookieKey],
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'lax',
+      path: '/',
       maxAge: toMilliseconds({ days: 7 }),
     }),
   );
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
   await app.listen(port);
 }

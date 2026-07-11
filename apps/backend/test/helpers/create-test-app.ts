@@ -45,11 +45,16 @@ export async function createTestApp(): Promise<INestApplication> {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
+      path: '/',
       maxAge: toMilliseconds({ days: 7 }),
     }),
   );
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   await app.init();

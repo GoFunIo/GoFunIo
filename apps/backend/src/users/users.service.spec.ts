@@ -72,20 +72,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('findOneByEmail', () => {
-    it('delegates to repository findOneBy', async () => {
-      const user = makeUser();
-      repo.findOneBy.mockResolvedValue(user);
-
-      await expect(service.findOneByEmail('test@example.com')).resolves.toBe(
-        user,
-      );
-      expect(repo.findOneBy).toHaveBeenCalledWith({
-        email: 'test@example.com',
-      });
-    });
-  });
-
   describe('create', () => {
     it('creates and saves entity', async () => {
       const partial = { email: 'new@example.com' };

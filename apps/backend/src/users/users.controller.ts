@@ -8,12 +8,12 @@ import {
   Query,
   Session,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { User } from './users.entity';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
-import { AuthUserDto } from './dtos/auth-user.dto';
+import { SignupDto } from './dtos/signup.dto';
+import { SigninDto } from './dtos/signin.dto';
 import { VerifyEmailDto } from './dtos/verify-email.dto';
 import { ResendVerificationDto } from './dtos/resend-verification.dto';
 import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
@@ -23,10 +23,10 @@ import { UserDto } from './dtos/user.dto';
 import { AuthService } from './auth.service';
 import type { SessionData } from '../types/session.types';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { CurrentUserInterceptor } from './interceptors/current-user.interceptor';
+import { SessionAuthGuard } from './guards/session-auth.guard';
+import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 
 @Controller('auth')
-@UseInterceptors(CurrentUserInterceptor)
 export class UsersController {
   constructor(private authService: AuthService) {}
 
@@ -35,7 +35,7 @@ export class UsersController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signup(
-    @Body() body: AuthUserDto,
+    @Body() body: SignupDto,
     @Headers('origin') origin?: string,
   ): Promise<User> {
     return this.authService.signup(body.email, body.password, origin);
@@ -46,7 +46,7 @@ export class UsersController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signin(
-    @Body() body: AuthUserDto,
+    @Body() body: SigninDto,
     @Session() session: SessionData,
   ): Promise<User> {
     const user = await this.authService.signin(body.email, body.password);
@@ -70,14 +70,16 @@ export class UsersController {
   }
 
   @Post('signout')
+  @UseGuards(AllowedOriginGuard)
+  @HttpCode(204)
   signout(@Session() session: SessionData): void {
     session.userId = null;
     session.passwordVersion = null;
-    delete (session as { user?: unknown }).user;
   }
 
   @Get('me')
   @Serialize(UserDto)
+  @UseGuards(SessionAuthGuard)
   getMe(@CurrentUser() user: User): User {
     return user;
   }

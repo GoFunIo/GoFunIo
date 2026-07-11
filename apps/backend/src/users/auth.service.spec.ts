@@ -66,8 +66,8 @@ describe('AuthService', () => {
   let usersService: jest.Mocked<
     Pick<
       UsersService,
-      | 'findOneByEmail'
-      | 'findOneByGoogleId'
+      | 'findActiveByEmail'
+      | 'findActiveByGoogleId'
       | 'findOneByVerificationTokenHash'
       | 'update'
       | 'consumePasswordResetToken'
@@ -79,8 +79,8 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     usersService = {
-      findOneByEmail: jest.fn(),
-      findOneByGoogleId: jest.fn(),
+      findActiveByEmail: jest.fn(),
+      findActiveByGoogleId: jest.fn(),
       findOneByVerificationTokenHash: jest.fn(),
       update: jest.fn(),
       consumePasswordResetToken: jest.fn(),
@@ -170,7 +170,7 @@ describe('AuthService', () => {
       const hashed = await buildPasswordHash(password);
       const user = makeUser({ password: hashed, emailVerifiedAt: new Date() });
 
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       const result = await service.signin(user.email, password);
@@ -182,7 +182,7 @@ describe('AuthService', () => {
     });
 
     it('throws UnauthorizedException when user not found', async () => {
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(null);
 
       await expect(
         service.signin('missing@example.com', 'password'),
@@ -192,7 +192,7 @@ describe('AuthService', () => {
     it('throws UnauthorizedException when password is wrong', async () => {
       const hashed = await buildPasswordHash('real-password');
       const user = makeUser({ password: hashed, emailVerifiedAt: new Date() });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
 
       await expect(
         service.signin(user.email, 'wrong-password'),
@@ -203,7 +203,7 @@ describe('AuthService', () => {
       const password = 'correct-password';
       const hashed = await buildPasswordHash(password);
       const user = makeUser({ password: hashed, emailVerifiedAt: null });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
 
       await expect(service.signin(user.email, password)).rejects.toThrow(
         new UnauthorizedException('Email not verified'),
@@ -212,7 +212,7 @@ describe('AuthService', () => {
 
     it('throws UnauthorizedException when user has no password', async () => {
       const user = makeUser({ password: null, emailVerifiedAt: new Date() });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
 
       await expect(service.signin(user.email, 'any-password')).rejects.toThrow(
         new UnauthorizedException('Invalid credentials'),
@@ -236,8 +236,8 @@ describe('AuthService', () => {
 
     it('creates verified user without verification email', async () => {
       mockGooglePayload();
-      usersService.findOneByGoogleId.mockResolvedValue(null);
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findActiveByGoogleId.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(null);
 
       const savedUser = makeUser({
         email: 'google@example.com',
@@ -266,7 +266,7 @@ describe('AuthService', () => {
     it('returns existing user by googleId and updates lastLoginAt', async () => {
       mockGooglePayload();
       const user = makeUser({ googleId: 'google-sub-1' });
-      usersService.findOneByGoogleId.mockResolvedValue(user);
+      usersService.findActiveByGoogleId.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       const result = await service.signInWithGoogle('valid-token');
@@ -279,13 +279,13 @@ describe('AuthService', () => {
 
     it('auto-links verified Gmail account', async () => {
       mockGooglePayload({ email: 'verified@gmail.com' });
-      usersService.findOneByGoogleId.mockResolvedValue(null);
+      usersService.findActiveByGoogleId.mockResolvedValue(null);
       const user = makeUser({
         email: 'verified@gmail.com',
         googleId: null,
         emailVerifiedAt: new Date(),
       });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       const result = await service.signInWithGoogle('valid-token');
@@ -299,8 +299,8 @@ describe('AuthService', () => {
 
     it('rejects auto-link for non-authoritative Google email', async () => {
       mockGooglePayload({ email: 'verified@example.com' });
-      usersService.findOneByGoogleId.mockResolvedValue(null);
-      usersService.findOneByEmail.mockResolvedValue(
+      usersService.findActiveByGoogleId.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(
         makeUser({
           email: 'verified@example.com',
           googleId: null,
@@ -315,8 +315,8 @@ describe('AuthService', () => {
 
     it('rejects unverified email account', async () => {
       mockGooglePayload({ email: 'pending@example.com' });
-      usersService.findOneByGoogleId.mockResolvedValue(null);
-      usersService.findOneByEmail.mockResolvedValue(
+      usersService.findActiveByGoogleId.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(
         makeUser({ email: 'pending@example.com', emailVerifiedAt: null }),
       );
 
@@ -340,10 +340,10 @@ describe('AuthService', () => {
         password: null,
         googleId: 'google-sub-1',
       });
-      usersService.findOneByGoogleId
+      usersService.findActiveByGoogleId
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(user);
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(null);
       const driverError = Object.assign(new Error('unique violation'), {
         code: '23505',
       });
@@ -401,7 +401,7 @@ describe('AuthService', () => {
   describe('resendVerification', () => {
     it('updates token and emits event for unverified user', async () => {
       const user = makeUser({ emailVerifiedAt: null });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       await service.resendVerification(user.email, 'http://localhost');
@@ -417,7 +417,7 @@ describe('AuthService', () => {
     });
 
     it('returns silently when user does not exist', async () => {
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(null);
 
       await service.resendVerification('missing@example.com');
 
@@ -426,7 +426,7 @@ describe('AuthService', () => {
     });
 
     it('returns silently when email is already verified', async () => {
-      usersService.findOneByEmail.mockResolvedValue(
+      usersService.findActiveByEmail.mockResolvedValue(
         makeUser({ emailVerifiedAt: new Date() }),
       );
 
@@ -440,7 +440,7 @@ describe('AuthService', () => {
   describe('requestPasswordReset', () => {
     it('stores reset token and emits PASSWORD_RESET_REQUESTED_EVENT', async () => {
       const user = makeUser();
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       await service.requestPasswordReset(user.email, 'http://localhost');
@@ -460,7 +460,7 @@ describe('AuthService', () => {
 
     it('stores reset token for Google-only user with isFirstPassword flag', async () => {
       const user = makeUser({ password: null, googleId: 'google-sub-1' });
-      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.findActiveByEmail.mockResolvedValue(user);
       usersService.update.mockResolvedValue(user);
 
       await service.requestPasswordReset(user.email, 'http://localhost');
@@ -479,7 +479,7 @@ describe('AuthService', () => {
     });
 
     it('returns silently when user does not exist', async () => {
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findActiveByEmail.mockResolvedValue(null);
 
       await service.requestPasswordReset('missing@example.com');
 

@@ -29,16 +29,12 @@ import { User, UserRole } from './users.entity';
 const scrypt = promisify(_scrypt);
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
-const UNIQUE_VIOLATION_CODES = new Set([
-  'SQLITE_CONSTRAINT_UNIQUE',
-  'SQLITE_CONSTRAINT',
-  '23505',
-]);
+const UNIQUE_VIOLATION_CODE = '23505';
 
 function isUniqueViolation(err: unknown): boolean {
   if (!(err instanceof QueryFailedError)) return false;
   const code = (err.driverError as { code?: string } | undefined)?.code;
-  return code != null && UNIQUE_VIOLATION_CODES.has(code);
+  return code === UNIQUE_VIOLATION_CODE;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -56,7 +52,12 @@ export class AuthService {
     private dataSource: DataSource,
   ) {}
 
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
   async signup(email: string, password: string, origin?: string) {
+    email = this.normalizeEmail(email);
     const result = await hashPassword(password);
 
     const ttlHours = this.config.get<number>(
@@ -99,7 +100,9 @@ export class AuthService {
   }
 
   async signin(email: string, password: string) {
-    const user = await this.usersService.findOneByEmail(email);
+    const user = await this.usersService.findActiveByEmail(
+      this.normalizeEmail(email),
+    );
 
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
@@ -148,10 +151,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Google token');
     }
 
-    const { sub: googleId, email } = payload;
+    const { sub: googleId } = payload;
+    const email = this.normalizeEmail(payload.email);
 
     const existingByGoogle =
-      await this.usersService.findOneByGoogleId(googleId);
+      await this.usersService.findActiveByGoogleId(googleId);
     if (existingByGoogle) {
       await this.usersService.update(existingByGoogle.id, {
         lastLoginAt: new Date(),
@@ -159,7 +163,7 @@ export class AuthService {
       return existingByGoogle;
     }
 
-    const existingByEmail = await this.usersService.findOneByEmail(email);
+    const existingByEmail = await this.usersService.findActiveByEmail(email);
     if (existingByEmail) {
       if (existingByEmail.googleId && existingByEmail.googleId !== googleId) {
         throw new ConflictException('Google account conflict');
@@ -201,7 +205,7 @@ export class AuthService {
     } catch (err) {
       if (isUniqueViolation(err)) {
         const concurrentUser =
-          await this.usersService.findOneByGoogleId(googleId);
+          await this.usersService.findActiveByGoogleId(googleId);
         if (concurrentUser) {
           return concurrentUser;
         }
@@ -233,7 +237,9 @@ export class AuthService {
   }
 
   async resendVerification(email: string, origin?: string): Promise<void> {
-    const user = await this.usersService.findOneByEmail(email);
+    const user = await this.usersService.findActiveByEmail(
+      this.normalizeEmail(email),
+    );
     if (!user || user.emailVerifiedAt) {
       return;
     }
@@ -256,7 +262,9 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string, origin?: string): Promise<void> {
-    const user = await this.usersService.findOneByEmail(email);
+    const user = await this.usersService.findActiveByEmail(
+      this.normalizeEmail(email),
+    );
     // silent no-op for missing email (anti-enumeration); verified + unverified allowed
     if (!user) {
       return;

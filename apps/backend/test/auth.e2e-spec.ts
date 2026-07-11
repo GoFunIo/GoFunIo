@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { createTestApp } from './helpers/create-test-app';
 import {
   type CapturedEvents,
@@ -96,6 +97,38 @@ describe('Auth (e2e)', () => {
       });
   });
 
+  it('normalizes email for signup and signin', async () => {
+    const password = 'password123';
+    const events = trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: ' User@Example.com ', password })
+      .expect(201)
+      .expect((res) => expect(res.body.email).toBe('user@example.com'));
+
+    await request(app.getHttpServer())
+      .get('/auth/verify-email')
+      .query({ token: events.verificationToken })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: 'USER@EXAMPLE.COM', password })
+      .expect(201);
+  });
+
+  it('rejects short and oversized signup passwords', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: 'short@example.com', password: '1234567' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: 'long@example.com', password: 'x'.repeat(129) })
+      .expect(400);
+  });
+
   it('signin rejects wrong password with 401', async () => {
     const email = 'wrong-pass@example.com';
     const password = 'password123';
@@ -128,6 +161,27 @@ describe('Auth (e2e)', () => {
       .expect((res) => {
         expect(res.body.message).toBe('Email already in use');
       });
+  });
+
+  it('does not reuse email after soft delete', async () => {
+    const email = 'deleted@example.com';
+    const password = 'password123';
+    trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password })
+      .expect(201);
+    await app
+      .get(DataSource)
+      .query(`UPDATE "users" SET "deletedAt" = now() WHERE "email" = $1`, [
+        email,
+      ]);
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password })
+      .expect(400);
   });
 
   it('verify-email rejects unknown token with 400', async () => {
@@ -203,9 +257,7 @@ describe('Auth (e2e)', () => {
       .send({ token: events.passwordResetToken!, password: newPassword })
       .expect(204);
 
-    const me = await agent.get('/auth/me');
-    expect(me.body.id).toBeUndefined();
-    expect(me.body.email).toBeUndefined();
+    await agent.get('/auth/me').expect(401);
   });
 
   it('signout clears session so /auth/me has no user', async () => {
@@ -217,11 +269,34 @@ describe('Auth (e2e)', () => {
     await agent.post('/auth/signin').send({ email, password }).expect(201);
     await agent.get('/auth/me').expect(200);
 
-    await agent.post('/auth/signout').expect(201);
+    await agent.post('/auth/signout').expect(204);
 
-    const me = await agent.get('/auth/me');
-    expect(me.body.id).toBeUndefined();
-    expect(me.body.email).toBeUndefined();
+    await agent.get('/auth/me').expect(401);
+  });
+
+  it('rejects /auth/me without a session', async () => {
+    await request(app.getHttpServer()).get('/auth/me').expect(401);
+  });
+
+  it('invalidates session when company is soft-deleted', async () => {
+    const email = 'deleted-company@example.com';
+    const password = 'password123';
+    await createVerifiedUser(app, email, password);
+
+    const agent = request.agent(app.getHttpServer());
+    await agent.post('/auth/signin').send({ email, password }).expect(201);
+
+    await app.get(DataSource).query(
+      `UPDATE "companies" SET "deletedAt" = now()
+       WHERE "id" = (SELECT "companyId" FROM "users" WHERE "email" = $1)`,
+      [email],
+    );
+
+    await agent.get('/auth/me').expect(401);
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email, password })
+      .expect(401);
   });
 
   it('signup rejects invalid email with 400', async () => {
@@ -302,9 +377,12 @@ describe('Auth (e2e)', () => {
       .send({ credential: 'valid-google-token' })
       .expect(201);
 
-    await agent.get('/auth/me').expect(200).expect((res) => {
-      expect(res.body.email).toBe(email);
-    });
+    await agent
+      .get('/auth/me')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.email).toBe(email);
+      });
   });
 
   it('google signin rejects unverified email account with 409', async () => {
