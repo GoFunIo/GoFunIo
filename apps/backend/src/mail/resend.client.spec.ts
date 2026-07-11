@@ -30,7 +30,9 @@ describe('sendResendEmail', () => {
         headers: {
           Authorization: 'Bearer re_test',
           'Content-Type': 'application/json',
+          'User-Agent': 'gofunio-backend/1.0',
         },
+        signal: expect.any(AbortSignal),
         body: JSON.stringify({
           from: 'GoFunIo <no-reply@test.com>',
           to: ['user@example.com'],

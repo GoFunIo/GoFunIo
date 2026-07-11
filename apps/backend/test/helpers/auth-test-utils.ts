@@ -83,3 +83,20 @@ export async function createVerifiedUser(
     events.restore();
   }
 }
+
+export function buildGoogleVerifyResult(
+  payload: {
+    sub: string;
+    email: string;
+    email_verified?: boolean;
+    given_name?: string;
+    family_name?: string;
+  },
+) {
+  return {
+    getPayload: () => ({
+      email_verified: true,
+      ...payload,
+    }),
+  };
+}

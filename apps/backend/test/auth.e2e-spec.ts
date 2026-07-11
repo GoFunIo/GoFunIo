@@ -6,7 +6,16 @@ import {
   type CapturedEvents,
   captureEmittedEvents,
   createVerifiedUser,
+  buildGoogleVerifyResult,
 } from './helpers/auth-test-utils';
+
+const mockVerifyIdToken = jest.fn();
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn().mockImplementation(() => ({
+    verifyIdToken: mockVerifyIdToken,
+  })),
+}));
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
@@ -19,6 +28,7 @@ describe('Auth (e2e)', () => {
   afterEach(() => {
     activeEvents?.restore();
     activeEvents = null;
+    mockVerifyIdToken.mockReset();
   });
 
   afterAll(async () => {
@@ -219,5 +229,190 @@ describe('Auth (e2e)', () => {
       .post('/auth/signup')
       .send({ email: 'not-an-email', password: 'password123' })
       .expect(400);
+  });
+
+  it('google signin creates user and /auth/me works', async () => {
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-new-user',
+        email: 'new-google@example.com',
+      }),
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    const signin = await agent
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    expect(signin.body).toMatchObject({
+      email: 'new-google@example.com',
+      role: 'ADMIN',
+    });
+    expect(signin.body.password).toBeUndefined();
+
+    const me = await agent.get('/auth/me').expect(200);
+    expect(me.body.email).toBe('new-google@example.com');
+  });
+
+  it('google signin is idempotent for same googleId', async () => {
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-repeat-user',
+        email: 'repeat-google@example.com',
+      }),
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    const first = await agent
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-repeat-user',
+        email: 'repeat-google@example.com',
+      }),
+    );
+
+    const second = await agent
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    expect(second.body.id).toBe(first.body.id);
+  });
+
+  it('google signin auto-links verified Gmail account', async () => {
+    const email = 'link-google@gmail.com';
+    const password = 'password123';
+    await createVerifiedUser(app, email, password);
+
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-link-user',
+        email,
+      }),
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    await agent.get('/auth/me').expect(200).expect((res) => {
+      expect(res.body.email).toBe(email);
+    });
+  });
+
+  it('google signin rejects unverified email account with 409', async () => {
+    const email = 'unverified-google@example.com';
+    const password = 'password123';
+    const events = trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password })
+      .expect(201);
+    expect(events.verificationToken).toBeTruthy();
+
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-unverified-user',
+        email,
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.message).toBe('Verify email before linking Google');
+      });
+  });
+
+  it('google signin rejects invalid token with 401', async () => {
+    mockVerifyIdToken.mockRejectedValueOnce(new Error('invalid token'));
+
+    await request(app.getHttpServer())
+      .post('/auth/google')
+      .send({ credential: 'bad-token' })
+      .expect(401)
+      .expect((res) => {
+        expect(res.body.message).toBe('Invalid Google token');
+      });
+  });
+
+  it('signin rejects oauth-only user with 401', async () => {
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-oauth-only',
+        email: 'oauth-only@example.com',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: 'oauth-only@example.com', password: 'any-password' })
+      .expect(401)
+      .expect((res) => {
+        expect(res.body.message).toBe('Invalid credentials');
+      });
+  });
+
+  it('google user can set password via forgot-password and sign in with email', async () => {
+    const email = 'set-pass-google@example.com';
+    const newPassword = 'new-password-99';
+
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-set-pass',
+        email,
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
+
+    const events = trackEvents();
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email })
+      .expect(204);
+
+    const resetToken = events.passwordResetToken;
+    expect(resetToken).toBeTruthy();
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: resetToken, password: newPassword })
+      .expect(204);
+
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email, password: newPassword })
+      .expect(201);
+
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({
+        sub: 'google-set-pass',
+        email,
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/auth/google')
+      .send({ credential: 'valid-google-token' })
+      .expect(201);
   });
 });

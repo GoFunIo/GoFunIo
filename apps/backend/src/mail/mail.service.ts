@@ -47,16 +47,21 @@ export class MailService {
     token: string,
     ttlHours: number,
     origin?: string,
+    isFirstPassword = false,
   ): Promise<void> {
     const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
     const resetUrl = `${base}/reset-password?token=${token}`;
-    const html = renderMailTemplate('reset-password', { resetUrl, ttlHours });
+    const template = isFirstPassword ? 'set-password' : 'reset-password';
+    const subject = isFirstPassword
+      ? 'Set your GoFunIo password'
+      : 'Reset your GoFunIo password';
+    const html = renderMailTemplate(template, { resetUrl, ttlHours });
 
     try {
       await sendResendEmail(this.apiKey, {
         from: this.from,
         to: email,
-        subject: 'Reset your GoFunIo password',
+        subject,
         html,
       });
     } catch (err) {

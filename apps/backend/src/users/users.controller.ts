@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { User } from './users.entity';
+import { GoogleAuthDto } from './dtos/google-auth.dto';
 import { AuthUserDto } from './dtos/auth-user.dto';
 import { VerifyEmailDto } from './dtos/verify-email.dto';
 import { ResendVerificationDto } from './dtos/resend-verification.dto';
@@ -49,6 +50,20 @@ export class UsersController {
     @Session() session: SessionData,
   ): Promise<User> {
     const user = await this.authService.signin(body.email, body.password);
+    session.userId = user.id;
+    session.passwordVersion = user.passwordVersion;
+    return user;
+  }
+
+  @Post('google')
+  @Serialize(UserDto)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async googleSignIn(
+    @Body() body: GoogleAuthDto,
+    @Session() session: SessionData,
+  ): Promise<User> {
+    const user = await this.authService.signInWithGoogle(body.credential);
     session.userId = user.id;
     session.passwordVersion = user.passwordVersion;
     return user;

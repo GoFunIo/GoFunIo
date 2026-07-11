@@ -17,6 +17,7 @@ export class PasswordResetRequestedListener {
       event.token,
       event.ttlHours,
       event.origin,
+      event.isFirstPassword,
     );
   }
 }

@@ -15,6 +15,9 @@ export const getUser = async () => {
 
   if (!res.ok) return null;
 
+  const contentType = res.headers.get('content-type');
+  if (!contentType?.includes('application/json')) return null;
+
   const text = await res.text();
 
   if (!text) return null;
@@ -77,6 +80,28 @@ export const signIn = async (form: LoginFormData) => {
     },
     credentials: 'include',
     body: JSON.stringify({ email, password }),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Request failed',
+    };
+  }
+
+  return data;
+};
+
+export const signInWithGoogle = async (credential: string) => {
+  const res = await fetch(`${API_URL}/auth/google`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ credential }),
   });
 
   const data = await res.json().catch(() => null);

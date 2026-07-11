@@ -1,8 +1,8 @@
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
 import { createFileRoute } from '@tanstack/react-router';
-import { getImage } from '@/utils/getImage';
 import { LoginForm } from '@/features/auth/forms/LoginForm';
 import { AuthSwitch } from '@/features/auth/ui/AuthSwitch';
+import { GoogleSignInButton } from '@/features/auth/ui/GoogleSignInButton';
 
 export const Route = createFileRoute('/(auth)/login/')({
   component: Login,
@@ -11,10 +11,7 @@ export const Route = createFileRoute('/(auth)/login/')({
 function Login() {
   return (
     <AuthWrapper title="Witaj ponownie" subtitle="Zaloguj się do swojego konta">
-      <button className="cursor-pointer mt-[30px] flex items-center justify-center gap-[16px] h-[45px] w-full bg-bg-section rounded-[7px] border border-icon">
-        <img src={getImage('google.svg')} alt="Google icon" className="" />
-        <p className="text-[14px] font-medium text-content-muted">Zaloguj się przez Google</p>
-      </button>
+      <GoogleSignInButton />
 
       <div
         className="flex items-center gap-[30px] text-gray-500 sm:my-[25px] my-[20px]

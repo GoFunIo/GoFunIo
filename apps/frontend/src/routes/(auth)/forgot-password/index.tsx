@@ -16,7 +16,7 @@ function RouteComponent() {
     return (
       <CheckEmail
         title="Sprawdź swoją skrzynkę e-mail"
-        subtitle="Wysłaliśmy link do zmiany hasła na Twój adres e-mail. Kliknij w link, aby zmienić hasło."
+        subtitle="Jeśli konto istnieje, wysłaliśmy wiadomość z dalszymi instrukcjami."
       />
     );
   }

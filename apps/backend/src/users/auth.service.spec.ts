@@ -1,4 +1,8 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -10,16 +14,21 @@ import {
   USER_REGISTERED_EVENT,
   UserRegisteredEvent,
 } from './events/user-registered.event';
-import {
-  PASSWORD_RESET_REQUESTED_EVENT,
-  PasswordResetRequestedEvent,
-} from './events/password-reset-requested.event';
+import { PASSWORD_RESET_REQUESTED_EVENT } from './events/password-reset-requested.event';
 import { hashVerificationToken } from './verification-token.util';
 import { randomBytes, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
 
 const scrypt = promisify(_scrypt);
 const HASH_BYTES = 32;
+
+const mockVerifyIdToken = jest.fn();
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn().mockImplementation(() => ({
+    verifyIdToken: mockVerifyIdToken,
+  })),
+}));
 
 async function buildPasswordHash(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
@@ -33,6 +42,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     companyId: 'company-1',
     email: 'test@example.com',
     password: 'salt.hash',
+    googleId: null,
     firstName: null,
     lastName: null,
     role: UserRole.ADMIN,
@@ -57,6 +67,7 @@ describe('AuthService', () => {
     Pick<
       UsersService,
       | 'findOneByEmail'
+      | 'findOneByGoogleId'
       | 'findOneByVerificationTokenHash'
       | 'update'
       | 'consumePasswordResetToken'
@@ -69,12 +80,20 @@ describe('AuthService', () => {
   beforeEach(async () => {
     usersService = {
       findOneByEmail: jest.fn(),
+      findOneByGoogleId: jest.fn(),
       findOneByVerificationTokenHash: jest.fn(),
       update: jest.fn(),
       consumePasswordResetToken: jest.fn(),
     };
     eventEmitter = { emit: jest.fn() };
-    config = { get: jest.fn().mockReturnValue(24) };
+    config = {
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'GOOGLE_CLIENT_ID') {
+          return 'test-google-client-id';
+        }
+        return 24;
+      }),
+    };
     dataSource = { transaction: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -190,6 +209,150 @@ describe('AuthService', () => {
         new UnauthorizedException('Email not verified'),
       );
     });
+
+    it('throws UnauthorizedException when user has no password', async () => {
+      const user = makeUser({ password: null, emailVerifiedAt: new Date() });
+      usersService.findOneByEmail.mockResolvedValue(user);
+
+      await expect(service.signin(user.email, 'any-password')).rejects.toThrow(
+        new UnauthorizedException('Invalid credentials'),
+      );
+    });
+  });
+
+  describe('signInWithGoogle', () => {
+    function mockGooglePayload(overrides: Record<string, unknown> = {}): void {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => ({
+          sub: 'google-sub-1',
+          email: 'google@example.com',
+          email_verified: true,
+          given_name: 'Jan',
+          family_name: 'Kowalski',
+          ...overrides,
+        }),
+      });
+    }
+
+    it('creates verified user without verification email', async () => {
+      mockGooglePayload();
+      usersService.findOneByGoogleId.mockResolvedValue(null);
+      usersService.findOneByEmail.mockResolvedValue(null);
+
+      const savedUser = makeUser({
+        email: 'google@example.com',
+        password: null,
+        googleId: 'google-sub-1',
+        firstName: 'Jan',
+        lastName: 'Kowalski',
+      });
+      dataSource.transaction.mockImplementation(async (cb) => {
+        const manager = {
+          create: jest.fn((_entity, data) => data),
+          save: jest
+            .fn()
+            .mockResolvedValueOnce({ id: 'company-1' })
+            .mockResolvedValueOnce(savedUser),
+        };
+        return cb(manager);
+      });
+
+      const result = await service.signInWithGoogle('valid-token');
+
+      expect(result).toBe(savedUser);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('returns existing user by googleId and updates lastLoginAt', async () => {
+      mockGooglePayload();
+      const user = makeUser({ googleId: 'google-sub-1' });
+      usersService.findOneByGoogleId.mockResolvedValue(user);
+      usersService.update.mockResolvedValue(user);
+
+      const result = await service.signInWithGoogle('valid-token');
+
+      expect(result).toBe(user);
+      expect(usersService.update).toHaveBeenCalledWith(user.id, {
+        lastLoginAt: expect.any(Date),
+      });
+    });
+
+    it('auto-links verified Gmail account', async () => {
+      mockGooglePayload({ email: 'verified@gmail.com' });
+      usersService.findOneByGoogleId.mockResolvedValue(null);
+      const user = makeUser({
+        email: 'verified@gmail.com',
+        googleId: null,
+        emailVerifiedAt: new Date(),
+      });
+      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.update.mockResolvedValue(user);
+
+      const result = await service.signInWithGoogle('valid-token');
+
+      expect(result.googleId).toBe('google-sub-1');
+      expect(usersService.update).toHaveBeenCalledWith(user.id, {
+        googleId: 'google-sub-1',
+        lastLoginAt: expect.any(Date),
+      });
+    });
+
+    it('rejects auto-link for non-authoritative Google email', async () => {
+      mockGooglePayload({ email: 'verified@example.com' });
+      usersService.findOneByGoogleId.mockResolvedValue(null);
+      usersService.findOneByEmail.mockResolvedValue(
+        makeUser({
+          email: 'verified@example.com',
+          googleId: null,
+          emailVerifiedAt: new Date(),
+        }),
+      );
+
+      await expect(service.signInWithGoogle('valid-token')).rejects.toThrow(
+        new ConflictException('Sign in with password before linking Google'),
+      );
+    });
+
+    it('rejects unverified email account', async () => {
+      mockGooglePayload({ email: 'pending@example.com' });
+      usersService.findOneByGoogleId.mockResolvedValue(null);
+      usersService.findOneByEmail.mockResolvedValue(
+        makeUser({ email: 'pending@example.com', emailVerifiedAt: null }),
+      );
+
+      await expect(service.signInWithGoogle('valid-token')).rejects.toThrow(
+        new ConflictException('Verify email before linking Google'),
+      );
+    });
+
+    it('throws UnauthorizedException for invalid token', async () => {
+      mockVerifyIdToken.mockRejectedValue(new Error('bad token'));
+
+      await expect(service.signInWithGoogle('bad-token')).rejects.toThrow(
+        new UnauthorizedException('Invalid Google token'),
+      );
+    });
+
+    it('returns user created by a concurrent Google sign-in', async () => {
+      mockGooglePayload({ email: 'race@example.com' });
+      const user = makeUser({
+        email: 'race@example.com',
+        password: null,
+        googleId: 'google-sub-1',
+      });
+      usersService.findOneByGoogleId
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(user);
+      usersService.findOneByEmail.mockResolvedValue(null);
+      const driverError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+      });
+      dataSource.transaction.mockRejectedValue(
+        new QueryFailedError('INSERT', [], driverError),
+      );
+
+      await expect(service.signInWithGoogle('valid-token')).resolves.toBe(user);
+    });
   });
 
   describe('verifyEmail', () => {
@@ -288,7 +451,30 @@ describe('AuthService', () => {
       });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         PASSWORD_RESET_REQUESTED_EVENT,
-        expect.any(PasswordResetRequestedEvent),
+        expect.objectContaining({
+          email: user.email,
+          isFirstPassword: false,
+        }),
+      );
+    });
+
+    it('stores reset token for Google-only user with isFirstPassword flag', async () => {
+      const user = makeUser({ password: null, googleId: 'google-sub-1' });
+      usersService.findOneByEmail.mockResolvedValue(user);
+      usersService.update.mockResolvedValue(user);
+
+      await service.requestPasswordReset(user.email, 'http://localhost');
+
+      expect(usersService.update).toHaveBeenCalledWith(user.id, {
+        passwordResetTokenHash: expect.any(String),
+        passwordResetTokenExpiresAt: expect.any(Date),
+      });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        PASSWORD_RESET_REQUESTED_EVENT,
+        expect.objectContaining({
+          email: user.email,
+          isFirstPassword: true,
+        }),
       );
     });
 

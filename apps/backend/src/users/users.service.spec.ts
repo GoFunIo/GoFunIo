@@ -11,6 +11,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     companyId: 'company-1',
     email: 'test@example.com',
     password: 'salt.hash',
+    googleId: null,
     firstName: null,
     lastName: null,
     role: UserRole.ADMIN,

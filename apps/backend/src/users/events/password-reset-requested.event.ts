@@ -7,5 +7,6 @@ export class PasswordResetRequestedEvent {
     public readonly token: string,
     public readonly ttlHours: number,
     public readonly origin?: string,
+    public readonly isFirstPassword = false,
   ) {}
 }

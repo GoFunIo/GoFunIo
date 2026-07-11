@@ -8,3 +8,4 @@ process.env.DATABASE_URL =
   'postgresql://gofunio:gofunio@localhost:5432/gofunio';
 delete process.env.DATABASE_PATH;
 process.env.RUN_MIGRATIONS = 'false';
+process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';

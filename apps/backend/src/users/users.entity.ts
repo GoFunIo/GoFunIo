@@ -21,6 +21,10 @@ export enum UserRole {
   unique: true,
   where: '"deletedAt" IS NULL',
 })
+@Index(['googleId'], {
+  unique: true,
+  where: '"deletedAt" IS NULL AND "googleId" IS NOT NULL',
+})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -35,8 +39,11 @@ export class User {
   @Column()
   email!: string;
 
-  @Column()
-  password!: string;
+  @Column({ type: 'varchar', nullable: true })
+  password!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  googleId!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   firstName!: string | null;
