@@ -41,12 +41,6 @@ function isUniqueViolation(err: unknown): boolean {
   return code != null && UNIQUE_VIOLATION_CODES.has(code);
 }
 
-function canAutoLinkGoogleAccount(payload: TokenPayload): boolean {
-  return Boolean(
-    payload.email?.toLowerCase().endsWith('@gmail.com') || payload.hd,
-  );
-}
-
 async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES).toString('hex');
   const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
@@ -133,10 +127,7 @@ export class AuthService {
   }
 
   async signInWithGoogle(credential: string): Promise<User> {
-    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
-    if (!clientId) {
-      throw new UnauthorizedException('Invalid Google token');
-    }
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')!;
 
     let payload: TokenPayload | undefined;
 
@@ -176,18 +167,16 @@ export class AuthService {
       if (!existingByEmail.emailVerifiedAt) {
         throw new ConflictException('Verify email before linking Google');
       }
-      if (!canAutoLinkGoogleAccount(payload)) {
+      if (!payload.email?.toLowerCase().endsWith('@gmail.com') && !payload.hd) {
         throw new ConflictException(
           'Sign in with password before linking Google',
         );
       }
-      if (!existingByEmail.googleId) {
-        await this.usersService.update(existingByEmail.id, {
-          googleId,
-          lastLoginAt: new Date(),
-        });
-        existingByEmail.googleId = googleId;
-      }
+      await this.usersService.update(existingByEmail.id, {
+        googleId,
+        lastLoginAt: new Date(),
+      });
+      existingByEmail.googleId = googleId;
       return existingByEmail;
     }
 
