@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { User } from './users.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import {
+  clearExpiredEmailClaims,
+  emailClaimInUse,
+  lockEmailClaim,
+} from './email-claim.util';
 
 @Injectable()
 export class UsersService {
@@ -52,35 +61,34 @@ export class UsersService {
       .getOne();
   }
 
-  async emailInUse(email: string, excludeUserId?: string): Promise<boolean> {
-    const query = this.usersRepository
-      .createQueryBuilder('user')
-      .withDeleted()
-      .where(
-        '(lower(user.email) = :email OR lower(user.pendingEmail) = :email)',
-        { email },
-      );
-    if (excludeUserId) {
-      query.andWhere('user.id <> :excludeUserId', { excludeUserId });
-    }
-    return query.getExists();
-  }
+  async claimEmailChange(
+    id: string,
+    currentPassword: string,
+    email: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<boolean> {
+    return this.usersRepository.manager.transaction(async (manager) => {
+      await lockEmailClaim(manager, email);
+      await clearExpiredEmailClaims(manager, email);
+      if (await emailClaimInUse(manager, email, id)) {
+        throw new ConflictException('Email already in use');
+      }
 
-  async clearExpiredEmailChangeClaims(email: string): Promise<void> {
-    await this.usersRepository
-      .createQueryBuilder()
-      .update(User)
-      .set({
-        pendingEmail: null,
-        emailChangeTokenHash: null,
-        emailChangeTokenExpiresAt: null,
-      })
-      .where('lower("pendingEmail") = :email', { email })
-      .andWhere(
-        '("emailChangeTokenExpiresAt" IS NULL OR "emailChangeTokenExpiresAt" <= :now)',
-        { now: new Date() },
-      )
-      .execute();
+      const result = await manager
+        .createQueryBuilder()
+        .update(User)
+        .set({
+          pendingEmail: email,
+          emailChangeTokenHash: tokenHash,
+          emailChangeTokenExpiresAt: expiresAt,
+        })
+        .where('id = :id', { id })
+        .andWhere('password = :currentPassword', { currentPassword })
+        .andWhere('"deletedAt" IS NULL')
+        .execute();
+      return (result.affected ?? 0) > 0;
+    });
   }
 
   async consumeEmailChangeToken(tokenHash: string): Promise<boolean> {
@@ -140,7 +148,8 @@ export class UsersService {
       .update(User)
       .set({
         password: newPassword,
-        emailVerifiedAt: () => 'COALESCE("emailVerifiedAt", now())',
+        emailVerifiedAt: () =>
+          'CASE WHEN "password" IS NULL THEN COALESCE("emailVerifiedAt", now()) ELSE "emailVerifiedAt" END',
         passwordResetTokenHash: null,
         passwordResetTokenExpiresAt: null,
         passwordVersion: () => '"passwordVersion" + 1',

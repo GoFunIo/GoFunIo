@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,14 +17,17 @@ import {
 } from './events/password-reset-requested.event';
 import { generateVerificationToken } from './verification-token.util';
 import { User, UserRole } from './users.entity';
-import { UsersService } from './users.service';
+import {
+  clearExpiredEmailClaims,
+  emailClaimInUse,
+  lockEmailClaim,
+} from './email-claim.util';
 
 @Injectable()
 export class CompanyUsersService {
   constructor(
     @InjectRepository(User)
     private readonly users: Repository<User>,
-    private readonly usersService: UsersService,
     private readonly config: ConfigService,
     private readonly events: EventEmitter2,
   ) {}
@@ -36,16 +40,11 @@ export class CompanyUsersService {
   }
 
   async create(
-    companyId: string,
+    actor: User,
     body: CreateCompanyUserDto,
     origin?: string,
   ): Promise<User> {
     const email = body.email.trim().toLowerCase();
-    await this.usersService.clearExpiredEmailChangeClaims(email);
-    if (await this.usersService.emailInUse(email)) {
-      throw new ConflictException('Email already in use');
-    }
-
     const ttlHours = this.config.get<number>(
       'PASSWORD_RESET_TOKEN_TTL_HOURS',
       24,
@@ -54,19 +53,28 @@ export class CompanyUsersService {
 
     let user: User;
     try {
-      user = await this.users.save(
-        this.users.create({
-          companyId,
-          email,
-          firstName: body.firstName ?? null,
-          lastName: body.lastName ?? null,
-          role: body.role,
-          password: null,
-          emailVerifiedAt: null,
-          passwordResetTokenHash: tokenHash,
-          passwordResetTokenExpiresAt: expiresAt,
-        }),
-      );
+      user = await this.users.manager.transaction(async (manager) => {
+        const admins = await this.lockAdmins(manager, actor.companyId);
+        this.requireAdmin(admins, actor.id);
+        await lockEmailClaim(manager, email);
+        await clearExpiredEmailClaims(manager, email);
+        if (await emailClaimInUse(manager, email)) {
+          throw new ConflictException('Email already in use');
+        }
+        return manager.save(
+          manager.create(User, {
+            companyId: actor.companyId,
+            email,
+            firstName: body.firstName ?? null,
+            lastName: body.lastName ?? null,
+            role: body.role,
+            password: null,
+            emailVerifiedAt: null,
+            passwordResetTokenHash: tokenHash,
+            passwordResetTokenExpiresAt: expiresAt,
+          }),
+        );
+      });
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException('Email already in use');
@@ -102,6 +110,7 @@ export class CompanyUsersService {
 
     return this.users.manager.transaction(async (manager) => {
       const admins = await this.lockAdmins(manager, actor.companyId);
+      this.requireAdmin(admins, actor.id);
       const target = await this.findCompanyUser(manager, actor.companyId, id);
       if (
         target.role === UserRole.ADMIN &&
@@ -123,11 +132,21 @@ export class CompanyUsersService {
 
     await this.users.manager.transaction(async (manager) => {
       const admins = await this.lockAdmins(manager, actor.companyId);
+      this.requireAdmin(admins, actor.id);
       const target = await this.findCompanyUser(manager, actor.companyId, id);
       if (target.role === UserRole.ADMIN && admins.length <= 1) {
         throw new ConflictException('Company must have an admin');
       }
-      await manager.softRemove(target);
+      await manager.update(User, target.id, {
+        pendingEmail: null,
+        emailChangeTokenHash: null,
+        emailChangeTokenExpiresAt: null,
+        verificationTokenHash: null,
+        verificationTokenExpiresAt: null,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
+      });
+      await manager.softDelete(User, target.id);
     });
   }
 
@@ -150,11 +169,19 @@ export class CompanyUsersService {
   ): Promise<User[]> {
     return manager
       .createQueryBuilder(User, 'user')
+      .innerJoin('user.company', 'company')
       .where('user.companyId = :companyId', { companyId })
       .andWhere('user.role = :role', { role: UserRole.ADMIN })
+      .andWhere('company."deletedAt" IS NULL')
       .orderBy('user.id', 'ASC')
       .setLock('pessimistic_write')
       .getMany();
+  }
+
+  private requireAdmin(admins: User[], actorId: string): void {
+    if (!admins.some(({ id }) => id === actorId)) {
+      throw new ForbiddenException();
+    }
   }
 
   private isUniqueViolation(error: unknown): boolean {

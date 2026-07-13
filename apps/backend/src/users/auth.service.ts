@@ -28,6 +28,11 @@ import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
   UserEmailChangeRequestedEvent,
 } from './events/user-email-change-requested.event';
+import {
+  clearExpiredEmailClaims,
+  emailClaimInUse,
+  lockEmailClaim,
+} from './email-claim.util';
 
 const UNIQUE_VIOLATION_CODE = '23505';
 
@@ -63,6 +68,12 @@ export class AuthService {
     let user: User;
     try {
       user = await this.dataSource.transaction(async (manager) => {
+        await lockEmailClaim(manager, email);
+        await clearExpiredEmailClaims(manager, email);
+        if (await emailClaimInUse(manager, email)) {
+          throw new BadRequestException('Email already in use');
+        }
+
         // placeholder until company profile filled in settings
         const company = manager.create(Company, { name: 'Moja firma' });
         const savedCompany = await manager.save(company);
@@ -172,6 +183,19 @@ export class AuthService {
 
     try {
       return await this.dataSource.transaction(async (manager) => {
+        await lockEmailClaim(manager, email);
+        await clearExpiredEmailClaims(manager, email);
+        const concurrentUser = await manager
+          .createQueryBuilder(User, 'user')
+          .innerJoinAndSelect('user.company', 'company')
+          .where('user.googleId = :googleId', { googleId })
+          .andWhere('company."deletedAt" IS NULL')
+          .getOne();
+        if (concurrentUser) return concurrentUser;
+        if (await emailClaimInUse(manager, email)) {
+          throw new ConflictException('Email already in use');
+        }
+
         const company = manager.create(Company, { name: 'Moja firma' });
         const savedCompany = await manager.save(company);
 
@@ -311,22 +335,22 @@ export class AuthService {
     if (email === user.email) {
       throw new BadRequestException('Email unchanged');
     }
-    await this.usersService.clearExpiredEmailChangeClaims(email);
-    if (await this.usersService.emailInUse(email, user.id)) {
-      throw new ConflictException('Email already in use');
-    }
-
     const ttlHours = this.config.get<number>(
       'VERIFICATION_TOKEN_TTL_HOURS',
       24,
     );
     const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
     try {
-      await this.usersService.update(user.id, {
-        pendingEmail: email,
-        emailChangeTokenHash: tokenHash,
-        emailChangeTokenExpiresAt: expiresAt,
-      });
+      const claimed = await this.usersService.claimEmailChange(
+        user.id,
+        user.password,
+        email,
+        tokenHash,
+        expiresAt,
+      );
+      if (!claimed) {
+        throw new UnauthorizedException('Current password changed');
+      }
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw new ConflictException('Email already in use');

@@ -95,6 +95,7 @@ export class UsersController {
   }
 
   @Post('verify-email-change')
+  @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmailChange(

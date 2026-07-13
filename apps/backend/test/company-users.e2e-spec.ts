@@ -153,6 +153,36 @@ describe('Company users (e2e)', () => {
       .expect(409);
   });
 
+  it('serializes concurrent email claims', async () => {
+    const admin = await signedIn('claim-admin@example.com');
+    const { token } = await invite(admin, 'claim-manager@example.com');
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token, password: 'manager-password' })
+      .expect(204);
+    const manager = request.agent(app.getHttpServer());
+    await manager
+      .post('/auth/signin')
+      .send({
+        email: 'claim-manager@example.com',
+        password: 'manager-password',
+      })
+      .expect(201);
+
+    const [inviteResponse, changeResponse] = await Promise.all([
+      admin
+        .post('/users')
+        .send({ email: 'claimed@example.com', role: UserRole.MANAGER }),
+      manager.patch('/users/me/email').send({
+        email: 'claimed@example.com',
+        currentPassword: 'manager-password',
+      }),
+    ]);
+    expect([inviteResponse.status, changeResponse.status].sort()).toEqual([
+      201, 409,
+    ]);
+  });
+
   it('soft-deletes a member and invalidates their session', async () => {
     const admin = await signedIn('delete-admin@example.com');
     const { user, token } = await invite(admin, 'deleted-member@example.com');
@@ -168,9 +198,17 @@ describe('Company users (e2e)', () => {
         password: 'manager-password',
       })
       .expect(201);
+    await member
+      .patch('/users/me/email')
+      .send({
+        email: 'released-pending@example.com',
+        currentPassword: 'manager-password',
+      })
+      .expect(204);
 
     await admin.delete(`/users/${user.id}`).expect(204);
     await member.get('/auth/me').expect(401);
+    await invite(admin, 'released-pending@example.com');
     await admin
       .get('/users')
       .expect(200)

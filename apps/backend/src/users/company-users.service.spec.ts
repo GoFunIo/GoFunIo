@@ -1,10 +1,13 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { CompanyUsersService } from './company-users.service';
 import { User, UserRole } from './users.entity';
-import { UsersService } from './users.service';
 
 function user(overrides: Partial<User> = {}): User {
   return {
@@ -28,7 +31,6 @@ describe('CompanyUsersService', () => {
     };
     service = new CompanyUsersService(
       repository as unknown as Repository<User>,
-      {} as UsersService,
       {} as ConfigService,
       {} as EventEmitter2,
     );
@@ -52,13 +54,15 @@ describe('CompanyUsersService', () => {
   });
 
   it('rejects demoting the last active admin', async () => {
+    const actor = user();
     const target = user({ id: 'user-2' });
     const query = {
+      innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       setLock: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([target]),
+      getMany: jest.fn().mockResolvedValue([actor]),
     };
     const manager = {
       createQueryBuilder: jest.fn().mockReturnValue(query),
@@ -71,8 +75,30 @@ describe('CompanyUsersService', () => {
     );
 
     await expect(
-      service.update(user(), target.id, { role: UserRole.MANAGER }),
+      service.update(actor, target.id, { role: UserRole.MANAGER }),
     ).rejects.toThrow(new ConflictException('Company must have an admin'));
     expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects an actor whose ADMIN role was revoked', async () => {
+    const query = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      setLock: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    };
+    const manager = {
+      createQueryBuilder: jest.fn().mockReturnValue(query),
+    };
+    repository.manager.transaction.mockImplementation(
+      async (callback: (value: typeof manager) => Promise<unknown>) =>
+        callback(manager),
+    );
+
+    await expect(
+      service.update(user(), 'user-2', { firstName: 'Blocked' }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

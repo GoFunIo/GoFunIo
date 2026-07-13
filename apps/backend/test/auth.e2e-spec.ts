@@ -97,6 +97,31 @@ describe('Auth (e2e)', () => {
       });
   });
 
+  it('password reset does not verify a regular signup email', async () => {
+    const email = 'unverified-reset@example.com';
+    const events = trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password: 'password123' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: events.passwordResetToken, password: 'new-password' })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email, password: 'new-password' })
+      .expect(401)
+      .expect((res) => {
+        expect(res.body.message).toBe('Email not verified');
+      });
+  });
+
   it('normalizes email for signup and signin', async () => {
     const password = 'password123';
     const events = trackEvents();

@@ -78,8 +78,7 @@ describe('AuthService', () => {
       | 'findOneByVerificationTokenHash'
       | 'update'
       | 'consumePasswordResetToken'
-      | 'clearExpiredEmailChangeClaims'
-      | 'emailInUse'
+      | 'claimEmailChange'
       | 'consumeEmailChangeToken'
       | 'updatePassword'
     >
@@ -95,8 +94,7 @@ describe('AuthService', () => {
       findOneByVerificationTokenHash: jest.fn(),
       update: jest.fn(),
       consumePasswordResetToken: jest.fn(),
-      clearExpiredEmailChangeClaims: jest.fn(),
-      emailInUse: jest.fn(),
+      claimEmailChange: jest.fn(),
       consumeEmailChangeToken: jest.fn(),
       updatePassword: jest.fn(),
     };
@@ -136,6 +134,7 @@ describe('AuthService', () => {
       });
       dataSource.transaction.mockImplementation(async (cb) => {
         const manager = {
+          query: jest.fn().mockResolvedValue([{ exists: false }]),
           create: jest.fn((_entity, data) => data),
           save: jest
             .fn()
@@ -263,6 +262,13 @@ describe('AuthService', () => {
       });
       dataSource.transaction.mockImplementation(async (cb) => {
         const manager = {
+          query: jest.fn().mockResolvedValue([{ exists: false }]),
+          createQueryBuilder: jest.fn().mockReturnValue({
+            innerJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(null),
+          }),
           create: jest.fn((_entity, data) => data),
           save: jest
             .fn()
@@ -533,18 +539,17 @@ describe('AuthService', () => {
       await expect(
         service.requestEmailChange(user, 'new@example.com', 'wrong-password'),
       ).rejects.toThrow(new UnauthorizedException('Invalid current password'));
-      expect(usersService.update).not.toHaveBeenCalled();
+      expect(usersService.claimEmailChange).not.toHaveBeenCalled();
     });
 
     it('maps a concurrent email claim to ConflictException', async () => {
       const user = makeUser({
         password: await buildPasswordHash('current-password'),
       });
-      usersService.emailInUse.mockResolvedValue(false);
       const driverError = Object.assign(new Error('unique violation'), {
         code: '23505',
       });
-      usersService.update.mockRejectedValue(
+      usersService.claimEmailChange.mockRejectedValue(
         new QueryFailedError('UPDATE', [], driverError),
       );
 

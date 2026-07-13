@@ -42,7 +42,7 @@ export class CompanyUsersController {
     @Body() body: CreateCompanyUserDto,
     @Headers('origin') origin?: string,
   ): Promise<User> {
-    return this.companyUsers.create(user.companyId, body, origin);
+    return this.companyUsers.create(user, body, origin);
   }
 
   @Patch(':id')
