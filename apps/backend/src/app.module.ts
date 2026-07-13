@@ -10,6 +10,7 @@ import { MailModule } from './mail/mail.module';
 import { validateEnv } from './config/env.validation';
 import { buildTypeOrmOptions } from './config/database.config';
 import { CompaniesModule } from './companies/companies.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CompaniesModule } from './companies/companies.module';
     UsersModule,
     MailModule,
     CompaniesModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

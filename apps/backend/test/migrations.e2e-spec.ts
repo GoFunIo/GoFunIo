@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { CreateInitialSchema1748000000000 } from '../src/migrations/1748000000000-CreateInitialSchema';
 import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000000-NormalizeUserIdentity';
 import { AddProfileFields1750000000000 } from '../src/migrations/1750000000000-AddProfileFields';
+import { CreateVehicles1751000000000 } from '../src/migrations/1751000000000-CreateVehicles';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -20,6 +21,7 @@ describe('database migrations', () => {
         CreateInitialSchema1748000000000,
         NormalizeUserIdentity1749000000000,
         AddProfileFields1750000000000,
+        CreateVehicles1751000000000,
       ],
     });
 
@@ -34,7 +36,7 @@ describe('database migrations', () => {
         `
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = $1 AND table_name IN ('companies', 'users')
+        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles')
         ORDER BY table_name
       `,
         [schema],
@@ -42,6 +44,7 @@ describe('database migrations', () => {
       expect(tables.map(({ table_name }) => table_name)).toEqual([
         'companies',
         'users',
+        'vehicles',
       ]);
 
       const indexes = await database.query<{ indexname: string }[]>(
@@ -67,7 +70,50 @@ describe('database migrations', () => {
         `),
       ).rejects.toMatchObject({ code: '23503' });
 
+      await expect(
+        database.query(`
+          INSERT INTO "vehicles" ("companyId", "brand", "model", "registrationNumber")
+          VALUES ('00000000-0000-0000-0000-000000000000', 'BMW', 'X5', 'TEST123')
+        `),
+      ).rejects.toMatchObject({ code: '23503' });
+
+      const [{ id: companyId }] = await database.query<{ id: string }[]>(`
+        INSERT INTO "companies" ("name") VALUES ('Migration test') RETURNING "id"
+      `);
+      await expect(
+        database.query(
+          `INSERT INTO "vehicles"
+           ("companyId", "brand", "model", "registrationNumber", "currentMileage")
+           VALUES ($1, 'BMW', 'X5', 'TEST123', -1)`,
+          [companyId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+
+      const [{ id: otherCompanyId }] = await database.query<{ id: string }[]>(`
+        INSERT INTO "companies" ("name") VALUES ('Other company') RETURNING "id"
+      `);
+      const [{ id: otherManagerId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" ("companyId", "email", "role")
+         VALUES ($1, 'other-manager@example.com', 'MANAGER') RETURNING "id"`,
+        [otherCompanyId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "vehicles"
+           ("companyId", "managerId", "brand", "model", "registrationNumber")
+           VALUES ($1, $2, 'BMW', 'X5', 'CROSS1')`,
+          [companyId, otherManagerId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+
       await database.undoLastMigration();
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.vehicles`,
+          ])
+        )[0].regclass,
+      ).toBeNull();
       expect(
         (
           await database.query(`SELECT to_regclass($1) AS regclass`, [
@@ -80,7 +126,7 @@ describe('database migrations', () => {
       expect(
         (
           await database.query(`SELECT to_regclass($1) AS regclass`, [
-            `${schema}.users`,
+            `${schema}.vehicles`,
           ])
         )[0].regclass,
       ).not.toBeNull();

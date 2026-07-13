@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
@@ -16,6 +17,7 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Unique('UQ_users_id_company', ['id', 'companyId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

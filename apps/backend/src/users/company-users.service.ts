@@ -17,6 +17,7 @@ import {
 } from './events/password-reset-requested.event';
 import { generateVerificationToken } from './verification-token.util';
 import { User, UserRole } from './users.entity';
+import { Vehicle } from '../vehicles/vehicles.entity';
 import {
   clearExpiredEmailClaims,
   emailClaimInUse,
@@ -120,6 +121,14 @@ export class CompanyUsersService {
         throw new ConflictException('Company must have an admin');
       }
 
+      if (target.role === UserRole.MANAGER && body.role === UserRole.ADMIN) {
+        await manager.update(
+          Vehicle,
+          { companyId: actor.companyId, managerId: target.id },
+          { managerId: null },
+        );
+      }
+
       Object.assign(target, body);
       return manager.save(target);
     });
@@ -136,6 +145,13 @@ export class CompanyUsersService {
       const target = await this.findCompanyUser(manager, actor.companyId, id);
       if (target.role === UserRole.ADMIN && admins.length <= 1) {
         throw new ConflictException('Company must have an admin');
+      }
+      if (target.role === UserRole.MANAGER) {
+        await manager.update(
+          Vehicle,
+          { companyId: actor.companyId, managerId: target.id },
+          { managerId: null },
+        );
       }
       await manager.update(User, target.id, {
         pendingEmail: null,

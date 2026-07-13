@@ -2,6 +2,7 @@ import { resolve } from 'path';
 import { DataSource } from 'typeorm';
 import { Company } from './companies/companies.entity';
 import { User } from './users/users.entity';
+import { Vehicle } from './vehicles/vehicles.entity';
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
@@ -19,7 +20,7 @@ export default new DataSource({
   type: 'postgres',
   url: databaseUrl,
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-  entities: [User, Company],
+  entities: [User, Company, Vehicle],
   migrations: [resolve(__dirname, 'migrations', '*.{ts,js}')],
   synchronize: false,
 });

@@ -4,6 +4,7 @@ import { join } from 'path';
 import { DataSource } from 'typeorm';
 import { Company } from '../../src/companies/companies.entity';
 import { User } from '../../src/users/users.entity';
+import { Vehicle } from '../../src/vehicles/vehicles.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -24,7 +25,7 @@ function testDataSource(schema: string): DataSource {
     type: 'postgres',
     url: process.env.DATABASE_URL,
     schema,
-    entities: [User, Company],
+    entities: [User, Company, Vehicle],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
     extra: postgresExtras(schema),
@@ -88,7 +89,7 @@ export async function truncateTestTables(): Promise<void> {
   // ponytail: hardcoded tables — extend list or switch to dynamic truncate when new FK tables appear
   await withAdminDataSource(async (admin) => {
     await admin.query(
-      `TRUNCATE TABLE "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."vehicles", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
     );
   });
 }
