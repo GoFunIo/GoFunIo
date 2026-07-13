@@ -297,12 +297,21 @@ export class AuthService {
   async requestEmailChange(
     user: User,
     email: string,
+    currentPassword: string,
     origin?: string,
   ): Promise<void> {
+    if (!user.password) {
+      throw new ConflictException('Set a password before changing email');
+    }
+    if (!(await verifyPassword(currentPassword, user.password))) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
     email = this.normalizeEmail(email);
     if (email === user.email) {
       throw new BadRequestException('Email unchanged');
     }
+    await this.usersService.clearExpiredEmailChangeClaims(email);
     if (await this.usersService.emailInUse(email, user.id)) {
       throw new ConflictException('Email already in use');
     }
@@ -312,11 +321,18 @@ export class AuthService {
       24,
     );
     const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
-    await this.usersService.update(user.id, {
-      pendingEmail: email,
-      emailChangeTokenHash: tokenHash,
-      emailChangeTokenExpiresAt: expiresAt,
-    });
+    try {
+      await this.usersService.update(user.id, {
+        pendingEmail: email,
+        emailChangeTokenHash: tokenHash,
+        emailChangeTokenExpiresAt: expiresAt,
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('Email already in use');
+      }
+      throw err;
+    }
     this.eventEmitter.emit(
       USER_EMAIL_CHANGE_REQUESTED_EVENT,
       new UserEmailChangeRequestedEvent(email, token, origin),
@@ -352,9 +368,14 @@ export class AuthService {
       throw new BadRequestException('New password must be different');
     }
 
-    return this.usersService.updatePassword(
+    const passwordVersion = await this.usersService.updatePassword(
       user.id,
+      user.password,
       await hashPassword(newPassword),
     );
+    if (passwordVersion === null) {
+      throw new UnauthorizedException('Current password changed');
+    }
+    return passwordVersion;
   }
 }

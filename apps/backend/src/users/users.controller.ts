@@ -94,13 +94,13 @@ export class UsersController {
     return { verified: true };
   }
 
-  @Get('verify-email-change')
+  @Post('verify-email-change')
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmailChange(
-    @Query() query: VerifyEmailDto,
+    @Body() body: VerifyEmailDto,
   ): Promise<{ verified: true }> {
-    await this.authService.verifyEmailChange(query.token);
+    await this.authService.verifyEmailChange(body.token);
     return { verified: true };
   }
 

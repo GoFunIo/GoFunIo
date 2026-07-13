@@ -42,7 +42,12 @@ POST {{baseUrl}}/auth/signout
 Origin: {{origin}}
 
 ### Verify email change (token z maila na nowy adres)
-GET {{baseUrl}}/auth/verify-email-change?token={{emailChangeToken}}
+POST {{baseUrl}}/auth/verify-email-change
+Content-Type: application/json
+
+{
+  "token": "{{emailChangeToken}}"
+}
 
 ### Forgot password
 POST {{baseUrl}}/auth/forgot-password

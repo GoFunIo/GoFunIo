@@ -78,6 +78,10 @@ describe('AuthService', () => {
       | 'findOneByVerificationTokenHash'
       | 'update'
       | 'consumePasswordResetToken'
+      | 'clearExpiredEmailChangeClaims'
+      | 'emailInUse'
+      | 'consumeEmailChangeToken'
+      | 'updatePassword'
     >
   >;
   let eventEmitter: { emit: jest.Mock };
@@ -91,6 +95,10 @@ describe('AuthService', () => {
       findOneByVerificationTokenHash: jest.fn(),
       update: jest.fn(),
       consumePasswordResetToken: jest.fn(),
+      clearExpiredEmailChangeClaims: jest.fn(),
+      emailInUse: jest.fn(),
+      consumeEmailChangeToken: jest.fn(),
+      updatePassword: jest.fn(),
     };
     eventEmitter = { emit: jest.fn() };
     config = {
@@ -513,6 +521,49 @@ describe('AuthService', () => {
       await expect(
         service.resetPassword('bad-token', 'new-password'),
       ).rejects.toThrow(new BadRequestException('Invalid or expired token'));
+    });
+  });
+
+  describe('requestEmailChange', () => {
+    it('requires the current password', async () => {
+      const user = makeUser({
+        password: await buildPasswordHash('current-password'),
+      });
+
+      await expect(
+        service.requestEmailChange(user, 'new@example.com', 'wrong-password'),
+      ).rejects.toThrow(new UnauthorizedException('Invalid current password'));
+      expect(usersService.update).not.toHaveBeenCalled();
+    });
+
+    it('maps a concurrent email claim to ConflictException', async () => {
+      const user = makeUser({
+        password: await buildPasswordHash('current-password'),
+      });
+      usersService.emailInUse.mockResolvedValue(false);
+      const driverError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+      });
+      usersService.update.mockRejectedValue(
+        new QueryFailedError('UPDATE', [], driverError),
+      );
+
+      await expect(
+        service.requestEmailChange(user, 'new@example.com', 'current-password'),
+      ).rejects.toThrow(new ConflictException('Email already in use'));
+    });
+  });
+
+  describe('changePassword', () => {
+    it('rejects an update when the current password changed concurrently', async () => {
+      const user = makeUser({
+        password: await buildPasswordHash('current-password'),
+      });
+      usersService.updatePassword.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword(user, 'current-password', 'new-password'),
+      ).rejects.toThrow(new UnauthorizedException('Current password changed'));
     });
   });
 });

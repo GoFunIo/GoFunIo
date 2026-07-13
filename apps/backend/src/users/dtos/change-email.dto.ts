@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, MaxLength } from 'class-validator';
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class ChangeEmailDto {
   @Transform(({ value }: { value: unknown }) =>
@@ -8,4 +8,9 @@ export class ChangeEmailDto {
   @IsEmail()
   @MaxLength(254)
   email!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  currentPassword!: string;
 }

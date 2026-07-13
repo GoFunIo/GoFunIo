@@ -22,7 +22,7 @@ Origin: {{origin}}
 
 {
   "currentPassword": "{{password}}",
-  "newPassword": "changed-pass99"
+  "newPassword": "{{newPassword}}"
 }
 
 ### Sprawdź sesję po zmianie hasła
@@ -34,7 +34,8 @@ Content-Type: application/json
 Origin: {{origin}}
 
 {
-  "email": "{{newEmail}}"
+  "email": "{{newEmail}}",
+  "currentPassword": "{{newPassword}}"
 }
 
 ### Sprawdź pendingEmail

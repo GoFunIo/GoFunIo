@@ -47,7 +47,12 @@ export class UserProfileController {
     @Body() body: ChangeEmailDto,
     @Headers('origin') origin?: string,
   ): Promise<void> {
-    await this.authService.requestEmailChange(user, body.email, origin);
+    await this.authService.requestEmailChange(
+      user,
+      body.email,
+      body.currentPassword,
+      origin,
+    );
   }
 
   @Patch('password')

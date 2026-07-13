@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as VerifyEmailChangeRouteImport } from './routes/verify-email-change';
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route';
 import { Route as publicRouteRouteImport } from './routes/(public)/route';
 import { Route as authRouteRouteImport } from './routes/(auth)/route';
@@ -31,6 +32,11 @@ import { Route as DashboardSettingsPaymentsRouteImport } from './routes/dashboar
 import { Route as DashboardSettingsNotificationRouteImport } from './routes/dashboard/settings/notification';
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId';
 
+const VerifyEmailChangeRoute = VerifyEmailChangeRouteImport.update({
+  id: '/verify-email-change',
+  path: '/verify-email-change',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -137,6 +143,7 @@ const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren;
+  '/verify-email-change': typeof VerifyEmailChangeRoute;
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute;
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute;
 }
 export interface FileRoutesByTo {
+  '/verify-email-change': typeof VerifyEmailChangeRoute;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute;
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute;
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren;
   '/(public)': typeof publicRouteRouteWithChildren;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
+  '/verify-email-change': typeof VerifyEmailChangeRoute;
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren;
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute;
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute;
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/dashboard'
+    | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/notification'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/dashboard/timeline/';
   fileRoutesByTo: FileRoutesByTo;
   to:
+    | '/verify-email-change'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/(public)'
     | '/dashboard'
+    | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/notification'
@@ -269,10 +281,18 @@ export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren;
   publicRouteRoute: typeof publicRouteRouteWithChildren;
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren;
+  VerifyEmailChangeRoute: typeof VerifyEmailChangeRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email-change': {
+      id: '/verify-email-change';
+      path: '/verify-email-change';
+      fullPath: '/verify-email-change';
+      preLoaderRoute: typeof VerifyEmailChangeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/dashboard': {
       id: '/dashboard';
       path: '/dashboard';
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  VerifyEmailChangeRoute: VerifyEmailChangeRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -43,16 +43,32 @@ describe('Profile and company (e2e)', () => {
 
   it('changes password and keeps current session valid', async () => {
     const agent = await signedIn('password-change@example.com');
+    const events = captureEmittedEvents(app);
 
-    await agent
-      .patch('/users/me/password')
-      .send({ currentPassword: 'password123', newPassword: 'new-password' })
-      .expect(204);
-    await agent.get('/auth/me').expect(200);
-    await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({ email: 'password-change@example.com', password: 'new-password' })
-      .expect(201);
+    try {
+      await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'password-change@example.com' })
+        .expect(204);
+      await agent
+        .patch('/users/me/password')
+        .send({ currentPassword: 'password123', newPassword: 'new-password' })
+        .expect(204);
+      await agent.get('/auth/me').expect(200);
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: events.passwordResetToken, password: 'stolen-password' })
+        .expect(400);
+      await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({
+          email: 'password-change@example.com',
+          password: 'new-password',
+        })
+        .expect(201);
+    } finally {
+      events.restore();
+    }
   });
 
   it('changes email only after verification', async () => {
@@ -62,7 +78,10 @@ describe('Profile and company (e2e)', () => {
     try {
       await agent
         .patch('/users/me/email')
-        .send({ email: 'New-Email@Example.com' })
+        .send({
+          email: 'New-Email@Example.com',
+          currentPassword: 'password123',
+        })
         .expect(204);
       await agent
         .get('/auth/me')
@@ -72,8 +91,8 @@ describe('Profile and company (e2e)', () => {
           expect(res.body.pendingEmail).toBe('new-email@example.com');
         });
       await request(app.getHttpServer())
-        .get('/auth/verify-email-change')
-        .query({ token: events.emailChangeToken })
+        .post('/auth/verify-email-change')
+        .send({ token: events.emailChangeToken })
         .expect(200);
       await request(app.getHttpServer())
         .post('/auth/signin')
@@ -82,6 +101,25 @@ describe('Profile and company (e2e)', () => {
     } finally {
       events.restore();
     }
+  });
+
+  it('releases an expired email-change claim', async () => {
+    const first = await signedIn('first-claim@example.com');
+    const second = await signedIn('second-claim@example.com');
+
+    await first
+      .patch('/users/me/email')
+      .send({ email: 'claim@example.com', currentPassword: 'password123' })
+      .expect(204);
+    await app.get(DataSource).query(
+      `UPDATE "users" SET "emailChangeTokenExpiresAt" = now() - interval '1 minute'
+       WHERE "pendingEmail" = $1`,
+      ['claim@example.com'],
+    );
+    await second
+      .patch('/users/me/email')
+      .send({ email: 'claim@example.com', currentPassword: 'password123' })
+      .expect(204);
   });
 
   it('allows ADMIN and rejects MANAGER company updates', async () => {
@@ -93,6 +131,7 @@ describe('Profile and company (e2e)', () => {
       .send({ name: 'Firma', taxId: '123-456-78-90', postalCode: '00-001' })
       .expect(200)
       .expect((res) => expect(res.body.taxId).toBe('1234567890'));
+    await agent.patch('/company').send({ name: null }).expect(400);
     await app
       .get(DataSource)
       .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [

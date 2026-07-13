@@ -64,6 +64,23 @@ export class UsersService {
       .getExists();
   }
 
+  async clearExpiredEmailChangeClaims(email: string): Promise<void> {
+    await this.usersRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        pendingEmail: null,
+        emailChangeTokenHash: null,
+        emailChangeTokenExpiresAt: null,
+      })
+      .where('lower("pendingEmail") = :email', { email })
+      .andWhere(
+        '("emailChangeTokenExpiresAt" IS NULL OR "emailChangeTokenExpiresAt" <= :now)',
+        { now: new Date() },
+      )
+      .execute();
+  }
+
   async consumeEmailChangeToken(tokenHash: string): Promise<boolean> {
     const result = await this.usersRepository
       .createQueryBuilder()
@@ -74,6 +91,8 @@ export class UsersService {
         emailVerifiedAt: new Date(),
         emailChangeTokenHash: null,
         emailChangeTokenExpiresAt: null,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
       })
       .where('"emailChangeTokenHash" = :tokenHash', { tokenHash })
       .andWhere('"emailChangeTokenExpiresAt" > :now', { now: new Date() })
@@ -84,21 +103,30 @@ export class UsersService {
     return (result.affected ?? 0) > 0;
   }
 
-  async updatePassword(id: string, password: string): Promise<number> {
+  async updatePassword(
+    id: string,
+    currentPassword: string,
+    password: string,
+  ): Promise<number | null> {
     const result = await this.usersRepository
       .createQueryBuilder()
       .update(User)
       .set({
         password,
         passwordVersion: () => '"passwordVersion" + 1',
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
       })
       .where('id = :id', { id })
+      .andWhere('password = :currentPassword', { currentPassword })
       .andWhere('"deletedAt" IS NULL')
       .returning('"passwordVersion"')
       .execute();
 
-    return (result.raw as Array<{ passwordVersion: number }>)[0]
-      .passwordVersion;
+    return (
+      (result.raw as Array<{ passwordVersion: number }>)[0]?.passwordVersion ??
+      null
+    );
   }
 
   async consumePasswordResetToken(

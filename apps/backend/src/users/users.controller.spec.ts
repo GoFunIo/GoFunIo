@@ -56,6 +56,7 @@ describe('UsersController', () => {
       | 'signin'
       | 'signInWithGoogle'
       | 'verifyEmail'
+      | 'verifyEmailChange'
       | 'resendVerification'
       | 'requestPasswordReset'
       | 'resetPassword'
@@ -68,6 +69,7 @@ describe('UsersController', () => {
       signin: jest.fn(),
       signInWithGoogle: jest.fn(),
       verifyEmail: jest.fn(),
+      verifyEmailChange: jest.fn(),
       resendVerification: jest.fn(),
       requestPasswordReset: jest.fn(),
       resetPassword: jest.fn(),
@@ -179,6 +181,17 @@ describe('UsersController', () => {
 
       expect(authService.verifyEmail).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ verified: true });
+    });
+  });
+
+  describe('verifyEmailChange', () => {
+    it('delegates the body token to AuthService', async () => {
+      authService.verifyEmailChange.mockResolvedValue(undefined);
+
+      await expect(
+        controller.verifyEmailChange({ token: 'abc' }),
+      ).resolves.toEqual({ verified: true });
+      expect(authService.verifyEmailChange).toHaveBeenCalledWith('abc');
     });
   });
 

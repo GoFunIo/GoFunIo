@@ -6,6 +6,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 const optionalText = ({ value }: { value: unknown }) =>
@@ -15,7 +16,7 @@ export class UpdateCompanyDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   @MaxLength(255)
