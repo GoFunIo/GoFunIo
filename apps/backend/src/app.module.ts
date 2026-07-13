@@ -11,6 +11,7 @@ import { validateEnv } from './config/env.validation';
 import { buildTypeOrmOptions } from './config/database.config';
 import { CompaniesModule } from './companies/companies.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { DriversModule } from './drivers/drivers.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     MailModule,
     CompaniesModule,
     VehiclesModule,
+    DriversModule,
   ],
   controllers: [AppController],
   providers: [AppService],

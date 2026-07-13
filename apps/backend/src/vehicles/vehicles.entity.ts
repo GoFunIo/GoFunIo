@@ -5,11 +5,14 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-import { User } from '../users/users.entity';
+import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { ManagerVehicleAssignment } from './manager-vehicle-assignment.entity';
 
 export enum VehicleFuelType {
   DIESEL = 'DIESEL',
@@ -20,6 +23,7 @@ export enum VehicleFuelType {
 }
 
 @Entity('vehicles')
+@Unique('UQ_vehicles_id_company', ['id', 'companyId'])
 export class Vehicle {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -31,15 +35,15 @@ export class Vehicle {
   @JoinColumn({ name: 'companyId' })
   company!: Company;
 
-  @Column({ type: 'uuid', nullable: true })
-  managerId!: string | null;
+  @OneToMany(() => ManagerVehicleAssignment, (assignment) => assignment.vehicle)
+  managerAssignments!: ManagerVehicleAssignment[];
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn([
-    { name: 'managerId', referencedColumnName: 'id' },
-    { name: 'companyId', referencedColumnName: 'companyId' },
-  ])
-  manager!: User | null;
+  @OneToMany(() => DriverVehicleAssignment, (assignment) => assignment.vehicle)
+  driverAssignments!: DriverVehicleAssignment[];
+
+  managerIds!: string[];
+
+  driverIds!: string[];
 
   @Column({ type: 'varchar', length: 100 })
   brand!: string;

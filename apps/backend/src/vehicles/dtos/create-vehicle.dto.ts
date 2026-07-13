@@ -1,5 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
@@ -17,8 +19,16 @@ import { vehicleTransforms } from './vehicle-transforms';
 
 export class CreateVehicleDto {
   @IsOptional()
-  @IsUUID()
-  managerId?: string | null;
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  managerIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  driverIds?: string[];
 
   @Transform(vehicleTransforms.trim)
   @IsString()

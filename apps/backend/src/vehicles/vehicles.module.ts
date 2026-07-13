@@ -10,5 +10,6 @@ import { VehiclesService } from './vehicles.service';
   imports: [TypeOrmModule.forFeature([Vehicle]), UsersModule],
   controllers: [VehiclesController],
   providers: [VehiclesService, AllowedOriginGuard],
+  exports: [VehiclesService],
 })
 export class VehiclesModule {}

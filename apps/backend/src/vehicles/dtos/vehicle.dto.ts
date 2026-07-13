@@ -6,7 +6,10 @@ export class VehicleDto {
   id!: string;
 
   @Expose()
-  managerId!: string | null;
+  managerIds!: string[];
+
+  @Expose()
+  driverIds!: string[];
 
   @Expose()
   brand!: string;

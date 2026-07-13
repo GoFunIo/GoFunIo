@@ -12,7 +12,6 @@ export class CreateVehicles1751000000000 implements MigrationInterface {
       CREATE TABLE "vehicles" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "companyId" uuid NOT NULL,
-        "managerId" uuid,
         "brand" varchar(100) NOT NULL,
         "model" varchar(100) NOT NULL,
         "productionYear" smallint,
@@ -29,8 +28,8 @@ export class CreateVehicles1751000000000 implements MigrationInterface {
         "updatedAt" timestamptz NOT NULL DEFAULT now(),
         "deletedAt" timestamptz,
         CONSTRAINT "PK_vehicles" PRIMARY KEY ("id"),
+        CONSTRAINT "UQ_vehicles_id_company" UNIQUE ("id", "companyId"),
         CONSTRAINT "FK_vehicles_company" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT,
-        CONSTRAINT "FK_vehicles_manager" FOREIGN KEY ("managerId", "companyId") REFERENCES "users"("id", "companyId") ON DELETE SET NULL ("managerId"),
         CONSTRAINT "CHK_vehicles_brand" CHECK (btrim("brand") <> ''),
         CONSTRAINT "CHK_vehicles_model" CHECK (btrim("model") <> ''),
         CONSTRAINT "CHK_vehicles_year" CHECK ("productionYear" IS NULL OR "productionYear" >= 1886),
@@ -44,15 +43,6 @@ export class CreateVehicles1751000000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE INDEX "IDX_vehicles_company"
       ON "vehicles" ("companyId")
-    `);
-    await queryRunner.query(`
-      CREATE INDEX "IDX_vehicles_company_manager_active"
-      ON "vehicles" ("companyId", "managerId")
-      WHERE "deletedAt" IS NULL
-    `);
-    await queryRunner.query(`
-      CREATE INDEX "IDX_vehicles_manager"
-      ON "vehicles" ("managerId")
     `);
     await queryRunner.query(`
       CREATE UNIQUE INDEX "IDX_vehicles_company_registration_active"
@@ -84,9 +74,39 @@ export class CreateVehicles1751000000000 implements MigrationInterface {
       ON "vehicles" ("companyId", "technicalInspectionExpiry")
       WHERE "deletedAt" IS NULL
     `);
+    await queryRunner.query(`
+      CREATE TABLE "manager_vehicle_assignments" (
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+        "companyId" uuid NOT NULL,
+        "managerId" uuid NOT NULL,
+        "vehicleId" uuid NOT NULL,
+        "assignedFrom" timestamptz NOT NULL DEFAULT clock_timestamp(),
+        "assignedTo" timestamptz,
+        "createdAt" timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT "PK_manager_vehicle_assignments" PRIMARY KEY ("id"),
+        CONSTRAINT "FK_manager_assignments_company" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT,
+        CONSTRAINT "FK_manager_assignments_manager" FOREIGN KEY ("managerId", "companyId") REFERENCES "users"("id", "companyId") ON DELETE RESTRICT,
+        CONSTRAINT "FK_manager_assignments_vehicle" FOREIGN KEY ("vehicleId", "companyId") REFERENCES "vehicles"("id", "companyId") ON DELETE RESTRICT,
+        CONSTRAINT "CHK_manager_assignments_dates" CHECK ("assignedTo" IS NULL OR "assignedTo" >= "assignedFrom")
+      )
+    `);
+    await queryRunner.query(`
+      CREATE UNIQUE INDEX "IDX_manager_assignments_active_pair"
+      ON "manager_vehicle_assignments" ("managerId", "vehicleId")
+      WHERE "assignedTo" IS NULL
+    `);
+    await queryRunner.query(`
+      CREATE INDEX "IDX_manager_assignments_company_manager"
+      ON "manager_vehicle_assignments" ("companyId", "managerId", "assignedTo")
+    `);
+    await queryRunner.query(`
+      CREATE INDEX "IDX_manager_assignments_company_vehicle"
+      ON "manager_vehicle_assignments" ("companyId", "vehicleId", "assignedTo")
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP TABLE "manager_vehicle_assignments"`);
     await queryRunner.query(`DROP TABLE "vehicles"`);
     await queryRunner.query(`
       ALTER TABLE "users" DROP CONSTRAINT "UQ_users_id_company"

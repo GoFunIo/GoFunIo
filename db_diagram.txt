@@ -74,13 +74,16 @@ Table manager_vehicle_assignments {
   company_id uuid [not null, ref: > companies.id]
   manager_id uuid [not null, ref: > users.id]
   vehicle_id uuid [not null, ref: > vehicles.id]
+  assigned_from timestamp [not null]
+  assigned_to timestamp
   created_at timestamp [not null]
 
   indexes {
-    (manager_id, vehicle_id) [unique]
     (company_id, manager_id)
     (company_id, vehicle_id)
   }
+
+  Note: 'Only one active row per manager and vehicle; assigned_to must not precede assigned_from. Physical DB uses composite tenant FKs.'
 }
 
 Table drivers {
@@ -88,7 +91,7 @@ Table drivers {
   company_id uuid [not null, ref: > companies.id]
   first_name varchar(100) [not null]
   last_name varchar(100) [not null]
-  email varchar(255)
+  email varchar(254)
   phone varchar(50)
   notes text
   created_at timestamp [not null]
@@ -105,14 +108,16 @@ Table driver_vehicle_assignments {
   company_id uuid [not null, ref: > companies.id]
   driver_id uuid [not null, ref: > drivers.id]
   vehicle_id uuid [not null, ref: > vehicles.id]
-  assigned_from date
-  assigned_to date
+  assigned_from timestamp [not null]
+  assigned_to timestamp
   created_at timestamp [not null]
 
   indexes {
     (company_id, driver_id)
     (company_id, vehicle_id)
   }
+
+  Note: 'Only one active row per driver and vehicle; assigned_to must not precede assigned_from. Multiple active drivers per vehicle are allowed. Physical DB uses composite tenant FKs.'
 }
 
 Table service_entries {

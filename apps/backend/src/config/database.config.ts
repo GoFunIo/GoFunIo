@@ -3,6 +3,9 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Company } from '../companies/companies.entity';
 import { User } from '../users/users.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
+import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
+import { Driver } from '../drivers/drivers.entity';
+import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 
 function postgresSsl(): { rejectUnauthorized: false } | undefined {
   const url = process.env.DATABASE_URL ?? '';
@@ -24,7 +27,14 @@ export function buildTypeOrmOptions(): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     url: process.env.DATABASE_URL,
-    entities: [User, Company, Vehicle],
+    entities: [
+      User,
+      Company,
+      Vehicle,
+      ManagerVehicleAssignment,
+      Driver,
+      DriverVehicleAssignment,
+    ],
     synchronize: false,
     ssl: postgresSsl(),
     migrations: [join(__dirname, '..', 'migrations', '*.{js,ts}')],

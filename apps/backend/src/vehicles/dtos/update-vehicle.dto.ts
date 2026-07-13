@@ -1,5 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
@@ -18,8 +20,10 @@ import { vehicleTransforms } from './vehicle-transforms';
 
 export class UpdateVehicleDto {
   @IsOptional()
-  @IsUUID()
-  managerId?: string | null;
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  managerIds?: string[];
 
   @Transform(vehicleTransforms.trim)
   @ValidateIf((_, value) => value !== undefined)

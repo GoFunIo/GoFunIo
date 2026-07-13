@@ -138,7 +138,8 @@ describe('Vehicles (e2e)', () => {
       vin: null,
       registrationNumber: 'MAN123',
     });
-    expect(created.body.managerId).toBeDefined();
+    const me = await manager.get('/auth/me').expect(200);
+    expect(created.body.managerIds).toEqual([me.body.id]);
     await manager.get('/vehicles').expect(200);
     await manager
       .patch(`/vehicles/${created.body.id}`)
@@ -165,17 +166,32 @@ describe('Vehicles (e2e)', () => {
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(404);
     await admin
       .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerId: user.id })
+      .send({ managerIds: [user.id] })
       .expect(200)
-      .expect((res) => expect(res.body.managerId).toBe(user.id));
+      .expect((res) => expect(res.body.managerIds).toEqual([user.id]));
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
+    const second = await inviteManager(admin, 'scope-manager-two@example.com');
+    await admin
+      .patch(`/vehicles/${unassigned.body.id}`)
+      .send({ managerIds: [user.id, second.user.id] })
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.managerIds.sort()).toEqual(
+          [user.id, second.user.id].sort(),
+        ),
+      );
+    await second.manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
+    await admin
+      .get(`/vehicles/${unassigned.body.id}/manager-assignments`)
+      .expect(200)
+      .expect((res) => expect(res.body).toHaveLength(2));
     await manager
       .patch(`/vehicles/${unassigned.body.id}`)
       .send({ notes: 'Manager update' })
       .expect(200);
     await manager
       .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerId: null })
+      .send({ managerIds: [] })
       .expect(403);
 
     const foreignManager = await signedIn('foreign-manager@example.com');
@@ -187,7 +203,7 @@ describe('Vehicles (e2e)', () => {
     const foreignMe = await foreignManager.get('/auth/me').expect(200);
     await admin
       .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerId: foreignMe.body.id })
+      .send({ managerIds: [foreignMe.body.id] })
       .expect(400);
     await manager.delete(`/vehicles/${unassigned.body.id}`).expect(204);
   });
@@ -196,7 +212,7 @@ describe('Vehicles (e2e)', () => {
     const admin = await signedIn('manager-lifecycle-admin@example.com');
     const first = await inviteManager(admin, 'promoted-manager@example.com');
     const created = await createVehicle(admin, {
-      managerId: first.user.id,
+      managerIds: [first.user.id],
       vin: 'WAU123456789ABCDE',
       registrationNumber: 'LIFE1',
     });
@@ -208,18 +224,31 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerId).toBeNull());
+      .expect((res) => expect(res.body.managerIds).toEqual([]));
 
     const second = await inviteManager(admin, 'deleted-manager@example.com');
     await admin
       .patch(`/vehicles/${created.body.id}`)
-      .send({ managerId: second.user.id })
+      .send({ managerIds: [second.user.id] })
       .expect(200);
     await admin.delete(`/users/${second.user.id}`).expect(204);
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerId).toBeNull());
+      .expect((res) => expect(res.body.managerIds).toEqual([]));
+    await admin.delete(`/vehicles/${created.body.id}`).expect(204);
+    await admin
+      .get(`/vehicles/${created.body.id}/manager-assignments`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveLength(2);
+        expect(
+          res.body.every(
+            ({ assignedTo }: { assignedTo: string | null }) =>
+              assignedTo !== null,
+          ),
+        ).toBe(true);
+      });
   });
 
   it('isolates tenants while allowing tenant-local identifiers', async () => {

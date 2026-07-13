@@ -6,7 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, QueryFailedError, Repository } from 'typeorm';
+import {
+  EntityManager,
+  In,
+  IsNull,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
+import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { Driver } from '../drivers/drivers.entity';
 import { User, UserRole } from '../users/users.entity';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import {
@@ -16,6 +24,7 @@ import {
   VehicleSortBy,
 } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
+import { ManagerVehicleAssignment } from './manager-vehicle-assignment.entity';
 import { Vehicle } from './vehicles.entity';
 
 const sortColumns: Record<VehicleSortBy, string> = {
@@ -48,7 +57,16 @@ export class VehiclesService {
       .where('vehicle.companyId = :companyId', { companyId: actor.companyId })
       .andWhere('vehicle.deletedAt IS NULL');
     if (actor.role === UserRole.MANAGER) {
-      qb.andWhere('vehicle.managerId = :managerId', { managerId: actor.id });
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM "manager_vehicle_assignments" assignment
+          WHERE assignment."vehicleId" = vehicle.id
+            AND assignment."companyId" = vehicle."companyId"
+            AND assignment."managerId" = :managerId
+            AND assignment."assignedTo" IS NULL
+        )`,
+        { managerId: actor.id },
+      );
     }
 
     if (query.search) {
@@ -88,6 +106,7 @@ export class VehiclesService {
       .take(query.pageSize);
 
     const [items, total] = await qb.getManyAndCount();
+    await this.loadActiveAssignments(this.vehicles.manager, items);
     return {
       items,
       page: query.page,
@@ -98,12 +117,12 @@ export class VehiclesService {
   }
 
   async findOne(actor: User, id: string): Promise<Vehicle> {
-    const vehicle = await this.vehicles.findOneBy({
+    const vehicle = await this.findAccessibleVehicle(
+      this.vehicles.manager,
+      actor,
       id,
-      companyId: actor.companyId,
-      ...(actor.role === UserRole.MANAGER ? { managerId: actor.id } : {}),
-    });
-    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    );
+    await this.loadActiveAssignments(this.vehicles.manager, [vehicle]);
     return vehicle;
   }
 
@@ -113,26 +132,31 @@ export class VehiclesService {
     try {
       return await this.vehicles.manager.transaction(async (manager) => {
         const currentActor = await this.lockActor(manager, actor);
+        const { managerIds, driverIds, ...vehicleFields } = body;
         if (
           currentActor.role === UserRole.MANAGER &&
-          body.managerId &&
-          body.managerId !== currentActor.id
+          managerIds !== undefined
         ) {
           throw new ForbiddenException();
         }
-        const managerId =
+
+        const activeManagerIds =
           currentActor.role === UserRole.MANAGER
-            ? currentActor.id
-            : await this.validateManager(
+            ? [currentActor.id]
+            : await this.validateManagerIds(
                 manager,
                 currentActor.companyId,
-                body.managerId,
+                managerIds ?? [],
               );
-        return manager.save(
+        const activeDriverIds = await this.validateDriverIds(
+          manager,
+          currentActor.companyId,
+          driverIds ?? [],
+        );
+        const vehicle = await manager.save(
           manager.create(Vehicle, {
-            ...body,
+            ...vehicleFields,
             companyId: currentActor.companyId,
-            managerId,
             productionYear: body.productionYear ?? null,
             fuelType: body.fuelType ?? null,
             vin: body.vin ?? null,
@@ -144,6 +168,32 @@ export class VehiclesService {
             notes: body.notes ?? null,
           }),
         );
+
+        if (activeManagerIds.length) {
+          await manager.save(
+            activeManagerIds.map((managerId) =>
+              manager.create(ManagerVehicleAssignment, {
+                companyId: currentActor.companyId,
+                managerId,
+                vehicleId: vehicle.id,
+              }),
+            ),
+          );
+        }
+        if (activeDriverIds.length) {
+          await manager.save(
+            activeDriverIds.map((driverId) =>
+              manager.create(DriverVehicleAssignment, {
+                companyId: currentActor.companyId,
+                driverId,
+                vehicleId: vehicle.id,
+              }),
+            ),
+          );
+        }
+        vehicle.managerIds = activeManagerIds;
+        vehicle.driverIds = activeDriverIds;
+        return vehicle;
       });
     } catch (error) {
       this.throwConflict(error);
@@ -163,34 +213,31 @@ export class VehiclesService {
     try {
       return await this.vehicles.manager.transaction(async (manager) => {
         const currentActor = await this.lockActor(manager, actor);
+        const { managerIds, ...vehicleFields } = body;
         if (
           currentActor.role === UserRole.MANAGER &&
-          body.managerId !== undefined
+          managerIds !== undefined
         ) {
           throw new ForbiddenException();
         }
-        const managerId =
-          currentActor.role === UserRole.ADMIN && body.managerId !== undefined
-            ? await this.validateManager(
-                manager,
-                currentActor.companyId,
-                body.managerId,
-              )
-            : undefined;
-        const vehicle = await manager.findOne(Vehicle, {
-          where: {
-            id,
-            companyId: currentActor.companyId,
-            ...(currentActor.role === UserRole.MANAGER
-              ? { managerId: currentActor.id }
-              : {}),
-          },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (!vehicle) throw new NotFoundException('Vehicle not found');
-        Object.assign(vehicle, body);
-        if (managerId !== undefined) vehicle.managerId = managerId;
-        return manager.save(vehicle);
+        const vehicle = await this.findAccessibleVehicle(
+          manager,
+          currentActor,
+          id,
+          true,
+        );
+        if (managerIds !== undefined) {
+          const validIds = await this.validateManagerIds(
+            manager,
+            currentActor.companyId,
+            managerIds,
+          );
+          await this.syncManagerAssignments(manager, vehicle, validIds);
+        }
+        Object.assign(vehicle, vehicleFields);
+        await manager.save(vehicle);
+        await this.loadActiveAssignments(manager, [vehicle]);
+        return vehicle;
       });
     } catch (error) {
       this.throwConflict(error);
@@ -200,25 +247,204 @@ export class VehiclesService {
   async remove(actor: User, id: string): Promise<void> {
     await this.vehicles.manager.transaction(async (manager) => {
       const currentActor = await this.lockActor(manager, actor);
-      const query = manager
-        .createQueryBuilder()
-        .softDelete()
-        .from(Vehicle)
-        .where('id = :id', { id })
-        .andWhere('"companyId" = :companyId', {
-          companyId: currentActor.companyId,
-        })
-        .andWhere('"deletedAt" IS NULL');
-      if (currentActor.role === UserRole.MANAGER) {
-        query.andWhere('"managerId" = :managerId', {
-          managerId: currentActor.id,
-        });
-      }
-      const result = await query.execute();
-      if ((result.affected ?? 0) === 0) {
-        throw new NotFoundException('Vehicle not found');
-      }
+      const vehicle = await this.findAccessibleVehicle(
+        manager,
+        currentActor,
+        id,
+        true,
+      );
+      await this.closeActiveAssignments(
+        manager,
+        ManagerVehicleAssignment,
+        currentActor.companyId,
+        id,
+      );
+      await this.closeActiveAssignments(
+        manager,
+        DriverVehicleAssignment,
+        currentActor.companyId,
+        id,
+      );
+      await manager.softDelete(Vehicle, vehicle.id);
     });
+  }
+
+  async managerHistory(actor: User, id: string) {
+    await this.findVehicleForHistory(this.vehicles.manager, actor, id);
+    return this.vehicles.manager.find(ManagerVehicleAssignment, {
+      where: { companyId: actor.companyId, vehicleId: id },
+      order: { assignedFrom: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  async findAccessibleVehicle(
+    manager: EntityManager,
+    actor: User,
+    id: string,
+    lock = false,
+  ): Promise<Vehicle> {
+    const qb = manager
+      .createQueryBuilder(Vehicle, 'vehicle')
+      .where('vehicle.id = :id', { id })
+      .andWhere('vehicle.companyId = :companyId', {
+        companyId: actor.companyId,
+      })
+      .andWhere('vehicle.deletedAt IS NULL');
+    if (actor.role === UserRole.MANAGER) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM "manager_vehicle_assignments" assignment
+          WHERE assignment."vehicleId" = vehicle.id
+            AND assignment."companyId" = vehicle."companyId"
+            AND assignment."managerId" = :managerId
+            AND assignment."assignedTo" IS NULL
+        )`,
+        { managerId: actor.id },
+      );
+    }
+    if (lock) qb.setLock('pessimistic_write');
+    const vehicle = await qb.getOne();
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    return vehicle;
+  }
+
+  async findVehicleForHistory(
+    manager: EntityManager,
+    actor: User,
+    id: string,
+  ): Promise<Vehicle> {
+    if (actor.role === UserRole.MANAGER) {
+      return this.findAccessibleVehicle(manager, actor, id);
+    }
+    const vehicle = await manager
+      .createQueryBuilder(Vehicle, 'vehicle')
+      .withDeleted()
+      .where('vehicle.id = :id', { id })
+      .andWhere('vehicle.companyId = :companyId', {
+        companyId: actor.companyId,
+      })
+      .getOne();
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    return vehicle;
+  }
+
+  private async syncManagerAssignments(
+    manager: EntityManager,
+    vehicle: Vehicle,
+    managerIds: string[],
+  ): Promise<void> {
+    const active = await manager.find(ManagerVehicleAssignment, {
+      where: {
+        companyId: vehicle.companyId,
+        vehicleId: vehicle.id,
+        assignedTo: IsNull(),
+      },
+      lock: { mode: 'pessimistic_write' },
+    });
+    const requested = new Set(managerIds);
+    const existing = new Set(active.map(({ managerId }) => managerId));
+    const removed = active.filter(({ managerId }) => !requested.has(managerId));
+    if (removed.length) {
+      await manager
+        .createQueryBuilder()
+        .update(ManagerVehicleAssignment)
+        .set({ assignedTo: () => 'clock_timestamp()' })
+        .whereInIds(removed.map(({ id }) => id))
+        .execute();
+    }
+    const added = managerIds.filter((managerId) => !existing.has(managerId));
+    if (added.length) {
+      await manager.save(
+        added.map((managerId) =>
+          manager.create(ManagerVehicleAssignment, {
+            companyId: vehicle.companyId,
+            managerId,
+            vehicleId: vehicle.id,
+          }),
+        ),
+      );
+    }
+  }
+
+  private async loadActiveAssignments(
+    manager: EntityManager,
+    vehicles: Vehicle[],
+  ): Promise<void> {
+    if (!vehicles.length) return;
+    const vehicleIds = vehicles.map(({ id }) => id);
+    const [managerAssignments, driverAssignments] = await Promise.all([
+      manager.find(ManagerVehicleAssignment, {
+        where: { vehicleId: In(vehicleIds), assignedTo: IsNull() },
+      }),
+      manager.find(DriverVehicleAssignment, {
+        where: { vehicleId: In(vehicleIds), assignedTo: IsNull() },
+      }),
+    ]);
+    for (const vehicle of vehicles) {
+      vehicle.managerIds = managerAssignments
+        .filter(({ vehicleId }) => vehicleId === vehicle.id)
+        .map(({ managerId }) => managerId);
+      vehicle.driverIds = driverAssignments
+        .filter(({ vehicleId }) => vehicleId === vehicle.id)
+        .map(({ driverId }) => driverId);
+    }
+  }
+
+  private async closeActiveAssignments(
+    manager: EntityManager,
+    entity: typeof ManagerVehicleAssignment | typeof DriverVehicleAssignment,
+    companyId: string,
+    vehicleId: string,
+  ): Promise<void> {
+    await manager
+      .createQueryBuilder()
+      .update(entity)
+      .set({ assignedTo: () => 'clock_timestamp()' })
+      .where('"companyId" = :companyId', { companyId })
+      .andWhere('"vehicleId" = :vehicleId', { vehicleId })
+      .andWhere('"assignedTo" IS NULL')
+      .execute();
+  }
+
+  private async validateManagerIds(
+    manager: EntityManager,
+    companyId: string,
+    managerIds: string[],
+  ): Promise<string[]> {
+    if (!managerIds.length) return [];
+    const users = await manager.find(User, {
+      where: { id: In(managerIds), companyId, role: UserRole.MANAGER },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (users.length !== managerIds.length) {
+      throw new BadRequestException('Invalid manager');
+    }
+    return managerIds;
+  }
+
+  private async validateDriverIds(
+    manager: EntityManager,
+    companyId: string,
+    driverIds: string[],
+  ): Promise<string[]> {
+    if (!driverIds.length) return [];
+    const drivers = await manager.find(Driver, {
+      where: { id: In(driverIds), companyId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (drivers.length !== driverIds.length) {
+      throw new BadRequestException('Invalid driver');
+    }
+    return driverIds;
+  }
+
+  private async lockActor(manager: EntityManager, actor: User): Promise<User> {
+    const current = await manager.findOne(User, {
+      where: { id: actor.id, companyId: actor.companyId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!current) throw new ForbiddenException();
+    return current;
   }
 
   private validatePurchaseDate(value?: string | null): void {
@@ -231,29 +457,6 @@ export class VehiclesService {
     if (value && value > new Date().getFullYear()) {
       throw new BadRequestException('Production year cannot be in the future');
     }
-  }
-
-  private async validateManager(
-    manager: EntityManager,
-    companyId: string,
-    managerId?: string | null,
-  ): Promise<string | null> {
-    if (!managerId) return null;
-    const exists = await manager.findOne(User, {
-      where: { id: managerId, companyId, role: UserRole.MANAGER },
-      lock: { mode: 'pessimistic_write' },
-    });
-    if (!exists) throw new BadRequestException('Invalid manager');
-    return managerId;
-  }
-
-  private async lockActor(manager: EntityManager, actor: User): Promise<User> {
-    const current = await manager.findOne(User, {
-      where: { id: actor.id, companyId: actor.companyId },
-      lock: { mode: 'pessimistic_write' },
-    });
-    if (!current) throw new ForbiddenException();
-    return current;
   }
 
   private escapeLike(value: string): string {
@@ -274,6 +477,12 @@ export class VehiclesService {
       }
       if (constraint === 'IDX_vehicles_company_vin_active') {
         throw new ConflictException('VIN already in use');
+      }
+      if (constraint === 'IDX_manager_assignments_active_pair') {
+        throw new ConflictException('Manager already assigned');
+      }
+      if (constraint === 'IDX_driver_assignments_active_pair') {
+        throw new ConflictException('Driver already assigned');
       }
     }
     throw error;

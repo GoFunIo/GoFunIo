@@ -17,7 +17,7 @@ import {
 } from './events/password-reset-requested.event';
 import { generateVerificationToken } from './verification-token.util';
 import { User, UserRole } from './users.entity';
-import { Vehicle } from '../vehicles/vehicles.entity';
+import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
   clearExpiredEmailClaims,
   emailClaimInUse,
@@ -122,11 +122,7 @@ export class CompanyUsersService {
       }
 
       if (target.role === UserRole.MANAGER && body.role === UserRole.ADMIN) {
-        await manager.update(
-          Vehicle,
-          { companyId: actor.companyId, managerId: target.id },
-          { managerId: null },
-        );
+        await this.closeManagerAssignments(manager, actor.companyId, target.id);
       }
 
       Object.assign(target, body);
@@ -147,11 +143,7 @@ export class CompanyUsersService {
         throw new ConflictException('Company must have an admin');
       }
       if (target.role === UserRole.MANAGER) {
-        await manager.update(
-          Vehicle,
-          { companyId: actor.companyId, managerId: target.id },
-          { managerId: null },
-        );
+        await this.closeManagerAssignments(manager, actor.companyId, target.id);
       }
       await manager.update(User, target.id, {
         pendingEmail: null,
@@ -177,6 +169,21 @@ export class CompanyUsersService {
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  private async closeManagerAssignments(
+    manager: EntityManager,
+    companyId: string,
+    managerId: string,
+  ): Promise<void> {
+    await manager
+      .createQueryBuilder()
+      .update(ManagerVehicleAssignment)
+      .set({ assignedTo: () => 'clock_timestamp()' })
+      .where('"companyId" = :companyId', { companyId })
+      .andWhere('"managerId" = :managerId', { managerId })
+      .andWhere('"assignedTo" IS NULL')
+      .execute();
   }
 
   private lockAdmins(

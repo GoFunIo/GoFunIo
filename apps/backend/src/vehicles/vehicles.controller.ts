@@ -23,6 +23,7 @@ import { VehicleDto } from './dtos/vehicle.dto';
 import { VehicleListDto } from './dtos/vehicle-list.dto';
 import { Vehicle } from './vehicles.entity';
 import { VehiclesService } from './vehicles.service';
+import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
 
 @Controller('vehicles')
 @UseGuards(SessionAuthGuard)
@@ -42,6 +43,15 @@ export class VehiclesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Vehicle> {
     return this.vehicles.findOne(user, id);
+  }
+
+  @Get(':id/manager-assignments')
+  @Serialize(ManagerAssignmentDto)
+  managerHistory(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.vehicles.managerHistory(user, id);
   }
 
   @Post()
