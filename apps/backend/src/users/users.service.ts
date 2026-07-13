@@ -52,16 +52,18 @@ export class UsersService {
       .getOne();
   }
 
-  async emailInUse(email: string, excludeUserId: string): Promise<boolean> {
-    return this.usersRepository
+  async emailInUse(email: string, excludeUserId?: string): Promise<boolean> {
+    const query = this.usersRepository
       .createQueryBuilder('user')
       .withDeleted()
-      .where('user.id <> :excludeUserId', { excludeUserId })
-      .andWhere(
+      .where(
         '(lower(user.email) = :email OR lower(user.pendingEmail) = :email)',
         { email },
-      )
-      .getExists();
+      );
+    if (excludeUserId) {
+      query.andWhere('user.id <> :excludeUserId', { excludeUserId });
+    }
+    return query.getExists();
   }
 
   async clearExpiredEmailChangeClaims(email: string): Promise<void> {
@@ -138,6 +140,7 @@ export class UsersService {
       .update(User)
       .set({
         password: newPassword,
+        emailVerifiedAt: () => 'COALESCE("emailVerifiedAt", now())',
         passwordResetTokenHash: null,
         passwordResetTokenExpiresAt: null,
         passwordVersion: () => '"passwordVersion" + 1',

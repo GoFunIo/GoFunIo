@@ -1,0 +1,30 @@
+# Wymaga sesji ADMIN — uruchom Signin z auth.http
+
+### Lista zespołu
+GET {{baseUrl}}/users
+
+### Zaproś managera
+POST {{baseUrl}}/users
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "email": "manager@example.com",
+  "firstName": "Jan",
+  "lastName": "Kowalski",
+  "role": "MANAGER"
+}
+
+### Zmień dane lub rolę
+PATCH {{baseUrl}}/users/WKLEJ_USER_ID
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "firstName": "Anna",
+  "role": "ADMIN"
+}
+
+### Usuń użytkownika
+DELETE {{baseUrl}}/users/WKLEJ_USER_ID
+Origin: {{origin}}
