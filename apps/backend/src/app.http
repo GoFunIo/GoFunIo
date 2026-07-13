@@ -1,0 +1,5 @@
+# Zmienne: .vscode/settings.json → rest-client.environmentVariables.$shared
+# Send Request: kliknij nad ### albo Cmd+Alt+R
+
+### Healthcheck
+GET {{baseUrl}}/status

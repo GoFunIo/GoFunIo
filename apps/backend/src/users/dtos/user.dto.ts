@@ -1,5 +1,5 @@
-import { Expose } from 'class-transformer';
-import { UserRole } from '../users.entity';
+import { Expose, Transform } from 'class-transformer';
+import { User, UserRole } from '../users.entity';
 
 export class UserDto {
   @Expose()
@@ -13,4 +13,29 @@ export class UserDto {
 
   @Expose()
   role!: UserRole;
+
+  @Expose()
+  firstName!: string | null;
+
+  @Expose()
+  lastName!: string | null;
+
+  @Expose()
+  phone!: string | null;
+
+  @Expose()
+  address!: string | null;
+
+  @Expose()
+  postalCode!: string | null;
+
+  @Expose()
+  city!: string | null;
+
+  @Expose()
+  pendingEmail!: string | null;
+
+  @Expose()
+  @Transform(({ obj }: { obj: User }) => obj.password !== null)
+  hasPassword!: boolean;
 }

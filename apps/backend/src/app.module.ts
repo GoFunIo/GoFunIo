@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
 import { validateEnv } from './config/env.validation';
 import { buildTypeOrmOptions } from './config/database.config';
+import { CompaniesModule } from './companies/companies.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { buildTypeOrmOptions } from './config/database.config';
     TypeOrmModule.forRoot(buildTypeOrmOptions()),
     UsersModule,
     MailModule,
+    CompaniesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

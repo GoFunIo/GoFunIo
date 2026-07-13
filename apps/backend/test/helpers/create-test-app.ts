@@ -24,6 +24,7 @@ class MockThrottlerGuard implements CanActivate {
 const noopMailService = {
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  sendEmailChangeVerification: jest.fn().mockResolvedValue(undefined),
 };
 
 export async function createTestApp(): Promise<INestApplication> {

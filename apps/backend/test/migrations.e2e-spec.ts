@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import { DataSource } from 'typeorm';
 import { CreateInitialSchema1748000000000 } from '../src/migrations/1748000000000-CreateInitialSchema';
 import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000000-NormalizeUserIdentity';
+import { AddProfileFields1750000000000 } from '../src/migrations/1750000000000-AddProfileFields';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -18,6 +19,7 @@ describe('database migrations', () => {
       migrations: [
         CreateInitialSchema1748000000000,
         NormalizeUserIdentity1749000000000,
+        AddProfileFields1750000000000,
       ],
     });
 
@@ -55,6 +57,7 @@ describe('database migrations', () => {
         'IDX_users_company',
         'IDX_users_email',
         'IDX_users_googleId',
+        'IDX_users_pendingEmail',
       ]);
 
       await expect(

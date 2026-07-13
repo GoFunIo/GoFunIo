@@ -1,0 +1,71 @@
+# Zmienne: .vscode/settings.json → rest-client.environmentVariables.$shared
+# Kolejność: Signup → Verify email → Signin → Get me
+
+### Signup (tworzy usera + firmę, wysyła mail weryfikacyjny)
+# @name signup
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Verify email (token z linku w mailu)
+GET {{baseUrl}}/auth/verify-email?token={{verifyToken}}
+
+### Resend verification
+POST {{baseUrl}}/auth/resend-verification
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "email": "{{email}}"
+}
+
+### Signin (zapisuje cookie sesji)
+# @name signin
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Get me
+GET {{baseUrl}}/auth/me
+
+### Signout
+POST {{baseUrl}}/auth/signout
+Origin: {{origin}}
+
+### Verify email change (token z maila na nowy adres)
+GET {{baseUrl}}/auth/verify-email-change?token={{emailChangeToken}}
+
+### Forgot password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "email": "{{email}}"
+}
+
+### Reset password
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "password": "{{newPassword}}"
+}
+
+### Google Sign-In (credential z frontendu DevTools → Network)
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "credential": "{{googleCredential}}"
+}

@@ -10,10 +10,15 @@ import {
   USER_REGISTERED_EVENT,
   UserRegisteredEvent,
 } from '../../src/users/events/user-registered.event';
+import {
+  USER_EMAIL_CHANGE_REQUESTED_EVENT,
+  UserEmailChangeRequestedEvent,
+} from '../../src/users/events/user-email-change-requested.event';
 
 export interface CapturedEvents {
   verificationToken: string | null;
   passwordResetToken: string | null;
+  emailChangeToken: string | null;
   restore: () => void;
 }
 
@@ -23,6 +28,7 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
 
   let verificationToken: string | null = null;
   let passwordResetToken: string | null = null;
+  let emailChangeToken: string | null = null;
 
   const emitSpy = jest
     .spyOn(eventEmitter, 'emit')
@@ -39,6 +45,12 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
       ) {
         passwordResetToken = args[0].token;
       }
+      if (
+        event === USER_EMAIL_CHANGE_REQUESTED_EVENT &&
+        args[0] instanceof UserEmailChangeRequestedEvent
+      ) {
+        emailChangeToken = args[0].token;
+      }
       return originalEmit(event, ...args);
     });
 
@@ -48,6 +60,9 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
     },
     get passwordResetToken() {
       return passwordResetToken;
+    },
+    get emailChangeToken() {
+      return emailChangeToken;
     },
     restore() {
       emitSpy.mockRestore();
@@ -84,15 +99,13 @@ export async function createVerifiedUser(
   }
 }
 
-export function buildGoogleVerifyResult(
-  payload: {
-    sub: string;
-    email: string;
-    email_verified?: boolean;
-    given_name?: string;
-    family_name?: string;
-  },
-) {
+export function buildGoogleVerifyResult(payload: {
+  sub: string;
+  email: string;
+  email_verified?: boolean;
+  given_name?: string;
+  family_name?: string;
+}) {
   return {
     getPayload: () => ({
       email_verified: true,

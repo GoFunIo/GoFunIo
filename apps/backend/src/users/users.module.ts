@@ -8,13 +8,22 @@ import { UsersService } from './users.service';
 import { AuthService } from './auth.service';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { UserProfileController } from './user-profile.controller';
+import { AdminGuard } from './guards/admin.guard';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Company]),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, AuthService, SessionAuthGuard, AllowedOriginGuard],
+  controllers: [UsersController, UserProfileController],
+  providers: [
+    UsersService,
+    AuthService,
+    SessionAuthGuard,
+    AllowedOriginGuard,
+    AdminGuard,
+  ],
+  exports: [UsersService, SessionAuthGuard, AdminGuard],
 })
 export class UsersModule {}

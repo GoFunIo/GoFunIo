@@ -1,0 +1,19 @@
+{
+  "rest-client.previewResponseInUntitledDocument": true,
+  "rest-client.showResponseInDifferentTab": false,
+  "rest-client.rememberCookiesForSubsequentRequests": true,
+  "rest-client.environmentVariables": {
+    "$shared": {
+      "baseUrl": "http://localhost:3000",
+      "origin": "http://localhost:5173",
+      "email": "sylwester.sob95@gmail.com",
+      "password": "password123",
+      "newPassword": "new-password99",
+      "newEmail": "new-email@example.com",
+      "verifyToken": "41a381c8763a2f15a526c079d00a4e2185711fb20997eacc2c586ef5437db55a",
+      "resetToken": "WKLEJ_TOKEN_Z_MAILA",
+      "emailChangeToken": "58e28b3e01f748d717099c5e6d817f5907d4b210e83f750d6bbc44d3238c0d6a",
+      "googleCredential": "WKLEJ_GOOGLE_ID_TOKEN"
+    }
+  }
+}

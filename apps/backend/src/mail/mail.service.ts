@@ -74,4 +74,28 @@ export class MailService {
       });
     }
   }
+
+  async sendEmailChangeVerification(
+    email: string,
+    token: string,
+    origin?: string,
+  ): Promise<void> {
+    const base = this.frontendUrl.resolve(origin).replace(/\/$/, '');
+    const verificationUrl = `${base}/verify-email-change?token=${token}`;
+    const html = renderMailTemplate('verify-email-change', { verificationUrl });
+
+    try {
+      await sendResendEmail(this.apiKey, {
+        from: this.from,
+        to: email,
+        subject: 'Verify your new GoFunIo email',
+        html,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Failed to send email change verification to ${email}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
+  }
 }

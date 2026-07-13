@@ -94,6 +94,16 @@ export class UsersController {
     return { verified: true };
   }
 
+  @Get('verify-email-change')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async verifyEmailChange(
+    @Query() query: VerifyEmailDto,
+  ): Promise<{ verified: true }> {
+    await this.authService.verifyEmailChange(query.token);
+    return { verified: true };
+  }
+
   @Post('resend-verification')
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 1, ttl: 60_000 } })

@@ -1,0 +1,41 @@
+# Zmienne: .vscode/settings.json → rest-client.environmentVariables.$shared
+# Wymaga sesji — uruchom Signin z auth.http (cookie jest współdzielone)
+
+### Aktualizacja profilu
+PATCH {{baseUrl}}/users/me
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "firstName": " Jan ",
+  "lastName": " Kowalski ",
+  "phone": "500600700",
+  "address": "ul. Testowa 1",
+  "postalCode": "00-001",
+  "city": " Warszawa "
+}
+
+### Zmiana hasła (sesja zostaje)
+PATCH {{baseUrl}}/users/me/password
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "changed-pass99"
+}
+
+### Sprawdź sesję po zmianie hasła
+GET {{baseUrl}}/auth/me
+
+### Żądanie zmiany emaila (pendingEmail w /auth/me)
+PATCH {{baseUrl}}/users/me/email
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "email": "{{newEmail}}"
+}
+
+### Sprawdź pendingEmail
+GET {{baseUrl}}/auth/me

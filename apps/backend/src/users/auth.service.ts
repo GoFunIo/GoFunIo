@@ -9,8 +9,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
-import { randomBytes, scrypt as _scrypt, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
 import {
   generateVerificationToken,
   hashVerificationToken,
@@ -25,22 +23,18 @@ import {
 } from './events/password-reset-requested.event';
 import { Company } from '../companies/companies.entity';
 import { User, UserRole } from './users.entity';
+import { hashPassword, verifyPassword } from './password.util';
+import {
+  USER_EMAIL_CHANGE_REQUESTED_EVENT,
+  UserEmailChangeRequestedEvent,
+} from './events/user-email-change-requested.event';
 
-const scrypt = promisify(_scrypt);
-const SALT_BYTES = 16;
-const HASH_BYTES = 32;
 const UNIQUE_VIOLATION_CODE = '23505';
 
 function isUniqueViolation(err: unknown): boolean {
   if (!(err instanceof QueryFailedError)) return false;
   const code = (err.driverError as { code?: string } | undefined)?.code;
   return code === UNIQUE_VIOLATION_CODE;
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(SALT_BYTES).toString('hex');
-  const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
-  return salt + '.' + hash.toString('hex');
 }
 
 @Injectable()
@@ -108,15 +102,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const [salt, storedHash] = user.password.split('.');
-    if (!salt || !storedHash) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
-    const stored = Buffer.from(storedHash, 'hex');
-
-    if (stored.length !== hash.length || !timingSafeEqual(hash, stored)) {
+    if (!(await verifyPassword(password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -306,5 +292,69 @@ export class AuthService {
     if (!consumed) {
       throw new BadRequestException('Invalid or expired token');
     }
+  }
+
+  async requestEmailChange(
+    user: User,
+    email: string,
+    origin?: string,
+  ): Promise<void> {
+    email = this.normalizeEmail(email);
+    if (email === user.email) {
+      throw new BadRequestException('Email unchanged');
+    }
+    if (await this.usersService.emailInUse(email, user.id)) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const ttlHours = this.config.get<number>(
+      'VERIFICATION_TOKEN_TTL_HOURS',
+      24,
+    );
+    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+    await this.usersService.update(user.id, {
+      pendingEmail: email,
+      emailChangeTokenHash: tokenHash,
+      emailChangeTokenExpiresAt: expiresAt,
+    });
+    this.eventEmitter.emit(
+      USER_EMAIL_CHANGE_REQUESTED_EVENT,
+      new UserEmailChangeRequestedEvent(email, token, origin),
+    );
+  }
+
+  async verifyEmailChange(token: string): Promise<void> {
+    const tokenHash = hashVerificationToken(token);
+    try {
+      if (!(await this.usersService.consumeEmailChangeToken(tokenHash))) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('Email already in use');
+      }
+      throw err;
+    }
+  }
+
+  async changePassword(
+    user: User,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<number> {
+    if (!user.password) {
+      throw new ConflictException('Use password reset to set a password');
+    }
+    if (!(await verifyPassword(currentPassword, user.password))) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+    if (await verifyPassword(newPassword, user.password)) {
+      throw new BadRequestException('New password must be different');
+    }
+
+    return this.usersService.updatePassword(
+      user.id,
+      await hashPassword(newPassword),
+    );
   }
 }

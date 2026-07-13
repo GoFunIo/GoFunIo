@@ -42,6 +42,27 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   lastName!: string | null;
 
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  phone!: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  address!: string | null;
+
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  postalCode!: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city!: string | null;
+
+  @Column({ type: 'varchar', length: 254, nullable: true })
+  pendingEmail!: string | null;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  emailChangeTokenHash!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true, select: false })
+  emailChangeTokenExpiresAt!: Date | null;
+
   @Column({ type: 'enum', enum: UserRole, enumName: 'user_role' })
   role!: UserRole;
 

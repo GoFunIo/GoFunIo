@@ -1,0 +1,20 @@
+# Zmienne: .vscode/settings.json → rest-client.environmentVariables.$shared
+# Wymaga sesji — uruchom Signin z auth.http (domyślna rola: ADMIN)
+
+### Odczyt firmy
+GET {{baseUrl}}/company
+
+### Aktualizacja firmy (ADMIN)
+PATCH {{baseUrl}}/company
+Content-Type: application/json
+Origin: {{origin}}
+
+{
+  "name": "Moja Firma",
+  "email": "firma@example.com",
+  "phone": "123456789",
+  "taxId": "123-456-78-90",
+  "address": "ul. Firmowa 10",
+  "postalCode": "00-001",
+  "city": "Warszawa"
+}

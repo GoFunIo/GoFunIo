@@ -27,6 +27,12 @@ export class Company {
   @Column({ type: 'text', nullable: true })
   address!: string | null;
 
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  postalCode!: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

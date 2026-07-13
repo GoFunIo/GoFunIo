@@ -52,6 +52,55 @@ export class UsersService {
       .getOne();
   }
 
+  async emailInUse(email: string, excludeUserId: string): Promise<boolean> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .withDeleted()
+      .where('user.id <> :excludeUserId', { excludeUserId })
+      .andWhere(
+        '(lower(user.email) = :email OR lower(user.pendingEmail) = :email)',
+        { email },
+      )
+      .getExists();
+  }
+
+  async consumeEmailChangeToken(tokenHash: string): Promise<boolean> {
+    const result = await this.usersRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        email: () => '"pendingEmail"',
+        pendingEmail: null,
+        emailVerifiedAt: new Date(),
+        emailChangeTokenHash: null,
+        emailChangeTokenExpiresAt: null,
+      })
+      .where('"emailChangeTokenHash" = :tokenHash', { tokenHash })
+      .andWhere('"emailChangeTokenExpiresAt" > :now', { now: new Date() })
+      .andWhere('"pendingEmail" IS NOT NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return (result.affected ?? 0) > 0;
+  }
+
+  async updatePassword(id: string, password: string): Promise<number> {
+    const result = await this.usersRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        password,
+        passwordVersion: () => '"passwordVersion" + 1',
+      })
+      .where('id = :id', { id })
+      .andWhere('"deletedAt" IS NULL')
+      .returning('"passwordVersion"')
+      .execute();
+
+    return (result.raw as Array<{ passwordVersion: number }>)[0]
+      .passwordVersion;
+  }
+
   async consumePasswordResetToken(
     tokenHash: string,
     newPassword: string,
