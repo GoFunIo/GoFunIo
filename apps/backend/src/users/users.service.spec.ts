@@ -3,7 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -21,7 +22,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     pendingEmail: null,
     emailChangeTokenHash: null,
     emailChangeTokenExpiresAt: null,
-    role: UserRole.ADMIN,
+    role: MembershipRole.ADMIN,
     emailVerifiedAt: new Date(),
     lastLoginAt: null,
     passwordVersion: 1,

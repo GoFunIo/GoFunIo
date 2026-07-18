@@ -11,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
-import { CurrentUser } from '../users/decorators/current-user.decorator';
+import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
-import { User } from '../users/users.entity';
+import type { SessionPrincipal } from '../users/session-principal';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { DriverAssignmentDto } from './dtos/driver-assignment.dto';
 import { DriverVehicleAssignment } from './driver-vehicle-assignment.entity';
@@ -27,31 +27,31 @@ export class DriverAssignmentsController {
   @Get('driver-assignments')
   @Serialize(DriverAssignmentDto)
   history(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
   ) {
-    return this.drivers.assignmentHistory(user, vehicleId);
+    return this.drivers.assignmentHistory(principal, vehicleId);
   }
 
   @Post('drivers')
   @Serialize(DriverAssignmentDto)
   @UseGuards(AllowedOriginGuard)
   assign(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
     @Body() body: CreateDriverAssignmentDto,
   ): Promise<DriverVehicleAssignment> {
-    return this.drivers.assign(user, vehicleId, body);
+    return this.drivers.assign(principal, vehicleId, body);
   }
 
   @Delete('drivers/:driverId')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)
   unassign(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
     @Param('driverId', ParseUUIDPipe) driverId: string,
   ): Promise<void> {
-    return this.drivers.unassign(user, vehicleId, driverId);
+    return this.drivers.unassign(principal, vehicleId, driverId);
   }
 }

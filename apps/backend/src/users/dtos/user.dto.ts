@@ -1,5 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
-import { User, UserRole } from '../users.entity';
+import { User } from '../users.entity';
+import { MembershipRole } from '../membership-role';
 
 export class UserDto {
   @Expose()
@@ -12,7 +13,7 @@ export class UserDto {
   companyId!: string;
 
   @Expose()
-  role!: UserRole;
+  role!: MembershipRole;
 
   @Expose()
   firstName!: string | null;

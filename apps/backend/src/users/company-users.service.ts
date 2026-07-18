@@ -16,7 +16,9 @@ import {
   PasswordResetRequestedEvent,
 } from './events/password-reset-requested.event';
 import { generateVerificationToken } from './verification-token.util';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
+import type { SessionPrincipal } from './session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
   clearExpiredEmailClaims,
@@ -41,7 +43,7 @@ export class CompanyUsersService {
   }
 
   async create(
-    actor: User,
+    actor: SessionPrincipal,
     body: CreateCompanyUserDto,
     origin?: string,
   ): Promise<User> {
@@ -98,14 +100,14 @@ export class CompanyUsersService {
   }
 
   async update(
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
     body: UpdateCompanyUserDto,
   ): Promise<User> {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
-    if (id === actor.id && body.role && body.role !== UserRole.ADMIN) {
+    if (id === actor.id && body.role && body.role !== MembershipRole.ADMIN) {
       throw new ConflictException('Cannot demote yourself');
     }
 
@@ -114,14 +116,17 @@ export class CompanyUsersService {
       this.requireAdmin(admins, actor.id);
       const target = await this.findCompanyUser(manager, actor.companyId, id);
       if (
-        target.role === UserRole.ADMIN &&
-        body.role === UserRole.MANAGER &&
+        target.role === MembershipRole.ADMIN &&
+        body.role === MembershipRole.MANAGER &&
         admins.length <= 1
       ) {
         throw new ConflictException('Company must have an admin');
       }
 
-      if (target.role === UserRole.MANAGER && body.role === UserRole.ADMIN) {
+      if (
+        target.role === MembershipRole.MANAGER &&
+        body.role === MembershipRole.ADMIN
+      ) {
         await this.closeManagerAssignments(manager, actor.companyId, target.id);
       }
 
@@ -130,7 +135,7 @@ export class CompanyUsersService {
     });
   }
 
-  async remove(actor: User, id: string): Promise<void> {
+  async remove(actor: SessionPrincipal, id: string): Promise<void> {
     if (id === actor.id) {
       throw new ConflictException('Cannot delete yourself');
     }
@@ -139,10 +144,10 @@ export class CompanyUsersService {
       const admins = await this.lockAdmins(manager, actor.companyId);
       this.requireAdmin(admins, actor.id);
       const target = await this.findCompanyUser(manager, actor.companyId, id);
-      if (target.role === UserRole.ADMIN && admins.length <= 1) {
+      if (target.role === MembershipRole.ADMIN && admins.length <= 1) {
         throw new ConflictException('Company must have an admin');
       }
-      if (target.role === UserRole.MANAGER) {
+      if (target.role === MembershipRole.MANAGER) {
         await this.closeManagerAssignments(manager, actor.companyId, target.id);
       }
       await manager.update(User, target.id, {
@@ -194,7 +199,7 @@ export class CompanyUsersService {
       .createQueryBuilder(User, 'user')
       .innerJoin('user.company', 'company')
       .where('user.companyId = :companyId', { companyId })
-      .andWhere('user.role = :role', { role: UserRole.ADMIN })
+      .andWhere('user.role = :role', { role: MembershipRole.ADMIN })
       .andWhere('company."deletedAt" IS NULL')
       .orderBy('user.id', 'ASC')
       .setLock('pessimistic_write')

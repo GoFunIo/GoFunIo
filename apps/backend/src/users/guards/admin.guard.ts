@@ -5,15 +5,16 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { User, UserRole } from '../users.entity';
+import { MembershipRole } from '../membership-role';
+import type { SessionPrincipal } from '../session-principal';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const user = context
+    const principal = context
       .switchToHttp()
-      .getRequest<Request & { user: User }>().user;
-    if (user.role !== UserRole.ADMIN) {
+      .getRequest<Request & { principal: SessionPrincipal }>().principal;
+    if (principal.role !== MembershipRole.ADMIN) {
       throw new ForbiddenException();
     }
     return true;

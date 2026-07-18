@@ -6,7 +6,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { UserRole } from '../users.entity';
+import { MembershipRole } from '../membership-role';
 
 const optionalText = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() || null : value;
@@ -31,6 +31,6 @@ export class CreateCompanyUserDto {
   @MaxLength(100)
   lastName?: string | null;
 
-  @IsEnum(UserRole)
-  role!: UserRole;
+  @IsEnum(MembershipRole)
+  role!: MembershipRole;
 }

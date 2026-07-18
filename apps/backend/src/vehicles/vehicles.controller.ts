@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
-import { CurrentUser } from '../users/decorators/current-user.decorator';
+import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
-import { User } from '../users/users.entity';
+import type { SessionPrincipal } from '../users/session-principal';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
@@ -32,56 +32,59 @@ export class VehiclesController {
 
   @Get()
   @Serialize(VehicleListDto)
-  list(@CurrentUser() user: User, @Query() query: ListVehiclesQueryDto) {
-    return this.vehicles.list(user, query);
+  list(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Query() query: ListVehiclesQueryDto,
+  ) {
+    return this.vehicles.list(principal, query);
   }
 
   @Get(':id')
   @Serialize(VehicleDto)
   findOne(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Vehicle> {
-    return this.vehicles.findOne(user, id);
+    return this.vehicles.findOne(principal, id);
   }
 
   @Get(':id/manager-assignments')
   @Serialize(ManagerAssignmentDto)
   managerHistory(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.vehicles.managerHistory(user, id);
+    return this.vehicles.managerHistory(principal, id);
   }
 
   @Post()
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
   create(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateVehicleDto,
   ): Promise<Vehicle> {
-    return this.vehicles.create(user, body);
+    return this.vehicles.create(principal, body);
   }
 
   @Patch(':id')
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
   update(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateVehicleDto,
   ): Promise<Vehicle> {
-    return this.vehicles.update(user, id, body);
+    return this.vehicles.update(principal, id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)
   remove(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
-    return this.vehicles.remove(user, id);
+    return this.vehicles.remove(principal, id);
   }
 }

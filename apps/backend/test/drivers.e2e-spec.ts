@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { UserRole } from '../src/users/users.entity';
+import { MembershipRole } from '../src/users/membership-role';
 import { createTestApp } from './helpers/create-test-app';
 import {
   captureEmittedEvents,
@@ -32,7 +32,7 @@ describe('Drivers (e2e)', () => {
     try {
       const response = await admin
         .post('/users')
-        .send({ email, role: UserRole.MANAGER })
+        .send({ email, role: MembershipRole.MANAGER })
         .expect(201);
       if (!events.passwordResetToken) throw new Error('Expected invite token');
       await request(app.getHttpServer())

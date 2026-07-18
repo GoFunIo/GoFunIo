@@ -7,6 +7,7 @@ import {
   Post,
   Query,
   Session,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
@@ -22,13 +23,20 @@ import { Serialize } from '../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
 import { AuthService } from './auth.service';
 import type { SessionData } from '../types/session.types';
-import { CurrentUser } from './decorators/current-user.decorator';
+import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import type { SessionPrincipal } from './session-principal';
+import { SessionsService } from './sessions.service';
+import { UsersService } from './users.service';
 
 @Controller('auth')
 export class UsersController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessions: SessionsService,
+    private readonly users: UsersService,
+  ) {}
 
   @Post('signup')
   @Serialize(UserDto)
@@ -50,8 +58,7 @@ export class UsersController {
     @Session() session: SessionData,
   ): Promise<User> {
     const user = await this.authService.signin(body.email, body.password);
-    session.userId = user.id;
-    session.passwordVersion = user.passwordVersion;
+    await this.sessions.establish(session, user.id);
     return user;
   }
 
@@ -64,8 +71,7 @@ export class UsersController {
     @Session() session: SessionData,
   ): Promise<User> {
     const user = await this.authService.signInWithGoogle(body.credential);
-    session.userId = user.id;
-    session.passwordVersion = user.passwordVersion;
+    await this.sessions.establish(session, user.id);
     return user;
   }
 
@@ -73,14 +79,15 @@ export class UsersController {
   @UseGuards(AllowedOriginGuard)
   @HttpCode(204)
   signout(@Session() session: SessionData): void {
-    session.userId = null;
-    session.passwordVersion = null;
+    this.sessions.clear(session);
   }
 
   @Get('me')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard)
-  getMe(@CurrentUser() user: User): User {
+  async getMe(@CurrentPrincipal() principal: SessionPrincipal): Promise<User> {
+    const user = await this.users.findActiveById(principal.id);
+    if (!user) throw new UnauthorizedException();
     return user;
   }
 

@@ -9,7 +9,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { AuthService } from './auth.service';
 import { UsersService } from './users.service';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
 import {
   USER_REGISTERED_EVENT,
   UserRegisteredEvent,
@@ -52,7 +53,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     pendingEmail: null,
     emailChangeTokenHash: null,
     emailChangeTokenExpiresAt: null,
-    role: UserRole.ADMIN,
+    role: MembershipRole.ADMIN,
     emailVerifiedAt: new Date(),
     lastLoginAt: null,
     passwordVersion: 1,

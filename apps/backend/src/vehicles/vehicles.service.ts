@@ -15,7 +15,9 @@ import {
 } from 'typeorm';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
-import { User, UserRole } from '../users/users.entity';
+import { MembershipRole } from '../users/membership-role';
+import type { SessionPrincipal } from '../users/session-principal';
+import { User } from '../users/users.entity';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import {
   ListVehiclesQueryDto,
@@ -51,12 +53,12 @@ export class VehiclesService {
     private readonly vehicles: Repository<Vehicle>,
   ) {}
 
-  async list(actor: User, query: ListVehiclesQueryDto) {
+  async list(actor: SessionPrincipal, query: ListVehiclesQueryDto) {
     const qb = this.vehicles
       .createQueryBuilder('vehicle')
       .where('vehicle.companyId = :companyId', { companyId: actor.companyId })
       .andWhere('vehicle.deletedAt IS NULL');
-    if (actor.role === UserRole.MANAGER) {
+    if (actor.role === MembershipRole.MANAGER) {
       qb.andWhere(
         `EXISTS (
           SELECT 1 FROM "manager_vehicle_assignments" assignment
@@ -116,7 +118,7 @@ export class VehiclesService {
     };
   }
 
-  async findOne(actor: User, id: string): Promise<Vehicle> {
+  async findOne(actor: SessionPrincipal, id: string): Promise<Vehicle> {
     const vehicle = await this.findAccessibleVehicle(
       this.vehicles.manager,
       actor,
@@ -126,7 +128,10 @@ export class VehiclesService {
     return vehicle;
   }
 
-  async create(actor: User, body: CreateVehicleDto): Promise<Vehicle> {
+  async create(
+    actor: SessionPrincipal,
+    body: CreateVehicleDto,
+  ): Promise<Vehicle> {
     this.validateProductionYear(body.productionYear);
     this.validatePurchaseDate(body.purchaseDate);
     try {
@@ -134,14 +139,14 @@ export class VehiclesService {
         const currentActor = await this.lockActor(manager, actor);
         const { managerIds, driverIds, ...vehicleFields } = body;
         if (
-          currentActor.role === UserRole.MANAGER &&
+          currentActor.role === MembershipRole.MANAGER &&
           managerIds !== undefined
         ) {
           throw new ForbiddenException();
         }
 
         const activeManagerIds =
-          currentActor.role === UserRole.MANAGER
+          currentActor.role === MembershipRole.MANAGER
             ? [currentActor.id]
             : await this.validateManagerIds(
                 manager,
@@ -201,7 +206,7 @@ export class VehiclesService {
   }
 
   async update(
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
     body: UpdateVehicleDto,
   ): Promise<Vehicle> {
@@ -215,7 +220,7 @@ export class VehiclesService {
         const currentActor = await this.lockActor(manager, actor);
         const { managerIds, ...vehicleFields } = body;
         if (
-          currentActor.role === UserRole.MANAGER &&
+          currentActor.role === MembershipRole.MANAGER &&
           managerIds !== undefined
         ) {
           throw new ForbiddenException();
@@ -244,7 +249,7 @@ export class VehiclesService {
     }
   }
 
-  async remove(actor: User, id: string): Promise<void> {
+  async remove(actor: SessionPrincipal, id: string): Promise<void> {
     await this.vehicles.manager.transaction(async (manager) => {
       const currentActor = await this.lockActor(manager, actor);
       const vehicle = await this.findAccessibleVehicle(
@@ -269,7 +274,7 @@ export class VehiclesService {
     });
   }
 
-  async managerHistory(actor: User, id: string) {
+  async managerHistory(actor: SessionPrincipal, id: string) {
     await this.findVehicleForHistory(this.vehicles.manager, actor, id);
     return this.vehicles.manager.find(ManagerVehicleAssignment, {
       where: { companyId: actor.companyId, vehicleId: id },
@@ -279,7 +284,7 @@ export class VehiclesService {
 
   async findAccessibleVehicle(
     manager: EntityManager,
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
     lock = false,
   ): Promise<Vehicle> {
@@ -290,7 +295,7 @@ export class VehiclesService {
         companyId: actor.companyId,
       })
       .andWhere('vehicle.deletedAt IS NULL');
-    if (actor.role === UserRole.MANAGER) {
+    if (actor.role === MembershipRole.MANAGER) {
       qb.andWhere(
         `EXISTS (
           SELECT 1 FROM "manager_vehicle_assignments" assignment
@@ -310,10 +315,10 @@ export class VehiclesService {
 
   async findVehicleForHistory(
     manager: EntityManager,
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
   ): Promise<Vehicle> {
-    if (actor.role === UserRole.MANAGER) {
+    if (actor.role === MembershipRole.MANAGER) {
       return this.findAccessibleVehicle(manager, actor, id);
     }
     const vehicle = await manager
@@ -413,7 +418,7 @@ export class VehiclesService {
   ): Promise<string[]> {
     if (!managerIds.length) return [];
     const users = await manager.find(User, {
-      where: { id: In(managerIds), companyId, role: UserRole.MANAGER },
+      where: { id: In(managerIds), companyId, role: MembershipRole.MANAGER },
       lock: { mode: 'pessimistic_write' },
     });
     if (users.length !== managerIds.length) {
@@ -438,7 +443,10 @@ export class VehiclesService {
     return driverIds;
   }
 
-  private async lockActor(manager: EntityManager, actor: User): Promise<User> {
+  private async lockActor(
+    manager: EntityManager,
+    actor: SessionPrincipal,
+  ): Promise<User> {
     const current = await manager.findOne(User, {
       where: { id: actor.id, companyId: actor.companyId },
       lock: { mode: 'pessimistic_write' },

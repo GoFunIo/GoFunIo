@@ -7,14 +7,15 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { CompanyUsersService } from './company-users.service';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
 
 function user(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
     companyId: 'company-1',
     email: 'admin@example.com',
-    role: UserRole.ADMIN,
+    role: MembershipRole.ADMIN,
     ...overrides,
   } as User;
 }
@@ -46,7 +47,7 @@ describe('CompanyUsersService', () => {
     const actor = user();
 
     await expect(
-      service.update(actor, actor.id, { role: UserRole.MANAGER }),
+      service.update(actor, actor.id, { role: MembershipRole.MANAGER }),
     ).rejects.toThrow(new ConflictException('Cannot demote yourself'));
     await expect(service.remove(actor, actor.id)).rejects.toThrow(
       new ConflictException('Cannot delete yourself'),
@@ -75,7 +76,7 @@ describe('CompanyUsersService', () => {
     );
 
     await expect(
-      service.update(actor, target.id, { role: UserRole.MANAGER }),
+      service.update(actor, target.id, { role: MembershipRole.MANAGER }),
     ).rejects.toThrow(new ConflictException('Company must have an admin'));
     expect(manager.save).not.toHaveBeenCalled();
   });

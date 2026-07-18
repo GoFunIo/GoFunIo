@@ -6,7 +6,7 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { UserRole } from '../users.entity';
+import { MembershipRole } from '../membership-role';
 
 const optionalText = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() || null : value;
@@ -25,6 +25,6 @@ export class UpdateCompanyUserDto {
   lastName?: string | null;
 
   @ValidateIf((_, value) => value !== undefined)
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsEnum(MembershipRole)
+  role?: MembershipRole;
 }

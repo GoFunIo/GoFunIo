@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { UserRole } from '../src/users/users.entity';
+import { MembershipRole } from '../src/users/membership-role';
 import {
   captureEmittedEvents,
   createVerifiedUser,
@@ -27,7 +27,7 @@ describe('Company users (e2e)', () => {
   async function invite(
     agent: ReturnType<typeof request.agent>,
     email: string,
-    role = UserRole.MANAGER,
+    role = MembershipRole.MANAGER,
   ) {
     const events = captureEmittedEvents(app);
     try {
@@ -49,14 +49,14 @@ describe('Company users (e2e)', () => {
     const { user, token } = await invite(
       admin,
       'Manager@Example.com',
-      UserRole.MANAGER,
+      MembershipRole.MANAGER,
     );
 
     expect(user).toMatchObject({
       email: 'manager@example.com',
       firstName: 'Jan',
       lastName: 'Kowalski',
-      role: UserRole.MANAGER,
+      role: MembershipRole.MANAGER,
       hasPassword: false,
     });
     expect(user.password).toBeUndefined();
@@ -97,7 +97,7 @@ describe('Company users (e2e)', () => {
     await manager.get('/users').expect(403);
     await manager
       .post('/users')
-      .send({ email: 'blocked@example.com', role: UserRole.MANAGER })
+      .send({ email: 'blocked@example.com', role: MembershipRole.MANAGER })
       .expect(403);
   });
 
@@ -115,7 +115,7 @@ describe('Company users (e2e)', () => {
       .post('/users')
       .send({
         email: 'invalid@example.com',
-        role: UserRole.MANAGER,
+        role: MembershipRole.MANAGER,
         companyId: user.companyId,
       })
       .expect(400);
@@ -135,21 +135,24 @@ describe('Company users (e2e)', () => {
 
     await admin
       .patch(`/users/${user.id}`)
-      .send({ firstName: 'Anna', role: UserRole.ADMIN })
+      .send({ firstName: 'Anna', role: MembershipRole.ADMIN })
       .expect(200)
       .expect((res) => {
         expect(res.body).toMatchObject({
           firstName: 'Anna',
-          role: UserRole.ADMIN,
+          role: MembershipRole.ADMIN,
         });
       });
     await admin
       .patch(`/users/${me.body.id}`)
-      .send({ role: UserRole.MANAGER })
+      .send({ role: MembershipRole.MANAGER })
       .expect(409);
     await admin
       .post('/users')
-      .send({ email: 'UPDATE-MEMBER@example.com', role: UserRole.MANAGER })
+      .send({
+        email: 'UPDATE-MEMBER@example.com',
+        role: MembershipRole.MANAGER,
+      })
       .expect(409);
   });
 
@@ -172,7 +175,7 @@ describe('Company users (e2e)', () => {
     const [inviteResponse, changeResponse] = await Promise.all([
       admin
         .post('/users')
-        .send({ email: 'claimed@example.com', role: UserRole.MANAGER }),
+        .send({ email: 'claimed@example.com', role: MembershipRole.MANAGER }),
       manager.patch('/users/me/email').send({
         email: 'claimed@example.com',
         currentPassword: 'manager-password',

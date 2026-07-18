@@ -1,12 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
 import type { SessionData } from '../types/session.types';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { SessionsService } from './sessions.service';
+import { UsersService } from './users.service';
+import type { SessionPrincipal } from './session-principal';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -31,7 +40,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     pendingEmail: null,
     emailChangeTokenHash: null,
     emailChangeTokenExpiresAt: null,
-    role: UserRole.ADMIN,
+    role: MembershipRole.ADMIN,
     emailVerifiedAt: new Date(),
     lastLoginAt: null,
     passwordVersion: 2,
@@ -62,6 +71,8 @@ describe('UsersController', () => {
       | 'resetPassword'
     >
   >;
+  let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
+  let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
 
   beforeEach(async () => {
     authService = {
@@ -74,10 +85,16 @@ describe('UsersController', () => {
       requestPasswordReset: jest.fn(),
       resetPassword: jest.fn(),
     };
+    sessions = { establish: jest.fn(), clear: jest.fn() };
+    users = { findActiveById: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: AuthService, useValue: authService }],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: SessionsService, useValue: sessions },
+        { provide: UsersService, useValue: users },
+      ],
     })
       .overrideGuard(ThrottlerGuard)
       .useClass(MockThrottlerGuard)
@@ -114,7 +131,7 @@ describe('UsersController', () => {
   });
 
   describe('signin', () => {
-    it('delegates to AuthService and stores user in session', async () => {
+    it('delegates authentication and session establishment', async () => {
       const user = makeUser({ passwordVersion: 3 });
       authService.signin.mockResolvedValue(user);
       const session = {} as SessionData;
@@ -125,14 +142,13 @@ describe('UsersController', () => {
       );
 
       expect(authService.signin).toHaveBeenCalledWith(user.email, 'secret');
-      expect(session.userId).toBe(user.id);
-      expect(session.passwordVersion).toBe(3);
+      expect(sessions.establish).toHaveBeenCalledWith(session, user.id);
       expect(result).toBe(user);
     });
   });
 
   describe('googleSignIn', () => {
-    it('delegates to AuthService and stores user in session', async () => {
+    it('delegates authentication and session establishment', async () => {
       const user = makeUser({ passwordVersion: 4, password: null });
       authService.signInWithGoogle.mockResolvedValue(user);
       const session = {} as SessionData;
@@ -145,14 +161,13 @@ describe('UsersController', () => {
       expect(authService.signInWithGoogle).toHaveBeenCalledWith(
         'google-id-token',
       );
-      expect(session.userId).toBe(user.id);
-      expect(session.passwordVersion).toBe(4);
+      expect(sessions.establish).toHaveBeenCalledWith(session, user.id);
       expect(result).toBe(user);
     });
   });
 
   describe('signout', () => {
-    it('clears session userId and passwordVersion', () => {
+    it('clears the session', () => {
       const session = {
         userId: 'user-1',
         passwordVersion: 2,
@@ -160,16 +175,35 @@ describe('UsersController', () => {
 
       controller.signout(session);
 
-      expect(session.userId).toBeNull();
-      expect(session.passwordVersion).toBeNull();
+      expect(sessions.clear).toHaveBeenCalledWith(session);
     });
   });
 
   describe('getMe', () => {
-    it('returns current user from decorator', () => {
+    it('loads the profile by principal id', async () => {
       const user = makeUser();
+      const principal: SessionPrincipal = {
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role,
+      };
+      users.findActiveById.mockResolvedValue(user);
 
-      expect(controller.getMe(user)).toBe(user);
+      await expect(controller.getMe(principal)).resolves.toBe(user);
+      expect(users.findActiveById).toHaveBeenCalledWith(user.id);
+    });
+
+    it('rejects a missing profile', async () => {
+      const principal: SessionPrincipal = {
+        id: 'missing-user',
+        companyId: 'company-1',
+        role: MembershipRole.ADMIN,
+      };
+      users.findActiveById.mockResolvedValue(null);
+
+      await expect(controller.getMe(principal)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
     });
   });
 

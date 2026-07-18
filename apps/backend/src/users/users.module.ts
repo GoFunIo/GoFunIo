@@ -12,6 +12,11 @@ import { UserProfileController } from './user-profile.controller';
 import { AdminGuard } from './guards/admin.guard';
 import { CompanyUsersController } from './company-users.controller';
 import { CompanyUsersService } from './company-users.service';
+import { SessionsService } from './sessions.service';
+import {
+  SESSION_USER_READER,
+  TypeOrmSessionUserReader,
+} from './session-user-reader';
 
 @Module({
   imports: [
@@ -26,7 +31,13 @@ import { CompanyUsersService } from './company-users.service';
     AllowedOriginGuard,
     AdminGuard,
     CompanyUsersService,
+    SessionsService,
+    TypeOrmSessionUserReader,
+    {
+      provide: SESSION_USER_READER,
+      useExisting: TypeOrmSessionUserReader,
+    },
   ],
-  exports: [UsersService, SessionAuthGuard, AdminGuard],
+  exports: [UsersService, SessionsService, SessionAuthGuard, AdminGuard],
 })
 export class UsersModule {}

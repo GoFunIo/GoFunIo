@@ -22,7 +22,8 @@ import {
   PasswordResetRequestedEvent,
 } from './events/password-reset-requested.event';
 import { Company } from '../companies/companies.entity';
-import { User, UserRole } from './users.entity';
+import { User } from './users.entity';
+import { MembershipRole } from './membership-role';
 import { hashPassword, verifyPassword } from './password.util';
 import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
@@ -82,7 +83,7 @@ export class AuthService {
           companyId: savedCompany.id,
           email,
           password: result,
-          role: UserRole.ADMIN,
+          role: MembershipRole.ADMIN,
           verificationTokenHash: tokenHash,
           verificationTokenExpiresAt: expiresAt,
         });
@@ -206,7 +207,7 @@ export class AuthService {
           googleId,
           firstName: payload.given_name ?? null,
           lastName: payload.family_name ?? null,
-          role: UserRole.ADMIN,
+          role: MembershipRole.ADMIN,
           emailVerifiedAt: new Date(),
         });
 

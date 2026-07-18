@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
-import { User } from '../users/users.entity';
+import type { SessionPrincipal } from '../users/session-principal';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { CreateDriverDto } from './dtos/create-driver.dto';
@@ -22,14 +22,14 @@ export class DriversService {
     private readonly vehicles: VehiclesService,
   ) {}
 
-  list(actor: User): Promise<Driver[]> {
+  list(actor: SessionPrincipal): Promise<Driver[]> {
     return this.drivers.find({
       where: { companyId: actor.companyId },
       order: { lastName: 'ASC', firstName: 'ASC', id: 'ASC' },
     });
   }
 
-  async findOne(actor: User, id: string): Promise<Driver> {
+  async findOne(actor: SessionPrincipal, id: string): Promise<Driver> {
     const driver = await this.drivers.findOneBy({
       id,
       companyId: actor.companyId,
@@ -38,7 +38,7 @@ export class DriversService {
     return driver;
   }
 
-  create(actor: User, body: CreateDriverDto): Promise<Driver> {
+  create(actor: SessionPrincipal, body: CreateDriverDto): Promise<Driver> {
     return this.drivers.save(
       this.drivers.create({
         ...body,
@@ -51,7 +51,7 @@ export class DriversService {
   }
 
   async update(
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
     body: UpdateDriverDto,
   ): Promise<Driver> {
@@ -69,7 +69,7 @@ export class DriversService {
     });
   }
 
-  async remove(actor: User, id: string): Promise<void> {
+  async remove(actor: SessionPrincipal, id: string): Promise<void> {
     await this.drivers.manager.transaction(async (manager) => {
       const driver = await manager.findOne(Driver, {
         where: { id, companyId: actor.companyId },
@@ -88,7 +88,7 @@ export class DriversService {
     });
   }
 
-  async assignmentHistory(actor: User, vehicleId: string) {
+  async assignmentHistory(actor: SessionPrincipal, vehicleId: string) {
     await this.vehicles.findVehicleForHistory(
       this.drivers.manager,
       actor,
@@ -101,7 +101,7 @@ export class DriversService {
   }
 
   async assign(
-    actor: User,
+    actor: SessionPrincipal,
     vehicleId: string,
     body: CreateDriverAssignmentDto,
   ): Promise<DriverVehicleAssignment> {
@@ -139,7 +139,7 @@ export class DriversService {
   }
 
   async unassign(
-    actor: User,
+    actor: SessionPrincipal,
     vehicleId: string,
     driverId: string,
   ): Promise<void> {

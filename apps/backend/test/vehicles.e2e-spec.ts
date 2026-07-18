@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
-import { UserRole } from '../src/users/users.entity';
+import { MembershipRole } from '../src/users/membership-role';
 import { VehicleFuelType } from '../src/vehicles/vehicles.entity';
 import { createTestApp } from './helpers/create-test-app';
 import {
@@ -59,7 +59,7 @@ describe('Vehicles (e2e)', () => {
     try {
       const response = await admin
         .post('/users')
-        .send({ email, role: UserRole.MANAGER })
+        .send({ email, role: MembershipRole.MANAGER })
         .expect(201);
       if (!events.passwordResetToken) throw new Error('Expected invite token');
       await request(app.getHttpServer())
@@ -219,7 +219,7 @@ describe('Vehicles (e2e)', () => {
 
     await admin
       .patch(`/users/${first.user.id}`)
-      .send({ role: UserRole.ADMIN })
+      .send({ role: MembershipRole.ADMIN })
       .expect(200);
     await admin
       .get(`/vehicles/${created.body.id}`)

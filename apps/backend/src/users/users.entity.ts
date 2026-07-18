@@ -10,11 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-}
+import { MembershipRole } from './membership-role';
 
 @Entity('users')
 @Unique('UQ_users_id_company', ['id', 'companyId'])
@@ -65,8 +61,8 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true, select: false })
   emailChangeTokenExpiresAt!: Date | null;
 
-  @Column({ type: 'enum', enum: UserRole, enumName: 'user_role' })
-  role!: UserRole;
+  @Column({ type: 'enum', enum: MembershipRole, enumName: 'user_role' })
+  role!: MembershipRole;
 
   @Column({ type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null;
