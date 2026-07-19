@@ -1,3 +1,4 @@
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import classNames from 'classnames';
 import { Plus, SquarePen, Trash2, ChevronRight, RefreshCcw, ArrowUpRight } from 'lucide-react';
 
@@ -10,6 +11,7 @@ type Props = {
   icon?: 'add' | 'edit' | 'delete' | 'arrow' | 'refresh' | 'ArrowUpRight';
   className?: string;
   disabled?: boolean;
+  loading?: boolean;
 };
 
 export const BoardButton = ({
@@ -21,6 +23,7 @@ export const BoardButton = ({
   icon,
   className,
   disabled,
+  loading = false,
 }: Props) => {
   const isSquare = size === 'square';
 
@@ -79,13 +82,19 @@ export const BoardButton = ({
         [disabledBtn]: disabled,
       })}
     >
-      {icon && icon === 'add' && <Plus size={20} />}
-      {icon && icon === 'edit' && <SquarePen size={18} />}
-      {icon && icon === 'delete' && <Trash2 size={18} />}
-      {icon && icon === 'refresh' && <RefreshCcw size={18} />}
-      {icon && icon === 'ArrowUpRight' && <ArrowUpRight size={18} />}
-      {children}
-      {icon && icon === 'arrow' && <ChevronRight size={16} className="shrink-0" />}
+      {loading ? (
+        <LoadingIcon className="m-auto" />
+      ) : (
+        <>
+          {icon === 'add' && <Plus size={20} />}
+          {icon === 'edit' && <SquarePen size={18} />}
+          {icon === 'delete' && <Trash2 size={18} />}
+          {icon === 'refresh' && <RefreshCcw size={18} />}
+          {icon === 'ArrowUpRight' && <ArrowUpRight size={18} />}
+          {children}
+          {icon === 'arrow' && <ChevronRight size={16} className="shrink-0" />}
+        </>
+      )}
     </button>
   );
 };

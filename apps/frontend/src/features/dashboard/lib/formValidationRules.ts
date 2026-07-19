@@ -78,9 +78,16 @@ export const AddServiceSchema = yup.object().shape({
 // 3. DANE OSOBOWE
 // =========================================================================
 export const PersonalDataSchema = yup.object({
+  email: yup.string().optional().default(''),
   firstName: yup.string().default(''),
   lastName: yup.string().default(''),
-  phone: yup.string().default(''),
+  phone: yup
+    .string()
+    .default('')
+    .matches(/^\+?[0-9\s\-()]{7,20}$/, {
+      message: 'Nieprawidłowy numer telefonu',
+      excludeEmptyString: true,
+    }),
   address: yup.string().default(''),
   city: yup.string().default(''),
 

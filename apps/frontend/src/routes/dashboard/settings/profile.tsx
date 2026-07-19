@@ -8,6 +8,7 @@ import { PersonalDataForm } from '@/features/dashboard/forms/PersonalDataForm';
 import { CompanyDataForm } from '@/features/dashboard/forms/CompanyDataForm';
 import { ChangeEmailForm } from '@/features/dashboard/forms/ChangeEmailForm';
 import { ChangePasswordForm } from '@/features/dashboard/forms/ChangePasswordForm';
+import { useUser } from '@/hooks/useUser';
 
 export const Route = createFileRoute('/dashboard/settings/profile')({
   component: RouteComponent,
@@ -16,16 +17,27 @@ export const Route = createFileRoute('/dashboard/settings/profile')({
 type ModalType = 'personal' | 'company' | 'email' | 'password' | null;
 
 function RouteComponent() {
+  const { data: user } = useUser();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const userPersonalData = {
-    firstName: 'Anna',
-    lastName: 'Kowalska',
-    phone: '+48 000 000 000',
-    address: 'ul. Prosta 1',
-    postalCode: '00-175',
-    city: 'Warsaw',
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    address: user.address,
+    postalCode: user.postalCode,
+    city: user.city,
   };
+
+  const userPersonalDataLines = [
+    user.firstName || user.lastName
+      ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+      : null,
+    user.address,
+    user.postalCode || user.city ? `${user.postalCode ?? ''} ${user.city ?? ''}`.trim() : null,
+    user.phone,
+  ];
 
   const userCompanyData = {
     sameAsPersonal: false,
@@ -35,15 +47,6 @@ function RouteComponent() {
     companyPostalCode: '00-001',
     companyCity: 'Warszawa',
   };
-
-  const currentEmail = 'admin@gmail.com';
-
-  const personalDataLines = [
-    `${userPersonalData.firstName} ${userPersonalData.lastName}`,
-    userPersonalData.address,
-    `${userPersonalData.postalCode} ${userPersonalData.city}`,
-    userPersonalData.phone,
-  ];
 
   const companyDataLines = userCompanyData.companyName
     ? [
@@ -82,7 +85,7 @@ function RouteComponent() {
           title: 'Edytuj adres e-mail',
           subtitle: 'Wprowadź i potwierdź swój nowy adres e-mail.',
           content: (
-            <ChangeEmailForm currentEmail={currentEmail} onClose={() => setActiveModal(null)} />
+            <ChangeEmailForm currentEmail={user.email} onClose={() => setActiveModal(null)} />
           ),
         };
       case 'password':
@@ -107,11 +110,16 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-1">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane użytkownika</p>
-            {personalDataLines.map((line, index) => (
-              <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
-                {line}
-              </p>
-            ))}
+            {userPersonalDataLines.map((item, index) => {
+              console.log(item);
+              if (!item) return null;
+
+              return (
+                <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                  {item}
+                </p>
+              );
+            })}
           </div>
           <BoardButton onClick={() => setActiveModal('personal')} size="small" icon="edit">
             Edytuj
@@ -141,7 +149,7 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-3 ">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Adres e-mail</p>
-            <p className="text-[14px] text-content-secondary">{currentEmail}</p>
+            <p className="text-[14px] text-content-secondary">{user.email}</p>
           </div>
           <BoardButton onClick={() => setActiveModal('email')} size="small" icon="edit">
             Zmień

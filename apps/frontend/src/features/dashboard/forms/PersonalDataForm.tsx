@@ -4,6 +4,11 @@ import { PersonalDataSchema } from '../lib/formValidationRules';
 import { PersonalDataFormData } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { changeUserSettings } from '../api/profile.api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLoading } from '@/hooks/useLoading';
+import { FormError } from '@/features/auth/ui/FormError';
+import { formatPostalCode } from '@/utils/formatPostalCode';
 
 type Props = {
   onClose: () => void;
@@ -11,40 +16,55 @@ type Props = {
 };
 
 export const PersonalDataForm = ({ onClose, initialData }: Props) => {
+  const queryClient = useQueryClient();
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<PersonalDataFormData>({
     resolver: yupResolver(PersonalDataSchema),
-    defaultValues: initialData || {
-      firstName: '',
-      lastName: '',
-      phone: '',
-      address: '',
-      postalCode: '',
-      city: '',
+    defaultValues: {
+      firstName: initialData?.firstName ?? '',
+      lastName: initialData?.lastName ?? '',
+      phone: initialData?.phone ?? '',
+      address: initialData?.address ?? '',
+      city: initialData?.city ?? '',
+      postalCode: initialData?.postalCode ?? '',
     },
   });
 
   const onSubmit = async (data: PersonalDataFormData) => {
+    setLoading(true);
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
-      console.log('Wysyłanie danych osobowych do bazy Sylwka:', data);
-      // await axios.patch('/api/profile/personal', data);
+      const user = await changeUserSettings(data);
+      queryClient.setQueryData(['me'], user);
       onClose();
     } catch (error) {
-      console.error('Błąd zapisu danych osobowych:', error);
+      const err = error as { status?: number; message?: string };
+
+      if (err.status === 0) {
+        setError('root', {
+          type: 'network',
+          message: 'Brak połączenia z internetem.',
+        });
+        return;
+      }
+
+      setError('root', {
+        type: 'server',
+        message: 'Błąd serwera. Spróbuj ponownie później.',
+      });
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const formatPostalCode = (value: string): string => {
-    const digits = value.replace(/\D/g, '');
-
-    if (digits.length > 2) {
-      return `${digits.slice(0, 2)}-${digits.slice(2, 5)}`;
-    }
-
-    return digits;
   };
 
   const inputStyles =
@@ -52,6 +72,7 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-[16px] gap-y-[12px]">
         <Input
           label="Imię"
@@ -71,19 +92,19 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
 
         {/* E-mail  jest zablokowany/pokazany, zmiana maila jest w osobnym modalu */}
         <div className="opacity-60 pointer-events-none">
-          <Input
-            label="E-mail"
-            value={initialData?.firstName ? 'admin@gmail.com' : 'Wczytywanie...'}
-            disabled
-            className="text-icon"
-          />
+          <Input label="E-mail" value={initialData?.email} disabled className="text-icon" />
         </div>
 
         <Input
+          type="tel"
           label="Telefon"
           placeholder="+48 100-200-300"
           className={inputStyles}
-          {...register('phone')}
+          {...register('phone', {
+            onChange: (e) => {
+              e.target.value = e.target.value.replace(/[^\d+\s()-]/g, '');
+            },
+          })}
           error={errors.phone?.message}
         />
 
@@ -128,8 +149,8 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" disabled={isSubmitting}>
-          {isSubmitting ? 'Zapisywanie...' : 'Zapisz'}
+        <BoardButton type="submit" size="medium" loading={loading}>
+          Zapisz
         </BoardButton>
       </div>
     </form>
