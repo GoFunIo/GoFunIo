@@ -2,7 +2,7 @@ import { useUser } from '@/hooks/useUser';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
-import { actionsArray, activityArray, mockCars } from '@/store/cars';
+import { actionsArray, activityArray } from '@/store/cars';
 import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
 import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
@@ -21,6 +21,8 @@ import {
   DeleteServiceConfirm,
   ServiceEntryType,
 } from '@/features/dashboard/forms/DeleteServiceConfirm';
+import { useVehicles } from '@/hooks/useVehicles';
+import { VehicleData } from '@/features/dashboard/types';
 
 type QuickAction = {
   id: number;
@@ -37,15 +39,17 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 });
 
 function RouteComponent() {
-  const { data: user, isLoading } = useUser();
+  const { data: user, isLoading: isUserLoading } = useUser();
   const navigate = useNavigate();
 
-  if (isLoading) return <h1 className="">Loading</h1>;
-  if (!user) return null;
+  const {
+    data: vehiclesResponse,
+    isLoading: isVehiclesLoading,
+    refetch: refetchVehicles,
+  } = useVehicles();
+  const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
-  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
-  const selectedCar = mockCars.find((c) => c.id === selectedCarId);
-
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
   const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
 
@@ -56,62 +60,74 @@ function RouteComponent() {
 
   const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
 
+  const selectedCar = vehicles.find((c) => c.id === selectedCarId);
+
   const editCarModalTitle = selectedCar
     ? `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`
     : 'Edytuj dane pojazdu';
 
-  const handleRenewCar = (id: number) => {
+  const handleRenewCar = (id: string) => {
     setSelectedCarId(id);
     setIsEditCarModalOpen(true);
   };
 
-  // TEST - LOGIKA PZREGLĄDÓW
-  const inspectionStats = mockCars.reduce(
-    (acc, car) => {
-      const { days } = calculateDaysToDate(car.technicalInspectionExpiry);
+  // LOGIKA PRZEGLĄDÓW
+  const inspectionStats = useMemo(
+    () =>
+      vehicles.reduce(
+        (acc, car) => {
+          if (!car.technicalInspectionExpiry) return acc;
+          const { days } = calculateDaysToDate(car.technicalInspectionExpiry);
 
-      if (days <= 7) {
-        acc.days7++;
-      } else if (days > 7 && days <= 30) {
-        acc.days30++;
-      } else if (days > 30 && days <= 60) {
-        acc.days60++;
-      }
-      return acc;
-    },
-    { days7: 0, days30: 0, days60: 0 },
+          if (days <= 7) {
+            acc.days7++;
+          } else if (days > 7 && days <= 30) {
+            acc.days30++;
+          } else if (days > 30 && days <= 60) {
+            acc.days60++;
+          }
+          return acc;
+        },
+        { days7: 0, days30: 0, days60: 0 },
+      ),
+    [vehicles],
   );
 
-  //  DYNAMICZNA LOGIKA DLA UBEZPIECZEŃ OC / AC
-  const insuranceStats = mockCars.reduce(
-    (acc, car) => {
-      const ocDiff = calculateDaysToDate(car.ocExpiry).days;
-      const acDiff = calculateDaysToDate(car.acExpiry).days;
+  // LOGIKA OC / AC — ocExpiry
+  const insuranceStats = useMemo(
+    () =>
+      vehicles.reduce(
+        (acc, car) => {
+          if (car.ocExpiry) {
+            const ocDiff = calculateDaysToDate(car.ocExpiry).days;
+            if (ocDiff <= 7) acc.days7++;
+            else if (ocDiff <= 30) acc.days30++;
+            else if (ocDiff <= 60) acc.days60++;
+          }
 
-      if (ocDiff <= 7) acc.days7++;
-      else if (ocDiff <= 30) acc.days30++;
-      else if (ocDiff <= 60) acc.days60++;
+          if (car.acExpiry) {
+            const acDiff = calculateDaysToDate(car.acExpiry).days;
+            if (acDiff <= 7) acc.days7++;
+            else if (acDiff <= 30) acc.days30++;
+            else if (acDiff <= 60) acc.days60++;
+          }
 
-      if (acDiff <= 7) acc.days7++;
-      else if (acDiff <= 30) acc.days30++;
-      else if (acDiff <= 60) acc.days60++;
-
-      return acc;
-    },
-    { days7: 0, days30: 0, days60: 0 },
+          return acc;
+        },
+        { days7: 0, days30: 0, days60: 0 },
+      ),
+    [vehicles],
   );
 
-  // 3. SUMOWANIE TYLKO PILNYCH ALERTÓW (Czerwone ≤ 7 oraz Pomarańczowe ≤ 30)
   const totalUrgentReminders =
     inspectionStats.days7 + inspectionStats.days30 + insuranceStats.days7 + insuranceStats.days30;
 
   const adminStats = {
-    totalFleetVehicles: mockCars.length,
-    activeUsersCount: 2,
+    totalFleetVehicles: vehiclesResponse?.total ?? vehicles.length,
+    activeUsersCount: 2, // brak endpointu użytkowników — pozostaje mock
     urgentReminders: totalUrgentReminders,
   };
 
-  // FUNKCJA POMOCNICZA DO SZYBKIHC AKCJI
   const handleActionClick = (
     actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link',
     href?: ToOptions['to'],
@@ -120,24 +136,21 @@ function RouteComponent() {
       navigate({ to: href });
       return;
     }
-
     if (actionType === 'modal_car') {
       setIsModalOpen(true);
       return;
     }
-
     if (actionType === 'modal_user') {
       setIsUserModalOpen(true);
       return;
     }
-
     if (actionType === 'modal_service') {
       setIsServiceModalOpen(true);
       return;
     }
   };
 
-  // DYNAMICZNE OBLICZANIE PODSUMOWANIA WYDATKÓW
+  // Podsumowanie wydatków — nadal na mocku, brak endpointu historii serwisowej w przesłanych hookach
   const expensesSummary = useMemo(() => {
     let servicesAndRepairs = 0;
     let insurance = 0;
@@ -177,6 +190,9 @@ function RouteComponent() {
     return (activityArray as HistoryDataItem[]).slice(0, 5);
   }, []);
 
+  if (isUserLoading) return <h1 className="">Loading</h1>;
+  if (!user) return null;
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full ">
@@ -201,7 +217,7 @@ function RouteComponent() {
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
             title="Pojazdy we flocie"
-            value={adminStats.totalFleetVehicles}
+            value={isVehiclesLoading ? '...' : adminStats.totalFleetVehicles}
             subtitle="aktywne"
             icon={<CarFront size={20} />}
           />
@@ -218,7 +234,7 @@ function RouteComponent() {
         <Link to="/dashboard/notifications" className="block no-underline">
           <DashboardCard
             title="Pilne przypomnienia"
-            value={adminStats.urgentReminders}
+            value={isVehiclesLoading ? '...' : adminStats.urgentReminders}
             subtitle="działania wymagane w ciągu 30 dni"
             icon={<TriangleAlert size={20} />}
             isAlert={true}
@@ -235,25 +251,33 @@ function RouteComponent() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
-          <div className="flex flex-col gap-4">
-            <AdminAlertBucket title="Przeglądy techniczne" icon={Wrench} stats={inspectionStats} />
-            <Reminders data={mockCars} filterType="inspection" onRenewCar={handleRenewCar} />
-          </div>
+        {isVehiclesLoading ? (
+          <p className="text-content-secondary text-[14px]">Ładowanie pojazdów…</p>
+        ) : (
+          <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
+            <div className="flex flex-col gap-4">
+              <AdminAlertBucket
+                title="Przeglądy techniczne"
+                icon={Wrench}
+                stats={inspectionStats}
+              />
+              <Reminders data={vehicles} filterType="inspection" onRenewCar={handleRenewCar} />
+            </div>
 
-          <div className="flex flex-col gap-4">
-            <AdminAlertBucket
-              title="Ubezpieczenia (OC / AC)"
-              icon={ShieldAlert}
-              stats={insuranceStats}
-            />
-            <Reminders data={mockCars} filterType="insurance" onRenewCar={handleRenewCar} />
+            <div className="flex flex-col gap-4">
+              <AdminAlertBucket
+                title="Ubezpieczenia (OC / AC)"
+                icon={ShieldAlert}
+                stats={insuranceStats}
+              />
+              <Reminders data={vehicles} filterType="insurance" onRenewCar={handleRenewCar} />
+            </div>
           </div>
-        </div>
+        )}
       </BlockWrapper>
 
       <GridWrapper layout="2-unequal">
-        {/* HISTORIA SERWISOWA LEWA STRONA */}
+        {/* HISTORIA SERWISOWA — nadal mock, brak endpointu w przesłanych plikach */}
         <History
           data={limitedActivityHistory}
           link={{
@@ -323,11 +347,10 @@ function RouteComponent() {
         title="Dodaj pojazd"
         subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
       >
-        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} onSuccess={() => refetchVehicles()} />
       </Modal>
 
-      {/* MODAL 1a: EDYCJA DANYCH SAMOCHODU SAMOCHODU */}
-
+      {/* MODAL 1a: EDYCJA DANYCH SAMOCHODU */}
       <Modal
         isOpen={isEditCarModalOpen}
         setIsOpen={setIsEditCarModalOpen}
@@ -363,7 +386,7 @@ function RouteComponent() {
         <AddEditUserForm onClose={() => setIsUserModalOpen(false)} />
       </Modal>
 
-      {/* MODAL 4: EDYCJA WPISU SERWISOWEGO  */}
+      {/* MODAL 4: EDYCJA WPISU SERWISOWEGO */}
       <Modal
         isOpen={isServiceEditMode}
         setIsOpen={(open) => !open && setModalState(null)}
@@ -377,7 +400,7 @@ function RouteComponent() {
         />
       </Modal>
 
-      {/* MODAL 5: USUNIECIE  WPISU SERWISOWEGO  */}
+      {/* MODAL 5: USUNIĘCIE WPISU SERWISOWEGO */}
       <Modal
         isOpen={!!deleteModalState}
         setIsOpen={(open) => !open && setDeleteModalState(null)}
