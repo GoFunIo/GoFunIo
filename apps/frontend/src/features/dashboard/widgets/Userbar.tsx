@@ -11,9 +11,9 @@ import { signOut } from '@/features/auth/auth.api';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { DaysAmount } from '../ui/DaysAmount';
+import { getInitials } from '@/utils/getInitials';
 
 export const Userbar = () => {
-  const name = 'Anna Kowalska';
   const { data: user } = useUser();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -21,12 +21,6 @@ export const Userbar = () => {
   const settingsRef = useRef<HTMLDivElement>(null);
   const alertsRef = useRef<HTMLDivElement>(null);
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
-
-  const getInitials = () => {
-    const words = name.split(' ');
-
-    return `${words[0].charAt(0)}${words[1].charAt(0)}`;
-  };
 
   const logout = async () => {
     try {
@@ -127,10 +121,14 @@ export const Userbar = () => {
               className="cursor-pointer flex items-center gap-[8px] h-full md:pr-[32px] pr-[15px]"
             >
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center">
-                <p className="text-[12px] font-normal text-white">{getInitials()}</p>
+                <p className="text-[12px] font-normal text-white">
+                  {getInitials(`${user.firstName} ${user.lastName}`)}
+                </p>
               </div>
               <div className="max-[426px]:hidden">
-                <p className="text-[14px] font-normal text-content-primary">{name}</p>
+                <p className="text-[14px] font-normal text-content-primary">
+                  {user.firstName} {user.lastName}
+                </p>
                 <p className="text-[12px]">{user.email}</p>
               </div>
             </div>
