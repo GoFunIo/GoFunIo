@@ -9,14 +9,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLoading } from '@/hooks/useLoading';
 import { FormError } from '@/features/auth/ui/FormError';
 import { formatPostalCode } from '@/utils/formatPostalCode';
+import { useUser } from '@/hooks/useUser';
 
 type Props = {
   onClose: () => void;
-  initialData?: PersonalDataFormData;
 };
 
-export const PersonalDataForm = ({ onClose, initialData }: Props) => {
+export const PersonalDataForm = ({ onClose }: Props) => {
   const queryClient = useQueryClient();
+  const { data: user } = useUser();
   const { loading, setLoading } = useLoading();
 
   const {
@@ -27,12 +28,12 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
   } = useForm<PersonalDataFormData>({
     resolver: yupResolver(PersonalDataSchema),
     defaultValues: {
-      firstName: initialData?.firstName ?? '',
-      lastName: initialData?.lastName ?? '',
-      phone: initialData?.phone ?? '',
-      address: initialData?.address ?? '',
-      city: initialData?.city ?? '',
-      postalCode: initialData?.postalCode ?? '',
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
+      phone: user.phone ?? '',
+      address: user.address ?? '',
+      city: user.city ?? '',
+      postalCode: user.postalCode ?? '',
     },
   });
 
@@ -92,7 +93,7 @@ export const PersonalDataForm = ({ onClose, initialData }: Props) => {
 
         {/* E-mail  jest zablokowany/pokazany, zmiana maila jest w osobnym modalu */}
         <div className="opacity-60 pointer-events-none">
-          <Input label="E-mail" value={initialData?.email} disabled className="text-icon" />
+          <Input label="E-mail" value={user.email} disabled className="text-icon" />
         </div>
 
         <Input

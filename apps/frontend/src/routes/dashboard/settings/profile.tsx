@@ -22,16 +22,6 @@ function RouteComponent() {
   const { data: company } = useCompany();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  const userPersonalData = {
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    phone: user.phone,
-    address: user.address,
-    postalCode: user.postalCode,
-    city: user.city,
-  };
-
   const userPersonalDataLines = [
     user.firstName || user.lastName
       ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
@@ -43,9 +33,11 @@ function RouteComponent() {
 
   const userCompanyDataLines = [
     company?.name,
-    `NIP: ${company?.taxId}`,
+    company?.taxId ? `NIP: ${company.taxId}` : null,
     company?.address,
-    `${company?.postalCode} ${company?.city}`,
+    company?.postalCode || company?.city
+      ? `${company?.postalCode ?? ''} ${company?.city ?? ''}`.trim()
+      : null,
   ];
 
   // Dynamiczna konfiguracja modalu w zależności od wybranego trybu
@@ -55,9 +47,7 @@ function RouteComponent() {
         return {
           title: 'Dane osobowe',
           subtitle: 'Wprowadź swoje dane osobowe.',
-          content: (
-            <PersonalDataForm initialData={userPersonalData} onClose={() => setActiveModal(null)} />
-          ),
+          content: <PersonalDataForm onClose={() => setActiveModal(null)} />,
         };
       case 'company':
         return {
@@ -93,6 +83,7 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-1">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane użytkownika</p>
+
             {userPersonalDataLines.map((item, index) => {
               if (!item) return null;
 
