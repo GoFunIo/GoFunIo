@@ -23,6 +23,7 @@ import { User } from './users.entity';
 import { UsersService } from './users.service';
 import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
+import { EmailChangeService } from './email-change.service';
 
 @Controller('users/me')
 export class UserProfileController {
@@ -30,6 +31,7 @@ export class UserProfileController {
     private usersService: UsersService,
     private authService: AuthService,
     private sessions: SessionsService,
+    private emailChange: EmailChangeService,
   ) {}
 
   @Patch()
@@ -51,10 +53,8 @@ export class UserProfileController {
     @Body() body: ChangeEmailDto,
     @Headers('origin') origin?: string,
   ): Promise<void> {
-    const user = await this.usersService.findActiveById(principal.id);
-    if (!user) throw new UnauthorizedException();
-    await this.authService.requestEmailChange(
-      user,
+    await this.emailChange.request(
+      principal.id,
       body.email,
       body.currentPassword,
       origin,

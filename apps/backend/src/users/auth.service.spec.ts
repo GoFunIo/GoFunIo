@@ -72,12 +72,7 @@ describe('AuthService', () => {
   let usersService: jest.Mocked<
     Pick<
       UsersService,
-      | 'findActiveByEmail'
-      | 'findActiveByGoogleId'
-      | 'update'
-      | 'claimEmailChange'
-      | 'consumeEmailChangeToken'
-      | 'updatePassword'
+      'findActiveByEmail' | 'findActiveByGoogleId' | 'update' | 'updatePassword'
     >
   >;
   let eventEmitter: { emit: jest.Mock };
@@ -89,8 +84,6 @@ describe('AuthService', () => {
       findActiveByEmail: jest.fn(),
       findActiveByGoogleId: jest.fn(),
       update: jest.fn(),
-      claimEmailChange: jest.fn(),
-      consumeEmailChangeToken: jest.fn(),
       updatePassword: jest.fn(),
     };
     eventEmitter = { emit: jest.fn() };
@@ -371,35 +364,6 @@ describe('AuthService', () => {
       );
 
       await expect(service.signInWithGoogle('valid-token')).resolves.toBe(user);
-    });
-  });
-
-  describe('requestEmailChange', () => {
-    it('requires the current password', async () => {
-      const user = makeUser({
-        password: await buildPasswordHash('current-password'),
-      });
-
-      await expect(
-        service.requestEmailChange(user, 'new@example.com', 'wrong-password'),
-      ).rejects.toThrow(new UnauthorizedException('Invalid current password'));
-      expect(usersService.claimEmailChange).not.toHaveBeenCalled();
-    });
-
-    it('maps a concurrent email claim to ConflictException', async () => {
-      const user = makeUser({
-        password: await buildPasswordHash('current-password'),
-      });
-      const driverError = Object.assign(new Error('unique violation'), {
-        code: '23505',
-      });
-      usersService.claimEmailChange.mockRejectedValue(
-        new QueryFailedError('UPDATE', [], driverError),
-      );
-
-      await expect(
-        service.requestEmailChange(user, 'new@example.com', 'current-password'),
-      ).rejects.toThrow(new ConflictException('Email already in use'));
     });
   });
 

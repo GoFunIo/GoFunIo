@@ -1,16 +1,7 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { User } from './users.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
-} from './email-claim.util';
 
 @Injectable()
 export class UsersService {
@@ -49,58 +40,6 @@ export class UsersService {
   async create(user: Partial<User>): Promise<User> {
     const entity = this.usersRepository.create(user);
     return this.usersRepository.save(entity);
-  }
-
-  async claimEmailChange(
-    id: string,
-    currentPassword: string,
-    email: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<boolean> {
-    return this.usersRepository.manager.transaction(async (manager) => {
-      await lockEmailClaim(manager, email);
-      await clearExpiredEmailClaims(manager, email);
-      if (await emailClaimInUse(manager, email, id)) {
-        throw new ConflictException('Email already in use');
-      }
-
-      const result = await manager
-        .createQueryBuilder()
-        .update(User)
-        .set({
-          pendingEmail: email,
-          emailChangeTokenHash: tokenHash,
-          emailChangeTokenExpiresAt: expiresAt,
-        })
-        .where('id = :id', { id })
-        .andWhere('password = :currentPassword', { currentPassword })
-        .andWhere('"deletedAt" IS NULL')
-        .execute();
-      return (result.affected ?? 0) > 0;
-    });
-  }
-
-  async consumeEmailChangeToken(tokenHash: string): Promise<boolean> {
-    const result = await this.usersRepository
-      .createQueryBuilder()
-      .update(User)
-      .set({
-        email: () => '"pendingEmail"',
-        pendingEmail: null,
-        emailVerifiedAt: new Date(),
-        emailChangeTokenHash: null,
-        emailChangeTokenExpiresAt: null,
-        passwordResetTokenHash: null,
-        passwordResetTokenExpiresAt: null,
-      })
-      .where('"emailChangeTokenHash" = :tokenHash', { tokenHash })
-      .andWhere('"emailChangeTokenExpiresAt" > :now', { now: new Date() })
-      .andWhere('"pendingEmail" IS NOT NULL')
-      .andWhere('"deletedAt" IS NULL')
-      .execute();
-
-    return (result.affected ?? 0) > 0;
   }
 
   async updatePassword(

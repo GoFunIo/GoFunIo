@@ -9,7 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
-import { generateToken, hashToken } from './token.util';
+import { generateToken } from './token.util';
 import {
   EMAIL_VERIFICATION_REQUESTED_EVENT,
   EmailVerificationRequestedEvent,
@@ -18,10 +18,6 @@ import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import { hashPassword, verifyPassword } from './password.util';
-import {
-  USER_EMAIL_CHANGE_REQUESTED_EVENT,
-  UserEmailChangeRequestedEvent,
-} from './events/user-email-change-requested.event';
 import {
   clearExpiredEmailClaims,
   emailClaimInUse,
@@ -217,65 +213,6 @@ export class AuthService {
         if (concurrentUser) {
           return concurrentUser;
         }
-        throw new ConflictException('Email already in use');
-      }
-      throw err;
-    }
-  }
-
-  async requestEmailChange(
-    user: User,
-    email: string,
-    currentPassword: string,
-    origin?: string,
-  ): Promise<void> {
-    if (!user.password) {
-      throw new ConflictException('Set a password before changing email');
-    }
-    if (!(await verifyPassword(currentPassword, user.password))) {
-      throw new UnauthorizedException('Invalid current password');
-    }
-
-    email = this.normalizeEmail(email);
-    if (email === user.email) {
-      throw new BadRequestException('Email unchanged');
-    }
-    const ttlHours = this.config.get<number>(
-      'VERIFICATION_TOKEN_TTL_HOURS',
-      24,
-    );
-    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
-    try {
-      const claimed = await this.usersService.claimEmailChange(
-        user.id,
-        user.password,
-        email,
-        tokenHash,
-        expiresAt,
-      );
-      if (!claimed) {
-        throw new UnauthorizedException('Current password changed');
-      }
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new ConflictException('Email already in use');
-      }
-      throw err;
-    }
-    this.eventEmitter.emit(
-      USER_EMAIL_CHANGE_REQUESTED_EVENT,
-      new UserEmailChangeRequestedEvent({ email, token, origin }),
-    );
-  }
-
-  async verifyEmailChange(token: string): Promise<void> {
-    const tokenHash = hashToken(token);
-    try {
-      if (!(await this.usersService.consumeEmailChangeToken(tokenHash))) {
-        throw new BadRequestException('Invalid or expired token');
-      }
-    } catch (err) {
-      if (isUniqueViolation(err)) {
         throw new ConflictException('Email already in use');
       }
       throw err;

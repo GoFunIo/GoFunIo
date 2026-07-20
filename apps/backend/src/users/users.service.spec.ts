@@ -139,25 +139,6 @@ describe('UsersService', () => {
         }),
       );
     });
-
-    it('clears reset tokens when changing email', async () => {
-      const qb = {
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({ affected: 1 }),
-      };
-      repo.createQueryBuilder.mockReturnValue(qb as never);
-
-      await expect(service.consumeEmailChangeToken('hash')).resolves.toBe(true);
-      expect(qb.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          passwordResetTokenHash: null,
-          passwordResetTokenExpiresAt: null,
-        }),
-      );
-    });
   });
 
   describe('remove', () => {

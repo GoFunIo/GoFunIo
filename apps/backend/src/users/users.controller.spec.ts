@@ -19,6 +19,7 @@ import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import type { SessionPrincipal } from './session-principal';
+import { EmailChangeService } from './email-change.service';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -62,10 +63,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 describe('UsersController', () => {
   let controller: UsersController;
   let authService: jest.Mocked<
-    Pick<
-      AuthService,
-      'signup' | 'signin' | 'signInWithGoogle' | 'verifyEmailChange'
-    >
+    Pick<AuthService, 'signup' | 'signin' | 'signInWithGoogle'>
   >;
   let emailVerification: jest.Mocked<
     Pick<EmailVerificationService, 'verify' | 'resend'>
@@ -73,6 +71,7 @@ describe('UsersController', () => {
   let passwordRecovery: jest.Mocked<
     Pick<PasswordRecoveryService, 'request' | 'reset'>
   >;
+  let emailChange: jest.Mocked<Pick<EmailChangeService, 'confirm'>>;
   let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
   let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
 
@@ -81,10 +80,10 @@ describe('UsersController', () => {
       signup: jest.fn(),
       signin: jest.fn(),
       signInWithGoogle: jest.fn(),
-      verifyEmailChange: jest.fn(),
     };
     emailVerification = { verify: jest.fn(), resend: jest.fn() };
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
+    emailChange = { confirm: jest.fn() };
     sessions = { establish: jest.fn(), clear: jest.fn() };
     users = { findActiveById: jest.fn() };
 
@@ -94,6 +93,7 @@ describe('UsersController', () => {
         { provide: AuthService, useValue: authService },
         { provide: EmailVerificationService, useValue: emailVerification },
         { provide: PasswordRecoveryService, useValue: passwordRecovery },
+        { provide: EmailChangeService, useValue: emailChange },
         { provide: SessionsService, useValue: sessions },
         { provide: UsersService, useValue: users },
       ],
@@ -244,13 +244,13 @@ describe('UsersController', () => {
   });
 
   describe('verifyEmailChange', () => {
-    it('delegates the body token to AuthService', async () => {
-      authService.verifyEmailChange.mockResolvedValue(undefined);
+    it('delegates the body token to EmailChangeService', async () => {
+      emailChange.confirm.mockResolvedValue(undefined);
 
       await expect(
         controller.verifyEmailChange({ token: 'abc' }),
       ).resolves.toEqual({ verified: true });
-      expect(authService.verifyEmailChange).toHaveBeenCalledWith('abc');
+      expect(emailChange.confirm).toHaveBeenCalledWith('abc');
     });
   });
 

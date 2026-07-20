@@ -32,6 +32,7 @@ import { SessionsService } from './sessions.service';
 import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
+import { EmailChangeService } from './email-change.service';
 
 @Controller('auth')
 export class UsersController {
@@ -41,6 +42,7 @@ export class UsersController {
     private readonly users: UsersService,
     private readonly emailVerification: EmailVerificationService,
     private readonly passwordRecovery: PasswordRecoveryService,
+    private readonly emailChange: EmailChangeService,
   ) {}
 
   @Post('signup')
@@ -118,7 +120,7 @@ export class UsersController {
   async verifyEmailChange(
     @Body() body: VerifyEmailDto,
   ): Promise<{ verified: true }> {
-    await this.authService.verifyEmailChange(body.token);
+    await this.emailChange.confirm(body.token);
     return { verified: true };
   }
 

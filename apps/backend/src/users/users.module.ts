@@ -29,6 +29,11 @@ import {
   PASSWORD_RECOVERY_STORE,
   TypeOrmPasswordRecoveryStore,
 } from './password-recovery.store';
+import { EmailChangeService } from './email-change.service';
+import {
+  EMAIL_CHANGE_STORE,
+  TypeOrmEmailChangeStore,
+} from './email-change.store';
 
 @Module({
   imports: [
@@ -60,6 +65,12 @@ import {
     {
       provide: PASSWORD_RECOVERY_STORE,
       useExisting: TypeOrmPasswordRecoveryStore,
+    },
+    EmailChangeService,
+    TypeOrmEmailChangeStore,
+    {
+      provide: EMAIL_CHANGE_STORE,
+      useExisting: TypeOrmEmailChangeStore,
     },
     {
       provide: APP_FILTER,
