@@ -15,8 +15,6 @@ import {
   EMAIL_VERIFICATION_REQUESTED_EVENT,
   EmailVerificationRequestedEvent,
 } from './events/email-verification-requested.event';
-import { PASSWORD_RESET_REQUESTED_EVENT } from './events/password-reset-requested.event';
-import { hashToken } from './token.util';
 import { randomBytes, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
 
@@ -77,7 +75,6 @@ describe('AuthService', () => {
       | 'findActiveByEmail'
       | 'findActiveByGoogleId'
       | 'update'
-      | 'consumePasswordResetToken'
       | 'claimEmailChange'
       | 'consumeEmailChangeToken'
       | 'updatePassword'
@@ -92,7 +89,6 @@ describe('AuthService', () => {
       findActiveByEmail: jest.fn(),
       findActiveByGoogleId: jest.fn(),
       update: jest.fn(),
-      consumePasswordResetToken: jest.fn(),
       claimEmailChange: jest.fn(),
       consumeEmailChangeToken: jest.fn(),
       updatePassword: jest.fn(),
@@ -375,78 +371,6 @@ describe('AuthService', () => {
       );
 
       await expect(service.signInWithGoogle('valid-token')).resolves.toBe(user);
-    });
-  });
-
-  describe('requestPasswordReset', () => {
-    it('stores reset token and emits PASSWORD_RESET_REQUESTED_EVENT', async () => {
-      const user = makeUser();
-      usersService.findActiveByEmail.mockResolvedValue(user);
-      usersService.update.mockResolvedValue(user);
-
-      await service.requestPasswordReset(user.email, 'http://localhost');
-
-      expect(usersService.update).toHaveBeenCalledWith(user.id, {
-        passwordResetTokenHash: expect.any(String),
-        passwordResetTokenExpiresAt: expect.any(Date),
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        PASSWORD_RESET_REQUESTED_EVENT,
-        expect.objectContaining({
-          delivery: expect.objectContaining({ email: user.email }),
-          isFirstPassword: false,
-        }),
-      );
-    });
-
-    it('stores reset token for Google-only user with isFirstPassword flag', async () => {
-      const user = makeUser({ password: null, googleId: 'google-sub-1' });
-      usersService.findActiveByEmail.mockResolvedValue(user);
-      usersService.update.mockResolvedValue(user);
-
-      await service.requestPasswordReset(user.email, 'http://localhost');
-
-      expect(usersService.update).toHaveBeenCalledWith(user.id, {
-        passwordResetTokenHash: expect.any(String),
-        passwordResetTokenExpiresAt: expect.any(Date),
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        PASSWORD_RESET_REQUESTED_EVENT,
-        expect.objectContaining({
-          delivery: expect.objectContaining({ email: user.email }),
-          isFirstPassword: true,
-        }),
-      );
-    });
-
-    it('returns silently when user does not exist', async () => {
-      usersService.findActiveByEmail.mockResolvedValue(null);
-
-      await service.requestPasswordReset('missing@example.com');
-
-      expect(usersService.update).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('resetPassword', () => {
-    it('consumes reset token with new password hash', async () => {
-      usersService.consumePasswordResetToken.mockResolvedValue(true);
-
-      await service.resetPassword('reset-token', 'new-password-123');
-
-      expect(usersService.consumePasswordResetToken).toHaveBeenCalledWith(
-        hashToken('reset-token'),
-        expect.stringMatching(/^[a-f0-9]+\.[a-f0-9]+$/),
-      );
-    });
-
-    it('throws BadRequestException when token is invalid or expired', async () => {
-      usersService.consumePasswordResetToken.mockResolvedValue(false);
-
-      await expect(
-        service.resetPassword('bad-token', 'new-password'),
-      ).rejects.toThrow(new BadRequestException('Invalid or expired token'));
     });
   });
 

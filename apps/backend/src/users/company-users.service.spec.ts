@@ -3,12 +3,11 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { CompanyUsersService } from './company-users.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
+import { PasswordRecoveryService } from './password-recovery.service';
 
 function user(overrides: Partial<User> = {}): User {
   return {
@@ -25,15 +24,65 @@ describe('CompanyUsersService', () => {
   let repository: {
     manager: { transaction: jest.Mock };
   };
+  let passwordRecovery: jest.Mocked<
+    Pick<PasswordRecoveryService, 'issueFirstPassword'>
+  >;
 
   beforeEach(() => {
     repository = {
       manager: { transaction: jest.fn() },
     };
+    passwordRecovery = { issueFirstPassword: jest.fn() };
     service = new CompanyUsersService(
       repository as unknown as Repository<User>,
-      {} as ConfigService,
-      {} as EventEmitter2,
+      passwordRecovery as unknown as PasswordRecoveryService,
+    );
+  });
+
+  it('delegates first-password lifecycle after creating a user', async () => {
+    const actor = user();
+    const created = user({
+      id: 'user-2',
+      email: 'new@example.com',
+      password: null,
+      emailVerifiedAt: null,
+    });
+    const queryBuilder = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      setLock: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([actor]),
+    };
+    const manager = {
+      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      query: jest
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ exists: false }]),
+      create: jest.fn().mockReturnValue(created),
+      save: jest.fn().mockResolvedValue(created),
+    };
+    repository.manager.transaction.mockImplementation(
+      async (callback: (value: typeof manager) => Promise<User>) =>
+        callback(manager),
+    );
+
+    await expect(
+      service.create(
+        actor,
+        {
+          email: created.email,
+          role: MembershipRole.MANAGER,
+        },
+        'http://localhost',
+      ),
+    ).resolves.toBe(created);
+    expect(passwordRecovery.issueFirstPassword).toHaveBeenCalledWith(
+      created.id,
+      'http://localhost',
     );
   });
 

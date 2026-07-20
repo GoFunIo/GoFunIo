@@ -5,17 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
-import {
-  PASSWORD_RESET_REQUESTED_EVENT,
-  PasswordResetRequestedEvent,
-} from './events/password-reset-requested.event';
-import { generateToken } from './token.util';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import type { SessionPrincipal } from './session-principal';
@@ -25,14 +18,14 @@ import {
   emailClaimInUse,
   lockEmailClaim,
 } from './email-claim.util';
+import { PasswordRecoveryService } from './password-recovery.service';
 
 @Injectable()
 export class CompanyUsersService {
   constructor(
     @InjectRepository(User)
     private readonly users: Repository<User>,
-    private readonly config: ConfigService,
-    private readonly events: EventEmitter2,
+    private readonly passwordRecovery: PasswordRecoveryService,
   ) {}
 
   list(companyId: string): Promise<User[]> {
@@ -48,11 +41,6 @@ export class CompanyUsersService {
     origin?: string,
   ): Promise<User> {
     const email = body.email.trim().toLowerCase();
-    const ttlHours = this.config.get<number>(
-      'PASSWORD_RESET_TOKEN_TTL_HOURS',
-      24,
-    );
-    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
 
     let user: User;
     try {
@@ -73,8 +61,6 @@ export class CompanyUsersService {
             role: body.role,
             password: null,
             emailVerifiedAt: null,
-            passwordResetTokenHash: tokenHash,
-            passwordResetTokenExpiresAt: expiresAt,
           }),
         );
       });
@@ -85,15 +71,8 @@ export class CompanyUsersService {
       throw error;
     }
 
-    this.events.emit(
-      PASSWORD_RESET_REQUESTED_EVENT,
-      new PasswordResetRequestedEvent(
-        user.id,
-        { email: user.email, token, origin },
-        ttlHours,
-        true,
-      ),
-    );
+    // ponytail: post-commit issuance keeps transaction details out of the workflow seam; use an outbox if guaranteed activation is required.
+    await this.passwordRecovery.issueFirstPassword(user.id, origin);
     return user;
   }
 

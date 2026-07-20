@@ -23,7 +23,12 @@ import {
   EMAIL_VERIFICATION_STORE,
   TypeOrmEmailVerificationStore,
 } from './email-verification.store';
-import { EmailVerificationExceptionFilter } from './email-verification.exception-filter';
+import { AuthWorkflowExceptionFilter } from './auth-workflow.exception-filter';
+import { PasswordRecoveryService } from './password-recovery.service';
+import {
+  PASSWORD_RECOVERY_STORE,
+  TypeOrmPasswordRecoveryStore,
+} from './password-recovery.store';
 
 @Module({
   imports: [
@@ -50,9 +55,15 @@ import { EmailVerificationExceptionFilter } from './email-verification.exception
       provide: EMAIL_VERIFICATION_STORE,
       useExisting: TypeOrmEmailVerificationStore,
     },
+    PasswordRecoveryService,
+    TypeOrmPasswordRecoveryStore,
+    {
+      provide: PASSWORD_RECOVERY_STORE,
+      useExisting: TypeOrmPasswordRecoveryStore,
+    },
     {
       provide: APP_FILTER,
-      useClass: EmailVerificationExceptionFilter,
+      useClass: AuthWorkflowExceptionFilter,
     },
   ],
   exports: [UsersService, SessionsService, SessionAuthGuard, AdminGuard],

@@ -271,6 +271,29 @@ describe('Auth (e2e)', () => {
       .expect(201);
   });
 
+  it('forgot-password does not reveal whether an email exists', async () => {
+    await createVerifiedUser(app, 'known@example.com', 'password123');
+
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'known@example.com' })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'missing@example.com' })
+      .expect(204);
+  });
+
+  it('reset-password maps invalid tokens to the stable error', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: 'a'.repeat(64), password: 'new-password-99' })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.message).toBe('Invalid or expired token');
+      });
+  });
+
   it('password reset invalidates existing session on /auth/me', async () => {
     const email = 'session@example.com';
     const oldPassword = 'old-password';

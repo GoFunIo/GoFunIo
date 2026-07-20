@@ -14,10 +14,6 @@ import {
   EMAIL_VERIFICATION_REQUESTED_EVENT,
   EmailVerificationRequestedEvent,
 } from './events/email-verification-requested.event';
-import {
-  PASSWORD_RESET_REQUESTED_EVENT,
-  PasswordResetRequestedEvent,
-} from './events/password-reset-requested.event';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
@@ -224,51 +220,6 @@ export class AuthService {
         throw new ConflictException('Email already in use');
       }
       throw err;
-    }
-  }
-
-  async requestPasswordReset(email: string, origin?: string): Promise<void> {
-    const user = await this.usersService.findActiveByEmail(
-      this.normalizeEmail(email),
-    );
-    // silent no-op for missing email (anti-enumeration); verified + unverified allowed
-    if (!user) {
-      return;
-    }
-
-    const isFirstPassword = user.password == null;
-    const ttlHours = this.config.get<number>(
-      'PASSWORD_RESET_TOKEN_TTL_HOURS',
-      24,
-    );
-    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
-
-    await this.usersService.update(user.id, {
-      passwordResetTokenHash: tokenHash,
-      passwordResetTokenExpiresAt: expiresAt,
-    });
-
-    this.eventEmitter.emit(
-      PASSWORD_RESET_REQUESTED_EVENT,
-      new PasswordResetRequestedEvent(
-        user.id,
-        { email: user.email, token, origin },
-        ttlHours,
-        isFirstPassword,
-      ),
-    );
-  }
-
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    const tokenHash = hashToken(token);
-    const password = await hashPassword(newPassword);
-    const consumed = await this.usersService.consumePasswordResetToken(
-      tokenHash,
-      password,
-    );
-
-    if (!consumed) {
-      throw new BadRequestException('Invalid or expired token');
     }
   }
 

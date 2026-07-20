@@ -31,6 +31,7 @@ import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
 import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
+import { PasswordRecoveryService } from './password-recovery.service';
 
 @Controller('auth')
 export class UsersController {
@@ -39,6 +40,7 @@ export class UsersController {
     private readonly sessions: SessionsService,
     private readonly users: UsersService,
     private readonly emailVerification: EmailVerificationService,
+    private readonly passwordRecovery: PasswordRecoveryService,
   ) {}
 
   @Post('signup')
@@ -139,7 +141,7 @@ export class UsersController {
     @Body() body: RequestPasswordResetDto,
     @Headers('origin') origin?: string,
   ): Promise<void> {
-    await this.authService.requestPasswordReset(body.email, origin);
+    await this.passwordRecovery.request(body.email, origin);
   }
 
   @Post('reset-password')
@@ -147,6 +149,6 @@ export class UsersController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(204)
   async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {
-    await this.authService.resetPassword(body.token, body.password);
+    await this.passwordRecovery.reset(body.token, body.password);
   }
 }

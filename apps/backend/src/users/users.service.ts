@@ -129,36 +129,6 @@ export class UsersService {
     );
   }
 
-  async consumePasswordResetToken(
-    tokenHash: string,
-    newPassword: string,
-  ): Promise<boolean> {
-    const result = await this.usersRepository
-      .createQueryBuilder()
-      .update(User)
-      .set({
-        password: newPassword,
-        emailVerifiedAt: () =>
-          'CASE WHEN "password" IS NULL THEN COALESCE("emailVerifiedAt", now()) ELSE "emailVerifiedAt" END',
-        passwordResetTokenHash: null,
-        passwordResetTokenExpiresAt: null,
-        passwordVersion: () => '"passwordVersion" + 1',
-      })
-      .where('"passwordResetTokenHash" = :hash', { hash: tokenHash })
-      .andWhere('"passwordResetTokenExpiresAt" > :now', { now: new Date() })
-      .andWhere('"deletedAt" IS NULL')
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "companyId"
-          AND "company"."deletedAt" IS NULL
-        )`,
-      )
-      .execute();
-
-    return (result.affected ?? 0) > 0;
-  }
-
   async update(id: string, attrs: Partial<User>): Promise<User> {
     const user = await this.findOneById(id);
 

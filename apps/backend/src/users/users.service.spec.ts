@@ -117,38 +117,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('consumePasswordResetToken', () => {
-    it('returns true when update affects a row', async () => {
-      const qb = {
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({ affected: 1 }),
-      };
-      repo.createQueryBuilder.mockReturnValue(qb as never);
-
-      await expect(
-        service.consumePasswordResetToken('hash', 'new-pass'),
-      ).resolves.toBe(true);
-    });
-
-    it('returns false when no row is updated', async () => {
-      const qb = {
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({ affected: 0 }),
-      };
-      repo.createQueryBuilder.mockReturnValue(qb as never);
-
-      await expect(
-        service.consumePasswordResetToken('hash', 'new-pass'),
-      ).resolves.toBe(false);
-    });
-  });
-
   describe('credential updates', () => {
     it('clears reset tokens when changing password', async () => {
       const qb = {
