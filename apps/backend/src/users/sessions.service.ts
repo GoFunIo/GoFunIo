@@ -5,6 +5,7 @@ import {
   type SessionUserReader,
 } from './session-user-reader';
 import type { SessionPrincipal } from './session-principal';
+import { SessionVersionChangedError } from './session.errors';
 
 @Injectable()
 export class SessionsService {
@@ -12,16 +13,28 @@ export class SessionsService {
     @Inject(SESSION_USER_READER) private readonly users: SessionUserReader,
   ) {}
 
-  async establish(session: SessionData, userId: string): Promise<void> {
+  async establish(
+    session: SessionData,
+    userId: string,
+    expectedPasswordVersion?: number,
+  ): Promise<SessionPrincipal> {
     const user = await this.users.findActiveById(userId);
     if (!user) {
       this.clear(session);
       throw new Error('Cannot establish session for inactive user');
     }
+    if (
+      expectedPasswordVersion !== undefined &&
+      user.passwordVersion !== expectedPasswordVersion
+    ) {
+      this.clear(session);
+      throw new SessionVersionChangedError();
+    }
 
     session.userId = user.id;
     session.passwordVersion = user.passwordVersion;
     session.currentCompanyId = user.companyId;
+    return { id: user.id, companyId: user.companyId, role: user.role };
   }
 
   async authenticate(session: SessionData): Promise<SessionPrincipal | null> {

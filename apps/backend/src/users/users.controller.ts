@@ -34,6 +34,8 @@ import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { EmailChangeService } from './email-change.service';
 import type { ProvisionedAccount } from './email-verification.store';
+import { CredentialAuthenticationService } from './credential-authentication.service';
+import type { UserAccount } from './user-account';
 
 @Controller('auth')
 export class UsersController {
@@ -44,6 +46,7 @@ export class UsersController {
     private readonly emailVerification: EmailVerificationService,
     private readonly passwordRecovery: PasswordRecoveryService,
     private readonly emailChange: EmailChangeService,
+    private readonly credentials: CredentialAuthenticationService,
   ) {}
 
   @Post('signup')
@@ -64,10 +67,21 @@ export class UsersController {
   async signin(
     @Body() body: SigninDto,
     @Session() session: SessionData,
-  ): Promise<User> {
-    const user = await this.authService.signin(body.email, body.password);
-    await this.sessions.establish(session, user.id);
-    return user;
+  ): Promise<UserAccount & Pick<SessionPrincipal, 'companyId' | 'role'>> {
+    const authenticated = await this.credentials.signin(
+      body.email,
+      body.password,
+    );
+    const principal = await this.sessions.establish(
+      session,
+      authenticated.account.id,
+      authenticated.passwordVersion,
+    );
+    return {
+      ...authenticated.account,
+      companyId: principal.companyId,
+      role: principal.role,
+    };
   }
 
   @Post('google')

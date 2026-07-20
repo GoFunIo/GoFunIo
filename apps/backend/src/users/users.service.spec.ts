@@ -117,30 +117,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('credential updates', () => {
-    it('clears reset tokens when changing password', async () => {
-      const qb = {
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        returning: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({ raw: [{ passwordVersion: 2 }] }),
-      };
-      repo.createQueryBuilder.mockReturnValue(qb as never);
-
-      await expect(
-        service.updatePassword('user-1', 'old-hash', 'new-hash'),
-      ).resolves.toBe(2);
-      expect(qb.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          passwordResetTokenHash: null,
-          passwordResetTokenExpiresAt: null,
-        }),
-      );
-    });
-  });
-
   describe('remove', () => {
     it('soft-deletes existing user', async () => {
       const user = makeUser();

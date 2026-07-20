@@ -6,12 +6,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from './users.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
-import { randomBytes, scrypt as _scrypt } from 'crypto';
-import { promisify } from 'util';
 import { EmailVerificationService } from './email-verification.service';
-
-const scrypt = promisify(_scrypt);
-const HASH_BYTES = 32;
 
 const mockVerifyIdToken = jest.fn();
 
@@ -20,12 +15,6 @@ jest.mock('google-auth-library', () => ({
     verifyIdToken: mockVerifyIdToken,
   })),
 }));
-
-async function buildPasswordHash(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('hex');
-  const hash = (await scrypt(password, salt, HASH_BYTES)) as Buffer;
-  return salt + '.' + hash.toString('hex');
-}
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -62,10 +51,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<
-    Pick<
-      UsersService,
-      'findActiveByEmail' | 'findActiveByGoogleId' | 'update' | 'updatePassword'
-    >
+    Pick<UsersService, 'findActiveByEmail' | 'findActiveByGoogleId' | 'update'>
   >;
   let emailVerification: jest.Mocked<
     Pick<EmailVerificationService, 'register'>
@@ -78,7 +64,6 @@ describe('AuthService', () => {
       findActiveByEmail: jest.fn(),
       findActiveByGoogleId: jest.fn(),
       update: jest.fn(),
-      updatePassword: jest.fn(),
     };
     emailVerification = { register: jest.fn() };
     config = {
@@ -130,62 +115,6 @@ describe('AuthService', () => {
         'http://localhost',
       );
       expect(dataSource.transaction).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('signin', () => {
-    it('returns user and updates lastLoginAt when credentials are valid', async () => {
-      const password = 'correct-password';
-      const hashed = await buildPasswordHash(password);
-      const user = makeUser({ password: hashed, emailVerifiedAt: new Date() });
-
-      usersService.findActiveByEmail.mockResolvedValue(user);
-      usersService.update.mockResolvedValue(user);
-
-      const result = await service.signin(user.email, password);
-
-      expect(result).toBe(user);
-      expect(usersService.update).toHaveBeenCalledWith(user.id, {
-        lastLoginAt: expect.any(Date),
-      });
-    });
-
-    it('throws UnauthorizedException when user not found', async () => {
-      usersService.findActiveByEmail.mockResolvedValue(null);
-
-      await expect(
-        service.signin('missing@example.com', 'password'),
-      ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
-    });
-
-    it('throws UnauthorizedException when password is wrong', async () => {
-      const hashed = await buildPasswordHash('real-password');
-      const user = makeUser({ password: hashed, emailVerifiedAt: new Date() });
-      usersService.findActiveByEmail.mockResolvedValue(user);
-
-      await expect(
-        service.signin(user.email, 'wrong-password'),
-      ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
-    });
-
-    it('throws UnauthorizedException when email is not verified', async () => {
-      const password = 'correct-password';
-      const hashed = await buildPasswordHash(password);
-      const user = makeUser({ password: hashed, emailVerifiedAt: null });
-      usersService.findActiveByEmail.mockResolvedValue(user);
-
-      await expect(service.signin(user.email, password)).rejects.toThrow(
-        new UnauthorizedException('Email not verified'),
-      );
-    });
-
-    it('throws UnauthorizedException when user has no password', async () => {
-      const user = makeUser({ password: null, emailVerifiedAt: new Date() });
-      usersService.findActiveByEmail.mockResolvedValue(user);
-
-      await expect(service.signin(user.email, 'any-password')).rejects.toThrow(
-        new UnauthorizedException('Invalid credentials'),
-      );
     });
   });
 
@@ -327,19 +256,6 @@ describe('AuthService', () => {
       );
 
       await expect(service.signInWithGoogle('valid-token')).resolves.toBe(user);
-    });
-  });
-
-  describe('changePassword', () => {
-    it('rejects an update when the current password changed concurrently', async () => {
-      const user = makeUser({
-        password: await buildPasswordHash('current-password'),
-      });
-      usersService.updatePassword.mockResolvedValue(null);
-
-      await expect(
-        service.changePassword(user, 'current-password', 'new-password'),
-      ).rejects.toThrow(new UnauthorizedException('Current password changed'));
     });
   });
 });

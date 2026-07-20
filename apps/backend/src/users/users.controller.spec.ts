@@ -20,6 +20,7 @@ import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import type { SessionPrincipal } from './session-principal';
 import { EmailChangeService } from './email-change.service';
+import { CredentialAuthenticationService } from './credential-authentication.service';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -63,7 +64,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 describe('UsersController', () => {
   let controller: UsersController;
   let authService: jest.Mocked<
-    Pick<AuthService, 'signup' | 'signin' | 'signInWithGoogle'>
+    Pick<AuthService, 'signup' | 'signInWithGoogle'>
   >;
   let emailVerification: jest.Mocked<
     Pick<EmailVerificationService, 'verify' | 'resend'>
@@ -72,18 +73,19 @@ describe('UsersController', () => {
     Pick<PasswordRecoveryService, 'request' | 'reset'>
   >;
   let emailChange: jest.Mocked<Pick<EmailChangeService, 'confirm'>>;
+  let credentials: jest.Mocked<Pick<CredentialAuthenticationService, 'signin'>>;
   let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
   let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
 
   beforeEach(async () => {
     authService = {
       signup: jest.fn(),
-      signin: jest.fn(),
       signInWithGoogle: jest.fn(),
     };
     emailVerification = { verify: jest.fn(), resend: jest.fn() };
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
     emailChange = { confirm: jest.fn() };
+    credentials = { signin: jest.fn() };
     sessions = { establish: jest.fn(), clear: jest.fn() };
     users = { findActiveById: jest.fn() };
 
@@ -94,6 +96,7 @@ describe('UsersController', () => {
         { provide: EmailVerificationService, useValue: emailVerification },
         { provide: PasswordRecoveryService, useValue: passwordRecovery },
         { provide: EmailChangeService, useValue: emailChange },
+        { provide: CredentialAuthenticationService, useValue: credentials },
         { provide: SessionsService, useValue: sessions },
         { provide: UsersService, useValue: users },
       ],
@@ -135,7 +138,16 @@ describe('UsersController', () => {
   describe('signin', () => {
     it('delegates authentication and session establishment', async () => {
       const user = makeUser({ passwordVersion: 3 });
-      authService.signin.mockResolvedValue(user);
+      const account = { ...user, hasPassword: true };
+      credentials.signin.mockResolvedValue({
+        account,
+        passwordVersion: user.passwordVersion,
+      });
+      sessions.establish.mockResolvedValue({
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role,
+      });
       const session = {} as SessionData;
 
       const result = await controller.signin(
@@ -143,9 +155,19 @@ describe('UsersController', () => {
         session,
       );
 
-      expect(authService.signin).toHaveBeenCalledWith(user.email, 'secret');
-      expect(sessions.establish).toHaveBeenCalledWith(session, user.id);
-      expect(result).toBe(user);
+      expect(credentials.signin).toHaveBeenCalledWith(user.email, 'secret');
+      expect(sessions.establish).toHaveBeenCalledWith(
+        session,
+        user.id,
+        user.passwordVersion,
+      );
+      expect(result).toMatchObject({
+        id: user.id,
+        email: user.email,
+        companyId: user.companyId,
+        role: user.role,
+        hasPassword: true,
+      });
     });
   });
 

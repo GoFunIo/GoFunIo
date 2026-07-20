@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -11,7 +10,7 @@ import { UsersService } from './users.service';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
-import { hashPassword, verifyPassword } from './password.util';
+import { hashPassword } from './password.util';
 import { EmailVerificationService } from './email-verification.service';
 import type { ProvisionedAccount } from './email-verification.store';
 import {
@@ -52,28 +51,6 @@ export class AuthService {
       await hashPassword(password),
       origin,
     );
-  }
-
-  async signin(email: string, password: string) {
-    const user = await this.usersService.findActiveByEmail(
-      this.normalizeEmail(email),
-    );
-
-    if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!(await verifyPassword(password, user.password))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!user.emailVerifiedAt) {
-      throw new UnauthorizedException('Email not verified');
-    }
-
-    await this.usersService.update(user.id, { lastLoginAt: new Date() });
-
-    return user;
   }
 
   async signInWithGoogle(credential: string): Promise<User> {
@@ -173,31 +150,5 @@ export class AuthService {
       }
       throw err;
     }
-  }
-
-  async changePassword(
-    user: User,
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<number> {
-    if (!user.password) {
-      throw new ConflictException('Use password reset to set a password');
-    }
-    if (!(await verifyPassword(currentPassword, user.password))) {
-      throw new UnauthorizedException('Invalid current password');
-    }
-    if (await verifyPassword(newPassword, user.password)) {
-      throw new BadRequestException('New password must be different');
-    }
-
-    const passwordVersion = await this.usersService.updatePassword(
-      user.id,
-      user.password,
-      await hashPassword(newPassword),
-    );
-    if (passwordVersion === null) {
-      throw new UnauthorizedException('Current password changed');
-    }
-    return passwordVersion;
   }
 }

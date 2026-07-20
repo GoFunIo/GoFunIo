@@ -11,16 +11,10 @@ import { EmailChangeEmailInUseError } from './email-change.errors';
 
 export const EMAIL_CHANGE_STORE = Symbol('EMAIL_CHANGE_STORE');
 
-export interface EmailChangeTarget {
-  email: string;
-  passwordHash: string | null;
-}
-
 export interface EmailChangeStore {
-  findTarget(userId: string): Promise<EmailChangeTarget | null>;
   claim(
     userId: string,
-    expectedPasswordHash: string,
+    expectedPasswordVersion: number,
     email: string,
     tokenHash: string,
     expiresAt: Date,
@@ -44,19 +38,9 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
 
-  async findTarget(userId: string): Promise<EmailChangeTarget | null> {
-    const user = await this.users
-      .createQueryBuilder('user')
-      .innerJoin('user.company', 'company')
-      .where('user.id = :userId', { userId })
-      .andWhere('company."deletedAt" IS NULL')
-      .getOne();
-    return user ? { email: user.email, passwordHash: user.password } : null;
-  }
-
   async claim(
     userId: string,
-    expectedPasswordHash: string,
+    expectedPasswordVersion: number,
     email: string,
     tokenHash: string,
     expiresAt: Date,
@@ -77,8 +61,8 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
             emailChangeTokenExpiresAt: expiresAt,
           })
           .where('id = :userId', { userId })
-          .andWhere('password = :expectedPasswordHash', {
-            expectedPasswordHash,
+          .andWhere('"passwordVersion" = :expectedPasswordVersion', {
+            expectedPasswordVersion,
           })
           .andWhere('"deletedAt" IS NULL')
           .andWhere(
@@ -136,7 +120,7 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
 interface InMemoryEmailChangeUser {
   id: string;
   email: string;
-  passwordHash: string | null;
+  passwordVersion: number;
   emailVerifiedAt: Date | null;
   active?: boolean;
   passwordResetTokenHash?: string | null;
@@ -160,18 +144,9 @@ export class InMemoryEmailChangeStore implements EmailChangeStore {
     return this.users.get(userId);
   }
 
-  findTarget(userId: string): Promise<EmailChangeTarget | null> {
-    const user = this.users.get(userId);
-    return Promise.resolve(
-      user && user.active !== false
-        ? { email: user.email, passwordHash: user.passwordHash }
-        : null,
-    );
-  }
-
   claim(
     userId: string,
-    expectedPasswordHash: string,
+    expectedPasswordVersion: number,
     email: string,
     tokenHash: string,
     expiresAt: Date,
@@ -180,7 +155,7 @@ export class InMemoryEmailChangeStore implements EmailChangeStore {
     if (
       !user ||
       user.active === false ||
-      user.passwordHash !== expectedPasswordHash
+      user.passwordVersion !== expectedPasswordVersion
     ) {
       return Promise.resolve(false);
     }

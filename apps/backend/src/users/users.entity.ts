@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
+  VirtualColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
 import { MembershipRole } from './membership-role';
@@ -28,8 +29,14 @@ export class User {
   @Column()
   email!: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, select: false })
   password!: string | null;
+
+  @VirtualColumn({
+    type: 'boolean',
+    query: (alias) => `${alias}."password" IS NOT NULL`,
+  })
+  hasPassword?: boolean;
 
   @Column({ type: 'varchar', nullable: true })
   googleId!: string | null;

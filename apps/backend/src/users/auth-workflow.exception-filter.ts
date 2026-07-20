@@ -17,6 +17,15 @@ import {
   InvalidOrExpiredEmailChangeTokenError,
   PasswordRequiredForEmailChangeError,
 } from './email-change.errors';
+import {
+  CredentialChangedError,
+  CredentialCurrentPasswordError,
+  CredentialEmailNotVerifiedError,
+  CredentialPasswordRequiredError,
+  CredentialPasswordUnchangedError,
+  InvalidCredentialsError,
+} from './credential-authentication.errors';
+import { SessionVersionChangedError } from './session.errors';
 
 @Catch(
   InvalidOrExpiredVerificationTokenError,
@@ -27,15 +36,28 @@ import {
   InvalidCurrentPasswordError,
   PasswordRequiredForEmailChangeError,
   EmailUnchangedError,
+  InvalidCredentialsError,
+  CredentialEmailNotVerifiedError,
+  CredentialPasswordRequiredError,
+  CredentialCurrentPasswordError,
+  CredentialChangedError,
+  CredentialPasswordUnchangedError,
+  SessionVersionChangedError,
 )
 export class AuthWorkflowExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const status =
       exception instanceof EmailChangeEmailInUseError ||
-      exception instanceof PasswordRequiredForEmailChangeError
+      exception instanceof PasswordRequiredForEmailChangeError ||
+      exception instanceof CredentialPasswordRequiredError
         ? HttpStatus.CONFLICT
-        : exception instanceof InvalidCurrentPasswordError
+        : exception instanceof InvalidCurrentPasswordError ||
+            exception instanceof InvalidCredentialsError ||
+            exception instanceof CredentialEmailNotVerifiedError ||
+            exception instanceof CredentialCurrentPasswordError ||
+            exception instanceof CredentialChangedError ||
+            exception instanceof SessionVersionChangedError
           ? HttpStatus.UNAUTHORIZED
           : HttpStatus.BAD_REQUEST;
     response.status(status).json({

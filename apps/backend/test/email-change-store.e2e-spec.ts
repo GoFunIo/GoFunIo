@@ -53,7 +53,7 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     await expect(
       store.claim(
         user.id,
-        'password.hash',
+        user.passwordVersion,
         'new@example.com',
         'change-hash',
         new Date(Date.now() + 60_000),
@@ -87,7 +87,7 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     await expect(
       store.claim(
         user.id,
-        'stale.hash',
+        user.passwordVersion - 1,
         'new@example.com',
         'token-hash',
         new Date(Date.now() + 60_000),
@@ -97,7 +97,7 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
 
     await store.claim(
       user.id,
-      'password.hash',
+      user.passwordVersion,
       'new@example.com',
       'expired-hash',
       new Date(Date.now() - 1000),
@@ -114,14 +114,14 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     const results = await Promise.allSettled([
       store.claim(
         first.id,
-        'password.hash',
+        first.passwordVersion,
         'claim@example.com',
         'one',
         expiresAt,
       ),
       store.claim(
         second.id,
-        'password.hash',
+        second.passwordVersion,
         'claim@example.com',
         'two',
         expiresAt,
@@ -142,14 +142,14 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     const expiresAt = new Date(Date.now() + 60_000);
     await store.claim(
       user.id,
-      'password.hash',
+      user.passwordVersion,
       'first@example.com',
       'old',
       expiresAt,
     );
     await store.claim(
       user.id,
-      'password.hash',
+      user.passwordVersion,
       'latest@example.com',
       'latest',
       expiresAt,
@@ -168,7 +168,7 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     const second = await seedUser();
     await store.claim(
       first.id,
-      'password.hash',
+      first.passwordVersion,
       'released@example.com',
       'old',
       new Date(Date.now() - 1000),
@@ -177,7 +177,7 @@ describe('TypeOrmEmailChangeStore (integration)', () => {
     await expect(
       store.claim(
         second.id,
-        'password.hash',
+        second.passwordVersion,
         'released@example.com',
         'new',
         new Date(Date.now() + 60_000),

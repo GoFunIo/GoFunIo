@@ -34,6 +34,9 @@ import {
   EMAIL_CHANGE_STORE,
   TypeOrmEmailChangeStore,
 } from './email-change.store';
+import { CredentialAuthenticationService } from './credential-authentication.service';
+import { CREDENTIAL_STORE, TypeOrmCredentialStore } from './credential.store';
+import { PASSWORD_HASHER, ScryptPasswordHasher } from './password-hasher';
 
 @Module({
   imports: [
@@ -71,6 +74,17 @@ import {
     {
       provide: EMAIL_CHANGE_STORE,
       useExisting: TypeOrmEmailChangeStore,
+    },
+    CredentialAuthenticationService,
+    TypeOrmCredentialStore,
+    {
+      provide: CREDENTIAL_STORE,
+      useExisting: TypeOrmCredentialStore,
+    },
+    ScryptPasswordHasher,
+    {
+      provide: PASSWORD_HASHER,
+      useExisting: ScryptPasswordHasher,
     },
     {
       provide: APP_FILTER,

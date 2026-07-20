@@ -18,12 +18,29 @@ describe('SessionsService', () => {
     const service = new SessionsService(reader);
     const session = {} as SessionData;
 
-    await service.establish(session, user.id);
+    await expect(service.establish(session, user.id)).resolves.toEqual({
+      id: user.id,
+      companyId: user.companyId,
+      role: user.role,
+    });
 
     expect(reader.findActiveById).toHaveBeenCalledWith(user.id);
     expect(session.userId).toBe(user.id);
     expect(session.passwordVersion).toBe(user.passwordVersion);
     expect(session.currentCompanyId).toBe(user.companyId);
+  });
+
+  it('rejects a stale authenticated password version', async () => {
+    const reader: SessionUserReader = {
+      findActiveById: jest.fn().mockResolvedValue(user),
+    };
+    const service = new SessionsService(reader);
+    const session = {} as SessionData;
+
+    await expect(
+      service.establish(session, user.id, user.passwordVersion - 1),
+    ).rejects.toThrow('Credentials changed during authentication');
+    expect(session.userId).toBeNull();
   });
 
   it('authenticates a current session', async () => {

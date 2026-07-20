@@ -12,11 +12,12 @@ import {
   PasswordRequiredForEmailChangeError,
 } from './email-change.errors';
 import { generateToken, hashToken } from './token.util';
-import { verifyPassword } from './password.util';
 import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
   UserEmailChangeRequestedEvent,
 } from './events/user-email-change-requested.event';
+import { CREDENTIAL_STORE, type CredentialStore } from './credential.store';
+import { PASSWORD_HASHER, type PasswordHasher } from './password-hasher';
 
 @Injectable()
 export class EmailChangeService {
@@ -24,6 +25,8 @@ export class EmailChangeService {
     @Inject(EMAIL_CHANGE_STORE) private readonly store: EmailChangeStore,
     private readonly config: ConfigService,
     private readonly events: EventEmitter2,
+    @Inject(CREDENTIAL_STORE) private readonly credentials: CredentialStore,
+    @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
   ) {}
 
   async request(
@@ -32,14 +35,16 @@ export class EmailChangeService {
     currentPassword: string,
     origin?: string,
   ): Promise<void> {
-    const target = await this.store.findTarget(userId);
-    if (!target) throw new InvalidCurrentPasswordError();
-    if (!target.passwordHash) throw new PasswordRequiredForEmailChangeError();
-    if (!(await verifyPassword(currentPassword, target.passwordHash))) {
+    const credential = await this.credentials.findById(userId);
+    if (!credential) throw new InvalidCurrentPasswordError();
+    if (!credential.passwordHash) {
+      throw new PasswordRequiredForEmailChangeError();
+    }
+    if (!(await this.hasher.verify(currentPassword, credential.passwordHash))) {
       throw new InvalidCurrentPasswordError();
     }
     email = email.trim().toLowerCase();
-    if (email === target.email) throw new EmailUnchangedError();
+    if (email === credential.account.email) throw new EmailUnchangedError();
 
     const { token, tokenHash, expiresAt } = generateToken(
       this.config.getOrThrow<number>('VERIFICATION_TOKEN_TTL_HOURS'),
@@ -47,7 +52,7 @@ export class EmailChangeService {
     if (
       !(await this.store.claim(
         userId,
-        target.passwordHash,
+        credential.passwordVersion,
         email,
         tokenHash,
         expiresAt,

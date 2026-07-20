@@ -5,14 +5,12 @@ import {
   HttpCode,
   Patch,
   Session,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
-import { AuthService } from './auth.service';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { ChangeEmailDto } from './dtos/change-email.dto';
 import { ChangePasswordDto } from './dtos/change-password.dto';
@@ -24,14 +22,15 @@ import { UsersService } from './users.service';
 import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
 import { EmailChangeService } from './email-change.service';
+import { CredentialAuthenticationService } from './credential-authentication.service';
 
 @Controller('users/me')
 export class UserProfileController {
   constructor(
     private usersService: UsersService,
-    private authService: AuthService,
     private sessions: SessionsService,
     private emailChange: EmailChangeService,
+    private credentials: CredentialAuthenticationService,
   ) {}
 
   @Patch()
@@ -70,13 +69,11 @@ export class UserProfileController {
     @Body() body: ChangePasswordDto,
     @Session() session: SessionData,
   ): Promise<void> {
-    const user = await this.usersService.findActiveById(principal.id);
-    if (!user) throw new UnauthorizedException();
-    await this.authService.changePassword(
-      user,
+    const passwordVersion = await this.credentials.changePassword(
+      principal.id,
       body.currentPassword,
       body.newPassword,
     );
-    await this.sessions.establish(session, principal.id);
+    await this.sessions.establish(session, principal.id, passwordVersion);
   }
 }

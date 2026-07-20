@@ -107,6 +107,7 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
       .getRepository(User)
       .createQueryBuilder('user')
       .addSelect([
+        'user.password',
         'user.passwordResetTokenHash',
         'user.passwordResetTokenExpiresAt',
       ])
@@ -128,9 +129,12 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
 
     await store.consume('token-hash', 'first.hash', new Date());
 
-    const row = await dataSource.getRepository(User).findOneByOrFail({
-      id: user.id,
-    });
+    const row = await dataSource
+      .getRepository(User)
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id: user.id })
+      .getOneOrFail();
     expect(row.password).toBe('first.hash');
     expect(row.emailVerifiedAt).toBeInstanceOf(Date);
   });

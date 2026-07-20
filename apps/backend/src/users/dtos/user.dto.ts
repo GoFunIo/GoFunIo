@@ -38,7 +38,7 @@ export class UserDto {
 
   @Expose()
   @Transform(({ obj }: { obj: User | { hasPassword: boolean } }) =>
-    'hasPassword' in obj ? obj.hasPassword : obj.password !== null,
+    Boolean(obj.hasPassword),
   )
   hasPassword!: boolean;
 }

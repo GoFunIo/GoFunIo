@@ -57,7 +57,7 @@ describe('TypeOrmEmailVerificationStore (integration)', () => {
       const user = await dataSource
         .getRepository(User)
         .createQueryBuilder('user')
-        .addSelect('user.verificationTokenHash')
+        .addSelect(['user.password', 'user.verificationTokenHash'])
         .where('user.id = :id', { id: account.id })
         .getOneOrFail();
       expect(user).toMatchObject({

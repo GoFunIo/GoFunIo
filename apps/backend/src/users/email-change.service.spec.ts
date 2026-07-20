@@ -11,29 +11,53 @@ import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
   UserEmailChangeRequestedEvent,
 } from './events/user-email-change-requested.event';
-import { hashPassword } from './password.util';
+import { InMemoryCredentialStore } from './credential.store';
+import { FakePasswordHasher } from './password-hasher';
 
 describe('EmailChangeService', () => {
   let store: InMemoryEmailChangeStore;
   let events: { emit: jest.Mock };
+  let credentials: InMemoryCredentialStore;
+  let hasher: FakePasswordHasher;
   let service: EmailChangeService;
 
   beforeEach(() => {
     store = new InMemoryEmailChangeStore();
+    credentials = new InMemoryCredentialStore();
+    hasher = new FakePasswordHasher();
     events = { emit: jest.fn() };
     service = new EmailChangeService(
       store,
       { getOrThrow: jest.fn().mockReturnValue(24) } as unknown as ConfigService,
       events as unknown as EventEmitter2,
+      credentials,
+      hasher,
     );
   });
 
   async function seed(id = 'user-1', email = 'old@example.com'): Promise<void> {
+    const passwordHash = await hasher.hash('password123');
     store.seed({
       id,
       email,
-      passwordHash: await hashPassword('password123'),
+      passwordVersion: 1,
       emailVerifiedAt: new Date(),
+    });
+    credentials.seed({
+      id,
+      email,
+      firstName: null,
+      lastName: null,
+      phone: null,
+      address: null,
+      postalCode: null,
+      city: null,
+      pendingEmail: null,
+      hasPassword: true,
+      passwordHash,
+      passwordVersion: 1,
+      emailVerified: true,
+      lastLoginAt: null,
     });
   }
 
