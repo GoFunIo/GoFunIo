@@ -1,4 +1,8 @@
-import { ChangePasswordFormData, PersonalDataFormData } from '../lib/formValidationRules';
+import {
+  ChangeEmailFormData,
+  ChangePasswordFormData,
+  PersonalDataFormData,
+} from '../lib/formValidationRules';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -56,6 +60,43 @@ export const changeUserPassword = async (form: ChangePasswordFormData) => {
       body: JSON.stringify({
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw {
+        status: res.status,
+        message: data?.message ?? 'Request failed',
+      };
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        status: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
+  }
+};
+
+// zmiana adresu email
+export const changeUserEmail = async (form: ChangeEmailFormData) => {
+  try {
+    const res = await fetch(`${API_URL}/users/me/email`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        email: form.newEmail,
+        currentPassword: form.currentPassword,
       }),
     });
 

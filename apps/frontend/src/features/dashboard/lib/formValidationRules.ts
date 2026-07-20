@@ -149,10 +149,7 @@ export const ChangeEmailSchema = yup.object({
     .string()
     .email('Podaj prawidłowy e-mail')
     .required('Niepoprawny format adresu e-mail'),
-  confirmEmail: yup
-    .string()
-    .oneOf([yup.ref('newEmail')], 'Nowy e-mail musi być identyczny')
-    .required('Powtórz e-mail'),
+  currentPassword: yup.string().required('Podaj prawidłowe hasło'),
 });
 
 // =========================================================================

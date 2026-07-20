@@ -59,9 +59,7 @@ function RouteComponent() {
         return {
           title: 'Edytuj adres e-mail',
           subtitle: 'Wprowadź i potwierdź swój nowy adres e-mail.',
-          content: (
-            <ChangeEmailForm currentEmail={user.email} onClose={() => setActiveModal(null)} />
-          ),
+          content: <ChangeEmailForm onClose={() => setActiveModal(null)} />,
         };
       case 'password':
         return {
