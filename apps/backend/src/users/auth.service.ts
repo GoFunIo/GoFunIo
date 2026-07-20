@@ -10,6 +10,7 @@ import { UsersService } from './users.service';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
+import { Membership } from './membership.entity';
 import { hashPassword } from './password.util';
 import { EmailVerificationService } from './email-verification.service';
 import type { ProvisionedAccount } from './email-verification.store';
@@ -137,7 +138,15 @@ export class AuthService {
           emailVerifiedAt: new Date(),
         });
 
-        return manager.save(newUser);
+        const savedUser = await manager.save(newUser);
+        await manager.save(
+          manager.create(Membership, {
+            userId: savedUser.id,
+            companyId: savedUser.companyId,
+            role: savedUser.role,
+          }),
+        );
+        return savedUser;
       });
     } catch (err) {
       if (isUniqueViolation(err)) {

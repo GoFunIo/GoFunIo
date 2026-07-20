@@ -6,6 +6,7 @@ import { Vehicle } from '../vehicles/vehicles.entity';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { Membership } from '../users/membership.entity';
 
 function postgresSsl(): { rejectUnauthorized: false } | undefined {
   const url = process.env.DATABASE_URL ?? '';
@@ -34,6 +35,7 @@ export function buildTypeOrmOptions(): TypeOrmModuleOptions {
       ManagerVehicleAssignment,
       Driver,
       DriverVehicleAssignment,
+      Membership,
     ],
     synchronize: false,
     ssl: postgresSsl(),

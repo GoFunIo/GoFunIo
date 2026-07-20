@@ -4,6 +4,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { User } from './users.entity';
 import { Company } from '../companies/companies.entity';
 import { MembershipRole } from './membership-role';
+import { Membership } from './membership.entity';
 import {
   clearExpiredEmailClaims,
   emailClaimInUse,
@@ -85,6 +86,13 @@ export class TypeOrmEmailVerificationStore implements EmailVerificationStore {
             role: MembershipRole.ADMIN,
             verificationTokenHash: tokenHash,
             verificationTokenExpiresAt: expiresAt,
+          }),
+        );
+        await manager.save(
+          manager.create(Membership, {
+            userId: user.id,
+            companyId: user.companyId,
+            role: user.role,
           }),
         );
         return {

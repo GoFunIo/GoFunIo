@@ -6,6 +6,7 @@ import { Vehicle } from './vehicles/vehicles.entity';
 import { ManagerVehicleAssignment } from './vehicles/manager-vehicle-assignment.entity';
 import { Driver } from './drivers/drivers.entity';
 import { DriverVehicleAssignment } from './drivers/driver-vehicle-assignment.entity';
+import { Membership } from './users/membership.entity';
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
@@ -30,6 +31,7 @@ export default new DataSource({
     ManagerVehicleAssignment,
     Driver,
     DriverVehicleAssignment,
+    Membership,
   ],
   migrations: [resolve(__dirname, 'migrations', '*.{ts,js}')],
   synchronize: false,

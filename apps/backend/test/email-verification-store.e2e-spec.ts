@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Company } from '../src/companies/companies.entity';
 import { User } from '../src/users/users.entity';
 import { MembershipRole } from '../src/users/membership-role';
+import { Membership } from '../src/users/membership.entity';
 import { TypeOrmEmailVerificationStore } from '../src/users/email-verification.store';
 import { VerificationEmailInUseError } from '../src/users/email-verification.errors';
 
@@ -15,7 +16,7 @@ describe('TypeOrmEmailVerificationStore (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company],
+      entities: [User, Company, Membership],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,

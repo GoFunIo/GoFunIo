@@ -11,6 +11,7 @@ import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
+import { Membership } from './membership.entity';
 import type { SessionPrincipal } from './session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
@@ -52,7 +53,7 @@ export class CompanyUsersService {
         if (await emailClaimInUse(manager, email)) {
           throw new ConflictException('Email already in use');
         }
-        return manager.save(
+        const created = await manager.save(
           manager.create(User, {
             companyId: actor.companyId,
             email,
@@ -63,6 +64,14 @@ export class CompanyUsersService {
             emailVerifiedAt: null,
           }),
         );
+        await manager.save(
+          manager.create(Membership, {
+            userId: created.id,
+            companyId: created.companyId,
+            role: created.role,
+          }),
+        );
+        return created;
       });
     } catch (error) {
       if (this.isUniqueViolation(error)) {

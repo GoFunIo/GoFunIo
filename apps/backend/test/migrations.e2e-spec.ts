@@ -5,6 +5,7 @@ import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000
 import { AddProfileFields1750000000000 } from '../src/migrations/1750000000000-AddProfileFields';
 import { CreateVehicles1751000000000 } from '../src/migrations/1751000000000-CreateVehicles';
 import { CreateDrivers1752000000000 } from '../src/migrations/1752000000000-CreateDrivers';
+import { CreateMemberships1753000000000 } from '../src/migrations/1753000000000-CreateMemberships';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -24,6 +25,7 @@ describe('database migrations', () => {
         AddProfileFields1750000000000,
         CreateVehicles1751000000000,
         CreateDrivers1752000000000,
+        CreateMemberships1753000000000,
       ],
     });
 
@@ -38,7 +40,7 @@ describe('database migrations', () => {
         `
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments')
+        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships')
         ORDER BY table_name
       `,
         [schema],
@@ -48,6 +50,7 @@ describe('database migrations', () => {
         'driver_vehicle_assignments',
         'drivers',
         'manager_vehicle_assignments',
+        'memberships',
         'users',
         'vehicles',
       ]);
@@ -179,6 +182,22 @@ describe('database migrations', () => {
           [companyId, driverId, vehicleId],
         ),
       ).rejects.toMatchObject({ code: '23505' });
+
+      await database.undoLastMigration();
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.memberships`,
+          ])
+        )[0].regclass,
+      ).toBeNull();
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.drivers`,
+          ])
+        )[0].regclass,
+      ).not.toBeNull();
 
       await database.undoLastMigration();
       expect(

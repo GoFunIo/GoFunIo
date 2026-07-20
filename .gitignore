@@ -5,3 +5,4 @@ dist
 
 # DEV DB
 db.sqlite
+.scratch
