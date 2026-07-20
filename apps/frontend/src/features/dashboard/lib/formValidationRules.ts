@@ -133,6 +133,7 @@ export const CompanyDataSchema = yup.object({
   }),
   phone: yup
     .string()
+    .required('Telefon jest wymagany')
     .default('')
     .matches(/^\+?[0-9\s\-()]{7,20}$/, {
       message: 'Nieprawidłowy numer telefonu',
