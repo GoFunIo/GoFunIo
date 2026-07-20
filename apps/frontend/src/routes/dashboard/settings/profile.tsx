@@ -9,6 +9,7 @@ import { CompanyDataForm } from '@/features/dashboard/forms/CompanyDataForm';
 import { ChangeEmailForm } from '@/features/dashboard/forms/ChangeEmailForm';
 import { ChangePasswordForm } from '@/features/dashboard/forms/ChangePasswordForm';
 import { useUser } from '@/hooks/useUser';
+import { useCompany } from '@/hooks/useCompany';
 
 export const Route = createFileRoute('/dashboard/settings/profile')({
   component: RouteComponent,
@@ -18,6 +19,7 @@ type ModalType = 'personal' | 'company' | 'email' | 'password' | null;
 
 function RouteComponent() {
   const { data: user } = useUser();
+  const { data: company } = useCompany();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const userPersonalData = {
@@ -39,23 +41,12 @@ function RouteComponent() {
     user.phone,
   ];
 
-  const userCompanyData = {
-    sameAsPersonal: false,
-    companyName: 'Format Sp. z o.o.',
-    nip: '1112223344',
-    companyAddress: 'ul. Firmowa 10',
-    companyPostalCode: '00-001',
-    companyCity: 'Warszawa',
-  };
-
-  const companyDataLines = userCompanyData.companyName
-    ? [
-        userCompanyData.companyName,
-        `NIP: ${userCompanyData.nip}`,
-        userCompanyData.companyAddress,
-        `${userCompanyData.companyPostalCode} ${userCompanyData.companyCity}`,
-      ]
-    : ['Brak uzupełnionych danych firmowych.'];
+  const userCompanyDataLines = [
+    company?.name,
+    `NIP: ${company?.taxId}`,
+    company?.address,
+    `${company?.postalCode} ${company?.city}`,
+  ];
 
   // Dynamiczna konfiguracja modalu w zależności od wybranego trybu
   const getModalConfig = () => {
@@ -72,13 +63,7 @@ function RouteComponent() {
         return {
           title: 'Dane firmowe',
           subtitle: 'Uzupełnij informacje o firmie potrzebne do wystawiania faktur.',
-          content: (
-            <CompanyDataForm
-              initialCompanyData={userCompanyData}
-              personalData={userPersonalData}
-              onClose={() => setActiveModal(null)}
-            />
-          ),
+          content: <CompanyDataForm onClose={() => setActiveModal(null)} />,
         };
       case 'email':
         return {
@@ -99,8 +84,6 @@ function RouteComponent() {
     }
   };
 
-  const hasCompanyData = !!userCompanyData.companyName;
-
   const modalConfig = getModalConfig();
 
   return (
@@ -111,7 +94,6 @@ function RouteComponent() {
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane użytkownika</p>
             {userPersonalDataLines.map((item, index) => {
-              console.log(item);
               if (!item) return null;
 
               return (
@@ -130,14 +112,20 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-2 ">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane firmowe</p>
-            {hasCompanyData ? (
-              companyDataLines.map((line, index) => (
-                <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
-                  {line}
-                </p>
-              ))
+            {userCompanyDataLines.length === 0 ? (
+              <p className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                Brak uzupełnionych danych firmowych.
+              </p>
             ) : (
-              <p className="text-[14px] text-icon italic">Nie ustawiłeś jeszcze tego adresu.</p>
+              userCompanyDataLines.map((item, index) => {
+                if (!item) return null;
+
+                return (
+                  <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                    {item}
+                  </p>
+                );
+              })
             )}
           </div>
           <BoardButton onClick={() => setActiveModal('company')} size="small" icon="edit">
