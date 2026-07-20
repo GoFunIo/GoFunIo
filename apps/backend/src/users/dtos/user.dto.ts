@@ -37,6 +37,8 @@ export class UserDto {
   pendingEmail!: string | null;
 
   @Expose()
-  @Transform(({ obj }: { obj: User }) => obj.password !== null)
+  @Transform(({ obj }: { obj: User | { hasPassword: boolean } }) =>
+    'hasPassword' in obj ? obj.hasPassword : obj.password !== null,
+  )
   hasPassword!: boolean;
 }

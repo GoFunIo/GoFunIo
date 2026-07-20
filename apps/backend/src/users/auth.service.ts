@@ -5,19 +5,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
-import { generateToken } from './token.util';
-import {
-  EMAIL_VERIFICATION_REQUESTED_EVENT,
-  EmailVerificationRequestedEvent,
-} from './events/email-verification-requested.event';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import { hashPassword, verifyPassword } from './password.util';
+import { EmailVerificationService } from './email-verification.service';
+import type { ProvisionedAccount } from './email-verification.store';
 import {
   clearExpiredEmailClaims,
   emailClaimInUse,
@@ -36,7 +32,7 @@ function isUniqueViolation(err: unknown): boolean {
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private eventEmitter: EventEmitter2,
+    private emailVerification: EmailVerificationService,
     private config: ConfigService,
     private dataSource: DataSource,
   ) {}
@@ -45,57 +41,17 @@ export class AuthService {
     return email.trim().toLowerCase();
   }
 
-  async signup(email: string, password: string, origin?: string) {
+  async signup(
+    email: string,
+    password: string,
+    origin?: string,
+  ): Promise<ProvisionedAccount> {
     email = this.normalizeEmail(email);
-    const result = await hashPassword(password);
-
-    const ttlHours = this.config.get<number>(
-      'VERIFICATION_TOKEN_TTL_HOURS',
-      24,
+    return this.emailVerification.register(
+      email,
+      await hashPassword(password),
+      origin,
     );
-    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
-
-    let user: User;
-    try {
-      user = await this.dataSource.transaction(async (manager) => {
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        if (await emailClaimInUse(manager, email)) {
-          throw new BadRequestException('Email already in use');
-        }
-
-        // placeholder until company profile filled in settings
-        const company = manager.create(Company, { name: 'Moja firma' });
-        const savedCompany = await manager.save(company);
-
-        const newUser = manager.create(User, {
-          companyId: savedCompany.id,
-          email,
-          password: result,
-          role: MembershipRole.ADMIN,
-          verificationTokenHash: tokenHash,
-          verificationTokenExpiresAt: expiresAt,
-        });
-
-        return manager.save(newUser);
-      });
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new BadRequestException('Email already in use');
-      }
-      throw err;
-    }
-
-    this.eventEmitter.emit(
-      EMAIL_VERIFICATION_REQUESTED_EVENT,
-      new EmailVerificationRequestedEvent(user.id, {
-        email: user.email,
-        token,
-        origin,
-      }),
-    );
-
-    return user;
   }
 
   async signin(email: string, password: string) {

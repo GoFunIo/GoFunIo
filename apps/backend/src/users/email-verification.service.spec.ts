@@ -28,6 +28,31 @@ describe('EmailVerificationService', () => {
     );
   });
 
+  describe('register', () => {
+    it('atomically provisions an account and emits its verification event', async () => {
+      const account = await service.register(
+        ' New@Example.com ',
+        'password.hash',
+        'http://localhost',
+      );
+
+      expect(account.id).toBe('user-1');
+      const [name, event] = events.emit.mock.calls[0] as [
+        string,
+        EmailVerificationRequestedEvent,
+      ];
+      expect(name).toBe(EMAIL_VERIFICATION_REQUESTED_EVENT);
+      expect(event.userId).toBe(account.id);
+      expect(event.delivery).toMatchObject({
+        email: 'new@example.com',
+        origin: 'http://localhost',
+      });
+      await expect(service.verify(event.delivery.token)).resolves.toBe(
+        account.id,
+      );
+    });
+  });
+
   describe('verify', () => {
     it('returns userId for a valid token', async () => {
       store.seed({ id: 'user-1', email: 'a@example.com', verified: false });

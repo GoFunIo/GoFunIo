@@ -4,6 +4,7 @@ import { Company } from '../src/companies/companies.entity';
 import { User } from '../src/users/users.entity';
 import { MembershipRole } from '../src/users/membership-role';
 import { TypeOrmEmailVerificationStore } from '../src/users/email-verification.store';
+import { VerificationEmailInUseError } from '../src/users/email-verification.errors';
 
 describe('TypeOrmEmailVerificationStore (integration)', () => {
   let dataSource: DataSource;
@@ -42,6 +43,51 @@ describe('TypeOrmEmailVerificationStore (integration)', () => {
       }),
     );
   }
+
+  describe('createAccount', () => {
+    it('atomically creates the company, user and initial token', async () => {
+      const email = `signup-${Date.now()}@example.com`;
+      const account = await store.createAccount(
+        email,
+        'password.hash',
+        'token-hash',
+        new Date(Date.now() + 60_000),
+      );
+
+      const user = await dataSource
+        .getRepository(User)
+        .createQueryBuilder('user')
+        .addSelect('user.verificationTokenHash')
+        .where('user.id = :id', { id: account.id })
+        .getOneOrFail();
+      expect(user).toMatchObject({
+        email,
+        password: 'password.hash',
+        verificationTokenHash: 'token-hash',
+      });
+      await expect(
+        dataSource
+          .getRepository(Company)
+          .findOneByOrFail({ id: user.companyId }),
+      ).resolves.toBeDefined();
+    });
+
+    it('allows only one concurrent account for an email', async () => {
+      const email = `concurrent-${Date.now()}@example.com`;
+      const expiresAt = new Date(Date.now() + 60_000);
+      const results = await Promise.allSettled([
+        store.createAccount(email, 'one.hash', 'one-token', expiresAt),
+        store.createAccount(email, 'two.hash', 'two-token', expiresAt),
+      ]);
+
+      expect(
+        results.filter((result) => result.status === 'fulfilled'),
+      ).toHaveLength(1);
+      expect(
+        results.find((result) => result.status === 'rejected'),
+      ).toMatchObject({ reason: expect.any(VerificationEmailInUseError) });
+    });
+  });
 
   describe('assign', () => {
     it('stores the token and returns userId + email for an unverified user', async () => {

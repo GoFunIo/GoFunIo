@@ -1,22 +1,14 @@
-import {
-  BadRequestException,
-  ConflictException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { AuthService } from './auth.service';
 import { UsersService } from './users.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
-import {
-  EMAIL_VERIFICATION_REQUESTED_EVENT,
-  EmailVerificationRequestedEvent,
-} from './events/email-verification-requested.event';
 import { randomBytes, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
+import { EmailVerificationService } from './email-verification.service';
 
 const scrypt = promisify(_scrypt);
 const HASH_BYTES = 32;
@@ -75,7 +67,9 @@ describe('AuthService', () => {
       'findActiveByEmail' | 'findActiveByGoogleId' | 'update' | 'updatePassword'
     >
   >;
-  let eventEmitter: { emit: jest.Mock };
+  let emailVerification: jest.Mocked<
+    Pick<EmailVerificationService, 'register'>
+  >;
   let config: { get: jest.Mock };
   let dataSource: { transaction: jest.Mock };
 
@@ -86,7 +80,7 @@ describe('AuthService', () => {
       update: jest.fn(),
       updatePassword: jest.fn(),
     };
-    eventEmitter = { emit: jest.fn() };
+    emailVerification = { register: jest.fn() };
     config = {
       get: jest.fn().mockImplementation((key: string) => {
         if (key === 'GOOGLE_CLIENT_ID') {
@@ -101,7 +95,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UsersService, useValue: usersService },
-        { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: EmailVerificationService, useValue: emailVerification },
         { provide: ConfigService, useValue: config },
         { provide: DataSource, useValue: dataSource },
       ],
@@ -115,57 +109,27 @@ describe('AuthService', () => {
   });
 
   describe('signup', () => {
-    it('creates user in transaction and requests a verification email', async () => {
+    it('hashes credentials and delegates atomic provisioning', async () => {
       const savedUser = makeUser({
         email: 'new@example.com',
         emailVerifiedAt: null,
       });
-      dataSource.transaction.mockImplementation(async (cb) => {
-        const manager = {
-          query: jest.fn().mockResolvedValue([{ exists: false }]),
-          create: jest.fn((_entity, data) => data),
-          save: jest
-            .fn()
-            .mockResolvedValueOnce({ id: 'company-1' })
-            .mockResolvedValueOnce(savedUser),
-        };
-        return cb(manager);
-      });
+      const account = { ...savedUser, hasPassword: true as const };
+      emailVerification.register.mockResolvedValue(account);
 
-      const result = await service.signup('new@example.com', 'password123');
-
-      expect(result).toBe(savedUser);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        EMAIL_VERIFICATION_REQUESTED_EVENT,
-        expect.any(EmailVerificationRequestedEvent),
+      const result = await service.signup(
+        ' New@Example.com ',
+        'password123',
+        'http://localhost',
       );
-      const [, event] = eventEmitter.emit.mock.calls[0] as [
-        string,
-        EmailVerificationRequestedEvent,
-      ];
-      expect(event.delivery.email).toBe('new@example.com');
-      expect(event.userId).toBe(savedUser.id);
-    });
 
-    it('throws BadRequestException on duplicate email', async () => {
-      const driverError = Object.assign(new Error('unique violation'), {
-        code: '23505',
-      });
-      const err = new QueryFailedError('INSERT', [], driverError);
-      dataSource.transaction.mockRejectedValue(err);
-
-      await expect(
-        service.signup('dup@example.com', 'password123'),
-      ).rejects.toThrow(new BadRequestException('Email already in use'));
-    });
-
-    it('rethrows non-unique database errors', async () => {
-      const err = new Error('connection lost');
-      dataSource.transaction.mockRejectedValue(err);
-
-      await expect(
-        service.signup('new@example.com', 'password123'),
-      ).rejects.toThrow('connection lost');
+      expect(result).toBe(account);
+      expect(emailVerification.register).toHaveBeenCalledWith(
+        'new@example.com',
+        expect.not.stringContaining('password123'),
+        'http://localhost',
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
     });
   });
 
@@ -272,7 +236,6 @@ describe('AuthService', () => {
       const result = await service.signInWithGoogle('valid-token');
 
       expect(result).toBe(savedUser);
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('returns existing user by googleId and updates lastLoginAt', async () => {

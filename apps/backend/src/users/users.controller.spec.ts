@@ -115,7 +115,7 @@ describe('UsersController', () => {
 
   describe('signup', () => {
     it('delegates to AuthService with email, password and origin', async () => {
-      const user = makeUser();
+      const user = { ...makeUser(), hasPassword: true as const };
       authService.signup.mockResolvedValue(user);
 
       const result = await controller.signup(
