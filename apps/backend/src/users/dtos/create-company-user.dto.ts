@@ -6,15 +6,11 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { lowercaseEmail, optionalText } from '../../common/dto-transforms';
 import { MembershipRole } from '../membership-role';
 
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
-
 export class CreateCompanyUserDto {
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(lowercaseEmail)
   @IsEmail()
   @MaxLength(254)
   email!: string;

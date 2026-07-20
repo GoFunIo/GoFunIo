@@ -8,9 +8,7 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
-
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
+import { optionalText } from '../../common/dto-transforms';
 
 export class UpdateCompanyDto {
   @Transform(({ value }: { value: unknown }) =>

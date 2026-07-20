@@ -1,10 +1,9 @@
 import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { lowercaseEmail } from '../../common/dto-transforms';
 
 export class SigninDto {
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(lowercaseEmail)
   @IsEmail()
   email!: string;
 

@@ -6,10 +6,8 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import { optionalText } from '../../common/dto-transforms';
 import { MembershipRole } from '../membership-role';
-
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
 
 export class UpdateCompanyUserDto {
   @Transform(optionalText)

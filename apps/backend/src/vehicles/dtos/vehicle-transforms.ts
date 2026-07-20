@@ -1,8 +1,9 @@
+import { optionalText } from '../../common/dto-transforms';
+
 export const vehicleTransforms = {
   trim: ({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
-  optionalText: ({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() || null : value,
+  optionalText,
   registration: ({ value }: { value: unknown }) =>
     typeof value === 'string'
       ? value.trim().toUpperCase().replace(/[\s-]/g, '')
