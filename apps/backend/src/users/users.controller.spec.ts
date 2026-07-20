@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   CanActivate,
+  ConflictException,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
@@ -210,13 +211,36 @@ describe('UsersController', () => {
   });
 
   describe('verifyEmail', () => {
-    it('delegates to EmailVerificationService and returns verified flag', async () => {
+    it('verifies the email, establishes a session and returns verified flag', async () => {
       emailVerification.verify.mockResolvedValue('user-1');
+      const session = {} as SessionData;
 
-      const result = await controller.verifyEmail({ token: 'abc' });
+      const result = await controller.verifyEmail({ token: 'abc' }, session);
 
       expect(emailVerification.verify).toHaveBeenCalledWith('abc');
+      expect(sessions.establish).toHaveBeenCalledWith(session, 'user-1');
       expect(result).toEqual({ verified: true });
+    });
+
+    it('does not establish a session when verification fails', async () => {
+      emailVerification.verify.mockRejectedValue(new Error('invalid token'));
+
+      await expect(
+        controller.verifyEmail({ token: 'abc' }, {}),
+      ).rejects.toThrow('invalid token');
+      expect(sessions.establish).not.toHaveBeenCalled();
+    });
+
+    it('does not consume the token or replace an existing session', async () => {
+      const session = { userId: 'existing-user' } as SessionData;
+
+      await expect(
+        controller.verifyEmail({ token: 'abc' }, session),
+      ).rejects.toEqual(
+        new ConflictException('Sign out before verifying email'),
+      );
+      expect(emailVerification.verify).not.toHaveBeenCalled();
+      expect(sessions.establish).not.toHaveBeenCalled();
     });
   });
 

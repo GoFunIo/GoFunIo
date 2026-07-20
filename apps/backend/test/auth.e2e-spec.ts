@@ -43,28 +43,22 @@ describe('Auth (e2e)', () => {
     return activeEvents;
   }
 
-  it('signup → verify → signin → me returns user without password', async () => {
+  it('signup → verify → me returns the logged-in user without password', async () => {
     const email = 'flow@example.com';
     const password = 'password123';
     const events = trackEvents();
+    const agent = request.agent(app.getHttpServer());
 
-    await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send({ email, password })
-      .expect(201);
+    await agent.post('/auth/signup').send({ email, password }).expect(201);
 
     const token = events.verificationToken;
     expect(token).toBeTruthy();
 
-    await request(app.getHttpServer())
+    await agent
       .get('/auth/verify-email')
       .query({ token })
       .expect(200)
       .expect({ verified: true });
-
-    const agent = request.agent(app.getHttpServer());
-
-    await agent.post('/auth/signin').send({ email, password }).expect(201);
 
     const me = await agent.get('/auth/me').expect(200);
 
@@ -219,6 +213,25 @@ describe('Auth (e2e)', () => {
       .expect((res) => {
         expect(res.body.message).toBe('Invalid or expired token');
       });
+  });
+
+  it('consumed verification token does not establish another session', async () => {
+    const events = trackEvents();
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: 'consumed@example.com', password: 'password123' })
+      .expect(201);
+
+    const token = events.verificationToken;
+    expect(token).toBeTruthy();
+    await request(app.getHttpServer())
+      .get('/auth/verify-email')
+      .query({ token })
+      .expect(200);
+
+    const agent = request.agent(app.getHttpServer());
+    await agent.get('/auth/verify-email').query({ token }).expect(400);
+    await agent.get('/auth/me').expect(401);
   });
 
   it('forgot-password → reset → signin with new password works', async () => {

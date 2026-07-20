@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   Headers,
@@ -98,8 +99,13 @@ export class UsersController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmail(
     @Query() query: VerifyEmailDto,
+    @Session() session: SessionData,
   ): Promise<{ verified: true }> {
-    await this.emailVerification.verify(query.token);
+    if (session.userId) {
+      throw new ConflictException('Sign out before verifying email');
+    }
+    const userId = await this.emailVerification.verify(query.token);
+    await this.sessions.establish(session, userId);
     return { verified: true };
   }
 
