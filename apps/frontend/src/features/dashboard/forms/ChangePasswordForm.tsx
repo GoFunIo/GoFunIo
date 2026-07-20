@@ -5,16 +5,22 @@ import { getPasswordRulesState } from '@/features/auth/lib/passwordRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import classNames from 'classnames';
+import { changeUserPassword } from '../api/profile.api';
+import { useLoading } from '@/hooks/useLoading';
+import { FormError } from '@/features/auth/ui/FormError';
 
 type Props = {
   onClose: () => void;
 };
 
 export const ChangePasswordForm = ({ onClose }: Props) => {
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<ChangePasswordFormData>({
     resolver: yupResolver(ChangePasswordSchema),
@@ -31,11 +37,27 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
 
   const onSubmit = async (data: ChangePasswordFormData) => {
     try {
-      console.log('Wysyłanie bezpiecznego żądania zmiany hasła do API:', data);
-      // await axios.patch('/api/profile/change-password', data);
+      await changeUserPassword(data);
       onClose();
     } catch (error) {
-      console.error('Błąd podczas zmiany hasła:', error);
+      const err = error as { status?: number; message?: string };
+      const status = err.status;
+
+      if (status === 401) {
+        if (err.message === 'Invalid current password') {
+          setError('root', {
+            type: 'network',
+            message: 'Nieprawidłowe obecne hasło.',
+          });
+        }
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,6 +65,7 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="mb-[24px]">
         <p className="font-bold text-[14px] text-content-primary mb-[12px]">
           Potwierdź swoje obecne hasło
@@ -120,8 +143,8 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" disabled={isSubmitting}>
-          {isSubmitting ? 'Zapisywanie...' : 'Zapisz'}
+        <BoardButton type="submit" size="medium" loading={loading}>
+          Zapisz
         </BoardButton>
       </div>
     </form>

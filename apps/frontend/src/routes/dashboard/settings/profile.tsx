@@ -30,7 +30,7 @@ function RouteComponent() {
     user.postalCode || user.city ? `${user.postalCode ?? ''} ${user.city ?? ''}`.trim() : null,
     user.phone,
   ];
-
+  console.log(userPersonalDataLines);
   const userCompanyDataLines = [
     company?.name,
     company?.taxId ? `NIP: ${company.taxId}` : null,
@@ -83,16 +83,21 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-1">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane użytkownika</p>
+            {!userPersonalDataLines.some(Boolean) ? (
+              <p className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                Brak uzupełnionych danych osobowych.
+              </p>
+            ) : (
+              userPersonalDataLines.map((item, index) => {
+                if (!item) return null;
 
-            {userPersonalDataLines.map((item, index) => {
-              if (!item) return null;
-
-              return (
-                <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
-                  {item}
-                </p>
-              );
-            })}
+                return (
+                  <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                    {item}
+                  </p>
+                );
+              })
+            )}
           </div>
           <BoardButton onClick={() => setActiveModal('personal')} size="small" icon="edit">
             Edytuj
@@ -103,7 +108,7 @@ function RouteComponent() {
         <BlockWrapper className="flex justify-between gap-[12px] order-2 ">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane firmowe</p>
-            {userCompanyDataLines.length === 0 ? (
+            {!userCompanyDataLines.some(Boolean) ? (
               <p className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
                 Brak uzupełnionych danych firmowych.
               </p>

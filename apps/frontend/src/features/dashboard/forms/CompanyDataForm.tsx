@@ -12,6 +12,7 @@ import { changeCompanyInfo } from '../api/company.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLoading } from '@/hooks/useLoading';
 import { useUser } from '@/hooks/useUser';
+import { FormError } from '@/features/auth/ui/FormError';
 
 type Props = {
   onClose: () => void;
@@ -90,6 +91,7 @@ export const CompanyDataForm = ({ onClose }: Props) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex items-center gap-[8px] mb-[20px]">
         <input
           type="checkbox"
