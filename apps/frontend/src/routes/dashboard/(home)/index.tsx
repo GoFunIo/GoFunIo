@@ -177,12 +177,24 @@ function RouteComponent() {
     return (activityArray as HistoryDataItem[]).slice(0, 5);
   }, []);
 
+  const userNickname = () => {
+    if (!user.firstName && !user.lastName) {
+      return 'User';
+    }
+
+    if (!user.firstName) {
+      return user.lastName;
+    }
+
+    return user.firstName;
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full ">
         <div className="lg:col-span-6">
           <DashboardHeader
-            title={`Hello, ${user.email}`}
+            title={`Hello, ${userNickname()}`}
             subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
           />
         </div>

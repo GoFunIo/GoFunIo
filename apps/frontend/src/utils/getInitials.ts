@@ -1,5 +1,8 @@
-export const getInitials = (fullName: string) => {
-  const words = fullName.split(' ');
+export const getInitials = (firstName?: string | null, lastName?: string | null) => {
+  const initials = [firstName, lastName]
+    .filter(Boolean)
+    .map((name) => name![0].toUpperCase())
+    .join('');
 
-  return `${words[0].charAt(0)}${words[1].charAt(0)}`;
+  return initials || 'U';
 };

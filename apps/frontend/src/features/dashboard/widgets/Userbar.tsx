@@ -122,7 +122,7 @@ export const Userbar = () => {
             >
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center">
                 <p className="text-[12px] font-normal text-white">
-                  {getInitials(`${user.firstName} ${user.lastName}`)}
+                  {getInitials(user.firstName, user.lastName)}
                 </p>
               </div>
               <div className="max-[426px]:hidden">
