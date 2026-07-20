@@ -29,6 +29,7 @@ import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
 import { UsersService } from './users.service';
+import { EmailVerificationService } from './email-verification.service';
 
 @Controller('auth')
 export class UsersController {
@@ -36,6 +37,7 @@ export class UsersController {
     private readonly authService: AuthService,
     private readonly sessions: SessionsService,
     private readonly users: UsersService,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   @Post('signup')
@@ -97,7 +99,7 @@ export class UsersController {
   async verifyEmail(
     @Query() query: VerifyEmailDto,
   ): Promise<{ verified: true }> {
-    await this.authService.verifyEmail(query.token);
+    await this.emailVerification.verify(query.token);
     return { verified: true };
   }
 
@@ -120,7 +122,7 @@ export class UsersController {
     @Body() body: ResendVerificationDto,
     @Headers('origin') origin?: string,
   ): Promise<void> {
-    await this.authService.resendVerification(body.email, origin);
+    await this.emailVerification.resend(body.email, origin);
   }
 
   @Post('forgot-password')

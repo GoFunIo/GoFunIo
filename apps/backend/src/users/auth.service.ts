@@ -9,14 +9,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { UsersService } from './users.service';
+import { generateToken, hashToken } from './token.util';
 import {
-  generateVerificationToken,
-  hashVerificationToken,
-} from './verification-token.util';
-import {
-  USER_REGISTERED_EVENT,
-  UserRegisteredEvent,
-} from './events/user-registered.event';
+  EMAIL_VERIFICATION_REQUESTED_EVENT,
+  EmailVerificationRequestedEvent,
+} from './events/email-verification-requested.event';
 import {
   PASSWORD_RESET_REQUESTED_EVENT,
   PasswordResetRequestedEvent,
@@ -64,7 +61,7 @@ export class AuthService {
       'VERIFICATION_TOKEN_TTL_HOURS',
       24,
     );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
 
     let user: User;
     try {
@@ -98,8 +95,12 @@ export class AuthService {
     }
 
     this.eventEmitter.emit(
-      USER_REGISTERED_EVENT,
-      new UserRegisteredEvent(user.id, user.email, token, origin),
+      EMAIL_VERIFICATION_REQUESTED_EVENT,
+      new EmailVerificationRequestedEvent(user.id, {
+        email: user.email,
+        token,
+        origin,
+      }),
     );
 
     return user;
@@ -226,52 +227,6 @@ export class AuthService {
     }
   }
 
-  async verifyEmail(token: string): Promise<void> {
-    const tokenHash = hashVerificationToken(token);
-    const user =
-      await this.usersService.findOneByVerificationTokenHash(tokenHash);
-
-    if (
-      !user ||
-      user.emailVerifiedAt ||
-      !user.verificationTokenExpiresAt ||
-      user.verificationTokenExpiresAt.getTime() < Date.now()
-    ) {
-      throw new BadRequestException('Invalid or expired token');
-    }
-
-    await this.usersService.update(user.id, {
-      emailVerifiedAt: new Date(),
-      verificationTokenHash: null,
-      verificationTokenExpiresAt: null,
-    });
-  }
-
-  async resendVerification(email: string, origin?: string): Promise<void> {
-    const user = await this.usersService.findActiveByEmail(
-      this.normalizeEmail(email),
-    );
-    if (!user || user.emailVerifiedAt) {
-      return;
-    }
-
-    const ttlHours = this.config.get<number>(
-      'VERIFICATION_TOKEN_TTL_HOURS',
-      24,
-    );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
-
-    await this.usersService.update(user.id, {
-      verificationTokenHash: tokenHash,
-      verificationTokenExpiresAt: expiresAt,
-    });
-
-    this.eventEmitter.emit(
-      USER_REGISTERED_EVENT,
-      new UserRegisteredEvent(user.id, user.email, token, origin),
-    );
-  }
-
   async requestPasswordReset(email: string, origin?: string): Promise<void> {
     const user = await this.usersService.findActiveByEmail(
       this.normalizeEmail(email),
@@ -286,7 +241,7 @@ export class AuthService {
       'PASSWORD_RESET_TOKEN_TTL_HOURS',
       24,
     );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
 
     await this.usersService.update(user.id, {
       passwordResetTokenHash: tokenHash,
@@ -297,17 +252,15 @@ export class AuthService {
       PASSWORD_RESET_REQUESTED_EVENT,
       new PasswordResetRequestedEvent(
         user.id,
-        user.email,
-        token,
+        { email: user.email, token, origin },
         ttlHours,
-        origin,
         isFirstPassword,
       ),
     );
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const tokenHash = hashVerificationToken(token);
+    const tokenHash = hashToken(token);
     const password = await hashPassword(newPassword);
     const consumed = await this.usersService.consumePasswordResetToken(
       tokenHash,
@@ -340,7 +293,7 @@ export class AuthService {
       'VERIFICATION_TOKEN_TTL_HOURS',
       24,
     );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
     try {
       const claimed = await this.usersService.claimEmailChange(
         user.id,
@@ -360,12 +313,12 @@ export class AuthService {
     }
     this.eventEmitter.emit(
       USER_EMAIL_CHANGE_REQUESTED_EVENT,
-      new UserEmailChangeRequestedEvent(email, token, origin),
+      new UserEmailChangeRequestedEvent({ email, token, origin }),
     );
   }
 
   async verifyEmailChange(token: string): Promise<void> {
-    const tokenHash = hashVerificationToken(token);
+    const tokenHash = hashToken(token);
     try {
       if (!(await this.usersService.consumeEmailChangeToken(tokenHash))) {
         throw new BadRequestException('Invalid or expired token');

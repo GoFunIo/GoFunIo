@@ -51,16 +51,6 @@ export class UsersService {
     return this.usersRepository.save(entity);
   }
 
-  async findOneByVerificationTokenHash(hash: string): Promise<User | null> {
-    return this.activeUsers()
-      .addSelect([
-        'user.verificationTokenHash',
-        'user.verificationTokenExpiresAt',
-      ])
-      .andWhere('user.verificationTokenHash = :hash', { hash })
-      .getOne();
-  }
-
   async claimEmailChange(
     id: string,
     currentPassword: string,

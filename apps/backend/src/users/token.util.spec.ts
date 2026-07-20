@@ -1,38 +1,32 @@
-import {
-  generateVerificationToken,
-  hashVerificationToken,
-  VERIFICATION_TOKEN_HEX_LENGTH,
-} from './verification-token.util';
+import { generateToken, hashToken, TOKEN_HEX_LENGTH } from './token.util';
 
-describe('verification-token.util', () => {
-  describe('hashVerificationToken', () => {
+describe('token.util', () => {
+  describe('hashToken', () => {
     it('returns deterministic SHA-256 hex for same input', () => {
       const token = 'abc123';
-      expect(hashVerificationToken(token)).toBe(hashVerificationToken(token));
-      expect(hashVerificationToken(token)).toMatch(/^[a-f0-9]{64}$/);
+      expect(hashToken(token)).toBe(hashToken(token));
+      expect(hashToken(token)).toMatch(/^[a-f0-9]{64}$/);
     });
 
     it('returns different hashes for different inputs', () => {
-      expect(hashVerificationToken('token-a')).not.toBe(
-        hashVerificationToken('token-b'),
-      );
+      expect(hashToken('token-a')).not.toBe(hashToken('token-b'));
     });
   });
 
-  describe('generateVerificationToken', () => {
+  describe('generateToken', () => {
     it('returns token with correct length and matching hash', () => {
-      const { token, tokenHash, expiresAt } = generateVerificationToken(24);
+      const { token, tokenHash, expiresAt } = generateToken(24);
 
-      expect(token).toHaveLength(VERIFICATION_TOKEN_HEX_LENGTH);
+      expect(token).toHaveLength(TOKEN_HEX_LENGTH);
       expect(token).toMatch(/^[a-f0-9]+$/);
-      expect(tokenHash).toBe(hashVerificationToken(token));
+      expect(tokenHash).toBe(hashToken(token));
       expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
     });
 
     it('sets expiresAt based on ttlHours', () => {
       const ttlHours = 2;
       const before = Date.now();
-      const { expiresAt } = generateVerificationToken(ttlHours);
+      const { expiresAt } = generateToken(ttlHours);
       const after = Date.now();
 
       const expectedMin = before + ttlHours * 60 * 60 * 1000;

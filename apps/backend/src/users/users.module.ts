@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -17,6 +18,12 @@ import {
   SESSION_USER_READER,
   TypeOrmSessionUserReader,
 } from './session-user-reader';
+import { EmailVerificationService } from './email-verification.service';
+import {
+  EMAIL_VERIFICATION_STORE,
+  TypeOrmEmailVerificationStore,
+} from './email-verification.store';
+import { EmailVerificationExceptionFilter } from './email-verification.exception-filter';
 
 @Module({
   imports: [
@@ -36,6 +43,16 @@ import {
     {
       provide: SESSION_USER_READER,
       useExisting: TypeOrmSessionUserReader,
+    },
+    EmailVerificationService,
+    TypeOrmEmailVerificationStore,
+    {
+      provide: EMAIL_VERIFICATION_STORE,
+      useExisting: TypeOrmEmailVerificationStore,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: EmailVerificationExceptionFilter,
     },
   ],
   exports: [UsersService, SessionsService, SessionAuthGuard, AdminGuard],

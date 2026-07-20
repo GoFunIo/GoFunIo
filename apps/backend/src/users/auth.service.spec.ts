@@ -12,11 +12,11 @@ import { UsersService } from './users.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import {
-  USER_REGISTERED_EVENT,
-  UserRegisteredEvent,
-} from './events/user-registered.event';
+  EMAIL_VERIFICATION_REQUESTED_EVENT,
+  EmailVerificationRequestedEvent,
+} from './events/email-verification-requested.event';
 import { PASSWORD_RESET_REQUESTED_EVENT } from './events/password-reset-requested.event';
-import { hashVerificationToken } from './verification-token.util';
+import { hashToken } from './token.util';
 import { randomBytes, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
 
@@ -76,7 +76,6 @@ describe('AuthService', () => {
       UsersService,
       | 'findActiveByEmail'
       | 'findActiveByGoogleId'
-      | 'findOneByVerificationTokenHash'
       | 'update'
       | 'consumePasswordResetToken'
       | 'claimEmailChange'
@@ -92,7 +91,6 @@ describe('AuthService', () => {
     usersService = {
       findActiveByEmail: jest.fn(),
       findActiveByGoogleId: jest.fn(),
-      findOneByVerificationTokenHash: jest.fn(),
       update: jest.fn(),
       consumePasswordResetToken: jest.fn(),
       claimEmailChange: jest.fn(),
@@ -128,7 +126,7 @@ describe('AuthService', () => {
   });
 
   describe('signup', () => {
-    it('creates user in transaction and emits USER_REGISTERED_EVENT', async () => {
+    it('creates user in transaction and requests a verification email', async () => {
       const savedUser = makeUser({
         email: 'new@example.com',
         emailVerifiedAt: null,
@@ -149,11 +147,14 @@ describe('AuthService', () => {
 
       expect(result).toBe(savedUser);
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        USER_REGISTERED_EVENT,
-        expect.any(UserRegisteredEvent),
+        EMAIL_VERIFICATION_REQUESTED_EVENT,
+        expect.any(EmailVerificationRequestedEvent),
       );
-      const event = eventEmitter.emit.mock.calls[0][1] as UserRegisteredEvent;
-      expect(event.email).toBe('new@example.com');
+      const [, event] = eventEmitter.emit.mock.calls[0] as [
+        string,
+        EmailVerificationRequestedEvent,
+      ];
+      expect(event.delivery.email).toBe('new@example.com');
       expect(event.userId).toBe(savedUser.id);
     });
 
@@ -377,88 +378,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('verifyEmail', () => {
-    it('marks user as verified when token is valid', async () => {
-      const token = 'valid-token';
-      const user = makeUser({
-        emailVerifiedAt: null,
-        verificationTokenExpiresAt: new Date(Date.now() + 60_000),
-      });
-      usersService.findOneByVerificationTokenHash.mockResolvedValue(user);
-      usersService.update.mockResolvedValue(user);
-
-      await service.verifyEmail(token);
-
-      expect(usersService.findOneByVerificationTokenHash).toHaveBeenCalledWith(
-        hashVerificationToken(token),
-      );
-      expect(usersService.update).toHaveBeenCalledWith(user.id, {
-        emailVerifiedAt: expect.any(Date),
-        verificationTokenHash: null,
-        verificationTokenExpiresAt: null,
-      });
-    });
-
-    it('throws BadRequestException when token is invalid or expired', async () => {
-      usersService.findOneByVerificationTokenHash.mockResolvedValue(null);
-
-      await expect(service.verifyEmail('bad-token')).rejects.toThrow(
-        new BadRequestException('Invalid or expired token'),
-      );
-    });
-
-    it('throws BadRequestException when email already verified', async () => {
-      const user = makeUser({
-        emailVerifiedAt: new Date(),
-        verificationTokenExpiresAt: new Date(Date.now() + 60_000),
-      });
-      usersService.findOneByVerificationTokenHash.mockResolvedValue(user);
-
-      await expect(service.verifyEmail('token')).rejects.toThrow(
-        new BadRequestException('Invalid or expired token'),
-      );
-    });
-  });
-
-  describe('resendVerification', () => {
-    it('updates token and emits event for unverified user', async () => {
-      const user = makeUser({ emailVerifiedAt: null });
-      usersService.findActiveByEmail.mockResolvedValue(user);
-      usersService.update.mockResolvedValue(user);
-
-      await service.resendVerification(user.email, 'http://localhost');
-
-      expect(usersService.update).toHaveBeenCalledWith(user.id, {
-        verificationTokenHash: expect.any(String),
-        verificationTokenExpiresAt: expect.any(Date),
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        USER_REGISTERED_EVENT,
-        expect.any(UserRegisteredEvent),
-      );
-    });
-
-    it('returns silently when user does not exist', async () => {
-      usersService.findActiveByEmail.mockResolvedValue(null);
-
-      await service.resendVerification('missing@example.com');
-
-      expect(usersService.update).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
-
-    it('returns silently when email is already verified', async () => {
-      usersService.findActiveByEmail.mockResolvedValue(
-        makeUser({ emailVerifiedAt: new Date() }),
-      );
-
-      await service.resendVerification('verified@example.com');
-
-      expect(usersService.update).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
-  });
-
   describe('requestPasswordReset', () => {
     it('stores reset token and emits PASSWORD_RESET_REQUESTED_EVENT', async () => {
       const user = makeUser();
@@ -474,7 +393,7 @@ describe('AuthService', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         PASSWORD_RESET_REQUESTED_EVENT,
         expect.objectContaining({
-          email: user.email,
+          delivery: expect.objectContaining({ email: user.email }),
           isFirstPassword: false,
         }),
       );
@@ -494,7 +413,7 @@ describe('AuthService', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         PASSWORD_RESET_REQUESTED_EVENT,
         expect.objectContaining({
-          email: user.email,
+          delivery: expect.objectContaining({ email: user.email }),
           isFirstPassword: true,
         }),
       );
@@ -517,7 +436,7 @@ describe('AuthService', () => {
       await service.resetPassword('reset-token', 'new-password-123');
 
       expect(usersService.consumePasswordResetToken).toHaveBeenCalledWith(
-        hashVerificationToken('reset-token'),
+        hashToken('reset-token'),
         expect.stringMatching(/^[a-f0-9]+\.[a-f0-9]+$/),
       );
     });

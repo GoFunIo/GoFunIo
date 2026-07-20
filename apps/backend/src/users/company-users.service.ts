@@ -15,7 +15,7 @@ import {
   PASSWORD_RESET_REQUESTED_EVENT,
   PasswordResetRequestedEvent,
 } from './events/password-reset-requested.event';
-import { generateVerificationToken } from './verification-token.util';
+import { generateToken } from './token.util';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import type { SessionPrincipal } from './session-principal';
@@ -52,7 +52,7 @@ export class CompanyUsersService {
       'PASSWORD_RESET_TOKEN_TTL_HOURS',
       24,
     );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
+    const { token, tokenHash, expiresAt } = generateToken(ttlHours);
 
     let user: User;
     try {
@@ -89,10 +89,8 @@ export class CompanyUsersService {
       PASSWORD_RESET_REQUESTED_EVENT,
       new PasswordResetRequestedEvent(
         user.id,
-        user.email,
-        token,
+        { email: user.email, token, origin },
         ttlHours,
-        origin,
         true,
       ),
     );

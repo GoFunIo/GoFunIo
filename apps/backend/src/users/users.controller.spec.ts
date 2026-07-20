@@ -15,6 +15,7 @@ import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { SessionsService } from './sessions.service';
 import { UsersService } from './users.service';
+import { EmailVerificationService } from './email-verification.service';
 import type { SessionPrincipal } from './session-principal';
 
 @Injectable()
@@ -64,12 +65,13 @@ describe('UsersController', () => {
       | 'signup'
       | 'signin'
       | 'signInWithGoogle'
-      | 'verifyEmail'
       | 'verifyEmailChange'
-      | 'resendVerification'
       | 'requestPasswordReset'
       | 'resetPassword'
     >
+  >;
+  let emailVerification: jest.Mocked<
+    Pick<EmailVerificationService, 'verify' | 'resend'>
   >;
   let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
   let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
@@ -79,12 +81,11 @@ describe('UsersController', () => {
       signup: jest.fn(),
       signin: jest.fn(),
       signInWithGoogle: jest.fn(),
-      verifyEmail: jest.fn(),
       verifyEmailChange: jest.fn(),
-      resendVerification: jest.fn(),
       requestPasswordReset: jest.fn(),
       resetPassword: jest.fn(),
     };
+    emailVerification = { verify: jest.fn(), resend: jest.fn() };
     sessions = { establish: jest.fn(), clear: jest.fn() };
     users = { findActiveById: jest.fn() };
 
@@ -92,6 +93,7 @@ describe('UsersController', () => {
       controllers: [UsersController],
       providers: [
         { provide: AuthService, useValue: authService },
+        { provide: EmailVerificationService, useValue: emailVerification },
         { provide: SessionsService, useValue: sessions },
         { provide: UsersService, useValue: users },
       ],
@@ -208,12 +210,12 @@ describe('UsersController', () => {
   });
 
   describe('verifyEmail', () => {
-    it('delegates to AuthService and returns verified flag', async () => {
-      authService.verifyEmail.mockResolvedValue(undefined);
+    it('delegates to EmailVerificationService and returns verified flag', async () => {
+      emailVerification.verify.mockResolvedValue('user-1');
 
       const result = await controller.verifyEmail({ token: 'abc' });
 
-      expect(authService.verifyEmail).toHaveBeenCalledWith('abc');
+      expect(emailVerification.verify).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ verified: true });
     });
   });
@@ -230,15 +232,15 @@ describe('UsersController', () => {
   });
 
   describe('resendVerification', () => {
-    it('delegates to AuthService', async () => {
-      authService.resendVerification.mockResolvedValue(undefined);
+    it('delegates to EmailVerificationService', async () => {
+      emailVerification.resend.mockResolvedValue(undefined);
 
       await controller.resendVerification(
         { email: 'test@example.com' },
         'http://localhost',
       );
 
-      expect(authService.resendVerification).toHaveBeenCalledWith(
+      expect(emailVerification.resend).toHaveBeenCalledWith(
         'test@example.com',
         'http://localhost',
       );
