@@ -13,10 +13,8 @@ export class PasswordResetRequestedListener {
   @OnEvent(PASSWORD_RESET_REQUESTED_EVENT, { async: true })
   async handle(event: PasswordResetRequestedEvent): Promise<void> {
     await this.mailService.sendPasswordResetEmail(
-      event.delivery.email,
-      event.delivery.token,
+      event.delivery,
       event.ttlHours,
-      event.delivery.origin,
       event.isFirstPassword,
     );
   }

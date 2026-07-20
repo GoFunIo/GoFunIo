@@ -48,11 +48,11 @@ describe('MailService', () => {
   });
 
   it('sendVerificationEmail renders template and calls Resend', async () => {
-    await service.sendVerificationEmail(
-      'user@example.com',
-      'abc123',
-      'http://localhost:5173',
-    );
+    await service.sendVerificationEmail({
+      email: 'user@example.com',
+      token: 'abc123',
+      origin: 'http://localhost:5173',
+    });
 
     expect(renderSpy).toHaveBeenCalledWith('verify-email', {
       verificationUrl: 'http://localhost:5173/verify-email?token=abc123',
@@ -67,10 +67,12 @@ describe('MailService', () => {
 
   it('sendPasswordResetEmail renders template and calls Resend', async () => {
     await service.sendPasswordResetEmail(
-      'user@example.com',
-      'reset456',
+      {
+        email: 'user@example.com',
+        token: 'reset456',
+        origin: 'http://localhost:5173',
+      },
       24,
-      'http://localhost:5173',
     );
 
     expect(renderSpy).toHaveBeenCalledWith('reset-password', {
@@ -87,10 +89,12 @@ describe('MailService', () => {
 
   it('sendPasswordResetEmail uses set-password template for first password', async () => {
     await service.sendPasswordResetEmail(
-      'google@example.com',
-      'set789',
+      {
+        email: 'google@example.com',
+        token: 'set789',
+        origin: 'http://localhost:5173',
+      },
       24,
-      'http://localhost:5173',
       true,
     );
 
@@ -111,9 +115,34 @@ describe('MailService', () => {
     const errorSpy = jest.spyOn(service['logger'], 'error');
 
     await expect(
-      service.sendVerificationEmail('user@example.com', 'abc123'),
+      service.sendVerificationEmail({
+        email: 'user@example.com',
+        token: 'abc123',
+      }),
     ).resolves.toBeUndefined();
 
-    expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const [log] = errorSpy.mock.calls[0] as [Record<string, unknown>];
+    expect(log).toMatchObject({
+      event: 'mail.delivery_failed',
+      template: 'verify-email',
+      to: 'user@example.com',
+      error: 'Resend API 500: server error',
+    });
+    expect(typeof log.stack).toBe('string');
+  });
+
+  it('does not swallow template rendering errors', async () => {
+    renderSpy.mockImplementation(() => {
+      throw new Error('broken template');
+    });
+
+    await expect(
+      service.sendVerificationEmail({
+        email: 'user@example.com',
+        token: 'abc123',
+      }),
+    ).rejects.toThrow('broken template');
+    expect(sendSpy).not.toHaveBeenCalled();
   });
 });

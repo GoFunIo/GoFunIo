@@ -12,10 +12,6 @@ export class EmailVerificationRequestedListener {
 
   @OnEvent(EMAIL_VERIFICATION_REQUESTED_EVENT, { async: true })
   async handle(event: EmailVerificationRequestedEvent): Promise<void> {
-    await this.mailService.sendVerificationEmail(
-      event.delivery.email,
-      event.delivery.token,
-      event.delivery.origin,
-    );
+    await this.mailService.sendVerificationEmail(event.delivery);
   }
 }
