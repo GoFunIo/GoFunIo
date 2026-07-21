@@ -4,7 +4,15 @@ import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { VehicleData } from '@/features/dashboard/types';
+import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+
+const FUEL_TYPE_LABELS: Record<VehicleFuelType, string> = {
+  DIESEL: 'Diesel',
+  PETROL: 'Benzyna',
+  LPG: 'LPG',
+  HYBRID: 'Hybryda',
+  ELECTRIC: 'Elektryk',
+};
 
 export interface VehicleCardProps {
   vehicle: VehicleData;
@@ -79,13 +87,13 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
           <div className=" flex flex-col gap-2">
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Fuel size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <p className="text-[14px] text-content-secondary">
-                {vehicle.fuelType ?? 'Nieokreślone'}
+              <p className="text-[14px] text-content-secondary uppercase">
+                {vehicle.fuelType ? FUEL_TYPE_LABELS[vehicle.fuelType] : 'Nieokreślone'}
               </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Gauge size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <p className="text-[14px] text-content-secondary">
+              <p className="text-[14px] text-content-secondary ">
                 {vehicle.currentMileage
                   ? `${vehicle.currentMileage.toLocaleString()} km`
                   : 'Brak info'}

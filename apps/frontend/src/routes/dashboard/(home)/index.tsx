@@ -261,7 +261,12 @@ function RouteComponent() {
                 icon={Wrench}
                 stats={inspectionStats}
               />
-              <Reminders data={vehicles} filterType="inspection" onRenewCar={handleRenewCar} />
+              <Reminders
+                data={vehicles}
+                filterType="inspection"
+                onRenewCar={handleRenewCar}
+                maxDays={30}
+              />
             </div>
 
             <div className="flex flex-col gap-4">
@@ -270,7 +275,12 @@ function RouteComponent() {
                 icon={ShieldAlert}
                 stats={insuranceStats}
               />
-              <Reminders data={vehicles} filterType="insurance" onRenewCar={handleRenewCar} />
+              <Reminders
+                data={vehicles}
+                filterType="insurance"
+                onRenewCar={handleRenewCar}
+                maxDays={30}
+              />
             </div>
           </div>
         )}
