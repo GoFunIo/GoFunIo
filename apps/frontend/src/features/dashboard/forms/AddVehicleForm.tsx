@@ -1,37 +1,62 @@
+import { useEffect } from 'react';
 import { SubmitHandler, useForm, Controller, Resolver } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useLoading } from '@/hooks/useLoading';
 import classNames from 'classnames';
 import { AddVehicleFormData, AddVehicleSchema } from '../lib/formValidationRules';
-import { useLoading } from '@/hooks/useLoading';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
 import { DatePicker } from '../ui/DatePicker';
 import { Select } from '../ui/Select';
-import { useEffect } from 'react';
+import { createVehicle, updateVehicle } from '../api/vehicles.api';
+import { VehicleData } from '@/features/dashboard/types';
 
 type FormProps = {
   className?: string;
-  onClose: () => void;
-  initialData?: Partial<AddVehicleFormData> & { id?: string | number };
+  initialData?: VehicleData;
   isRenewalMode?: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
 };
 
 const FUEL_OPTIONS = [
-  { id: 1, value: 'Diesel', label: 'Diesel' },
-  { id: 2, value: 'Benzyna', label: 'Benzyna' },
+  { id: 1, value: 'DIESEL', label: 'Diesel' },
+  { id: 2, value: 'PETROL', label: 'Benzyna' },
   { id: 3, value: 'LPG', label: 'LPG' },
-  { id: 4, value: 'Hybryda', label: 'Hybryda' },
-  { id: 5, value: 'Elektryk', label: 'Elektryk' },
+  { id: 4, value: 'HYBRID', label: 'Hybryda' },
+  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
 ];
+
+const toLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const AddVehicleForm = ({
   className,
   onClose,
   initialData,
   isRenewalMode = false,
+  onSuccess,
 }: FormProps) => {
   const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
+
+  const mapInitialDataToForm = (data?: Partial<VehicleData>): Partial<AddVehicleFormData> => {
+    if (!data) return {};
+    return {
+      ...data,
+      brand: data.brand ?? '',
+      model: data.model ?? '',
+      registrationNumber: data.registrationNumber ?? '',
+      productionYear: data.productionYear ? String(data.productionYear) : undefined,
+      currentMileage: data.currentMileage ?? undefined,
+      vin: data.vin ?? undefined,
+      notes: data.notes ?? undefined,
+    };
+  };
 
   const {
     register,
@@ -46,11 +71,11 @@ export const AddVehicleForm = ({
     reValidateMode: 'onChange',
     mode: 'onTouched',
     shouldFocusError: false,
-    defaultValues: initialData || {},
+    defaultValues: mapInitialDataToForm(initialData),
   });
 
   useEffect(() => {
-    reset(initialData || {});
+    reset(mapInitialDataToForm(initialData));
   }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<AddVehicleFormData> = async (data) => {
@@ -58,22 +83,25 @@ export const AddVehicleForm = ({
     setError('root', { type: 'server', message: '' });
 
     try {
-      if (isEditMode) {
-        console.log(`Aktualizacja pojazdu o ID ${initialData?.id}:`, data);
-        // Tutaj wleci axios.put(`/api/vehicles/${initialData.id}`, data)
+      if (isEditMode && initialData?.id) {
+        await updateVehicle(String(initialData.id), data);
       } else {
-        console.log('Dodawanie nowego pojazdu:', data);
-        // Tutaj wleci axios.post('/api/vehicles', data)
+        await createVehicle(data);
       }
-      console.log('Dane gotowe do wysyłki:', data);
-      // Tutaj wleci axios/fetch
+      reset();
+      onSuccess?.();
       onClose();
-    } catch {
-      const errorMessage = isEditMode
+    } catch (err) {
+      const apiError = err as { status?: number; message?: string };
+
+      const fallback = isEditMode
         ? 'Nie udało się zaktualizować pojazdu. Spróbuj ponownie.'
         : 'Nie udało się dodać pojazdu. Spróbuj ponownie.';
 
-      setError('root', { type: 'server', message: errorMessage });
+      setError('root', {
+        type: 'server',
+        message: apiError?.message ?? fallback,
+      });
     } finally {
       setLoading(false);
     }
@@ -108,32 +136,15 @@ export const AddVehicleForm = ({
         />
 
         {/* Rok Produkcji */}
-        <div
-          className={classNames('flex flex-col gap-1 transition-opacity', {
-            'opacity-60 select-none pointer-events-none': isRenewalMode,
-          })}
-        >
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">Rok Produkcji</label>
-            {errors.productionYear?.message && (
-              <span className="text-[12px] font-medium text-alert">
-                {errors.productionYear.message}
-              </span>
-            )}
-          </div>
-          <Controller
-            control={control}
-            name="productionYear"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date)}
-                placeholder="Wybierz rok produkcji"
-                className="!w-full h-[40px] "
-              />
-            )}
-          />
-        </div>
+        <Input
+          label="Rok Produkcji"
+          placeholder="Np. 2024"
+          type="number"
+          error={errors.productionYear?.message}
+          className={inputStyles}
+          {...register('productionYear')}
+          disabled={isRenewalMode || loading}
+        />
 
         {/* Rodzaj paliwa */}
         <div
@@ -217,7 +228,7 @@ export const AddVehicleForm = ({
             render={({ field }) => (
               <DatePicker
                 value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
                 className="!w-full h-[40px]"
               />
             )}
@@ -227,6 +238,31 @@ export const AddVehicleForm = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
+        {/* Ważność przeglądu technicznego */}
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-center">
+            <label className="text-[14px] font-medium text-content-secondary">
+              Ważność przeglądu
+            </label>
+            {errors.technicalInspectionExpiry?.message && (
+              <span className="text-[12px] font-medium text-alert">
+                {errors.technicalInspectionExpiry.message}
+              </span>
+            )}
+          </div>
+          <Controller
+            control={control}
+            name="technicalInspectionExpiry"
+            render={({ field }) => (
+              <DatePicker
+                value={field.value ? new Date(field.value) : undefined}
+                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
+                className="!w-full h-[40px]"
+              />
+            )}
+          />
+        </div>
+
         {/* Ważność OC */}
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center">
@@ -241,7 +277,7 @@ export const AddVehicleForm = ({
             render={({ field }) => (
               <DatePicker
                 value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
                 className="!w-full h-[40px]"
               />
             )}
@@ -262,32 +298,7 @@ export const AddVehicleForm = ({
             render={({ field }) => (
               <DatePicker
                 value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
-                className="!w-full h-[40px]"
-              />
-            )}
-          />
-        </div>
-
-        {/* Ważność przeglądu technicznego */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">
-              Ważność przeglądu
-            </label>
-            {errors.technicalInspectionExpiry?.message && (
-              <span className="text-[12px] font-medium text-alert">
-                {errors.technicalInspectionExpiry.message}
-              </span>
-            )}
-          </div>
-          <Controller
-            control={control}
-            name="technicalInspectionExpiry"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
                 className="!w-full h-[40px]"
               />
             )}

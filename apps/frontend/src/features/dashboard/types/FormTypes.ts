@@ -1,12 +1,12 @@
 export type AddVehicleInputs = {
-  id?: number | string;
+  id?: string;
   brand: string;
   model: string;
   productionYear?: string | null;
   fuelType?: string | null;
   vin?: string | null;
-  registrationNumber?: string | null;
-  currentMileage?: number | null;
+  registrationNumber?: string;
+  currentMileage?: number;
   purchaseDate?: string | null;
   ocExpiry?: string | null;
   acExpiry?: string | null;
@@ -22,5 +22,5 @@ export type AddServiceInputs = {
   cost: number;
   servicePlace: string;
   notes?: string | null;
-  attachment?: string | null;
+  attachment?: File | null;
 };

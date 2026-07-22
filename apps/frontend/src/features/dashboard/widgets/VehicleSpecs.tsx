@@ -1,18 +1,9 @@
-import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { CreditCard, Gauge } from 'lucide-react';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { VehicleData } from '@/features/dashboard/types';
 
 interface VehicleSpecsProps {
-  car: {
-    brand: string;
-    model: string;
-    registrationNumber: string;
-    productionYear: string | number;
-    vin: string;
-    fuelType: string;
-    notes?: string;
-    currentMileage: number;
-    purchaseDate: string;
-  };
+  car: VehicleData;
   totalExpenses: number;
 }
 
