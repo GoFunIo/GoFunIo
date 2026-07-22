@@ -23,6 +23,7 @@ import {
 } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { useVehicles } from '@/hooks/useVehicles';
 import { VehicleData } from '@/features/dashboard/types';
+import { getUserFullName } from '@/utils/getUserFullName';
 
 type QuickAction = {
   id: number;
@@ -41,7 +42,7 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 function RouteComponent() {
   const { data: user, isLoading: isUserLoading } = useUser();
   const navigate = useNavigate();
-
+  console.log(user);
   const {
     data: vehiclesResponse,
     isLoading: isVehiclesLoading,
@@ -198,7 +199,7 @@ function RouteComponent() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full ">
         <div className="lg:col-span-6">
           <DashboardHeader
-            title={`Hello, ${user.email}`}
+            title={`Hello, ${getUserFullName(user.firstName, user.lastName, user.email)}`}
             subtitle="Oto, co dzieje się z Twoją flotą dzisiaj."
           />
         </div>

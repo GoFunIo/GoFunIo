@@ -1,128 +1,134 @@
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import { DeleteUserConfirm } from '@/features/dashboard/forms/DeleteUserConfirm';
-import { UserManagementFormData } from '@/features/dashboard/lib/formValidationRules';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { SelectWithAction } from '@/features/dashboard/ui/SelectWithAction';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { mockCars } from '@/store/cars';
-import { initialUsersData, UsersTable } from '@/store/usersTable';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Column } from '@/types/table';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { useTeam } from '@/hooks/useTeam';
+import { UserType } from '@/features/dashboard/types/UserTypes';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
 });
 
-type SelectedUserType = Partial<UserManagementFormData> & { id: string | number; email: string };
-
 export function RouteComponent() {
-  const [tableData, setTableData] = useState<UsersTable[]>(initialUsersData);
+  const { data: team, isPending } = useTeam();
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<SelectedUserType | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
   // Dynamiczne filtrowanie użytkowników
-  const filteredTableData = tableData.filter((item) => {
-    const query = searchQuery.toLowerCase().trim();
-    return item.user.toLowerCase().includes(query) || item.email.toLowerCase().includes(query);
-  });
+  const filteredTeam = useMemo(() => {
+    if (!team) return [];
+
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) return team;
+
+    return team.filter((user: UserType) => {
+      const firstName = user.firstName?.toLowerCase() ?? '';
+      const lastName = user.lastName?.toLowerCase() ?? '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      const email = user.email.toLowerCase();
+
+      return (
+        firstName.includes(query) ||
+        lastName.includes(query) ||
+        fullName.includes(query) ||
+        email.includes(query)
+      );
+    });
+  }, [team, searchQuery]);
 
   // Funkcja automatycznego zapisu select
-  const handleVehicleChange = (userId: string | number, nextValue: string | number) => {
-    console.log(`[ON_SAVE] Użytkownik ID: ${userId} -> Nowa wartość pojazdu: ${nextValue}`);
+  // const handleVehicleChange = (userId: string | number, nextValue: string | number) => {
+  //   console.log(`[ON_SAVE] Użytkownik ID: ${userId} -> Nowa wartość pojazdu: ${nextValue}`);
 
-    setTableData((prevData) =>
-      prevData.map((user) =>
-        user.id === userId ? { ...user, assignedVehicleId: nextValue } : user,
-      ),
-    );
-  };
+  //   setTableData((prevData) =>
+  //     prevData.map((user) =>
+  //       user.id === userId ? { ...user, assignedVehicleId: nextValue } : user,
+  //     ),
+  //   );
+  // };
 
   const handleAddUserClick = () => {
     setSelectedUser(null);
     setIsUserModalOpen(true);
   };
 
-  const handleEditUserClick = (user: UsersTable) => {
-    const [firstName = '', lastName = ''] = user.user.split(' ');
-    setSelectedUser({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName,
-      lastName,
-    });
+  const handleEditUserClick = (user: UserType) => {
+    setSelectedUser(user);
     setIsUserModalOpen(true);
   };
 
-  const handleDeleteUserClick = (user: UsersTable) => {
-    const [firstName = '', lastName = ''] = user.user.split(' ');
-    setSelectedUser({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName,
-      lastName,
-    });
+  const handleDeleteUserClick = (user: UserType) => {
+    setSelectedUser(user);
     setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!selectedUser) return;
-
-    try {
-      console.log('Usuwanie użytkownika o ID:', selectedUser.id);
-      setTableData((prev) => prev.filter((u) => u.id !== selectedUser.id));
-
-      setIsDeleteModalOpen(false);
-      setSelectedUser(null);
-    } catch (error) {
-      console.error('Błąd usuwania użytkownika:', error);
-    }
-  };
-
-  const columns: Column<UsersTable>[] = [
-    { header: 'Użytkownik', accessor: 'user', isImportant: true },
-    { header: 'E-mail', accessor: 'email' },
-    { header: 'Rola', accessor: 'role' },
+  const columns: Column<UserType>[] = [
     {
-      header: 'Przypisz pojazd',
-      accessor: 'assignedVehicleId',
-      render: (value, item) => {
-        const dynamicVehicleOptions = [
-          { value: 'none', label: '-- Brak przypisania --' },
-          ...mockCars.map((car) => {
-            const isCarTakenBySomeoneElse = tableData.some(
-              (user) => user.id !== item.id && String(user.assignedVehicleId) === String(car.id),
-            );
+      header: 'Użytkownik',
+      accessor: 'firstName',
+      isImportant: true,
+      render: (_, item) => {
+        const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ');
 
-            return {
-              value: String(car.id),
-              label: isCarTakenBySomeoneElse
-                ? `${car.brand} ${car.model.trim()} · ${car.registrationNumber} (zajęty)`
-                : `${car.brand} ${car.model.trim()} · ${car.registrationNumber}`,
-              disabled: isCarTakenBySomeoneElse,
-            };
-          }),
-        ];
-
-        return (
-          <SelectWithAction
-            options={dynamicVehicleOptions}
-            value={value ? String(value) : 'none'}
-            onChange={(nextValue) => handleVehicleChange(item.id, nextValue)}
-          />
-        );
+        return fullName || 'User';
       },
     },
+    { header: 'E-mail', accessor: 'email' },
+    { header: 'Rola', accessor: 'role' },
   ];
+
+  // const columns: Column<UsersTable>[] = [
+  //   {
+  //     header: 'Użytkownik',
+  //     accessor: 'firstName',
+  //     isImportant: true,
+  //     render: (_, item) => item.firstName || item.lastName || 'User',
+  //   },
+  //   { header: 'E-mail', accessor: 'email' },
+  //   { header: 'Rola', accessor: 'role' },
+  //   {
+  //     header: 'Przypisz pojazd',
+  //     accessor: 'assignedVehicleId',
+  //     render: (value, item) => {
+  //       const dynamicVehicleOptions = [
+  //         { value: 'none', label: '-- Brak przypisania --' },
+  //         ...mockCars.map((car) => {
+  //           const isCarTakenBySomeoneElse = tableData.some(
+  //             (user) => user.id !== item.id && String(user.assignedVehicleId) === String(car.id),
+  //           );
+
+  //           return {
+  //             value: String(car.id),
+  //             label: isCarTakenBySomeoneElse
+  //               ? `${car.brand} ${car.model.trim()} · ${car.registrationNumber} (zajęty)`
+  //               : `${car.brand} ${car.model.trim()} · ${car.registrationNumber}`,
+  //             disabled: isCarTakenBySomeoneElse,
+  //           };
+  //         }),
+  //       ];
+
+  //       return (
+  //         <SelectWithAction
+  //           options={dynamicVehicleOptions}
+  //           value={value ? String(value) : 'none'}
+  //           onChange={(nextValue) => handleVehicleChange(item.id, nextValue)}
+  //         />
+  //       );
+  //     },
+  //   },
+  // ];
 
   return (
     <>
@@ -149,7 +155,22 @@ export function RouteComponent() {
         </BoardButton>
       </div>
 
-      {filteredTableData.length === 0 ? (
+      <BlockWrapper>
+        {isPending ? (
+          <LoadingIcon className="m-auto my-[24px]" />
+        ) : filteredTeam.length === 0 ? (
+          <EmptyPlaceholder title="Brak użytkowników" />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filteredTeam}
+            onEdit={handleEditUserClick}
+            onDelete={handleDeleteUserClick}
+            footer={false}
+          />
+        )}
+      </BlockWrapper>
+      {/* {filteredTeam.length === 0 ? (
         <BlockWrapper>
           <EmptyPlaceholder title="Brak użytkowników" />
         </BlockWrapper>
@@ -157,13 +178,13 @@ export function RouteComponent() {
         <BlockWrapper className="overflow-visible">
           <DataTable
             columns={columns}
-            data={tableData}
+            data={filteredTeam}
             onEdit={handleEditUserClick}
             onDelete={handleDeleteUserClick}
             footer={false}
           />
         </BlockWrapper>
-      )}
+      )} */}
 
       {/* MODAL DODAWANIA / EDYCJI */}
       <Modal
@@ -195,7 +216,6 @@ export function RouteComponent() {
         {selectedUser && (
           <DeleteUserConfirm
             user={selectedUser}
-            onConfirm={handleDeleteConfirm}
             onClose={() => {
               setIsDeleteModalOpen(false);
               setSelectedUser(null);

@@ -80,9 +80,16 @@ export const AddServiceSchema = yup.object().shape({
 // 3. DANE OSOBOWE
 // =========================================================================
 export const PersonalDataSchema = yup.object({
+  email: yup.string().optional().default(''),
   firstName: yup.string().default(''),
   lastName: yup.string().default(''),
-  phone: yup.string().default(''),
+  phone: yup
+    .string()
+    .default('')
+    .matches(/^\+?[0-9\s\-()]{7,20}$/, {
+      message: 'Nieprawidłowy numer telefonu',
+      excludeEmptyString: true,
+    }),
   address: yup.string().default(''),
   city: yup.string().default(''),
 
@@ -100,31 +107,40 @@ export const PersonalDataSchema = yup.object({
 // =========================================================================
 export const CompanyDataSchema = yup.object({
   sameAsPersonal: yup.boolean().default(false),
-  companyName: yup.string().required('Nazwa firmy jest wymagana'),
+  name: yup.string().required('Nazwa firmy jest wymagana'),
+  email: yup
+    .string()
+    .required('Adres e-mail jest wymagany')
+    .email('Wprowadź poprawny adres e-mail'),
   nip: yup
     .string()
     .required('NIP jest wymagany')
     .transform((value: string) => (value ? value.replace(/[\s-]/g, '') : ''))
     .matches(/^\d{10}$/, 'NIP musi mieć dokładnie 10 cyfr'),
-
-  companyAddress: yup.string().when('sameAsPersonal', {
+  address: yup.string().when('sameAsPersonal', {
     is: true,
     then: (schema) => schema.notRequired(),
     otherwise: (schema) => schema.required('Adres firmy jest wymagany'),
   }),
-
-  companyPostalCode: yup.string().when('sameAsPersonal', {
+  city: yup.string().when('sameAsPersonal', {
+    is: true,
+    then: (schema) => schema.notRequired(),
+    otherwise: (schema) => schema.required('Miasto jest wymagane'),
+  }),
+  postalCode: yup.string().when('sameAsPersonal', {
     is: true,
     then: (schema) => schema.notRequired(),
     otherwise: (schema) =>
       schema.required('Kod pocztowy jest wymagany').matches(/^\d{2}-\d{3}$/, 'Format 00-000'),
   }),
-
-  companyCity: yup.string().when('sameAsPersonal', {
-    is: true,
-    then: (schema) => schema.notRequired(),
-    otherwise: (schema) => schema.required('Miasto jest wymagane'),
-  }),
+  phone: yup
+    .string()
+    .required('Telefon jest wymagany')
+    .default('')
+    .matches(/^\+?[0-9\s\-()]{7,20}$/, {
+      message: 'Nieprawidłowy numer telefonu',
+      excludeEmptyString: true,
+    }),
 });
 
 // =========================================================================
@@ -135,10 +151,7 @@ export const ChangeEmailSchema = yup.object({
     .string()
     .email('Podaj prawidłowy e-mail')
     .required('Niepoprawny format adresu e-mail'),
-  confirmEmail: yup
-    .string()
-    .oneOf([yup.ref('newEmail')], 'Nowy e-mail musi być identyczny')
-    .required('Powtórz e-mail'),
+  currentPassword: yup.string().required('Podaj prawidłowe hasło'),
 });
 
 // =========================================================================

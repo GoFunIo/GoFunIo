@@ -10,9 +10,11 @@ import classNames from 'classnames';
 import { signOut } from '@/features/auth/auth.api';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeToggle } from '@/hooks/useTheme';
+import { getInitials } from '@/utils/getInitials';
 import { RemindersDropdown } from './RemindersDropdown';
 import { useVehicles } from '@/hooks/useVehicles';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
+import { getUserFullName } from '@/utils/getUserFullName';
 
 export const Userbar = () => {
   const { data: user } = useUser();
@@ -65,33 +67,6 @@ export const Userbar = () => {
     };
   }, []);
 
-  // 1. Złożenie pełnego imienia i nazwiska
-  const userFullName = useMemo(() => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    if (user?.name) {
-      return user.name;
-    }
-    // Fallback
-    return user?.email?.split('@')[0] ?? 'Użytkownik';
-  }, [user]);
-
-  // 2. Generowanie inicjałów
-  const getInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-    }
-    if (user?.name) {
-      const parts = user.name.trim().split(' ');
-      if (parts.length >= 2) {
-        return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
-      }
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-    return user?.email?.slice(0, 2).toUpperCase() ?? 'U';
-  };
-
   return (
     <>
       <div className="flex items-center z-9 min-[426px]:h-[64px] h-[50px] bg-bg-card border-b border-icon shrink-0">
@@ -134,13 +109,15 @@ export const Userbar = () => {
             >
               {/* AVATAR Z INICJAŁAMI  */}
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center shrink-0">
-                <p className="text-[12px] font-bold text-white">{getInitials()}</p>
+                <p className="text-[12px] font-bold text-white">
+                  {getInitials(user.firstName, user.lastName, user.email)}
+                </p>
               </div>
 
               {/* DANE UŻYTKOWNIKA */}
               <div className="max-[426px]:hidden flex flex-col">
                 <p className="text-[14px] font-bold text-content-primary leading-tight">
-                  {userFullName}
+                  {getUserFullName(user.firstName, user.lastName, user.email)}
                 </p>
                 <p className="text-[12px] text-content-secondary leading-tight mt-0.5">
                   {user?.email}

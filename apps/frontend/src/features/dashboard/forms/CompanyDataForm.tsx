@@ -2,32 +2,45 @@ import { useEffect } from 'react';
 import { Resolver, useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { CompanyDataSchema } from '../lib/formValidationRules';
-import { CompanyDataFormData, PersonalDataFormData } from '../lib/formValidationRules';
+import { CompanyDataFormData } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { formatNIP } from '@/utils/formatNIP';
+import { formatPostalCode } from '@/utils/formatPostalCode';
+import { useCompany } from '@/hooks/useCompany';
+import { changeCompanyInfo } from '../api/company.api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLoading } from '@/hooks/useLoading';
+import { useUser } from '@/hooks/useUser';
+import { FormError } from '@/features/auth/ui/FormError';
 
 type Props = {
   onClose: () => void;
-  initialCompanyData?: CompanyDataFormData;
-  personalData?: PersonalDataFormData;
 };
 
-export const CompanyDataForm = ({ onClose, initialCompanyData, personalData }: Props) => {
+export const CompanyDataForm = ({ onClose }: Props) => {
+  const queryClient = useQueryClient();
+  const { data: company } = useCompany();
+  const { data: user } = useUser();
+  const { loading, setLoading } = useLoading();
+
   const {
     register,
     handleSubmit,
-    setValue,
     control,
+    setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CompanyDataFormData>({
     resolver: yupResolver(CompanyDataSchema) as unknown as Resolver<CompanyDataFormData>,
-    defaultValues: initialCompanyData || {
-      sameAsPersonal: false,
-      companyName: '',
-      nip: '',
-      companyAddress: '',
-      companyPostalCode: '',
-      companyCity: '',
+    defaultValues: {
+      name: company.name ?? '',
+      email: company.email ?? '',
+      phone: company.phone ?? '',
+      nip: company.taxId ?? '',
+      address: company.address ?? '',
+      postalCode: company.postalCode ?? '',
+      city: company.city ?? '',
     },
   });
 
@@ -38,51 +51,47 @@ export const CompanyDataForm = ({ onClose, initialCompanyData, personalData }: P
   });
 
   useEffect(() => {
-    if (isSameAddress && personalData) {
-      setValue('companyAddress', personalData.address, { shouldValidate: true });
-      setValue('companyPostalCode', personalData.postalCode, { shouldValidate: true });
-      setValue('companyCity', personalData.city, { shouldValidate: true });
+    if (isSameAddress && user) {
+      setValue('address', user.address, { shouldValidate: true });
+      setValue('postalCode', user.postalCode, { shouldValidate: true });
+      setValue('city', user.city, { shouldValidate: true });
     }
-  }, [isSameAddress, personalData, setValue]);
+  }, [isSameAddress, user, setValue]);
 
   const onSubmit = async (data: CompanyDataFormData) => {
+    setLoading(true);
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
-      console.log('Wysyłanie danych firmowych do bazy:', data);
-      // await axios.patch('/api/profile/company', data);
+      const company = await changeCompanyInfo(data);
+      queryClient.setQueryData(['company'], company);
       onClose();
     } catch (error) {
-      console.error('Błąd zapisu danych firmowych:', error);
+      const err = error as { status?: number; message?: string };
+
+      if (err.status === 0) {
+        setError('root', {
+          type: 'network',
+          message: 'Brak połączenia z internetem.',
+        });
+        return;
+      }
+
+      setError('root', {
+        type: 'server',
+        message: 'Błąd serwera. Spróbuj ponownie później.',
+      });
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const formatPostalCode = (value: string): string => {
-    const digits = value.replace(/\D/g, '');
-
-    if (digits.length > 2) {
-      return `${digits.slice(0, 2)}-${digits.slice(2, 5)}`;
-    }
-
-    return digits;
-  };
-
-  const formatNIP = (value: string): string => {
-    const digits = value.replace(/\D/g, '');
-
-    if (digits.length > 8) {
-      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8, 10)}`;
-    }
-    if (digits.length > 6) {
-      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}`;
-    }
-    if (digits.length > 3) {
-      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}`;
-    }
-
-    return digits;
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex items-center gap-[8px] mb-[20px]">
         <input
           type="checkbox"
@@ -102,27 +111,46 @@ export const CompanyDataForm = ({ onClose, initialCompanyData, personalData }: P
         <Input
           label="Nazwa firmy *"
           placeholder="Nazwa firmy"
-          {...register('companyName')}
-          error={errors.companyName?.message}
+          {...register('name')}
+          error={errors.name?.message}
         />
 
         <Input
           label="NIP *"
           placeholder="111-111-11-11"
-          {...register('nip')}
+          {...register('nip', {
+            onChange: (e) => {
+              e.target.value = formatNIP(e.target.value);
+            },
+          })}
           maxLength={13}
-          onChange={(e) => {
-            e.target.value = formatNIP(e.target.value);
-          }}
           error={errors.nip?.message}
+        />
+
+        <Input
+          label="Telefon *"
+          placeholder="+48 100-200-300"
+          {...register('phone', {
+            onChange: (e) => {
+              e.target.value = e.target.value.replace(/[^\d+\s()-]/g, '');
+            },
+          })}
+          error={errors.phone?.message}
+        />
+
+        <Input
+          label="Email *"
+          placeholder="Email"
+          {...register('email')}
+          error={errors.email?.message}
         />
 
         <div className="md:col-span-2">
           <Input
             label="Adres firmowy *"
             placeholder="Wpisz ulicę i numer domu"
-            {...register('companyAddress')}
-            error={errors.companyAddress?.message}
+            {...register('address')}
+            error={errors.address?.message}
             disabled={isSameAddress}
             className={isSameAddress ? 'opacity-60 bg-background-secondary' : ''}
           />
@@ -131,21 +159,22 @@ export const CompanyDataForm = ({ onClose, initialCompanyData, personalData }: P
         <Input
           label="Kod pocztowy *"
           placeholder="00-000"
-          {...register('companyPostalCode')}
-          error={errors.companyPostalCode?.message}
+          {...register('postalCode', {
+            onChange: (e) => {
+              e.target.value = formatPostalCode(e.target.value);
+            },
+          })}
+          error={errors.postalCode?.message}
           disabled={isSameAddress}
           className={isSameAddress ? 'opacity-60 bg-background-secondary' : ''}
           maxLength={6}
-          onChange={(e) => {
-            e.target.value = formatPostalCode(e.target.value);
-          }}
         />
 
         <Input
           label="Miasto *"
           placeholder="Wpisz miasto "
-          {...register('companyCity')}
-          error={errors.companyCity?.message}
+          {...register('city')}
+          error={errors.city?.message}
           disabled={isSameAddress}
           className={isSameAddress ? 'opacity-60 bg-background-secondary' : ''}
         />
@@ -161,8 +190,8 @@ export const CompanyDataForm = ({ onClose, initialCompanyData, personalData }: P
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" disabled={isSubmitting}>
-          {isSubmitting ? 'Zapisywanie...' : 'Zapisz'}
+        <BoardButton type="submit" size="medium" loading={loading}>
+          Zapisz
         </BoardButton>
       </div>
     </form>
