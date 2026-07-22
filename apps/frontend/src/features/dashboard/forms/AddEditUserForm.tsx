@@ -70,9 +70,9 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
 
     try {
       if (isEditMode) {
-        changeTeamMember({ ...data, id: initialData.id });
+        await changeTeamMember({ ...data, id: initialData.id });
       } else {
-        inviteTeamMember(data);
+        await inviteTeamMember(data);
       }
       await queryClient.invalidateQueries({
         queryKey: ['team'],

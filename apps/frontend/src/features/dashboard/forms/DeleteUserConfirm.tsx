@@ -41,6 +41,11 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
           isError: true,
           message: 'Brak połączenia z internetem.',
         });
+      } else if (err.status === 409) {
+        setError({
+          isError: true,
+          message: 'Nie możesz usunąć własnego konta.',
+        });
       } else {
         setError({
           isError: true,
