@@ -10,6 +10,7 @@ import { ChangeEmailForm } from '@/features/dashboard/forms/ChangeEmailForm';
 import { ChangePasswordForm } from '@/features/dashboard/forms/ChangePasswordForm';
 import { useUser } from '@/hooks/useUser';
 import { useCompany } from '@/hooks/useCompany';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 
 export const Route = createFileRoute('/dashboard/settings/profile')({
   component: RouteComponent,
@@ -19,7 +20,7 @@ type ModalType = 'personal' | 'company' | 'email' | 'password' | null;
 
 function RouteComponent() {
   const { data: user } = useUser();
-  const { data: company } = useCompany();
+  const { data: company, isPending: pendingCompany } = useCompany();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const userPersonalDataLines = [
@@ -30,7 +31,7 @@ function RouteComponent() {
     user.postalCode || user.city ? `${user.postalCode ?? ''} ${user.city ?? ''}`.trim() : null,
     user.phone,
   ];
-  console.log(userPersonalDataLines);
+
   const userCompanyDataLines = [
     company?.name,
     company?.taxId ? `NIP: ${company.taxId}` : null,
@@ -104,27 +105,36 @@ function RouteComponent() {
 
         {/* 2. DANE FIRMOWE  */}
         <BlockWrapper className="flex justify-between gap-[12px] order-2 ">
-          <div>
-            <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane firmowe</p>
-            {!userCompanyDataLines.some(Boolean) ? (
-              <p className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
-                Brak uzupełnionych danych firmowych.
-              </p>
-            ) : (
-              userCompanyDataLines.map((item, index) => {
-                if (!item) return null;
-
-                return (
-                  <p key={index} className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
-                    {item}
+          {pendingCompany ? (
+            <LoadingIcon className="m-auto" />
+          ) : (
+            <>
+              <div>
+                <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane firmowe</p>
+                {!userCompanyDataLines.some(Boolean) ? (
+                  <p className="text-[14px] text-content-secondary pb-[5px] last:pb-0">
+                    Brak uzupełnionych danych firmowych.
                   </p>
-                );
-              })
-            )}
-          </div>
-          <BoardButton onClick={() => setActiveModal('company')} size="small" icon="edit">
-            Edytuj
-          </BoardButton>
+                ) : (
+                  userCompanyDataLines.map((item, index) => {
+                    if (!item) return null;
+
+                    return (
+                      <p
+                        key={index}
+                        className="text-[14px] text-content-secondary pb-[5px] last:pb-0"
+                      >
+                        {item}
+                      </p>
+                    );
+                  })
+                )}
+              </div>
+              <BoardButton onClick={() => setActiveModal('company')} size="small" icon="edit">
+                Edytuj
+              </BoardButton>
+            </>
+          )}
         </BlockWrapper>
 
         {/* 3. ADRES E-MAIL  */}

@@ -2,6 +2,8 @@ import { CompanyDataFormData } from '../lib/formValidationRules';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
+// get user company
+
 export const getCompany = async () => {
   const res = await fetch(`${API_URL}/company`, {
     method: 'GET',
@@ -19,6 +21,8 @@ export const getCompany = async () => {
 
   return JSON.parse(text);
 };
+
+// change user company
 
 export const changeCompanyInfo = async (form: CompanyDataFormData) => {
   try {

@@ -5,62 +5,100 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '../ui/Select';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { useEffect } from 'react';
+import { changeTeamMember, inviteTeamMember } from '../api/team.api';
+import { useLoading } from '@/hooks/useLoading';
+import { useQueryClient } from '@tanstack/react-query';
+import { UserFormData, UserType } from '../types/UserTypes';
+import { FormError } from '@/features/auth/ui/FormError';
 
 type Props = {
   onClose: () => void;
-  initialData?: Partial<UserManagementFormData> & { id?: string | number };
+  initialData?: UserType;
 };
 
 const roleOptions = [
   { id: 1, value: 'Użytkownik', label: 'Użytkownik' },
-  { id: 2, value: 'Admin', label: 'Admin' },
-  { id: 3, value: 'Menedżer', label: 'Menedżer floty' },
+  { id: 2, value: 'ADMIN', label: 'Admin' },
+  { id: 3, value: 'MANAGER', label: 'Menedżer floty' },
 ];
 
 export const AddEditUserForm = ({ onClose, initialData }: Props) => {
+  const queryClient = useQueryClient();
+  const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
+
+  const emptyForm: UserFormData = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    sendInvite: false,
+  };
 
   const {
     register,
     handleSubmit,
     reset,
+    setError,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<UserManagementFormData>({
+  } = useForm<UserFormData>({
     resolver: yupResolver(UserManagementSchema),
-    defaultValues: initialData || {
-      firstName: '',
-      lastName: '',
-      email: '',
-      role: '',
-      sendInvite: false,
-    },
+    defaultValues: emptyForm,
   });
 
   useEffect(() => {
     if (initialData) {
-      reset(initialData);
-    } else {
       reset({
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: '',
+        firstName: initialData.firstName ?? '',
+        lastName: initialData.lastName ?? '',
+        email: initialData.email,
+        role: initialData.role ?? '',
         sendInvite: false,
       });
+    } else {
+      reset(emptyForm);
     }
   }, [initialData, reset]);
 
   const onSubmit = async (data: UserManagementFormData) => {
+    setLoading(true);
+    setError('root', {
+      type: 'server',
+      message: '',
+    });
+
     try {
       if (isEditMode) {
-        console.log(`Aktualizacja użytkownika o ID ${initialData?.id}:`, data);
+        changeTeamMember({ ...data, id: initialData.id });
       } else {
-        console.log('Tworzenie nowego użytkownika:', data);
+        inviteTeamMember(data);
       }
+      await queryClient.invalidateQueries({
+        queryKey: ['team'],
+      });
       onClose();
     } catch (error) {
-      console.error('Błąd podczas zapisu użytkownika:', error);
+      const err = error as { status?: number; message?: string };
+
+      if (err.status === 0) {
+        setError('root', {
+          type: 'network',
+          message: 'Brak połączenia z internetem.',
+        });
+      } else if (err.status === 409) {
+        setError('root', {
+          type: 'network',
+          message: 'Użytkownik z takim adresem już istnieje.',
+        });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Błąd serwera. Spróbuj ponownie później.',
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,6 +106,7 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full text-left">
+      {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-y-4">
         <Input
           label="Imię"
@@ -148,8 +187,8 @@ export const AddEditUserForm = ({ onClose, initialData }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" disabled={isSubmitting}>
-          {isSubmitting ? 'Zapisywanie...' : isEditMode ? 'Zapisz' : 'Utwórz użytkownika'}
+        <BoardButton type="submit" size="medium" loading={loading}>
+          {isEditMode ? 'Zapisz' : 'Utwórz użytkownika'}
         </BoardButton>
       </div>
     </form>
