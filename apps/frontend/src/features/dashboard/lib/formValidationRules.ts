@@ -1,5 +1,5 @@
-import { isPasswordValid } from '@/features/auth/lib/passwordRules';
 import * as yup from 'yup';
+import { isPasswordValid } from '@/features/auth/lib/passwordRules';
 
 // =========================================================================
 // 1. SCHEMAT DLA DODAWANIA POJAZDU
@@ -14,7 +14,9 @@ export const AddVehicleSchema = yup
       .optional()
       .test('not-in-future', 'Rok produkcji nie może być z przyszłości.', (value) => {
         if (!value || value === '') return true;
-        return new Date(value) <= new Date();
+        const year = Number(value);
+        const currentYear = new Date().getFullYear();
+        return year >= 1900 && year <= currentYear;
       }),
 
     fuelType: yup.string().nullable().optional(),

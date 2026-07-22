@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
-import { activityArray, mockCars } from '@/store/cars';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { activityArray } from '@/store/cars';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
@@ -13,21 +13,52 @@ import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
+import { getVehicle } from '@/features/dashboard/api/vehicles.api';
+import { useDeleteVehicle, useVehicle } from '@/hooks/useVehicles';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { VehicleData } from '@/features/dashboard/types';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
-  loader: ({ params }) => {
-    return mockCars.find((b) => String(b.id) === params.carId);
+  loader: async ({ params }) => {
+    try {
+      return await getVehicle(params.carId);
+    } catch {
+      return null;
+    }
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const car = Route.useLoaderData();
+  const initialCarData = Route.useLoaderData() as VehicleData | null;
+  const { carId } = Route.useParams();
   const navigate = useNavigate();
 
-  if (!car) {
+  const { data: car, isLoading, refetch } = useVehicle(carId);
+  const currentCar = car ?? initialCarData;
+
+  const { mutateAsync: removeCar, isPending: isDeleting } = useDeleteVehicle();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
+  const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
+
+  if (isLoading && !currentCar) {
     return (
-      <div className="p-8 text-center">
+      <EmptyPlaceholder
+        className="bg-bg-card min-h-[250px]"
+        title="Ładowanie danych pojazdu..."
+        icon={<CarFront size={48} className="text-primary" />}
+      />
+    );
+  }
+
+  if (!currentCar) {
+    return (
+      <div className="p-8 bg-bg-card flex flex-column justify-center items-center ">
         <p className="text-content-secondary">Nie znaleziono takiego pojazdu.</p>
         <Link to="/dashboard/my-cars" className="text-primary mt-2 inline-block hover:underline">
           Wróć do listy pojazdów
@@ -36,32 +67,27 @@ function RouteComponent() {
     );
   }
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
-  const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
-
   const isServiceModalOpen = !!modalState;
   const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
   const isServiceDeleteModalOpen = !!deleteModalState;
 
-  const editModalTitle = `Edytuj pojazd ${car.brand} ${car.model}`;
+  const editModalTitle = `Edytuj pojazd ${currentCar.brand} ${currentCar.model}`;
   const editModalSubtitle =
     'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
 
   const handleDelete = async () => {
+    setDeleteError(null);
     try {
-      console.log('Usuwanie pojazdu o ID:', car.id);
-      // await axios.delete(`/api/vehicles/${car.id}`);
+      await removeCar(currentCar.id);
       setIsDeleteModalOpen(false);
       navigate({ to: '/dashboard/my-cars' });
     } catch (error) {
-      console.error('Błąd usuwania:', error);
+      const apiError = error as { message?: string };
+      setDeleteError(apiError?.message ?? 'Wystąpił błąd podczas usuwania pojazdu.');
     }
   };
 
-  const singleCarHistory = activityArray.filter((item) => item.vehicleId === String(car.id));
+  const singleCarHistory = activityArray.filter((item) => item.vehicleId === String(currentCar.id));
 
   const totalExpenses = singleCarHistory.reduce((sum, item) => {
     return sum + item.cost;
@@ -71,7 +97,7 @@ function RouteComponent() {
     if (isServiceEditMode) {
       const editItem = modalState as HistoryDataItem;
       return {
-        vehicleId: String(car.id),
+        vehicleId: String(currentCar.id),
         servicePlace: editItem.servicePlace,
         cost: editItem.cost,
         serviceType: editItem.serviceType,
@@ -81,7 +107,7 @@ function RouteComponent() {
       };
     }
     return {
-      vehicleId: String(car.id),
+      vehicleId: String(currentCar.id),
       serviceDate: new Date().toISOString().split('T')[0],
       serviceType: '',
       cost: undefined,
@@ -89,7 +115,7 @@ function RouteComponent() {
       notes: '',
       attachment: undefined,
     };
-  }, [modalState, isServiceEditMode, car.id]);
+  }, [modalState, isServiceEditMode, currentCar.id]);
 
   return (
     <>
@@ -109,11 +135,12 @@ function RouteComponent() {
             <CarFront className="text-white" />
           </IconWrapper>
           <div className="">
-            <h3 className="pb-[3px]">
-              {car.brand} {car.model}
+            <h3 className="pb-[3px] capitalize">
+              {currentCar.brand} {currentCar.model}
             </h3>
             <p className="text-[14px] text-content-secondary">
-              {car.productionYear} · {car.registrationNumber} · {car.fuelType}
+              {currentCar.productionYear ?? ''} · {currentCar.registrationNumber} ·{' '}
+              {currentCar.fuelType ?? 'Nieokreślone'}
             </p>
           </div>
         </div>
@@ -126,8 +153,9 @@ function RouteComponent() {
             icon="delete"
             variant="danger"
             size="small"
+            disabled={isDeleting}
           >
-            Usuń
+            {isDeleting ? 'Usuwanie...' : 'Usuń'}
           </BoardButton>
         </div>
       </div>
@@ -136,19 +164,19 @@ function RouteComponent() {
       <GridWrapper layout={'3-equal'}>
         <DashboardCard
           title="przegląd"
-          value={car.technicalInspectionExpiry || ''}
+          value={currentCar.technicalInspectionExpiry || ''}
           icon={<CalendarCog size={20} />}
         />
 
         <DashboardCard
           title="Ubezpieczenie OC"
-          value={car.ocExpiry || ''}
+          value={currentCar.ocExpiry || ''}
           icon={<ShieldAlert size={20} />}
         />
 
         <DashboardCard
           title="Ubezpieczenie AC"
-          value={car.acExpiry || ''}
+          value={currentCar.acExpiry || ''}
           icon={<ShieldCheck size={20} />}
         />
       </GridWrapper>
@@ -170,7 +198,7 @@ function RouteComponent() {
           title="Historia serwisowa"
         />
 
-        <VehicleSpecs car={car} totalExpenses={totalExpenses} />
+        <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
       </GridWrapper>
 
       {/* =========================================================
@@ -184,7 +212,11 @@ function RouteComponent() {
         title={editModalTitle}
         subtitle={editModalSubtitle}
       >
-        <AddVehicleForm initialData={car} onClose={() => setIsEditModalOpen(false)} />
+        <AddVehicleForm
+          initialData={currentCar}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={() => refetch()}
+        />
       </Modal>
 
       {/* MODAL USUWANIA */}
@@ -195,10 +227,15 @@ function RouteComponent() {
         subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
       >
         <DeleteCarConfirm
-          car={car}
+          car={currentCar}
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={handleDelete}
         />
+        {deleteError && (
+          <p className="text-alert text-[12px] font-medium text-center mt-3 bg-alert/10 p-2 rounded">
+            {deleteError}
+          </p>
+        )}
       </Modal>
 
       {/* =========================================================
@@ -213,7 +250,7 @@ function RouteComponent() {
         subtitle={
           isServiceEditMode
             ? 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.'
-            : `Zapisz nową czynność serwisową dla pojazdu ${car.brand}.`
+            : `Zapisz nową czynność serwisową dla pojazdu ${currentCar.brand}..`
         }
       >
         <AddVehicleServiceForm
@@ -234,20 +271,19 @@ function RouteComponent() {
           <DeleteServiceConfirm
             service={{
               id: deleteModalState.id,
-              vehicleId: String(car.id),
+              vehicleId: String(currentCar.id),
               serviceType: deleteModalState.notes || 'Czynność serwisowa',
               servicePlace: deleteModalState.servicePlace,
               serviceDate: deleteModalState.serviceDate,
               cost: deleteModalState.cost,
-              carBrand: car.brand,
-              carModel: car.model,
-              registrationNumber: car.registrationNumber,
+              carBrand: currentCar.brand,
+              carModel: currentCar.model,
+              registrationNumber: currentCar.registrationNumber,
             }}
             onClose={() => setDeleteModalState(null)}
             onConfirm={async () => {
               try {
                 console.log('Usuwanie wpisu o ID:', deleteModalState.id);
-                // API: await axios.delete(`/api/services/${deleteModalState.id}`);
                 setDeleteModalState(null);
               } catch (error) {
                 console.error('Błąd podczas usuwania wpisu:', error);

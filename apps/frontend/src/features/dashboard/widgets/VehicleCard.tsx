@@ -1,34 +1,30 @@
+import { CarFront, Fuel, Gauge, Users } from 'lucide-react';
+import classNames from 'classnames';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { CarFront, Fuel, Gauge, Users } from 'lucide-react';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import classNames from 'classnames';
+import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+
+const FUEL_TYPE_LABELS: Record<VehicleFuelType, string> = {
+  DIESEL: 'Diesel',
+  PETROL: 'Benzyna',
+  LPG: 'LPG',
+  HYBRID: 'Hybryda',
+  ELECTRIC: 'Elektryk',
+};
 
 export interface VehicleCardProps {
-  vehicle: {
-    id: number;
-    brand: string;
-    model: string;
-    productionYear: string;
-    fuelType: string;
-    registrationNumber: string;
-    currentMileage: number;
-    vin: string;
-    purchaseDate: string;
-    ocExpiry: string;
-    acExpiry: string;
-    technicalInspectionExpiry: string;
-    notes: string;
-    driver?: string;
-  };
-  onDetailsClick: (id: number) => void;
+  vehicle: VehicleData;
+  onDetailsClick: (id: string) => void;
 }
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
-  const inspectionDays = calculateDaysToDate(vehicle.technicalInspectionExpiry).days;
-  const ocDays = calculateDaysToDate(vehicle.ocExpiry).days;
-  const acDays = calculateDaysToDate(vehicle.acExpiry).days;
+  const inspectionDays = vehicle.technicalInspectionExpiry
+    ? calculateDaysToDate(vehicle.technicalInspectionExpiry).days
+    : Infinity;
+  const ocDays = vehicle.ocExpiry ? calculateDaysToDate(vehicle.ocExpiry).days : Infinity;
+  const acDays = vehicle.acExpiry ? calculateDaysToDate(vehicle.acExpiry).days : Infinity;
 
   const minDays = Math.min(inspectionDays, ocDays, acDays);
 
@@ -68,11 +64,11 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
               <CarFront size={20} />
             </IconWrapper>
             <div className="flex flex-col gap-0.5">
-              <p className="font-bold text-[14px] text-content-primary">
+              <p className="font-bold text-[14px] text-content-primary uppercase">
                 {vehicle.brand} {vehicle.model}
               </p>
-              <p className="text-[12px] text-content-secondary font-medium">
-                {vehicle.registrationNumber} · {vehicle.productionYear}
+              <p className="text-[12px] text-content-secondary font-medium uppercase">
+                {vehicle.registrationNumber} · {vehicle.productionYear ?? ''}
               </p>
             </div>
           </div>
@@ -91,19 +87,23 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
           <div className=" flex flex-col gap-2">
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Fuel size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <p className="text-[14px] text-content-secondary">{vehicle.fuelType}</p>
+              <p className="text-[14px] text-content-secondary uppercase">
+                {vehicle.fuelType ? FUEL_TYPE_LABELS[vehicle.fuelType] : 'Nieokreślone'}
+              </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Gauge size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <p className="text-[14px] text-content-secondary">
-                {vehicle.currentMileage.toLocaleString()} km
+              <p className="text-[14px] text-content-secondary ">
+                {vehicle.currentMileage
+                  ? `${vehicle.currentMileage.toLocaleString()} km`
+                  : 'Brak info'}
               </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Users size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
               <div className="text-[14px] flex items-center gap-[6px]">
-                <span className="text-content-secondary">Kierowca:</span>
-                {vehicle.driver}
+                <span className="text-content-secondary">KIEROWCA:</span>
+                {vehicle.driverIds.length > 0 ? `Przypisano (${vehicle.driverIds.length})` : 'Brak'}
               </div>
             </div>
           </div>
