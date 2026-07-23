@@ -1,4 +1,3 @@
-import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import { DeleteUserConfirm } from '@/features/dashboard/forms/DeleteUserConfirm';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
@@ -12,18 +11,20 @@ import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { useTeam } from '@/hooks/useTeam';
 import { UserType } from '@/features/dashboard/types/UserTypes';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { AddUserForm } from '@/features/dashboard/forms/AddUserForm';
+import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
 });
 
+type ModalType = 'add' | 'edit' | 'delete' | null;
+
 export function RouteComponent() {
   const { data: team, isPending } = useTeam();
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
   // Dynamiczne filtrowanie użytkowników
   const filteredTeam = useMemo(() => {
@@ -61,17 +62,17 @@ export function RouteComponent() {
 
   const handleAddUserClick = () => {
     setSelectedUser(null);
-    setIsUserModalOpen(true);
+    setActiveModal('add');
   };
 
   const handleEditUserClick = (user: UserType) => {
     setSelectedUser(user);
-    setIsUserModalOpen(true);
+    setActiveModal('edit');
   };
 
   const handleDeleteUserClick = (user: UserType) => {
     setSelectedUser(user);
-    setIsDeleteModalOpen(true);
+    setActiveModal('delete');
   };
 
   const columns: Column<UserType>[] = [
@@ -87,48 +88,86 @@ export function RouteComponent() {
     },
     { header: 'E-mail', accessor: 'email' },
     { header: 'Rola', accessor: 'role' },
+    //   {
+    //     header: 'Przypisz pojazd',
+    //     accessor: 'assignedVehicleId',
+    //     render: (value, item) => {
+    //       const dynamicVehicleOptions = [
+    //         { value: 'none', label: '-- Brak przypisania --' },
+    //         ...mockCars.map((car) => {
+    //           const isCarTakenBySomeoneElse = tableData.some(
+    //             (user) => user.id !== item.id && String(user.assignedVehicleId) === String(car.id),
+    //           );
+
+    //           return {
+    //             value: String(car.id),
+    //             label: isCarTakenBySomeoneElse
+    //               ? `${car.brand} ${car.model.trim()} · ${car.registrationNumber} (zajęty)`
+    //               : `${car.brand} ${car.model.trim()} · ${car.registrationNumber}`,
+    //             disabled: isCarTakenBySomeoneElse,
+    //           };
+    //         }),
+    //       ];
+
+    //       return (
+    //         <SelectWithAction
+    //           options={dynamicVehicleOptions}
+    //           value={value ? String(value) : 'none'}
+    //           onChange={(nextValue) => handleVehicleChange(item.id, nextValue)}
+    //         />
+    //       );
+    //     },
+    //   },
   ];
 
-  // const columns: Column<UsersTable>[] = [
-  //   {
-  //     header: 'Użytkownik',
-  //     accessor: 'firstName',
-  //     isImportant: true,
-  //     render: (_, item) => item.firstName || item.lastName || 'User',
-  //   },
-  //   { header: 'E-mail', accessor: 'email' },
-  //   { header: 'Rola', accessor: 'role' },
-  //   {
-  //     header: 'Przypisz pojazd',
-  //     accessor: 'assignedVehicleId',
-  //     render: (value, item) => {
-  //       const dynamicVehicleOptions = [
-  //         { value: 'none', label: '-- Brak przypisania --' },
-  //         ...mockCars.map((car) => {
-  //           const isCarTakenBySomeoneElse = tableData.some(
-  //             (user) => user.id !== item.id && String(user.assignedVehicleId) === String(car.id),
-  //           );
+  const getModalConfig = () => {
+    switch (activeModal) {
+      case 'add':
+        return {
+          title: 'Dodaj użytkownika',
+          subtitle: 'Utwórz nowe konto i opcjonalnie wyślij zaproszenie e-mail.',
+          content: <AddUserForm onClose={() => setActiveModal(null)} />,
+        };
 
-  //           return {
-  //             value: String(car.id),
-  //             label: isCarTakenBySomeoneElse
-  //               ? `${car.brand} ${car.model.trim()} · ${car.registrationNumber} (zajęty)`
-  //               : `${car.brand} ${car.model.trim()} · ${car.registrationNumber}`,
-  //             disabled: isCarTakenBySomeoneElse,
-  //           };
-  //         }),
-  //       ];
+      case 'edit':
+        if (!selectedUser) return { title: '', subtitle: '', content: null };
 
-  //       return (
-  //         <SelectWithAction
-  //           options={dynamicVehicleOptions}
-  //           value={value ? String(value) : 'none'}
-  //           onChange={(nextValue) => handleVehicleChange(item.id, nextValue)}
-  //         />
-  //       );
-  //     },
-  //   },
-  // ];
+        return {
+          title: 'Edytuj użytkownika',
+          subtitle: 'Zaktualizuj dane użytkownika i jego rolę.',
+          content: (
+            <EditUserForm
+              initialData={selectedUser}
+              onClose={() => {
+                setActiveModal(null);
+                setSelectedUser(null);
+              }}
+            />
+          ),
+        };
+      case 'delete':
+        if (!selectedUser) return { title: '', subtitle: '', content: null };
+
+        return {
+          title: 'Usuń użytkownika',
+          subtitle:
+            'Czy na pewno chcesz usunąć tego użytkownika z systemu? Ta operacja jest nieodwracalna.',
+          content: (
+            <DeleteUserConfirm
+              user={selectedUser}
+              onClose={() => {
+                setActiveModal(null);
+                setSelectedUser(null);
+              }}
+            />
+          ),
+        };
+      default:
+        return { title: '', subtitle: '', content: null };
+    }
+  };
+
+  const modalConfig = getModalConfig();
 
   return (
     <>
@@ -170,58 +209,14 @@ export function RouteComponent() {
           />
         )}
       </BlockWrapper>
-      {/* {filteredTeam.length === 0 ? (
-        <BlockWrapper>
-          <EmptyPlaceholder title="Brak użytkowników" />
-        </BlockWrapper>
-      ) : (
-        <BlockWrapper className="overflow-visible">
-          <DataTable
-            columns={columns}
-            data={filteredTeam}
-            onEdit={handleEditUserClick}
-            onDelete={handleDeleteUserClick}
-            footer={false}
-          />
-        </BlockWrapper>
-      )} */}
 
-      {/* MODAL DODAWANIA / EDYCJI */}
       <Modal
-        isOpen={isUserModalOpen}
-        setIsOpen={setIsUserModalOpen}
-        title={selectedUser ? 'Edytuj użytkownika' : 'Dodaj użytkownika'}
-        subtitle={
-          selectedUser
-            ? 'Zaktualizuj dane użytkownika i jego rolę.'
-            : 'Utwórz nowe konto i opcjonalnie wyślij zaproszenie e-mail.'
-        }
+        isOpen={activeModal !== null}
+        setIsOpen={(isOpen) => !isOpen && setActiveModal(null)}
+        title={modalConfig.title}
+        subtitle={modalConfig.subtitle}
       >
-        <AddEditUserForm
-          initialData={selectedUser ?? undefined}
-          onClose={() => {
-            setIsUserModalOpen(false);
-            setSelectedUser(null);
-          }}
-        />
-      </Modal>
-
-      {/* MODAL USUNIĘCIA */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        setIsOpen={setIsDeleteModalOpen}
-        title="Usuń użytkownika"
-        subtitle="Czy na pewno chcesz usunąć tego użytkownika z systemu? Ta operacja jest nieodwracalna."
-      >
-        {selectedUser && (
-          <DeleteUserConfirm
-            user={selectedUser}
-            onClose={() => {
-              setIsDeleteModalOpen(false);
-              setSelectedUser(null);
-            }}
-          />
-        )}
+        {modalConfig.content}
       </Modal>
     </>
   );
