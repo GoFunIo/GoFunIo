@@ -45,17 +45,16 @@ export const Select = ({
 
   const selected = options.find((item) => item.value === value);
 
-  const handleSelect = (value: Value) => {
-    onChange(value);
+  const handleSelect = (newValue: Value) => {
+    onChange(newValue);
     setIsOpen(false);
   };
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
-      if (
-        selectRef.current?.contains(e.target as Node) ||
-        menuRef.current?.contains(e.target as Node)
-      ) {
+      const target = e.target as Node;
+
+      if (selectRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
       }
 
@@ -64,7 +63,9 @@ export const Select = ({
 
     document.addEventListener('mousedown', close);
 
-    return () => document.removeEventListener('mousedown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+    };
   }, []);
 
   const updatePosition = () => {
@@ -103,19 +104,8 @@ export const Select = ({
     }
   }, [isOpen, options.length]);
 
-  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsOpen(false);
-    }
-  };
-
   return (
-    <div
-      ref={selectRef}
-      tabIndex={0}
-      onBlur={handleBlur}
-      className={classNames('relative w-full', className)}
-    >
+    <div ref={selectRef} className={classNames('relative w-full', className)}>
       <button
         type="button"
         className={classNames(
@@ -156,7 +146,7 @@ export const Select = ({
           >
             {clearOption && (
               <span
-                onClick={() => handleSelect(null)}
+                onMouseDown={() => handleSelect(null)}
                 className={classNames(
                   'cursor-pointer rounded-[5px] p-[8px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
                   {
@@ -171,7 +161,7 @@ export const Select = ({
             {options.map((item) => (
               <span
                 key={item.id}
-                onClick={() => handleSelect(item.value)}
+                onMouseDown={() => handleSelect(item.value)}
                 className={classNames(
                   'cursor-pointer rounded-[5px] p-[8px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
                   {
