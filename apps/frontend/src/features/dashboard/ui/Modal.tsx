@@ -1,7 +1,8 @@
 import { useLockDashboardScroll } from '@/hooks/useLockDashboardScroll';
-import classNames from 'classnames';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import React, { useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type Props = {
   children: React.ReactNode;
@@ -25,33 +26,47 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) =
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, setIsOpen]);
 
-  return (
-    <div
-      className={classNames(
-        'custom-transition z-9999 bg-black/80 fixed top-0 left-0 w-full h-full flex items-center justify-center',
-        {
-          'opacity-0 pointer-events-none': !isOpen,
-          'opacity-100': isOpen,
-        },
-      )}
-      onMouseDown={() => setIsOpen(false)}
-    >
-      <div
-        className="relative max-w-[800px] max-h-[90vh] overflow-y-auto md:m-[32px] m-[15px] w-full p-[25px] rounded-[7px] border-icon bg-bg-page"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <button className="absolute right-[25px] top-[25px]" onClick={() => setIsOpen(false)}>
-          <X className="cursor-pointer text-content-primary" />
-        </button>
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="z-9999 fixed top-0 left-0 flex h-full w-full items-center justify-center bg-black/80"
+          onMouseDown={() => setIsOpen(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            className="relative max-h-[90vh] w-full max-w-[800px] overflow-y-auto rounded-[7px] border-icon bg-bg-page p-[25px] md:m-[32px] m-[15px]"
+            onMouseDown={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <button
+              type="button"
+              className="absolute right-[25px] top-[25px]"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="cursor-pointer text-content-primary" />
+            </button>
 
-        {(title || subtitle) && (
-          <div className="mb-[28px]">
-            {title && <p className="font-bold text-[18px] text-content-primary mb-2">{title}</p>}
-            {subtitle && <p className=" text-[16px] subtitle">{subtitle}</p>}
-          </div>
-        )}
-        <div className="w-full">{children}</div>
-      </div>
-    </div>
+            {(title || subtitle) && (
+              <div className="mb-[28px]">
+                {title && (
+                  <p className="mb-2 text-[18px] font-bold text-content-primary">{title}</p>
+                )}
+                {subtitle && <p className="subtitle text-[16px]">{subtitle}</p>}
+              </div>
+            )}
+
+            <div>{children}</div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 };
