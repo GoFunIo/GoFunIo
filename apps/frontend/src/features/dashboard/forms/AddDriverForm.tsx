@@ -7,6 +7,7 @@ import { BoardButton } from '../ui/BoardButton';
 import { FormError } from '@/features/auth/ui/FormError';
 import { inviteDriver } from '../api/drivers.api';
 import { DriverFormData } from '../types/DriverTypes';
+import { handlePhoneInput } from '@/utils/handlePhoneInput';
 
 type Props = {
   onClose: () => void;
@@ -94,7 +95,11 @@ export const AddDriverForm = ({ onClose }: Props) => {
           label="Numer telefonu *"
           placeholder="000 000 000"
           className={inputStyles}
-          {...register('phone')}
+          {...register('phone', {
+            onChange: (e) => {
+              e.target.value = handlePhoneInput(e.target.value);
+            },
+          })}
           error={errors.phone?.message}
         />
 

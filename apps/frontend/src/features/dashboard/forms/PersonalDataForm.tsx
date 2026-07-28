@@ -10,6 +10,7 @@ import { useLoading } from '@/hooks/useLoading';
 import { FormError } from '@/features/auth/ui/FormError';
 import { formatPostalCode } from '@/utils/formatPostalCode';
 import { useUser } from '@/hooks/useUser';
+import { handlePhoneInput } from '@/utils/handlePhoneInput';
 
 type Props = {
   onClose: () => void;
@@ -103,7 +104,7 @@ export const PersonalDataForm = ({ onClose }: Props) => {
           className={inputStyles}
           {...register('phone', {
             onChange: (e) => {
-              e.target.value = e.target.value.replace(/[^\d+\s()-]/g, '');
+              e.target.value = handlePhoneInput(e.target.value);
             },
           })}
           error={errors.phone?.message}

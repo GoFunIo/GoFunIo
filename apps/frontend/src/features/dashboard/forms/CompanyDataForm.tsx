@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLoading } from '@/hooks/useLoading';
 import { useUser } from '@/hooks/useUser';
 import { FormError } from '@/features/auth/ui/FormError';
+import { handlePhoneInput } from '@/utils/handlePhoneInput';
 
 type Props = {
   onClose: () => void;
@@ -132,7 +133,7 @@ export const CompanyDataForm = ({ onClose }: Props) => {
           placeholder="+48 100-200-300"
           {...register('phone', {
             onChange: (e) => {
-              e.target.value = e.target.value.replace(/[^\d+\s()-]/g, '');
+              e.target.value = handlePhoneInput(e.target.value);
             },
           })}
           error={errors.phone?.message}
