@@ -1,4 +1,4 @@
-import { getUser } from '@/features/auth/auth.api';
+import { getUser } from '@/features/dashboard/api/user.api';
 import { useQuery } from '@tanstack/react-query';
 
 export const useUser = () => {

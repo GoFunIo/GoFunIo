@@ -20,7 +20,7 @@ export const Route = createFileRoute('/dashboard/settings/users')({
 
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
-export function RouteComponent() {
+function RouteComponent() {
   const { data: team, isPending } = useTeam();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);

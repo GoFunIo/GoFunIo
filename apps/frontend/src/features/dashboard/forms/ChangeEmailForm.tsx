@@ -4,8 +4,7 @@ import { ChangeEmailSchema, ChangeEmailFormData } from '../lib/formValidationRul
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { useUser } from '@/hooks/useUser';
-import { changeUserEmail } from '../api/profile.api';
-import { useLoading } from '@/hooks/useLoading';
+import { changeUserEmail } from '../api/user.api';
 import { FormError } from '@/features/auth/ui/FormError';
 import { useState } from 'react';
 import { getImage } from '@/utils/getImage';
@@ -16,7 +15,6 @@ type Props = {
 
 export const ChangeEmailForm = ({ onClose }: Props) => {
   const { data: user } = useUser();
-  const { loading, setLoading } = useLoading();
   const [success, setSuccess] = useState<boolean>(false);
 
   const {
@@ -53,8 +51,6 @@ export const ChangeEmailForm = ({ onClose }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -106,7 +102,7 @@ export const ChangeEmailForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Zapisz
         </BoardButton>
       </div>

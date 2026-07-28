@@ -1,4 +1,4 @@
-import { getUser } from '@/features/auth/auth.api';
+import { getUser } from '@/features/dashboard/api/user.api';
 import { queryClient } from '@/lib/queryClient';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
