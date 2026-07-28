@@ -49,17 +49,6 @@ export function RouteComponent() {
     });
   }, [team, searchQuery]);
 
-  // Funkcja automatycznego zapisu select
-  // const handleVehicleChange = (userId: string | number, nextValue: string | number) => {
-  //   console.log(`[ON_SAVE] Użytkownik ID: ${userId} -> Nowa wartość pojazdu: ${nextValue}`);
-
-  //   setTableData((prevData) =>
-  //     prevData.map((user) =>
-  //       user.id === userId ? { ...user, assignedVehicleId: nextValue } : user,
-  //     ),
-  //   );
-  // };
-
   const handleAddUserClick = () => {
     setSelectedUser(null);
     setActiveModal('add');
@@ -88,36 +77,6 @@ export function RouteComponent() {
     },
     { header: 'E-mail', accessor: 'email' },
     { header: 'Rola', accessor: 'role' },
-    //   {
-    //     header: 'Przypisz pojazd',
-    //     accessor: 'assignedVehicleId',
-    //     render: (value, item) => {
-    //       const dynamicVehicleOptions = [
-    //         { value: 'none', label: '-- Brak przypisania --' },
-    //         ...mockCars.map((car) => {
-    //           const isCarTakenBySomeoneElse = tableData.some(
-    //             (user) => user.id !== item.id && String(user.assignedVehicleId) === String(car.id),
-    //           );
-
-    //           return {
-    //             value: String(car.id),
-    //             label: isCarTakenBySomeoneElse
-    //               ? `${car.brand} ${car.model.trim()} · ${car.registrationNumber} (zajęty)`
-    //               : `${car.brand} ${car.model.trim()} · ${car.registrationNumber}`,
-    //             disabled: isCarTakenBySomeoneElse,
-    //           };
-    //         }),
-    //       ];
-
-    //       return (
-    //         <SelectWithAction
-    //           options={dynamicVehicleOptions}
-    //           value={value ? String(value) : 'none'}
-    //           onChange={(nextValue) => handleVehicleChange(item.id, nextValue)}
-    //         />
-    //       );
-    //     },
-    //   },
   ];
 
   const getModalConfig = () => {

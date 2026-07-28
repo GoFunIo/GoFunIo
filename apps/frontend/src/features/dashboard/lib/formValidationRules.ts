@@ -175,8 +175,8 @@ export const ChangePasswordSchema = yup.object({
 // 7. SCHEMAT DLA UŻYTKOWNIKA SYSTEMU
 // =========================================================================
 export const UserManagementSchema = yup.object({
-  firstName: yup.string().default(''),
-  lastName: yup.string().default(''),
+  firstName: yup.string().required('Imię jest wymagane'),
+  lastName: yup.string().required('Nazwisko jest wymagane'),
   email: yup.string().email('Podaj prawidłowy e-mail').required('Adres e-mail jest wymagany'),
   role: yup.string().required('Wybór roli jest wymagany'),
   sendInvite: yup.boolean().default(false),

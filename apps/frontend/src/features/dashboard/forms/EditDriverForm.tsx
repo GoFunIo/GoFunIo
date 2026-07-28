@@ -124,7 +124,7 @@ export const EditDriverForm = ({ onClose, initialData }: Props) => {
           Anuluj
         </BoardButton>
         <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
-          Edytuj kierowcę
+          Zapisz
         </BoardButton>
       </div>
     </form>

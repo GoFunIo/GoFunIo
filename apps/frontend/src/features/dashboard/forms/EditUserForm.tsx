@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '../ui/Select';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { changeTeamMember } from '../api/team.api';
-import { useLoading } from '@/hooks/useLoading';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserFormData, UserType } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
@@ -16,14 +15,12 @@ type Props = {
 };
 
 const roleOptions = [
-  { id: 1, value: 'Użytkownik', label: 'Użytkownik' },
-  { id: 2, value: 'ADMIN', label: 'Admin' },
-  { id: 3, value: 'MANAGER', label: 'Menedżer floty' },
+  { id: 1, value: 'ADMIN', label: 'Admin' },
+  { id: 2, value: 'MANAGER', label: 'Menedżer floty' },
 ];
 
 export const EditUserForm = ({ onClose, initialData }: Props) => {
   const queryClient = useQueryClient();
-  const { loading, setLoading } = useLoading();
 
   const {
     register,
@@ -42,7 +39,6 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
   });
 
   const onSubmit = async (data: UserManagementFormData) => {
-    setLoading(true);
     setError('root', {
       type: 'server',
       message: '',
@@ -73,8 +69,6 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,7 +79,7 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
       {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-y-4">
         <Input
-          label="Imię"
+          label="Imię *"
           placeholder="Imię"
           className={inputStyles}
           {...register('firstName')}
@@ -93,7 +87,7 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
         />
 
         <Input
-          label="Nazwisko"
+          label="Nazwisko *"
           placeholder="Nazwisko"
           className={inputStyles}
           {...register('lastName')}
@@ -146,7 +140,7 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Zapisz
         </BoardButton>
       </div>

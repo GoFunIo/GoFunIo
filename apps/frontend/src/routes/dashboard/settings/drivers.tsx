@@ -25,7 +25,7 @@ function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedDriver, setSelectedDriver] = useState<DriverType | null>(null);
-  console.log(drivers);
+
   // Dynamiczne filtrowanie kierowcow
   const filteredDrivers = useMemo(() => {
     if (!drivers) return [];

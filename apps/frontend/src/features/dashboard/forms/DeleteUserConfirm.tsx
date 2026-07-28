@@ -66,7 +66,13 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
       </div>
 
       <div className="flex justify-end gap-[12px]  pt-[20px]">
-        <BoardButton type="button" variant="outline" size="medium" onClick={onClose}>
+        <BoardButton
+          type="button"
+          variant="outline"
+          size="medium"
+          onClick={onClose}
+          disabled={loading}
+        >
           Anuluj
         </BoardButton>
         <BoardButton
@@ -75,6 +81,7 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
           size="medium"
           onClick={() => deleteUser(user.id)}
           loading={loading}
+          disabled={loading}
         >
           Usuń
         </BoardButton>
