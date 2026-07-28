@@ -3,11 +3,11 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { ChangeEmailSchema, ChangeEmailFormData } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { useUser } from '@/hooks/useUser';
 import { changeUserEmail } from '../api/user.api';
 import { FormError } from '@/features/auth/ui/FormError';
 import { useState } from 'react';
 import { getImage } from '@/utils/getImage';
+import { useUser } from '../hooks/user.hooks';
 
 type Props = {
   onClose: () => void;

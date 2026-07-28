@@ -7,23 +7,19 @@ import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { formatNIP } from '@/utils/formatNIP';
 import { formatPostalCode } from '@/utils/formatPostalCode';
-import { useCompany } from '@/hooks/useCompany';
-import { changeCompanyInfo } from '../api/company.api';
-import { useQueryClient } from '@tanstack/react-query';
-import { useLoading } from '@/hooks/useLoading';
-import { useUser } from '@/hooks/useUser';
 import { FormError } from '@/features/auth/ui/FormError';
 import { handlePhoneInput } from '@/utils/handlePhoneInput';
+import { useUser } from '../hooks/user.hooks';
+import { useChangeCompanyInfo, useCompany } from '../hooks/company.hooks';
 
 type Props = {
   onClose: () => void;
 };
 
 export const CompanyDataForm = ({ onClose }: Props) => {
-  const queryClient = useQueryClient();
   const { data: company } = useCompany();
   const { data: user } = useUser();
-  const { loading, setLoading } = useLoading();
+  const { mutateAsync: updateCompany } = useChangeCompanyInfo();
 
   const {
     register,
@@ -60,15 +56,13 @@ export const CompanyDataForm = ({ onClose }: Props) => {
   }, [isSameAddress, user, setValue]);
 
   const onSubmit = async (data: CompanyDataFormData) => {
-    setLoading(true);
     setError('root', {
       type: 'server',
       message: '',
     });
 
     try {
-      const company = await changeCompanyInfo(data);
-      queryClient.setQueryData(['company'], company);
+      await updateCompany(data);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };
@@ -85,8 +79,6 @@ export const CompanyDataForm = ({ onClose }: Props) => {
         type: 'server',
         message: 'Błąd serwera. Spróbuj ponownie później.',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -191,7 +183,7 @@ export const CompanyDataForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Zapisz
         </BoardButton>
       </div>

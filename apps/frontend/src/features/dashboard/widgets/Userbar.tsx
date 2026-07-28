@@ -3,7 +3,6 @@ import { BurgerButton } from '../ui/BurgerButton';
 import { Logo } from '../ui/Logo';
 import { useMediaQuery } from 'react-responsive';
 import { UserbarMenu } from './UserbarMenu';
-import { useUser } from '@/hooks/useUser';
 import { Bell, LogOut, Settings } from 'lucide-react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import classNames from 'classnames';
@@ -15,6 +14,7 @@ import { RemindersDropdown } from './RemindersDropdown';
 import { useVehicles } from '@/hooks/useVehicles';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import { getUserFullName } from '@/utils/getUserFullName';
+import { useUser } from '../hooks/user.hooks';
 
 export const Userbar = () => {
   const { data: user } = useUser();
