@@ -24,7 +24,7 @@ export const getDrivers = async () => {
 
 // invite driver to your team
 
-export const inviteDriver = async (form: DriverFormData) => {
+export const addDriver = async (form: DriverFormData) => {
   try {
     const res = await fetch(`${API_URL}/drivers`, {
       method: 'POST',
