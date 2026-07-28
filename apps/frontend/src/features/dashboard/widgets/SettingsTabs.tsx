@@ -7,6 +7,7 @@ import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 type SettingsRoutePath =
   | '/dashboard/settings/profile'
   | '/dashboard/settings/users'
+  | '/dashboard/settings/drivers'
   | '/dashboard/settings/notification'
   | '/dashboard/settings/payments';
 
@@ -32,6 +33,12 @@ export const SettingTabs = () => {
       icon: <Users size={20} />,
     },
     {
+      to: '/dashboard/settings/drivers',
+      title: 'Kierowcy',
+      subtitle: 'Zarządzanie kierowcami',
+      icon: <Users size={20} />,
+    },
+    {
       to: '/dashboard/settings/notification',
       title: 'Powiadomienia',
       subtitle: 'Ustawienia alertów',
@@ -46,7 +53,7 @@ export const SettingTabs = () => {
   ];
 
   return (
-    <GridWrapper layout={'4-equal'}>
+    <GridWrapper layout={'5-equal'}>
       {navigationTabs.map((tab) => (
         <Link key={tab.to} to={tab.to} className="block text-left no-underline">
           {({ isActive }) => (

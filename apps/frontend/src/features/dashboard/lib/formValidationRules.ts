@@ -182,6 +182,23 @@ export const UserManagementSchema = yup.object({
   sendInvite: yup.boolean().default(false),
 });
 
+// =========================================================================
+// 8. SCHEMAT DLA KIEROWCÓW
+// =========================================================================
+export const DriverManagementSchema = yup.object({
+  firstName: yup.string().required('Imię jest wymagane'),
+  lastName: yup.string().required('Nazwisko jest wymagane'),
+  email: yup.string().email('Podaj prawidłowy e-mail').required('Adres e-mail jest wymagany'),
+  phone: yup
+    .string()
+    .required('Numer telefonu jest wymagany')
+    .matches(/^\+?[0-9\s\-()]{7,20}$/, {
+      message: 'Nieprawidłowy numer telefonu',
+      excludeEmptyString: true,
+    }),
+  notes: yup.string().default(''),
+});
+
 // Eksport typów TypeScript dla inferencji danych
 export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
 export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
