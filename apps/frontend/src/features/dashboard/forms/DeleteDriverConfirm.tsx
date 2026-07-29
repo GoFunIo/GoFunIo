@@ -1,10 +1,8 @@
-import { useLoading } from '@/hooks/useLoading';
 import { DriverType } from '../types/DriverTypes';
-import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { FormError } from '@/features/auth/ui/FormError';
 import { BoardButton } from '../ui/BoardButton';
-import { deleteDriver } from '../api/drivers.api';
+import { useDeleteDriver } from '../hooks/drivers.hooks';
 
 type Props = {
   driver: DriverType;
@@ -12,8 +10,8 @@ type Props = {
 };
 
 export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
-  const { loading, setLoading } = useLoading();
-  const queryClient = useQueryClient();
+  const { mutateAsync: removeDriver, isPending } = useDeleteDriver();
+
   const hasName = driver.firstName || driver.lastName;
   const displayName = `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || driver.email;
   const [error, setError] = useState({
@@ -22,16 +20,12 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
   });
 
   const confirmDeleteDriver = async (id: string) => {
-    setLoading(true);
     setError({
       isError: false,
       message: '',
     });
     try {
-      await deleteDriver(id);
-      await queryClient.invalidateQueries({
-        queryKey: ['drivers'],
-      });
+      await removeDriver(id);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };
@@ -52,8 +46,6 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -71,7 +63,7 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
           variant="outline"
           size="medium"
           onClick={onClose}
-          disabled={loading}
+          disabled={isPending}
         >
           Anuluj
         </BoardButton>
@@ -80,8 +72,8 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
           variant="danger"
           size="medium"
           onClick={() => confirmDeleteDriver(driver.id)}
-          loading={loading}
-          disabled={loading}
+          loading={isPending}
+          disabled={isPending}
         >
           Usuń
         </BoardButton>

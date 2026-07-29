@@ -63,7 +63,7 @@ export const inviteTeamMember = async (form: UserFormData) => {
   }
 };
 
-// change team member settings
+// edit team member settings
 
 export const changeTeamMember = async (form: UserFormData) => {
   try {

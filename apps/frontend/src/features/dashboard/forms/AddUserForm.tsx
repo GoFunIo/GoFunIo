@@ -4,10 +4,9 @@ import { UserManagementSchema, UserManagementFormData } from '../lib/formValidat
 import { Input } from '@/components/ui/Input';
 import { Select } from '../ui/Select';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { inviteTeamMember } from '../api/team.api';
-import { useQueryClient } from '@tanstack/react-query';
 import { UserFormData } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
+import { useInviteTeamMember } from '../hooks/team.hooks';
 
 type Props = {
   onClose: () => void;
@@ -19,7 +18,7 @@ const roleOptions = [
 ];
 
 export const AddUserForm = ({ onClose }: Props) => {
-  const queryClient = useQueryClient();
+  const { mutateAsync: inviteMember } = useInviteTeamMember();
 
   const {
     register,
@@ -45,10 +44,7 @@ export const AddUserForm = ({ onClose }: Props) => {
     });
 
     try {
-      await inviteTeamMember(data);
-      await queryClient.invalidateQueries({
-        queryKey: ['team'],
-      });
+      await inviteMember(data);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };

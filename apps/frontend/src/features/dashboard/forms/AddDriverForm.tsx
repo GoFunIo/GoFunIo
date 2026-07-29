@@ -1,20 +1,19 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { DriverManagementSchema } from '../lib/formValidationRules';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
 import { FormError } from '@/features/auth/ui/FormError';
-import { inviteDriver } from '../api/drivers.api';
 import { DriverFormData } from '../types/DriverTypes';
 import { handlePhoneInput } from '@/utils/handlePhoneInput';
+import { useAddDriver } from '../hooks/drivers.hooks';
 
 type Props = {
   onClose: () => void;
 };
 
 export const AddDriverForm = ({ onClose }: Props) => {
-  const queryClient = useQueryClient();
+  const { mutateAsync: addDriver } = useAddDriver();
 
   const {
     register,
@@ -39,10 +38,7 @@ export const AddDriverForm = ({ onClose }: Props) => {
     });
 
     try {
-      await inviteDriver(data);
-      await queryClient.invalidateQueries({
-        queryKey: ['drivers'],
-      });
+      await addDriver(data);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };

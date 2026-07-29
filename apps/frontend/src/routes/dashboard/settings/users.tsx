@@ -8,11 +8,11 @@ import { useMemo, useState } from 'react';
 import { Column } from '@/types/table';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { useTeam } from '@/hooks/useTeam';
 import { UserType } from '@/features/dashboard/types/UserTypes';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { AddUserForm } from '@/features/dashboard/forms/AddUserForm';
 import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
+import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
@@ -20,7 +20,7 @@ export const Route = createFileRoute('/dashboard/settings/users')({
 
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
-export function RouteComponent() {
+function RouteComponent() {
   const { data: team, isPending } = useTeam();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);

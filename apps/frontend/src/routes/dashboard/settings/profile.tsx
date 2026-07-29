@@ -8,9 +8,9 @@ import { PersonalDataForm } from '@/features/dashboard/forms/PersonalDataForm';
 import { CompanyDataForm } from '@/features/dashboard/forms/CompanyDataForm';
 import { ChangeEmailForm } from '@/features/dashboard/forms/ChangeEmailForm';
 import { ChangePasswordForm } from '@/features/dashboard/forms/ChangePasswordForm';
-import { useUser } from '@/hooks/useUser';
-import { useCompany } from '@/hooks/useCompany';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
+import { useCompany } from '@/features/dashboard/hooks/company.hooks';
 
 export const Route = createFileRoute('/dashboard/settings/profile')({
   component: RouteComponent,

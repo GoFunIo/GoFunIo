@@ -1,12 +1,11 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { DriverFormData, DriverType } from '../types/DriverTypes';
 import { useForm } from 'react-hook-form';
 import { DriverManagementSchema } from '../lib/formValidationRules';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { changeDriver } from '../api/drivers.api';
 import { Input } from '@/components/ui/Input';
 import { FormError } from '@/features/auth/ui/FormError';
 import { BoardButton } from '../ui/BoardButton';
+import { useChangeDriver } from '../hooks/drivers.hooks';
 
 type Props = {
   onClose: () => void;
@@ -14,7 +13,7 @@ type Props = {
 };
 
 export const EditDriverForm = ({ onClose, initialData }: Props) => {
-  const queryClient = useQueryClient();
+  const { mutateAsync: editDriver } = useChangeDriver();
 
   const {
     register,
@@ -39,9 +38,9 @@ export const EditDriverForm = ({ onClose, initialData }: Props) => {
     });
 
     try {
-      await changeDriver({ ...data, id: initialData?.id });
-      await queryClient.invalidateQueries({
-        queryKey: ['drivers'],
+      await editDriver({
+        ...data,
+        id: initialData?.id,
       });
       onClose();
     } catch (error) {

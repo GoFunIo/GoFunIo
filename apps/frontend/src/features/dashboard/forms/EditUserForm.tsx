@@ -4,10 +4,9 @@ import { UserManagementSchema, UserManagementFormData } from '../lib/formValidat
 import { Input } from '@/components/ui/Input';
 import { Select } from '../ui/Select';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { changeTeamMember } from '../api/team.api';
-import { useQueryClient } from '@tanstack/react-query';
 import { UserFormData, UserType } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
+import { useChangeTeamMember } from '../hooks/team.hooks';
 
 type Props = {
   onClose: () => void;
@@ -20,7 +19,7 @@ const roleOptions = [
 ];
 
 export const EditUserForm = ({ onClose, initialData }: Props) => {
-  const queryClient = useQueryClient();
+  const { mutateAsync: editMember } = useChangeTeamMember();
 
   const {
     register,
@@ -45,9 +44,9 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
     });
 
     try {
-      await changeTeamMember({ ...data, id: initialData?.id });
-      await queryClient.invalidateQueries({
-        queryKey: ['team'],
+      await editMember({
+        ...data,
+        id: initialData?.id,
       });
       onClose();
     } catch (error) {
