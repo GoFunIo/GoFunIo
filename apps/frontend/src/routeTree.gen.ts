@@ -30,6 +30,7 @@ import { Route as DashboardSettingsUsersRouteImport } from './routes/dashboard/s
 import { Route as DashboardSettingsProfileRouteImport } from './routes/dashboard/settings/profile'
 import { Route as DashboardSettingsPaymentsRouteImport } from './routes/dashboard/settings/payments'
 import { Route as DashboardSettingsNotificationRouteImport } from './routes/dashboard/settings/notification'
+import { Route as DashboardSettingsDriversRouteImport } from './routes/dashboard/settings/drivers'
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId'
 
 const VerifyEmailChangeRoute = VerifyEmailChangeRouteImport.update({
@@ -139,6 +140,12 @@ const DashboardSettingsNotificationRoute =
     path: '/notification',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
+const DashboardSettingsDriversRoute =
+  DashboardSettingsDriversRouteImport.update({
+    id: '/drivers',
+    path: '/drivers',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
   id: '/my-cars/$carId',
   path: '/my-cars/$carId',
@@ -150,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
+  '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
@@ -170,6 +178,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
+  '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
@@ -195,6 +204,7 @@ export interface FileRoutesById {
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
+  '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
+    | '/dashboard/settings/drivers'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
   to:
     | '/verify-email-change'
     | '/dashboard/my-cars/$carId'
+    | '/dashboard/settings/drivers'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
+    | '/dashboard/settings/drivers'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsNotificationRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
+    '/dashboard/settings/drivers': {
+      id: '/dashboard/settings/drivers'
+      path: '/drivers'
+      fullPath: '/dashboard/settings/drivers'
+      preLoaderRoute: typeof DashboardSettingsDriversRouteImport
+      parentRoute: typeof DashboardSettingsRouteRoute
+    }
     '/dashboard/my-cars/$carId': {
       id: '/dashboard/my-cars/$carId'
       path: '/my-cars/$carId'
@@ -480,6 +500,7 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 )
 
 interface DashboardSettingsRouteRouteChildren {
+  DashboardSettingsDriversRoute: typeof DashboardSettingsDriversRoute
   DashboardSettingsNotificationRoute: typeof DashboardSettingsNotificationRoute
   DashboardSettingsPaymentsRoute: typeof DashboardSettingsPaymentsRoute
   DashboardSettingsProfileRoute: typeof DashboardSettingsProfileRoute
@@ -489,6 +510,7 @@ interface DashboardSettingsRouteRouteChildren {
 
 const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
   {
+    DashboardSettingsDriversRoute: DashboardSettingsDriversRoute,
     DashboardSettingsNotificationRoute: DashboardSettingsNotificationRoute,
     DashboardSettingsPaymentsRoute: DashboardSettingsPaymentsRoute,
     DashboardSettingsProfileRoute: DashboardSettingsProfileRoute,

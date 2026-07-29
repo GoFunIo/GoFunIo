@@ -4,25 +4,21 @@ import { UserManagementSchema, UserManagementFormData } from '../lib/formValidat
 import { Input } from '@/components/ui/Input';
 import { Select } from '../ui/Select';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { inviteTeamMember } from '../api/team.api';
-import { useLoading } from '@/hooks/useLoading';
-import { useQueryClient } from '@tanstack/react-query';
 import { UserFormData } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
+import { useInviteTeamMember } from '../hooks/team.hooks';
 
 type Props = {
   onClose: () => void;
 };
 
 const roleOptions = [
-  { id: 1, value: 'Użytkownik', label: 'Użytkownik' },
-  { id: 2, value: 'ADMIN', label: 'Admin' },
-  { id: 3, value: 'MANAGER', label: 'Menedżer floty' },
+  { id: 1, value: 'ADMIN', label: 'Admin' },
+  { id: 2, value: 'MANAGER', label: 'Menedżer floty' },
 ];
 
 export const AddUserForm = ({ onClose }: Props) => {
-  const queryClient = useQueryClient();
-  const { loading, setLoading } = useLoading();
+  const { mutateAsync: inviteMember } = useInviteTeamMember();
 
   const {
     register,
@@ -42,17 +38,13 @@ export const AddUserForm = ({ onClose }: Props) => {
   });
 
   const onSubmit = async (data: UserManagementFormData) => {
-    setLoading(true);
     setError('root', {
       type: 'server',
       message: '',
     });
 
     try {
-      await inviteTeamMember(data);
-      await queryClient.invalidateQueries({
-        queryKey: ['team'],
-      });
+      await inviteMember(data);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };
@@ -73,8 +65,6 @@ export const AddUserForm = ({ onClose }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,7 +75,7 @@ export const AddUserForm = ({ onClose }: Props) => {
       {errors.root?.message && <FormError message={errors.root.message} />}
       <div className="flex flex-col gap-y-4">
         <Input
-          label="Imię"
+          label="Imię *"
           placeholder="Imię"
           className={inputStyles}
           {...register('firstName')}
@@ -93,7 +83,7 @@ export const AddUserForm = ({ onClose }: Props) => {
         />
 
         <Input
-          label="Nazwisko"
+          label="Nazwisko *"
           placeholder="Nazwisko"
           className={inputStyles}
           {...register('lastName')}
@@ -160,7 +150,7 @@ export const AddUserForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Utwórz użytkownika
         </BoardButton>
       </div>
