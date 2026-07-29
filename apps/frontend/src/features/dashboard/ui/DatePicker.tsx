@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { ChevronUp } from 'lucide-react';
 import { DayPicker } from '@daypicker/react';
 import { pl } from '@daypicker/react/locale';
+import { SelectDatePicker } from '../ui/SelectDatePicker';
 
 type Props = {
   value: Date | undefined;
@@ -17,6 +18,25 @@ const formatWeekdayName = (date: Date) => {
   return days[date.getDay() === 0 ? 6 : date.getDay() - 1];
 };
 
+const formatMonthDropdown = (date: Date) => {
+  const months = [
+    'Sty',
+    'Lut',
+    'Mar',
+    'Kwi',
+    'Maj',
+    'Cze',
+    'Lip',
+    'Sie',
+    'Wrz',
+    'Paź',
+    'Lis',
+    'Gru',
+  ];
+
+  return months[date.getMonth()];
+};
+
 export const DatePicker = ({
   value,
   onChange,
@@ -26,6 +46,8 @@ export const DatePicker = ({
 }: Props) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement | null>(null);
+
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -48,9 +70,9 @@ export const DatePicker = ({
       <div className="relative flex items-center justify-between bg-bg-card rounded-[5px] border border-icon w-full h-full">
         <input
           readOnly
+          type="text"
           value={value ? value.toLocaleDateString('pl-PL') : ''}
           placeholder={placeholder}
-          type="text"
           className={classNames(
             'caret-transparent text-[14px] focus:outline-none placeholder:text-icon z-9 cursor-pointer px-[8px] w-full h-full',
             {
@@ -70,29 +92,49 @@ export const DatePicker = ({
         )}
       </div>
       {!isRenewalMode && isOpen && (
-        <div className="z-99 flex flex-col gap-[4px] absolute top-[50px] bg-bg-card border border-icon rounded-[5px] p-[8px] w-full shadow-[0_4px_13px_0_rgba(0,0,0,0.1)]">
+        <div className="z-99 flex flex-col gap-[4px] absolute top-[50px] bg-bg-card border border-icon rounded-[5px] p-[8px] w-full h-auto shadow-md">
           <DayPicker
             mode="single"
-            selected={value}
             locale={pl}
-            formatters={{
-              formatWeekdayName,
-            }}
+            selected={value}
             onSelect={(date) => {
               onChange(date);
               setIsOpen(false);
             }}
+            captionLayout="dropdown"
+            navLayout="after"
+            startMonth={new Date(currentYear - 20, 0)}
+            endMonth={new Date(currentYear + 10, 11)}
+            defaultMonth={value || new Date()}
+            components={{
+              Dropdown: SelectDatePicker,
+            }}
+            formatters={{
+              formatWeekdayName,
+              formatMonthDropdown,
+            }}
             classNames={{
-              month_caption: 'mb-[12px]',
-              month_grid: 'w-full',
-              weekday: 'text-content-secondary font-medium text-[12px] uppercase',
-              day: 'cursor-pointer text-content-secondary text-center',
+              month_caption: 'flex items-center justify-between gap-2 mb-3',
+              dropdowns: 'flex items-center gap-2',
+
+              nav: 'absolute top-4 right-4 flex items-center gap-1 ml-auto ',
+              button_previous:
+                'flex h-5 w-5 items-center justify-center rounded-md  hover:bg-bg-section',
+              button_next:
+                'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
+
+              weekdays: 'flex',
+              weekday:
+                'flex h-8 w-8 items-center justify-center text-[12px] font-medium uppercase text-content-secondary',
+              week: 'flex',
+
+              day: 'h-8 w-8',
               day_button:
-                'rounded-[6px] cursor-pointer p-[8px] text-[14px] hover:text-content-primary hover:bg-bg-section w-full',
-              caption_label: 'text-[14px] font-semibold text-content-secondary',
-              nav: 'absolute top-2 right-2',
-              chevron: `fill-secondary cursor-pointer w-[16px]`,
-              selected: 'rounded-[6px] bg-bg-section text-dark',
+                'flex h-8 w-8 items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
+
+              selected: '!bg-bg-section !text-content-primary font-semibold',
+              today: 'bg-bg-section rounded-md',
+              disabled: 'opacity-30 cursor-not-allowed',
             }}
           />
         </div>
