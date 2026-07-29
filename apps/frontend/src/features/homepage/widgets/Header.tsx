@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useUser } from '@/hooks/useUser';
 import { MobileMenu } from './MobileMenu';
 import LogoLight from '@/assets/logo/logo_autokeep.svg';
 import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { useLogoAction } from '@/hooks/useLogoAction';
 import { useScrollY } from '@/hooks/useScrollY';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
 
 const navLinks = [
   { label: 'FUNKCJE', href: '#funkcje' },

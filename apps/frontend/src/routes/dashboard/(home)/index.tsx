@@ -1,4 +1,3 @@
-import { useUser } from '@/hooks/useUser';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
@@ -24,6 +23,7 @@ import {
 import { useVehicles } from '@/hooks/useVehicles';
 import { VehicleData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
 
 type QuickAction = {
   id: number;
@@ -42,7 +42,7 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 function RouteComponent() {
   const { data: user, isLoading: isUserLoading } = useUser();
   const navigate = useNavigate();
-  console.log(user);
+
   const {
     data: vehiclesResponse,
     isLoading: isVehiclesLoading,
