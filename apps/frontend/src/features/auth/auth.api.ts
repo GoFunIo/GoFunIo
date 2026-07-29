@@ -3,29 +3,6 @@ import { LoginFormData, SignupFormData } from './types/FormTypes';
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 /**
- * Pobiera dane aktualnie zalogowanego użytkownika na podstawie sesji/ciasteczka.
- * Bezpiecznie zwraca `null` zamiast rzucać błędem, jeśli użytkownik nie jest zalogowany.
- */
-
-export const getUser = async () => {
-  const res = await fetch(`${API_URL}/auth/me`, {
-    method: 'GET',
-    credentials: 'include',
-  });
-
-  if (!res.ok) return null;
-
-  const contentType = res.headers.get('content-type');
-  if (!contentType?.includes('application/json')) return null;
-
-  const text = await res.text();
-
-  if (!text) return null;
-
-  return JSON.parse(text);
-};
-
-/**
  * Rejestruje nowe konto użytkownika w aplikacji
  */
 export const signUp = async (form: SignupFormData) => {

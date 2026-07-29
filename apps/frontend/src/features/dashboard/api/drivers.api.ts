@@ -1,11 +1,11 @@
-import { UserFormData } from '../types/UserTypes';
+import { DriverFormData } from '../types/DriverTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 // get all users
 
-export const getTeam = async () => {
-  const res = await fetch(`${API_URL}/users`, {
+export const getDrivers = async () => {
+  const res = await fetch(`${API_URL}/drivers`, {
     method: 'GET',
     credentials: 'include',
   });
@@ -22,12 +22,11 @@ export const getTeam = async () => {
   return JSON.parse(text);
 };
 
-// invite user to your team
+// invite driver to your team
 
-export const inviteTeamMember = async (form: UserFormData) => {
-  console.log(form);
+export const addDriver = async (form: DriverFormData) => {
   try {
-    const res = await fetch(`${API_URL}/users`, {
+    const res = await fetch(`${API_URL}/drivers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,7 +36,8 @@ export const inviteTeamMember = async (form: UserFormData) => {
         email: form.email,
         lastName: form.lastName,
         firstName: form.firstName,
-        role: form.role,
+        phone: form.phone,
+        notes: form.notes,
       }),
     });
 
@@ -63,20 +63,22 @@ export const inviteTeamMember = async (form: UserFormData) => {
   }
 };
 
-// edit team member settings
+// change driver settings
 
-export const changeTeamMember = async (form: UserFormData) => {
+export const changeDriver = async (form: DriverFormData) => {
   try {
-    const res = await fetch(`${API_URL}/users/${form.id}`, {
+    const res = await fetch(`${API_URL}/drivers/${form.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
       body: JSON.stringify({
+        email: form.email,
         lastName: form.lastName,
         firstName: form.firstName,
-        role: form.role,
+        phone: form.phone,
+        notes: form.notes,
       }),
     });
 
@@ -102,11 +104,11 @@ export const changeTeamMember = async (form: UserFormData) => {
   }
 };
 
-// delete team member
+// delete driver
 
-export const deleteTeamMember = async (id: string) => {
+export const deleteDriver = async (id: string) => {
   try {
-    const res = await fetch(`${API_URL}/users/${id}`, {
+    const res = await fetch(`${API_URL}/drivers/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

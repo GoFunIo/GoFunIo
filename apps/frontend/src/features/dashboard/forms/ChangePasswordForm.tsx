@@ -5,8 +5,7 @@ import { getPasswordRulesState } from '@/features/auth/lib/passwordRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import classNames from 'classnames';
-import { changeUserPassword } from '../api/profile.api';
-import { useLoading } from '@/hooks/useLoading';
+import { changeUserPassword } from '../api/user.api';
 import { FormError } from '@/features/auth/ui/FormError';
 
 type Props = {
@@ -14,8 +13,6 @@ type Props = {
 };
 
 export const ChangePasswordForm = ({ onClose }: Props) => {
-  const { loading, setLoading } = useLoading();
-
   const {
     register,
     handleSubmit,
@@ -56,8 +53,6 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -143,7 +138,7 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Zapisz
         </BoardButton>
       </div>

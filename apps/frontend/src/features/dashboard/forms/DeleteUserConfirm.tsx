@@ -1,10 +1,8 @@
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { UserType } from '../types/UserTypes';
-import { useLoading } from '@/hooks/useLoading';
-import { deleteTeamMember } from '../api/team.api';
-import { useQueryClient } from '@tanstack/react-query';
 import { FormError } from '@/features/auth/ui/FormError';
 import { useState } from 'react';
+import { useDeleteTeamMember } from '../hooks/team.hooks';
 
 type Props = {
   user: UserType;
@@ -12,8 +10,8 @@ type Props = {
 };
 
 export const DeleteUserConfirm = ({ user, onClose }: Props) => {
-  const { loading, setLoading } = useLoading();
-  const queryClient = useQueryClient();
+  const { mutateAsync: removeMember, isPending } = useDeleteTeamMember();
+
   const hasName = user.firstName || user.lastName;
   const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
   const [error, setError] = useState({
@@ -22,16 +20,13 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
   });
 
   const deleteUser = async (id: string) => {
-    setLoading(true);
     setError({
       isError: false,
       message: '',
     });
+
     try {
-      await deleteTeamMember(id);
-      await queryClient.invalidateQueries({
-        queryKey: ['team'],
-      });
+      await removeMember(id);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };
@@ -52,8 +47,6 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
           message: 'Błąd serwera. Spróbuj ponownie później.',
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -66,7 +59,13 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
       </div>
 
       <div className="flex justify-end gap-[12px]  pt-[20px]">
-        <BoardButton type="button" variant="outline" size="medium" onClick={onClose}>
+        <BoardButton
+          type="button"
+          variant="outline"
+          size="medium"
+          onClick={onClose}
+          disabled={isPending}
+        >
           Anuluj
         </BoardButton>
         <BoardButton
@@ -74,7 +73,8 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
           variant="danger"
           size="medium"
           onClick={() => deleteUser(user.id)}
-          loading={loading}
+          loading={isPending}
+          disabled={isPending}
         >
           Usuń
         </BoardButton>

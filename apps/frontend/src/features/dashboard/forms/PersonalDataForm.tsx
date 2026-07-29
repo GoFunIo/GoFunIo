@@ -4,21 +4,18 @@ import { PersonalDataSchema } from '../lib/formValidationRules';
 import { PersonalDataFormData } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { changeUserSettings } from '../api/profile.api';
-import { useQueryClient } from '@tanstack/react-query';
-import { useLoading } from '@/hooks/useLoading';
 import { FormError } from '@/features/auth/ui/FormError';
 import { formatPostalCode } from '@/utils/formatPostalCode';
-import { useUser } from '@/hooks/useUser';
+import { handlePhoneInput } from '@/utils/handlePhoneInput';
+import { useChangeUserSettings, useUser } from '../hooks/user.hooks';
 
 type Props = {
   onClose: () => void;
 };
 
 export const PersonalDataForm = ({ onClose }: Props) => {
-  const queryClient = useQueryClient();
   const { data: user } = useUser();
-  const { loading, setLoading } = useLoading();
+  const { mutateAsync: changeSettings } = useChangeUserSettings();
 
   const {
     register,
@@ -38,15 +35,13 @@ export const PersonalDataForm = ({ onClose }: Props) => {
   });
 
   const onSubmit = async (data: PersonalDataFormData) => {
-    setLoading(true);
     setError('root', {
       type: 'server',
       message: '',
     });
 
     try {
-      const user = await changeUserSettings(data);
-      queryClient.setQueryData(['me'], user);
+      await changeSettings(data);
       onClose();
     } catch (error) {
       const err = error as { status?: number; message?: string };
@@ -63,8 +58,6 @@ export const PersonalDataForm = ({ onClose }: Props) => {
         type: 'server',
         message: 'Błąd serwera. Spróbuj ponownie później.',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -103,7 +96,7 @@ export const PersonalDataForm = ({ onClose }: Props) => {
           className={inputStyles}
           {...register('phone', {
             onChange: (e) => {
-              e.target.value = e.target.value.replace(/[^\d+\s()-]/g, '');
+              e.target.value = handlePhoneInput(e.target.value);
             },
           })}
           error={errors.phone?.message}
@@ -150,7 +143,7 @@ export const PersonalDataForm = ({ onClose }: Props) => {
         >
           Anuluj
         </BoardButton>
-        <BoardButton type="submit" size="medium" loading={loading}>
+        <BoardButton type="submit" size="medium" loading={isSubmitting} disabled={isSubmitting}>
           Zapisz
         </BoardButton>
       </div>

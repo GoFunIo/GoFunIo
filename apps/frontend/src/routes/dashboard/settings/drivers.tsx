@@ -1,44 +1,44 @@
-import { DeleteUserConfirm } from '@/features/dashboard/forms/DeleteUserConfirm';
+import { Input } from '@/components/ui/Input';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { AddDriverForm } from '@/features/dashboard/forms/AddDriverForm';
+import { DeleteDriverConfirm } from '@/features/dashboard/forms/DeleteDriverConfirm';
+import { EditDriverForm } from '@/features/dashboard/forms/EditDriverForm';
+import { useDrivers } from '@/features/dashboard/hooks/drivers.hooks';
+import { DriverType } from '@/features/dashboard/types/DriverTypes';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { Column } from '@/types/table';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
-import { Column } from '@/types/table';
-import { Input } from '@/components/ui/Input';
-import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { UserType } from '@/features/dashboard/types/UserTypes';
-import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { AddUserForm } from '@/features/dashboard/forms/AddUserForm';
-import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
-import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 
-export const Route = createFileRoute('/dashboard/settings/users')({
+export const Route = createFileRoute('/dashboard/settings/drivers')({
   component: RouteComponent,
 });
 
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
 function RouteComponent() {
-  const { data: team, isPending } = useTeam();
+  const { data: drivers, isPending } = useDrivers();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<DriverType | null>(null);
 
-  // Dynamiczne filtrowanie użytkowników
-  const filteredTeam = useMemo(() => {
-    if (!team) return [];
+  // Dynamiczne filtrowanie kierowcow
+  const filteredDrivers = useMemo(() => {
+    if (!drivers) return [];
 
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) return team;
+    if (!query) return drivers;
 
-    return team.filter((user: UserType) => {
-      const firstName = user.firstName?.toLowerCase() ?? '';
-      const lastName = user.lastName?.toLowerCase() ?? '';
+    return drivers.filter((driver: DriverType) => {
+      const firstName = driver.firstName?.toLowerCase() ?? '';
+      const lastName = driver.lastName?.toLowerCase() ?? '';
       const fullName = `${firstName} ${lastName}`.trim();
-      const email = user.email.toLowerCase();
+      const email = driver.email.toLowerCase();
 
       return (
         firstName.includes(query) ||
@@ -47,26 +47,26 @@ function RouteComponent() {
         email.includes(query)
       );
     });
-  }, [team, searchQuery]);
+  }, [drivers, searchQuery]);
 
   const handleAddUserClick = () => {
-    setSelectedUser(null);
+    setSelectedDriver(null);
     setActiveModal('add');
   };
 
-  const handleEditUserClick = (user: UserType) => {
-    setSelectedUser(user);
+  const handleEditUserClick = (driver: DriverType) => {
+    setSelectedDriver(driver);
     setActiveModal('edit');
   };
 
-  const handleDeleteUserClick = (user: UserType) => {
-    setSelectedUser(user);
+  const handleDeleteUserClick = (driver: DriverType) => {
+    setSelectedDriver(driver);
     setActiveModal('delete');
   };
 
-  const columns: Column<UserType>[] = [
+  const columns: Column<DriverType>[] = [
     {
-      header: 'Użytkownik',
+      header: 'Kierowca',
       accessor: 'firstName',
       isImportant: true,
       render: (_, item) => {
@@ -76,7 +76,14 @@ function RouteComponent() {
       },
     },
     { header: 'E-mail', accessor: 'email' },
-    { header: 'Rola', accessor: 'role' },
+    { header: 'Telefon', accessor: 'phone' },
+    {
+      header: 'Notatki',
+      accessor: 'notes',
+      render: (_, item) => {
+        return item.notes ? item.notes : '-';
+      },
+    },
   ];
 
   const getModalConfig = () => {
@@ -85,38 +92,38 @@ function RouteComponent() {
         return {
           title: 'Dodaj użytkownika',
           subtitle: 'Utwórz nowe konto i opcjonalnie wyślij zaproszenie e-mail.',
-          content: <AddUserForm onClose={() => setActiveModal(null)} />,
+          content: <AddDriverForm onClose={() => setActiveModal(null)} />,
         };
 
       case 'edit':
-        if (!selectedUser) return { title: '', subtitle: '', content: null };
+        if (!selectedDriver) return { title: '', subtitle: '', content: null };
 
         return {
           title: 'Edytuj użytkownika',
           subtitle: 'Zaktualizuj dane użytkownika i jego rolę.',
           content: (
-            <EditUserForm
-              initialData={selectedUser}
+            <EditDriverForm
+              initialData={selectedDriver}
               onClose={() => {
                 setActiveModal(null);
-                setSelectedUser(null);
+                setSelectedDriver(null);
               }}
             />
           ),
         };
       case 'delete':
-        if (!selectedUser) return { title: '', subtitle: '', content: null };
+        if (!selectedDriver) return { title: '', subtitle: '', content: null };
 
         return {
           title: 'Usuń użytkownika',
           subtitle:
             'Czy na pewno chcesz usunąć tego użytkownika z systemu? Ta operacja jest nieodwracalna.',
           content: (
-            <DeleteUserConfirm
-              user={selectedUser}
+            <DeleteDriverConfirm
+              driver={selectedDriver}
               onClose={() => {
                 setActiveModal(null);
-                setSelectedUser(null);
+                setSelectedDriver(null);
               }}
             />
           ),
@@ -133,8 +140,8 @@ function RouteComponent() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full">
         <div className="w-full sm:max-w-[320px]">
           <Input
-            name="searchUsers"
-            placeholder="Szukaj użytkownika lub samochód"
+            name="searchDrivers"
+            placeholder="Szukaj kierowcę"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="!min-h-[45px]"
@@ -149,19 +156,19 @@ function RouteComponent() {
           onClick={handleAddUserClick}
           className="w-full sm:w-auto sm:min-w-[180px]"
         >
-          Dodaj użytkownika
+          Dodaj kierowcę
         </BoardButton>
       </div>
 
       <BlockWrapper>
         {isPending ? (
           <LoadingIcon className="m-auto my-[24px]" />
-        ) : filteredTeam.length === 0 ? (
-          <EmptyPlaceholder title="Brak użytkowników" />
+        ) : filteredDrivers.length === 0 ? (
+          <EmptyPlaceholder title="Brak kierowców" />
         ) : (
           <DataTable
             columns={columns}
-            data={filteredTeam}
+            data={filteredDrivers}
             onEdit={handleEditUserClick}
             onDelete={handleDeleteUserClick}
             footer={false}
