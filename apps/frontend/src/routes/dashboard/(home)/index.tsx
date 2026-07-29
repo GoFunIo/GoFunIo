@@ -1,29 +1,34 @@
-import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { Reminders } from '@/features/dashboard/widgets/Reminders';
-import { actionsArray, activityArray } from '@/store/cars';
+import { useMemo, useState } from 'react';
 import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
 import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
-import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
-import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
+
+import { useVehicles } from '@/hooks/useVehicles';
+
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { useMemo, useState } from 'react';
+
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-import { Banner } from '@/features/dashboard/widgets/Banner';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { Reminders } from '@/features/dashboard/widgets/Reminders';
+import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
+import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
+import { Banner } from '@/features/dashboard/widgets/Banner';
 import { History, HistoryDataItem, serviceTypeLabels } from '@/features/dashboard/widgets/History';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
+import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import {
   DeleteServiceConfirm,
   ServiceEntryType,
 } from '@/features/dashboard/forms/DeleteServiceConfirm';
-import { useVehicles } from '@/hooks/useVehicles';
 import { VehicleData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { actionsArray, activityArray } from '@/store/cars';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
+import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 
 type QuickAction = {
   id: number;
@@ -35,19 +40,32 @@ type QuickAction = {
 
 const typedActions = actionsArray as unknown as QuickAction[];
 
+type DayBucketKey = 'days7' | 'days30' | 'days60';
+type DayBuckets = Record<DayBucketKey, number>;
+
+const bucketKey = (days: number): DayBucketKey | null => {
+  if (days <= 7) return 'days7';
+  if (days <= 30) return 'days30';
+  if (days <= 60) return 'days60';
+  return null;
+};
+
 export const Route = createFileRoute('/dashboard/(home)/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { data: user, isLoading: isUserLoading } = useUser();
   const navigate = useNavigate();
-
+  const { data: user } = useUser();
   const {
     data: vehiclesResponse,
-    isLoading: isVehiclesLoading,
+    isPending: isVehiclesPending,
     refetch: refetchVehicles,
   } = useVehicles();
+  const { data: team, isPending: isTeamPending } = useTeam();
+
+  const isTeamLoading = isTeamPending && user?.role === 'ADMIN';
+
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
@@ -75,18 +93,11 @@ function RouteComponent() {
   // LOGIKA PRZEGLĄDÓW
   const inspectionStats = useMemo(
     () =>
-      vehicles.reduce(
+      vehicles.reduce<DayBuckets>(
         (acc, car) => {
           if (!car.technicalInspectionExpiry) return acc;
-          const { days } = calculateDaysToDate(car.technicalInspectionExpiry);
-
-          if (days <= 7) {
-            acc.days7++;
-          } else if (days > 7 && days <= 30) {
-            acc.days30++;
-          } else if (days > 30 && days <= 60) {
-            acc.days60++;
-          }
+          const key = bucketKey(calculateDaysToDate(car.technicalInspectionExpiry).days);
+          if (key) acc[key]++;
           return acc;
         },
         { days7: 0, days30: 0, days60: 0 },
@@ -94,25 +105,19 @@ function RouteComponent() {
     [vehicles],
   );
 
-  // LOGIKA OC / AC — ocExpiry
+  // LOGIKA OC / AC
   const insuranceStats = useMemo(
     () =>
-      vehicles.reduce(
+      vehicles.reduce<DayBuckets>(
         (acc, car) => {
           if (car.ocExpiry) {
-            const ocDiff = calculateDaysToDate(car.ocExpiry).days;
-            if (ocDiff <= 7) acc.days7++;
-            else if (ocDiff <= 30) acc.days30++;
-            else if (ocDiff <= 60) acc.days60++;
+            const key = bucketKey(calculateDaysToDate(car.ocExpiry).days);
+            if (key) acc[key]++;
           }
-
           if (car.acExpiry) {
-            const acDiff = calculateDaysToDate(car.acExpiry).days;
-            if (acDiff <= 7) acc.days7++;
-            else if (acDiff <= 30) acc.days30++;
-            else if (acDiff <= 60) acc.days60++;
+            const key = bucketKey(calculateDaysToDate(car.acExpiry).days);
+            if (key) acc[key]++;
           }
-
           return acc;
         },
         { days7: 0, days30: 0, days60: 0 },
@@ -125,7 +130,7 @@ function RouteComponent() {
 
   const adminStats = {
     totalFleetVehicles: vehiclesResponse?.total ?? vehicles.length,
-    activeUsersCount: 2, // brak endpointu użytkowników — pozostaje mock
+    activeUsersCount: team?.length ?? 0,
     urgentReminders: totalUrgentReminders,
   };
 
@@ -191,7 +196,6 @@ function RouteComponent() {
     return (activityArray as HistoryDataItem[]).slice(0, 5);
   }, []);
 
-  if (isUserLoading) return <h1 className="">Loading</h1>;
   if (!user) return null;
 
   return (
@@ -218,7 +222,7 @@ function RouteComponent() {
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
             title="Pojazdy we flocie"
-            value={isVehiclesLoading ? '...' : adminStats.totalFleetVehicles}
+            value={isVehiclesPending ? '...' : adminStats.totalFleetVehicles}
             subtitle="aktywne"
             icon={<CarFront size={20} />}
           />
@@ -226,7 +230,7 @@ function RouteComponent() {
         <Link to="/dashboard/settings/users" className="block no-underline">
           <DashboardCard
             title="Aktywni użytkownicy"
-            value={adminStats.activeUsersCount}
+            value={isTeamLoading ? '...' : adminStats.activeUsersCount}
             subtitle="osoby mają pojazdy w systemie"
             icon={<Users size={20} />}
           />
@@ -235,7 +239,7 @@ function RouteComponent() {
         <Link to="/dashboard/notifications" className="block no-underline">
           <DashboardCard
             title="Pilne przypomnienia"
-            value={isVehiclesLoading ? '...' : adminStats.urgentReminders}
+            value={isVehiclesPending ? '...' : adminStats.urgentReminders}
             subtitle="działania wymagane w ciągu 30 dni"
             icon={<TriangleAlert size={20} />}
             isAlert={true}
@@ -252,8 +256,8 @@ function RouteComponent() {
           </p>
         </div>
 
-        {isVehiclesLoading ? (
-          <p className="text-content-secondary text-[14px]">Ładowanie pojazdów…</p>
+        {isVehiclesPending ? (
+          <LoadingIcon className="m-auto" />
         ) : (
           <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
             <div className="flex flex-col gap-4">
