@@ -1,9 +1,16 @@
 import { getUser } from '@/features/dashboard/api/user.api';
+import { PageLoading } from '@/features/dashboard/widgets/PageLoading';
 import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
 import { Userbar } from '@/features/dashboard/widgets/Userbar';
 import { queryClient } from '@/lib/queryClient';
 import { setScrollRoot } from '@/utils/scrollRoot';
-import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router';
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+  useRouterState,
+} from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { useMediaQuery } from 'react-responsive';
 
@@ -39,6 +46,27 @@ function RouteComponent() {
     });
   }, [location.pathname]);
 
+  const isPending = useRouterState({
+    select: (state) => {
+      if (state.status !== 'pending') {
+        return false;
+      }
+
+      const current = state.location.pathname;
+      const next = state.resolvedLocation?.pathname;
+
+      if (!next) {
+        return false;
+      }
+
+      if (current.startsWith('/dashboard/settings') && next.startsWith('/dashboard/settings')) {
+        return false;
+      }
+
+      return true;
+    },
+  });
+
   return (
     <div className="flex h-screen">
       {!isTabletOrMobile && <Sidebar />}
@@ -49,7 +77,7 @@ function RouteComponent() {
           className="scrollbar-dashboard flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px] flex flex-col md:gap-[24px] gap-[15px]"
           ref={scrollRef}
         >
-          <Outlet />
+          {isPending ? <PageLoading /> : <Outlet />}
         </div>
       </div>
     </div>
