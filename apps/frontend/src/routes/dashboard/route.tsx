@@ -1,4 +1,5 @@
 import { getUser } from '@/features/dashboard/api/user.api';
+import { useDelayedLoading } from '@/features/dashboard/hooks/useDelayedLoading';
 import { PageLoading } from '@/features/dashboard/widgets/PageLoading';
 import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
 import { Userbar } from '@/features/dashboard/widgets/Userbar';
@@ -66,6 +67,7 @@ function RouteComponent() {
       return true;
     },
   });
+  const showLoading = useDelayedLoading(isPending);
 
   return (
     <div className="flex h-screen">
@@ -77,7 +79,7 @@ function RouteComponent() {
           className="scrollbar-dashboard flex-1 overflow-auto bg-bg-section xl:px-[64px] md:px-[32px] py-[32px] px-[15px] flex flex-col md:gap-[24px] gap-[15px]"
           ref={scrollRef}
         >
-          {isPending ? <PageLoading /> : <Outlet />}
+          {showLoading ? <PageLoading /> : <Outlet />}
         </div>
       </div>
     </div>

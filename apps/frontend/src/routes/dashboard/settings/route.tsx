@@ -1,3 +1,4 @@
+import { useDelayedLoading } from '@/features/dashboard/hooks/useDelayedLoading';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { PageLoading } from '@/features/dashboard/widgets/PageLoading';
 import { SettingTabs } from '@/features/dashboard/widgets/SettingsTabs';
@@ -11,6 +12,7 @@ function SettingsLayout() {
   const isPending = useRouterState({
     select: (state) => state.status === 'pending',
   });
+  const showLoading = useDelayedLoading(isPending);
 
   return (
     <>
@@ -20,7 +22,7 @@ function SettingsLayout() {
       />
       <SettingTabs />
 
-      {isPending ? <PageLoading /> : <Outlet />}
+      {showLoading ? <PageLoading /> : <Outlet />}
     </>
   );
 }
