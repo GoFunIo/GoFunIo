@@ -4,6 +4,7 @@ import { AddDriverForm } from '@/features/dashboard/forms/AddDriverForm';
 import { DeleteDriverConfirm } from '@/features/dashboard/forms/DeleteDriverConfirm';
 import { EditDriverForm } from '@/features/dashboard/forms/EditDriverForm';
 import { useDrivers } from '@/features/dashboard/hooks/drivers.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { DriverType } from '@/features/dashboard/types/DriverTypes';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
@@ -21,7 +22,9 @@ export const Route = createFileRoute('/dashboard/settings/drivers')({
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
 function RouteComponent() {
+  const { canDeleteDrivers } = usePermissions();
   const { data: drivers, isPending } = useDrivers();
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedDriver, setSelectedDriver] = useState<DriverType | null>(null);
@@ -60,6 +63,8 @@ function RouteComponent() {
   };
 
   const handleDeleteUserClick = (driver: DriverType) => {
+    if (!canDeleteDrivers) return;
+
     setSelectedDriver(driver);
     setActiveModal('delete');
   };
@@ -112,7 +117,9 @@ function RouteComponent() {
           ),
         };
       case 'delete':
-        if (!selectedDriver) return { title: '', subtitle: '', content: null };
+        if (!canDeleteDrivers || !selectedDriver) {
+          return { title: '', subtitle: '', content: null };
+        }
 
         return {
           title: 'Usuń użytkownika',
@@ -170,7 +177,7 @@ function RouteComponent() {
             columns={columns}
             data={filteredDrivers}
             onEdit={handleEditUserClick}
-            onDelete={handleDeleteUserClick}
+            onDelete={canDeleteDrivers ? handleDeleteUserClick : undefined}
             footer={false}
           />
         )}

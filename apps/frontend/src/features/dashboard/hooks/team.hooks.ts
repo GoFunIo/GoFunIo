@@ -5,17 +5,15 @@ import {
   inviteTeamMember,
 } from '@/features/dashboard/api/team.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from './user.hooks';
 
 // get all users which have account ( admins and managers ) in your company
 
-export const useTeam = () => {
-  const { data: user } = useUser();
-
+export const useTeam = (enabled = true) => {
   return useQuery({
     queryKey: ['team'],
     queryFn: getTeam,
-    enabled: user?.role === 'ADMIN',
+    staleTime: Infinity,
+    enabled,
   });
 };
 

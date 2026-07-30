@@ -11,6 +11,7 @@ import { ChangePasswordForm } from '@/features/dashboard/forms/ChangePasswordFor
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { useCompany } from '@/features/dashboard/hooks/company.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 
 export const Route = createFileRoute('/dashboard/settings/profile')({
   component: RouteComponent,
@@ -19,8 +20,10 @@ export const Route = createFileRoute('/dashboard/settings/profile')({
 type ModalType = 'personal' | 'company' | 'email' | 'password' | null;
 
 function RouteComponent() {
+  const { canUpdateCompany } = usePermissions();
   const { data: user } = useUser();
   const { data: company, isPending: pendingCompany } = useCompany();
+
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const userPersonalDataLines = [
@@ -130,9 +133,11 @@ function RouteComponent() {
                   })
                 )}
               </div>
-              <BoardButton onClick={() => setActiveModal('company')} size="small" icon="edit">
-                Edytuj
-              </BoardButton>
+              {canUpdateCompany && (
+                <BoardButton onClick={() => setActiveModal('company')} size="small" icon="edit">
+                  Edytuj
+                </BoardButton>
+              )}
             </>
           )}
         </BlockWrapper>

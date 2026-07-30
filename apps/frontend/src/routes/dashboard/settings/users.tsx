@@ -13,6 +13,7 @@ import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { AddUserForm } from '@/features/dashboard/forms/AddUserForm';
 import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
@@ -21,7 +22,9 @@ export const Route = createFileRoute('/dashboard/settings/users')({
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
 function RouteComponent() {
-  const { data: team, isPending } = useTeam();
+  const { canManageTeam } = usePermissions();
+  const { data: team, isPending } = useTeam(canManageTeam);
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
@@ -127,6 +130,14 @@ function RouteComponent() {
   };
 
   const modalConfig = getModalConfig();
+
+  if (!canManageTeam) {
+    return (
+      <BlockWrapper>
+        <EmptyPlaceholder title="Nie masz uprawnień do zarządzanie zespołem" />
+      </BlockWrapper>
+    );
+  }
 
   return (
     <>
