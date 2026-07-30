@@ -54,6 +54,10 @@ function RouteComponent() {
           content: <PersonalDataForm onClose={() => setActiveModal(null)} />,
         };
       case 'company':
+        if (!canUpdateCompany) {
+          return { title: '', subtitle: '', content: null };
+        }
+
         return {
           title: 'Dane firmowe',
           subtitle: 'Uzupełnij informacje o firmie potrzebne do wystawiania faktur.',
