@@ -7,6 +7,7 @@ import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { UserFormData, UserType } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
 import { useChangeTeamMember } from '../hooks/team.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -38,11 +39,6 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
   });
 
   const onSubmit = async (data: UserManagementFormData) => {
-    setError('root', {
-      type: 'server',
-      message: '',
-    });
-
     try {
       await editMember({
         ...data,
@@ -50,24 +46,11 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
       });
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError('root', {
-          type: 'network',
-          message: 'Brak połączenia z internetem.',
-        });
-      } else if (err.status === 409) {
-        setError('root', {
-          type: 'network',
-          message: 'Użytkownik z takim adresem już istnieje.',
-        });
-      } else {
-        setError('root', {
-          type: 'server',
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError('root', {
+        message: getErrorMessage(error, {
+          409: 'Nie możesz odebrać sobie uprawnień.',
+        }),
+      });
     }
   };
 

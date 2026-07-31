@@ -1,8 +1,9 @@
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { UserType } from '../types/UserTypes';
 import { FormError } from '@/features/auth/ui/FormError';
-import { useState } from 'react';
 import { useDeleteTeamMember } from '../hooks/team.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+import { useError } from '@/hooks/useError';
 
 type Props = {
   user: UserType;
@@ -11,48 +12,27 @@ type Props = {
 
 export const DeleteUserConfirm = ({ user, onClose }: Props) => {
   const { mutateAsync: removeMember, isPending } = useDeleteTeamMember();
+  const { error, setError } = useError();
 
   const hasName = user.firstName || user.lastName;
   const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-  const [error, setError] = useState({
-    isError: false,
-    message: '',
-  });
 
   const deleteUser = async (id: string) => {
-    setError({
-      isError: false,
-      message: '',
-    });
-
     try {
       await removeMember(id);
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError({
-          isError: true,
-          message: 'Brak połączenia z internetem.',
-        });
-      } else if (err.status === 409) {
-        setError({
-          isError: true,
-          message: 'Nie możesz usunąć własnego konta.',
-        });
-      } else {
-        setError({
-          isError: true,
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError(
+        getErrorMessage(error, {
+          409: 'Nie możesz usunąć własnego konta.',
+        }),
+      );
     }
   };
 
   return (
     <div className="w-full text-left">
-      {error.isError && <FormError message={error.message} />}
+      {error && <FormError message={error} />}
       <div className="mb-[24px] p-[16px]  rounded-[7px] border border-icon/50">
         <p className="text-[14px] font-bold text-content-primary">{displayName}</p>
         {hasName && <p className="text-[12px] text-content-secondary mt-1">{user.email}</p>}

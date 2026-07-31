@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { FormError } from '@/features/auth/ui/FormError';
 import { BoardButton } from '../ui/BoardButton';
 import { useChangeDriver } from '../hooks/drivers.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -32,11 +33,6 @@ export const EditDriverForm = ({ onClose, initialData }: Props) => {
   });
 
   const onSubmit = async (data: DriverFormData) => {
-    setError('root', {
-      type: 'server',
-      message: '',
-    });
-
     try {
       await editDriver({
         ...data,
@@ -44,24 +40,9 @@ export const EditDriverForm = ({ onClose, initialData }: Props) => {
       });
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError('root', {
-          type: 'network',
-          message: 'Brak połączenia z internetem.',
-        });
-      } else if (err.status === 409) {
-        setError('root', {
-          type: 'network',
-          message: 'Użytkownik z takim adresem już istnieje.',
-        });
-      } else {
-        setError('root', {
-          type: 'server',
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError('root', {
+        message: getErrorMessage(error),
+      });
     }
   };
 

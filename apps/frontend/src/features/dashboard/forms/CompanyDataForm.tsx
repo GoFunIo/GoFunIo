@@ -11,6 +11,7 @@ import { FormError } from '@/features/auth/ui/FormError';
 import { handlePhoneInput } from '@/utils/handlePhoneInput';
 import { useUser } from '../hooks/user.hooks';
 import { useChangeCompanyInfo, useCompany } from '../hooks/company.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -56,28 +57,12 @@ export const CompanyDataForm = ({ onClose }: Props) => {
   }, [isSameAddress, user, setValue]);
 
   const onSubmit = async (data: CompanyDataFormData) => {
-    setError('root', {
-      type: 'server',
-      message: '',
-    });
-
     try {
       await updateCompany(data);
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError('root', {
-          type: 'network',
-          message: 'Brak połączenia z internetem.',
-        });
-        return;
-      }
-
       setError('root', {
-        type: 'server',
-        message: 'Błąd serwera. Spróbuj ponownie później.',
+        message: getErrorMessage(error),
       });
     }
   };
