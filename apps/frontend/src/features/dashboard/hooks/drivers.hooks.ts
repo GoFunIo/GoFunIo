@@ -12,6 +12,7 @@ export const useDrivers = () => {
   return useQuery({
     queryKey: ['drivers'],
     queryFn: getDrivers,
+    staleTime: Infinity,
   });
 };
 

@@ -8,7 +8,7 @@ export const useUser = () => {
     queryKey: ['me'],
     queryFn: getUser,
     retry: false,
-    staleTime: 0,
+    staleTime: Infinity,
   });
 };
 

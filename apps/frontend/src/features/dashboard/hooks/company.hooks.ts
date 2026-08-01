@@ -7,6 +7,7 @@ export const useCompany = () => {
   return useQuery({
     queryKey: ['company'],
     queryFn: getCompany,
+    staleTime: Infinity,
   });
 };
 
