@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'luci
 
 import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
-import { VehicleData } from '@/features/dashboard/types';
+import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
 
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
@@ -21,6 +21,21 @@ import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceCo
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
 import { activityArray } from '@/store/cars';
 import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
+
+const FUEL_OPTIONS = [
+  { id: 1, value: 'DIESEL', label: 'Diesel' },
+  { id: 2, value: 'PETROL', label: 'Benzyna' },
+  { id: 3, value: 'LPG', label: 'LPG' },
+  { id: 4, value: 'HYBRID', label: 'Hybryda' },
+  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
+];
+
+const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
+  if (!fuelValue) return 'Nieokreślone';
+
+  const found = FUEL_OPTIONS.find((item) => item.value.toLowerCase() === fuelValue.toLowerCase());
+  return found ? found.label : fuelValue;
+};
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: async ({ params }) => {
@@ -129,9 +144,9 @@ function RouteComponent() {
             <h3 className="pb-[3px] capitalize">
               {currentCar.brand} {currentCar.model}
             </h3>
-            <p className="text-[14px] text-content-secondary">
+            <p className="text-[14px] text-content-secondary uppercase">
               {currentCar.productionYear ?? ''} · {currentCar.registrationNumber} ·{' '}
-              {currentCar.fuelType ?? 'Nieokreślone'}
+              {getFuelLabel(currentCar.fuelType)}
             </p>
           </div>
         </div>

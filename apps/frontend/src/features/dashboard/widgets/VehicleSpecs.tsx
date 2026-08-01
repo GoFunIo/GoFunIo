@@ -1,11 +1,26 @@
 import { CreditCard, Gauge } from 'lucide-react';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { VehicleData } from '@/features/dashboard/types';
+import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
 
 interface VehicleSpecsProps {
   car: VehicleData;
   totalExpenses: number;
 }
+
+const FUEL_OPTIONS = [
+  { id: 1, value: 'DIESEL', label: 'Diesel' },
+  { id: 2, value: 'PETROL', label: 'Benzyna' },
+  { id: 3, value: 'LPG', label: 'LPG' },
+  { id: 4, value: 'HYBRID', label: 'Hybryda' },
+  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
+];
+
+const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
+  if (!fuelValue) return 'Nieokreślone';
+
+  const found = FUEL_OPTIONS.find((item) => item.value.toLowerCase() === fuelValue.toLowerCase());
+  return found ? found.label : fuelValue;
+};
 
 export const VehicleSpecs = ({ car, totalExpenses }: VehicleSpecsProps) => {
   return (
@@ -40,7 +55,7 @@ export const VehicleSpecs = ({ car, totalExpenses }: VehicleSpecsProps) => {
           </li>
           <li className="flex justify-between">
             <span>Paliwo</span>
-            <span className="text-content-primary font-medium">{car.fuelType}</span>
+            <span className="text-content-primary font-medium">{getFuelLabel(car.fuelType)}</span>
           </li>
           <li className="flex justify-between">
             <span>Data zakupu</span>
