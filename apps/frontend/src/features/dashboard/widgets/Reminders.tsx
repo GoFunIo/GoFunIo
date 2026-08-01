@@ -94,8 +94,15 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
         const isExpired = item.isPast || item.days < 0;
         const isCritical = item.days <= 7 || isExpired;
         const isWarning = item.days > 7 && item.days <= 30;
+        const isInfo = !isCritical && !isWarning;
 
-        const badgeText = isCritical ? 'Krytyczne' : 'Nadchodzące';
+        let badgeText = 'Nadchodzące < 60d';
+
+        if (isCritical) {
+          badgeText = isExpired ? 'Po terminie' : 'Krytyczne ≤ 7d';
+        } else if (isWarning) {
+          badgeText = 'Nadchodzące < 30d';
+        }
 
         return (
           <div
@@ -105,7 +112,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
               {
                 'border-l-alert': isCritical,
                 'border-l-warning': isWarning,
-                'border-l-info': !isCritical && !isWarning,
+                'border-l-info': isInfo,
               },
 
               isExpired ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card  ',
@@ -118,7 +125,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
                   {
                     'bg-alert-bg-icon text-alert': isCritical,
                     'bg-warning-bg-icon text-warning': isWarning,
-                    'bg-info-bg-icon text-info': !isCritical && !isWarning,
+                    'bg-info-bg-icon text-info': isInfo,
                   },
                 )}
               >
@@ -150,7 +157,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
                   {
                     'bg-alert': isCritical,
                     'bg-warning': isWarning,
-                    'bg-info': !isCritical && !isWarning,
+                    'bg-info': isInfo,
                   },
                 )}
               >
