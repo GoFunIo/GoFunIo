@@ -8,6 +8,7 @@ import { FormError } from '@/features/auth/ui/FormError';
 import { useState } from 'react';
 import { getImage } from '@/utils/getImage';
 import { useUser } from '../hooks/user.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -35,22 +36,11 @@ export const ChangeEmailForm = ({ onClose }: Props) => {
       await changeUserEmail(data);
       setSuccess(true);
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-      const status = err.status;
-
-      if (status === 401) {
-        if (err.message === 'Invalid current password') {
-          setError('root', {
-            type: 'network',
-            message: 'Nieprawidłowe obecne hasło.',
-          });
-        }
-      } else {
-        setError('root', {
-          type: 'server',
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError('root', {
+        message: getErrorMessage(error, {
+          401: 'Nieprawidłowe obecne hasło.',
+        }),
+      });
     }
   };
 

@@ -7,6 +7,7 @@ import { FormError } from '@/features/auth/ui/FormError';
 import { DriverFormData } from '../types/DriverTypes';
 import { handlePhoneInput } from '@/utils/handlePhoneInput';
 import { useAddDriver } from '../hooks/drivers.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -32,28 +33,13 @@ export const AddDriverForm = ({ onClose }: Props) => {
   });
 
   const onSubmit = async (data: DriverFormData) => {
-    setError('root', {
-      type: 'server',
-      message: '',
-    });
-
     try {
       await addDriver(data);
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError('root', {
-          type: 'network',
-          message: 'Brak połączenia z internetem.',
-        });
-      } else {
-        setError('root', {
-          type: 'server',
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError('root', {
+        message: getErrorMessage(error),
+      });
     }
   };
 

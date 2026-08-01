@@ -8,6 +8,7 @@ import { FormError } from '@/features/auth/ui/FormError';
 import { formatPostalCode } from '@/utils/formatPostalCode';
 import { handlePhoneInput } from '@/utils/handlePhoneInput';
 import { useChangeUserSettings, useUser } from '../hooks/user.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -35,28 +36,12 @@ export const PersonalDataForm = ({ onClose }: Props) => {
   });
 
   const onSubmit = async (data: PersonalDataFormData) => {
-    setError('root', {
-      type: 'server',
-      message: '',
-    });
-
     try {
       await changeSettings(data);
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-
-      if (err.status === 0) {
-        setError('root', {
-          type: 'network',
-          message: 'Brak połączenia z internetem.',
-        });
-        return;
-      }
-
       setError('root', {
-        type: 'server',
-        message: 'Błąd serwera. Spróbuj ponownie później.',
+        message: getErrorMessage(error),
       });
     }
   };

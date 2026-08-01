@@ -7,6 +7,7 @@ import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import classNames from 'classnames';
 import { changeUserPassword } from '../api/user.api';
 import { FormError } from '@/features/auth/ui/FormError';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = {
   onClose: () => void;
@@ -37,22 +38,11 @@ export const ChangePasswordForm = ({ onClose }: Props) => {
       await changeUserPassword(data);
       onClose();
     } catch (error) {
-      const err = error as { status?: number; message?: string };
-      const status = err.status;
-
-      if (status === 401) {
-        if (err.message === 'Invalid current password') {
-          setError('root', {
-            type: 'network',
-            message: 'Nieprawidłowe obecne hasło.',
-          });
-        }
-      } else {
-        setError('root', {
-          type: 'server',
-          message: 'Błąd serwera. Spróbuj ponownie później.',
-        });
-      }
+      setError('root', {
+        message: getErrorMessage(error, {
+          401: 'Nieprawidłowe obecne hasło.',
+        }),
+      });
     }
   };
 
