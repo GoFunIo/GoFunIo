@@ -14,7 +14,7 @@ import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
-import { useDeleteVehicle, useVehicle } from '@/hooks/useVehicles';
+import { useDeleteVehicle, useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { VehicleData } from '@/features/dashboard/types';
 

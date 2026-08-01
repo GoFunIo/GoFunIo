@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
 import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
 
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 

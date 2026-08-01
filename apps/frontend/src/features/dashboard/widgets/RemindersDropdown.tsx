@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { CalendarCog, ChevronRight, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import classNames from 'classnames';
 

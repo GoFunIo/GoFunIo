@@ -66,7 +66,10 @@ export const DatePicker = ({
   }, []);
 
   return (
-    <div className={classNames('relative min-w-[250px] w-fit h-[45px]', className)} ref={selectRef}>
+    <div
+      className={classNames('relative min-w-[250px] w-full h-[45px]', className)}
+      ref={selectRef}
+    >
       <div className="relative flex items-center justify-between bg-bg-card rounded-[5px] border border-icon w-full h-full">
         <input
           readOnly
@@ -132,7 +135,7 @@ export const DatePicker = ({
               day_button:
                 'flex h-8 w-8 items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
 
-              selected: '!bg-bg-section !text-content-primary font-semibold',
+              selected: '!bg-info-bg-icon !text-content-primary font-semibold',
               today: 'bg-bg-section rounded-md',
               disabled: 'opacity-30 cursor-not-allowed',
             }}

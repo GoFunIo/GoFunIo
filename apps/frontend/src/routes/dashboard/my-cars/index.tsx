@@ -7,7 +7,7 @@ import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleCard } from '@/features/dashboard/widgets/VehicleCard';
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 
 export const Route = createFileRoute('/dashboard/my-cars/')({

@@ -11,7 +11,7 @@ import { queryClient } from '@/lib/queryClient';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { getInitials } from '@/utils/getInitials';
 import { RemindersDropdown } from './RemindersDropdown';
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { useUser } from '../hooks/user.hooks';

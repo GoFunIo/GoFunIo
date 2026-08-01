@@ -1,15 +1,21 @@
 import { useEffect } from 'react';
 import { SubmitHandler, useForm, Controller, Resolver } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useLoading } from '@/hooks/useLoading';
 import classNames from 'classnames';
 import { AddVehicleFormData, AddVehicleSchema } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
-import { DatePicker } from '../ui/DatePicker';
 import { Select } from '../ui/Select';
-import { createVehicle, updateVehicle } from '../api/vehicles.api';
+import { useCreateVehicle, useUpdateVehicle } from '../hooks/vehicles.hooks';
 import { VehicleData } from '@/features/dashboard/types';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+import {
+  withTransform,
+  toUpperCase,
+  toUpperCaseNoSpaces,
+  capitalizeWords,
+} from '@/utils/formFieldTransforms';
+import { FormDatePicker } from '../ui/FormDatePicker';
 
 type FormProps = {
   className?: string;
@@ -27,11 +33,18 @@ const FUEL_OPTIONS = [
   { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
 ];
 
-const toLocalDateString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const mapInitialDataToForm = (data?: Partial<VehicleData>): Partial<AddVehicleFormData> => {
+  if (!data) return {};
+  return {
+    ...data,
+    brand: data.brand ?? '',
+    model: data.model ?? '',
+    registrationNumber: data.registrationNumber ?? '',
+    productionYear: data.productionYear != null ? String(data.productionYear) : undefined,
+    currentMileage: data.currentMileage ?? undefined,
+    vin: data.vin ?? undefined,
+    notes: data.notes ?? undefined,
+  };
 };
 
 export const AddVehicleForm = ({
@@ -41,22 +54,12 @@ export const AddVehicleForm = ({
   isRenewalMode = false,
   onSuccess,
 }: FormProps) => {
-  const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
 
-  const mapInitialDataToForm = (data?: Partial<VehicleData>): Partial<AddVehicleFormData> => {
-    if (!data) return {};
-    return {
-      ...data,
-      brand: data.brand ?? '',
-      model: data.model ?? '',
-      registrationNumber: data.registrationNumber ?? '',
-      productionYear: data.productionYear ? String(data.productionYear) : undefined,
-      currentMileage: data.currentMileage ?? undefined,
-      vin: data.vin ?? undefined,
-      notes: data.notes ?? undefined,
-    };
-  };
+  const createVehicleMutation = useCreateVehicle();
+  const updateVehicleMutation = useUpdateVehicle();
+
+  const loading = isEditMode ? updateVehicleMutation.isPending : createVehicleMutation.isPending;
 
   const {
     register,
@@ -79,31 +82,27 @@ export const AddVehicleForm = ({
   }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<AddVehicleFormData> = async (data) => {
-    setLoading(true);
-    setError('root', { type: 'server', message: '' });
+    clearErrors('root');
 
     try {
       if (isEditMode && initialData?.id) {
-        await updateVehicle(String(initialData.id), data);
+        await updateVehicleMutation.mutateAsync({ id: String(initialData.id), form: data });
       } else {
-        await createVehicle(data);
+        await createVehicleMutation.mutateAsync(data);
       }
-      reset();
       onSuccess?.();
+
+      if (!isEditMode) {
+        reset();
+      }
       onClose();
     } catch (err) {
-      const apiError = err as { status?: number; message?: string };
-
-      const fallback = isEditMode
-        ? 'Nie udało się zaktualizować pojazdu. Spróbuj ponownie.'
-        : 'Nie udało się dodać pojazdu. Spróbuj ponownie.';
-
       setError('root', {
         type: 'server',
-        message: apiError?.message ?? fallback,
+        message: getErrorMessage(err, {
+          409: 'Pojazd o takim numerze rejestracyjnym już istnieje.',
+        }),
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -121,7 +120,7 @@ export const AddVehicleForm = ({
           placeholder="Podaj markę samochodu"
           error={errors.brand?.message}
           className={inputStyles}
-          {...register('brand')}
+          {...withTransform(register('brand'), capitalizeWords)}
           onFocus={() => clearErrors('brand')}
           disabled={isRenewalMode}
         />
@@ -130,7 +129,7 @@ export const AddVehicleForm = ({
           placeholder="Podaj model samochodu"
           error={errors.model?.message}
           className={inputStyles}
-          {...register('model')}
+          {...withTransform(register('model'), capitalizeWords)}
           onFocus={() => clearErrors('model')}
           disabled={isRenewalMode}
         />
@@ -180,21 +179,15 @@ export const AddVehicleForm = ({
           placeholder="17 znaków"
           error={errors.vin?.message}
           className={inputStyles}
-          {...register('vin')}
-          onChange={(e) => {
-            e.target.value = e.target.value.toUpperCase();
-          }}
+          {...withTransform(register('vin'), toUpperCase)}
           disabled={isRenewalMode}
         />
         <Input
           label="Nr Rejestracyjny *"
-          placeholder="Np. WA 12345"
+          placeholder="Np. WA12345"
           error={errors.registrationNumber?.message}
           className={inputStyles}
-          {...register('registrationNumber')}
-          onChange={(e) => {
-            e.target.value = e.target.value.replace(/\s/g, '').toUpperCase();
-          }}
+          {...withTransform(register('registrationNumber'), toUpperCaseNoSpaces)}
           onFocus={() => clearErrors('registrationNumber')}
           disabled={isRenewalMode}
         />
@@ -209,99 +202,37 @@ export const AddVehicleForm = ({
         />
 
         {/* Data zakupu */}
-        <div
-          className={classNames('flex flex-col gap-1 transition-opacity', {
-            'opacity-60 select-none pointer-events-none': isRenewalMode,
-          })}
-        >
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">Data zakupu</label>
-            {errors.purchaseDate?.message && (
-              <span className="text-[12px] font-medium text-alert">
-                {errors.purchaseDate.message}
-              </span>
-            )}
-          </div>
-          <Controller
-            control={control}
-            name="purchaseDate"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
-                className="!w-full h-[40px]"
-              />
-            )}
-            disabled={isRenewalMode}
-          />
-        </div>
-      </div>
+        <FormDatePicker
+          control={control}
+          name="purchaseDate"
+          label="Data zakupu"
+          error={errors.purchaseDate?.message}
+          disabled={isRenewalMode}
+        />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
-        {/* Ważność przeglądu technicznego */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">
-              Ważność przeglądu
-            </label>
-            {errors.technicalInspectionExpiry?.message && (
-              <span className="text-[12px] font-medium text-alert">
-                {errors.technicalInspectionExpiry.message}
-              </span>
-            )}
-          </div>
-          <Controller
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
+          {/* Ważność przeglądu technicznego */}
+          <FormDatePicker
             control={control}
             name="technicalInspectionExpiry"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
-                className="!w-full h-[40px]"
-              />
-            )}
+            label="Ważność przeglądu"
+            error={errors.technicalInspectionExpiry?.message}
           />
-        </div>
 
-        {/* Ważność OC */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">Ważność OC</label>
-            {errors.ocExpiry?.message && (
-              <span className="text-[12px] font-medium text-alert">{errors.ocExpiry.message}</span>
-            )}
-          </div>
-          <Controller
+          {/* Ważność OC */}
+          <FormDatePicker
             control={control}
             name="ocExpiry"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
-                className="!w-full h-[40px]"
-              />
-            )}
+            label="Ważność OC"
+            error={errors.ocExpiry?.message}
           />
-        </div>
 
-        {/* Ważność AC */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">Ważność AC</label>
-            {errors.acExpiry?.message && (
-              <span className="text-[12px] font-medium text-alert">{errors.acExpiry.message}</span>
-            )}
-          </div>
-          <Controller
+          {/* Ważność AC */}
+          <FormDatePicker
             control={control}
             name="acExpiry"
-            render={({ field }) => (
-              <DatePicker
-                value={field.value ? new Date(field.value) : undefined}
-                onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
-                className="!w-full h-[40px]"
-              />
-            )}
+            label="Ważność AC"
+            error={errors.acExpiry?.message}
           />
         </div>
       </div>

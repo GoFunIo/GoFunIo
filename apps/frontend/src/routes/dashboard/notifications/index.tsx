@@ -5,7 +5,7 @@ import { Modal } from '@/features/dashboard/ui/Modal';
 import { Select } from '@/features/dashboard/ui/Select';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
-import { useVehicles } from '@/hooks/useVehicles';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
