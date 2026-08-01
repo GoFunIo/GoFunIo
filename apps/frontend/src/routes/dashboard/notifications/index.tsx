@@ -1,13 +1,14 @@
+import { useMemo, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleData } from '@/features/dashboard/types';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { Select } from '@/features/dashboard/ui/Select';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
-import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { Select } from '@/features/dashboard/ui/Select';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
@@ -100,7 +101,7 @@ function RouteComponent() {
       {/* WIDOK ALERTÓW */}
       <div>
         {isVehiclesLoading ? (
-          <p className="text-content-secondary text-[14px] mt-6">Ładowanie alertów…</p>
+          <LoadingIcon className="m-auto my-[24px]" />
         ) : (
           <Reminders
             data={filteredVehicles}

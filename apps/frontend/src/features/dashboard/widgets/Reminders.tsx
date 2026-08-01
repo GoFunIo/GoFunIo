@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { TriangleAlert, CalendarCog, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { TriangleAlert, CalendarCog, ShieldAlert, ShieldCheck, BellRing } from 'lucide-react';
 import { VehicleData } from '../types';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
@@ -77,7 +77,13 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
     .sort((a, b) => a.days - b.days);
 
   if (activeReminders.length === 0) {
-    return <EmptyPlaceholder title="Brak pilnych alertow" className="min-h-[240px]" />;
+    return (
+      <EmptyPlaceholder
+        title="Brak pilnych alertow"
+        className="bg-bg-card min-h-[250px]"
+        icon={<BellRing size={24} className="text-primary" />}
+      />
+    );
   }
 
   return (
