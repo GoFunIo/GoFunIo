@@ -70,6 +70,7 @@ export const Userbar = () => {
   return (
     <>
       <div className="flex items-center z-9 min-[426px]:h-[64px] h-[50px] bg-bg-card border-b border-icon shrink-0">
+        {/* LEWA STRONA (MOBILE / TABLET LOGO) */}
         {isTabletOrMobile && (
           <div className="md:ml-[32px] ml-[15px] flex items-center h-full gap-[15px]">
             <Logo />
@@ -81,31 +82,43 @@ export const Userbar = () => {
             />
           </div>
         )}
+
+        {/* PRAWA  STRONA user+ ikonki  */}
         <div className="ml-[auto] h-full flex items-center gap-4">
-          <ThemeToggle />
+          {user?.role && (
+            <span className="text-[10px] text-content-primary font-semibold px-4 py-2 rounded-md uppercase tracking-wider bg-bg-section shrink-0">
+              {user.role}
+            </span>
+          )}
+
+          <div className="p-2 rounded-lg hover:bg-bg-section transition-colors cursor-pointer flex items-center justify-center">
+            <ThemeToggle />
+          </div>
 
           {/* ALERTY / DROPDOWN */}
-          <div className="relative h-full " ref={alertsRef}>
-            <div
-              className="relative cursor-pointer px-4 h-full flex items-center justify-center"
+          <div className="relative flex items-center h-full" ref={alertsRef}>
+            <button
+              type="button"
+              className="p-2 rounded-lg hover:bg-bg-section transition-colors cursor-pointer flex items-center justify-center border-none bg-transparent"
               onClick={() => setDropdown(dropdown === 'alerts' ? null : 'alerts')}
+              aria-label="Alerts"
             >
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 {hasUrgentAlerts && (
-                  <div className="absolute -top-[2px] right-[2px] w-[8px] h-[8px] bg-alert rounded-full animate-pulse" />
+                  <div className="absolute -top-[2px] -right-[2px] w-[8px] h-[8px] bg-alert rounded-full animate-pulse" />
                 )}
                 <Bell className="text-content-primary" size={20} />
               </div>
-            </div>
+            </button>
 
             <RemindersDropdown isOpen={dropdown === 'alerts'} onClose={() => setDropdown(null)} />
           </div>
 
           {/* USTAWIENIA UŻYTKOWNIKA */}
-          <div className="relative h-full" ref={settingsRef}>
+          <div className="relative flex items-center  h-full" ref={settingsRef}>
             <div
               onClick={() => setDropdown(dropdown === 'settings' ? null : 'settings')}
-              className="cursor-pointer flex items-center gap-[8px] h-full md:pr-[32px] pr-[15px]"
+              className="cursor-pointer flex items-center gap-2.5 p-2 rounded-lg hover:bg-bg-section transition-colors md:mr-8 mr-[15px]"
             >
               {/* AVATAR Z INICJAŁAMI  */}
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center shrink-0">
