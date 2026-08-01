@@ -66,10 +66,7 @@ export const DatePicker = ({
   }, []);
 
   return (
-    <div
-      className={classNames('relative min-w-[250px] w-full h-[45px]', className)}
-      ref={selectRef}
-    >
+    <div className={classNames('relative w-full h-[45px]', className)} ref={selectRef}>
       <div className="relative flex items-center justify-between bg-bg-card rounded-[5px] border border-icon w-full h-full">
         <input
           readOnly
@@ -117,6 +114,9 @@ export const DatePicker = ({
               formatMonthDropdown,
             }}
             classNames={{
+              month: 'w-full',
+              month_grid: 'w-full',
+
               month_caption: 'flex items-center justify-between gap-2 mb-3',
               dropdowns: 'flex items-center gap-2',
 
@@ -126,14 +126,14 @@ export const DatePicker = ({
               button_next:
                 'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
 
-              weekdays: 'flex',
+              weekdays: 'flex w-full',
               weekday:
-                'flex h-8 w-8 items-center justify-center text-[12px] font-medium uppercase text-content-secondary',
+                'flex h-8 w-full items-center justify-center text-[12px] font-medium uppercase text-content-secondary',
               week: 'flex',
 
-              day: 'h-8 w-8',
+              day: 'h-8 w-full',
               day_button:
-                'flex h-8 w-8 items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
+                'flex h-8 w-full items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
 
               selected: '!bg-info-bg-icon !text-content-primary font-semibold',
               today: 'bg-bg-section rounded-md',

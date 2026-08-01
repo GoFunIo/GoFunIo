@@ -1,22 +1,26 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
+
+import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
+import { VehicleData } from '@/features/dashboard/types';
+
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
-import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
-import { activityArray } from '@/store/cars';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
+import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
+import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
-import { useDeleteVehicle, useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
-import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { VehicleData } from '@/features/dashboard/types';
+import { activityArray } from '@/store/cars';
+import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: async ({ params }) => {
@@ -37,8 +41,7 @@ function RouteComponent() {
   const { data: car, isLoading, refetch } = useVehicle(carId);
   const currentCar = car ?? initialCarData;
 
-  const { mutateAsync: removeCar, isPending: isDeleting } = useDeleteVehicle();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { canEditVehicle, canDeleteVehicle } = usePermissions();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -74,18 +77,6 @@ function RouteComponent() {
   const editModalTitle = `Edytuj pojazd ${currentCar.brand} ${currentCar.model}`;
   const editModalSubtitle =
     'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
-
-  const handleDelete = async () => {
-    setDeleteError(null);
-    try {
-      await removeCar(currentCar.id);
-      setIsDeleteModalOpen(false);
-      navigate({ to: '/dashboard/my-cars' });
-    } catch (error) {
-      const apiError = error as { message?: string };
-      setDeleteError(apiError?.message ?? 'Wystąpił błąd podczas usuwania pojazdu.');
-    }
-  };
 
   const singleCarHistory = activityArray.filter((item) => item.vehicleId === String(currentCar.id));
 
@@ -145,18 +136,21 @@ function RouteComponent() {
           </div>
         </div>
         <div className="sm:ml-auto order-1 flex gap-[16px]">
-          <BoardButton onClick={() => setIsEditModalOpen(true)} icon="edit" size="small">
-            Edytuj
-          </BoardButton>
-          <BoardButton
-            onClick={() => setIsDeleteModalOpen(true)}
-            icon="delete"
-            variant="danger"
-            size="small"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Usuwanie...' : 'Usuń'}
-          </BoardButton>
+          {canEditVehicle && (
+            <BoardButton onClick={() => setIsEditModalOpen(true)} icon="edit" size="small">
+              Edytuj
+            </BoardButton>
+          )}
+          {canDeleteVehicle && (
+            <BoardButton
+              onClick={() => setIsDeleteModalOpen(true)}
+              icon="delete"
+              variant="danger"
+              size="small"
+            >
+              Usuń
+            </BoardButton>
+          )}
         </div>
       </div>
 
@@ -198,7 +192,10 @@ function RouteComponent() {
           title="Historia serwisowa"
         />
 
-        <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
+        <GridWrapper>
+          <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
+          <VehicleAssignments vehicle={currentCar} />
+        </GridWrapper>
       </GridWrapper>
 
       {/* =========================================================
@@ -206,37 +203,36 @@ function RouteComponent() {
           ========================================================= */}
 
       {/* MODAL EDYCJI */}
-      <Modal
-        isOpen={isEditModalOpen}
-        setIsOpen={setIsEditModalOpen}
-        title={editModalTitle}
-        subtitle={editModalSubtitle}
-      >
-        <AddVehicleForm
-          initialData={currentCar}
-          onClose={() => setIsEditModalOpen(false)}
-          onSuccess={() => refetch()}
-        />
-      </Modal>
+      {canEditVehicle && (
+        <Modal
+          isOpen={isEditModalOpen}
+          setIsOpen={setIsEditModalOpen}
+          title={editModalTitle}
+          subtitle={editModalSubtitle}
+        >
+          <AddVehicleForm
+            initialData={currentCar}
+            onClose={() => setIsEditModalOpen(false)}
+            onSuccess={() => refetch()}
+          />
+        </Modal>
+      )}
 
       {/* MODAL USUWANIA */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        setIsOpen={setIsDeleteModalOpen}
-        title="Usuń pojazd"
-        subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
-      >
-        <DeleteCarConfirm
-          car={currentCar}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleDelete}
-        />
-        {deleteError && (
-          <p className="text-alert text-[12px] font-medium text-center mt-3 bg-alert/10 p-2 rounded">
-            {deleteError}
-          </p>
-        )}
-      </Modal>
+      {canDeleteVehicle && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          setIsOpen={setIsDeleteModalOpen}
+          title="Usuń pojazd"
+          subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
+        >
+          <DeleteCarConfirm
+            car={currentCar}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onDeleted={() => navigate({ to: '/dashboard/my-cars' })}
+          />
+        </Modal>
+      )}
 
       {/* =========================================================
           M O D A L E   Z A R Z Ą D Z A N I A   S E R W I S A M I

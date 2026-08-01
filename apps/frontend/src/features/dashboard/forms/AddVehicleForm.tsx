@@ -209,32 +209,32 @@ export const AddVehicleForm = ({
           error={errors.purchaseDate?.message}
           disabled={isRenewalMode}
         />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
-          {/* Ważność przeglądu technicznego */}
-          <FormDatePicker
-            control={control}
-            name="technicalInspectionExpiry"
-            label="Ważność przeglądu"
-            error={errors.technicalInspectionExpiry?.message}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
+        {/* Ważność przeglądu technicznego */}
+        <FormDatePicker
+          control={control}
+          name="technicalInspectionExpiry"
+          label="Ważność przeglądu"
+          error={errors.technicalInspectionExpiry?.message}
+        />
 
-          {/* Ważność OC */}
-          <FormDatePicker
-            control={control}
-            name="ocExpiry"
-            label="Ważność OC"
-            error={errors.ocExpiry?.message}
-          />
+        {/* Ważność OC */}
+        <FormDatePicker
+          control={control}
+          name="ocExpiry"
+          label="Ważność OC"
+          error={errors.ocExpiry?.message}
+        />
 
-          {/* Ważność AC */}
-          <FormDatePicker
-            control={control}
-            name="acExpiry"
-            label="Ważność AC"
-            error={errors.acExpiry?.message}
-          />
-        </div>
+        {/* Ważność AC */}
+        <FormDatePicker
+          control={control}
+          name="acExpiry"
+          label="Ważność AC"
+          error={errors.acExpiry?.message}
+        />
       </div>
 
       <div

@@ -11,21 +11,17 @@ export const SelectDatePicker = ({
 }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const selectedOptionRef = useRef<HTMLButtonElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedOptionRef = useRef<HTMLButtonElement>(null);
 
   const selected = options?.find((item) => String(item.value) === String(value));
 
   useLayoutEffect(() => {
-    if (isOpen && selectedOptionRef.current) {
-      const timer = setTimeout(() => {
-        selectedOptionRef.current?.scrollIntoView({
-          block: 'center',
-        });
-      }, 0);
+    if (!isOpen) return;
 
-      return () => clearTimeout(timer);
-    }
+    selectedOptionRef.current?.scrollIntoView({
+      block: 'center',
+    });
   }, [isOpen]);
 
   useEffect(() => {
@@ -37,8 +33,19 @@ export const SelectDatePicker = ({
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   const handleSelect = (newValue: string | number) => {
@@ -52,19 +59,19 @@ export const SelectDatePicker = ({
   };
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         aria-label={ariaLabel}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex h-8 min-w-15 items-center gap-1 rounded-md border border-icon bg-bg-card px-2 text-[12px] text-content-secondary font-bold"
+        className="flex h-8 min-w-15 items-center gap-1 rounded-md border border-icon bg-bg-card px-2 text-[12px] font-bold text-content-secondary"
       >
         {selected?.label}
         <ChevronDown size={14} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-9 z-50 max-h-50 min-w-15 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg text-content-secondary">
+        <div className="absolute left-0 top-9 z-50 max-h-50 min-w-15 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg">
           {options?.map((item) => {
             const isSelected = String(item.value) === String(value);
 
@@ -78,8 +85,8 @@ export const SelectDatePicker = ({
                 className={classNames(
                   'block w-full px-3 py-2 text-left text-[12px] hover:bg-bg-section',
                   {
-                    'font-semibold bg-bg-section text-content-primary': isSelected,
-                    'opacity-50 cursor-not-allowed': item.disabled,
+                    'bg-bg-section font-semibold text-content-primary': isSelected,
+                    'cursor-not-allowed opacity-50': item.disabled,
                   },
                 )}
               >

@@ -5,10 +5,11 @@ import {
   createVehicle,
   updateVehicle,
   deleteVehicle,
-  getManagerAssignments,
   VehicleListParams,
   PaginatedVehicles,
-  ManagerAssignment,
+  updateVehicleManagers,
+  removeDriverFromVehicle,
+  addDriverToVehicle,
 } from '@/features/dashboard/api/vehicles.api';
 import { VehicleData } from '@/features/dashboard/types';
 import { AddVehicleFormData } from '@/features/dashboard/lib/formValidationRules';
@@ -33,17 +34,6 @@ export const useVehicles = (params?: VehicleListParams) => {
     queryKey: ['vehicles', 'list', params],
     queryFn: () => getAllVehicles(params),
     staleTime: 1000 * 60 * 5,
-  });
-};
-
-// =========================================================================
-// HISTORIA MANAGERÓW POJAZDU
-// =========================================================================
-export const useManagerAssignments = (vehicleId: string) => {
-  return useQuery<ManagerAssignment[]>({
-    queryKey: ['vehicles', vehicleId, 'manager-assignments'],
-    queryFn: () => getManagerAssignments(vehicleId),
-    enabled: !!vehicleId,
   });
 };
 
@@ -86,6 +76,54 @@ export const useDeleteVehicle = () => {
 
   return useMutation({
     mutationFn: (id: string) => deleteVehicle(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+};
+
+// =========================================================================
+// PRZYPISANIE POJAZDÓW DO MANAGERA
+// =========================================================================
+
+export const useUpdateVehicleManagers = (vehicleId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (managerIds: string[]) => updateVehicleManagers(vehicleId, managerIds),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+};
+
+// =========================================================================
+// PRZYPISANIE KIEROWCY  DO MANAGERA
+// =========================================================================
+
+export const useAddDriverToVehicle = (vehicleId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (driverId: string) => addDriverToVehicle(vehicleId, driverId),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+};
+
+// =========================================================================
+// USUNIĘCIE  KIEROWCY  DO MANAGERA
+// =========================================================================
+
+export const useRemoveDriverFromVehicle = (vehicleId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (driverId: string) => removeDriverFromVehicle(vehicleId, driverId),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },

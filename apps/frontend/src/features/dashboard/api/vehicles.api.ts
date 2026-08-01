@@ -29,14 +29,14 @@ export type PaginatedVehicles = {
   totalPages: number;
 };
 
-export type ManagerAssignment = {
-  id: string;
-  managerId: string;
-  vehicleId: string;
-  assignedFrom: string;
-  assignedTo: string | null;
-  createdAt: string;
-};
+// export type ManagerAssignment = {
+//   id: string;
+//   managerId: string;
+//   vehicleId: string;
+//   assignedFrom: string;
+//   assignedTo: string | null;
+//   createdAt: string;
+// };
 
 // =========================================================================
 // WSPÓLNY PAYLOAD
@@ -163,12 +163,19 @@ export const getVehicle = async (id: string): Promise<VehicleData> => {
 };
 
 // =========================================================================
-// HISTORIA MANAGERÓW
+// PRZYPISANIE MANAGERA DO SAMOCHODU
 // =========================================================================
-export const getManagerAssignments = async (vehicleId: string): Promise<ManagerAssignment[]> => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/manager-assignments`, {
-    method: 'GET',
+export const updateVehicleManagers = async (
+  vehicleId: string,
+  managerIds: string[],
+): Promise<VehicleData> => {
+  const res = await fetch(`${API_URL}/vehicles/${vehicleId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     credentials: 'include',
+    body: JSON.stringify({ managerIds }),
   });
 
   const data = await res.json().catch(() => null);
@@ -176,9 +183,54 @@ export const getManagerAssignments = async (vehicleId: string): Promise<ManagerA
   if (!res.ok) {
     throw {
       status: res.status,
-      message: data?.message ?? 'Nie udało się pobrać historii managerów.',
+      message: data?.message ?? 'Nie udało się zaktualizować managerów.',
     };
   }
 
   return data;
+};
+
+// =========================================================================
+// PRZYPISANIE KIEROWCY DO SAMOCHODU
+// =========================================================================
+export const addDriverToVehicle = async (vehicleId: string, driverId: string): Promise<void> => {
+  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ driverId }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Nie udało się przypisać kierowcy.',
+    };
+  }
+};
+
+// =========================================================================
+// USUNIĘCIE  KIEROWCY Z  SAMOCHODU
+// =========================================================================
+export const removeDriverFromVehicle = async (
+  vehicleId: string,
+  driverId: string,
+): Promise<void> => {
+  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers/${driverId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+
+    throw {
+      status: res.status,
+      message: data?.message ?? 'Nie udało się usunąć kierowcy.',
+    };
+  }
 };

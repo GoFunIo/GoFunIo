@@ -21,5 +21,13 @@ export const usePermissions = () => {
 
     // uprawnienia dotyczące zarządzania kierowcami
     canDeleteDrivers: isAdmin,
+
+    // uprawnienia dotyczące zarządzania pojazdami
+    canAddVehicle: isAdmin || isManager,
+    canEditVehicle: isAdmin || isManager,
+    canDeleteVehicle: isAdmin || isManager,
+
+    // tylko admin zarządza listą managerów przypisanych do pojazdu
+    canManageVehicleManagers: isAdmin,
   };
 };

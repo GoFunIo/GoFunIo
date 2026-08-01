@@ -3,6 +3,9 @@ import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-r
 import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
 
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
+import { useTeam } from '@/features/dashboard/hooks/team.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 
@@ -27,8 +30,6 @@ import { VehicleData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { actionsArray, activityArray } from '@/store/cars';
-import { useUser } from '@/features/dashboard/hooks/user.hooks';
-import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 
 type QuickAction = {
   id: number;
@@ -57,6 +58,7 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 function RouteComponent() {
   const navigate = useNavigate();
   const { data: user } = useUser();
+  const { canInviteUsers } = usePermissions();
   const {
     data: vehiclesResponse,
     isPending: isVehiclesPending,
@@ -65,6 +67,7 @@ function RouteComponent() {
   const { data: team, isPending: isTeamPending } = useTeam();
 
   const isTeamLoading = isTeamPending && user?.role === 'ADMIN';
+  const activeUsersCount = user?.role === 'ADMIN' ? (team?.length ?? 0) : 1;
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
@@ -130,9 +133,19 @@ function RouteComponent() {
 
   const adminStats = {
     totalFleetVehicles: vehiclesResponse?.total ?? vehicles.length,
-    activeUsersCount: team?.length ?? 0,
+    activeUsersCount,
     urgentReminders: totalUrgentReminders,
   };
+
+  // widoczność dodaj usera tylko dla admin
+  const visibleActions = useMemo(
+    () =>
+      typedActions.filter((action) => {
+        if (action.actionType === 'modal_user') return canInviteUsers;
+        return true;
+      }),
+    [canInviteUsers],
+  );
 
   const handleActionClick = (
     actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link',
@@ -147,6 +160,7 @@ function RouteComponent() {
       return;
     }
     if (actionType === 'modal_user') {
+      if (!canInviteUsers) return;
       setIsUserModalOpen(true);
       return;
     }
@@ -227,6 +241,7 @@ function RouteComponent() {
             icon={<CarFront size={20} />}
           />
         </Link>
+
         <Link to="/dashboard/settings/users" className="block no-underline">
           <DashboardCard
             title="Aktywni użytkownicy"
@@ -310,7 +325,7 @@ function RouteComponent() {
             <h4 className="text-content-primary ">Szybkie akcje</h4>
 
             <div className="flex flex-col gap-[12px] pt-6 ">
-              {typedActions.map((item) => (
+              {visibleActions.map((item) => (
                 <ActionButton
                   key={item.id}
                   title={item.title}
