@@ -1,18 +1,32 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, QueryFailedError } from 'typeorm';
 
-export async function lockEmailClaim(
+export function rethrowEmailClaimError(
+  error: unknown,
+  conflict: () => Error,
+): never {
+  if (!(error instanceof QueryFailedError)) throw error;
+  const driverError = error.driverError as
+    | { code?: string; constraint?: string }
+    | undefined;
+  if (
+    driverError?.code === '23505' &&
+    (driverError.constraint === 'IDX_users_email' ||
+      driverError.constraint === 'IDX_users_pendingEmail')
+  ) {
+    throw conflict();
+  }
+  throw error;
+}
+
+export async function assertEmailClaimable(
   manager: EntityManager,
   email: string,
+  conflict: () => Error,
+  excludeUserId?: string,
 ): Promise<void> {
   await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
     email,
   ]);
-}
-
-export async function clearExpiredEmailClaims(
-  manager: EntityManager,
-  email: string,
-): Promise<void> {
   await manager.query(
     `UPDATE "users"
      SET "pendingEmail" = NULL,
@@ -22,13 +36,6 @@ export async function clearExpiredEmailClaims(
        AND ("emailChangeTokenExpiresAt" IS NULL OR "emailChangeTokenExpiresAt" <= now())`,
     [email],
   );
-}
-
-export async function emailClaimInUse(
-  manager: EntityManager,
-  email: string,
-  excludeUserId?: string,
-): Promise<boolean> {
   const rows = await manager.query<Array<{ exists: boolean }>>(
     `SELECT EXISTS (
        SELECT 1 FROM "users"
@@ -37,5 +44,5 @@ export async function emailClaimInUse(
      ) AS "exists"`,
     [email, excludeUserId ?? null],
   );
-  return rows[0]?.exists ?? false;
+  if (rows[0]?.exists) throw conflict();
 }

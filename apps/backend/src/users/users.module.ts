@@ -37,6 +37,11 @@ import {
 import { CredentialAuthenticationService } from './credential-authentication.service';
 import { CREDENTIAL_STORE, TypeOrmCredentialStore } from './credential.store';
 import { PASSWORD_HASHER, ScryptPasswordHasher } from './password-hasher';
+import { EmailRegistrationService } from './email-registration.service';
+import {
+  TypeOrmWorkspaceOwnerProvisioner,
+  WORKSPACE_OWNER_PROVISIONER,
+} from './workspace-owner-provisioner';
 
 @Module({
   imports: [
@@ -58,6 +63,12 @@ import { PASSWORD_HASHER, ScryptPasswordHasher } from './password-hasher';
       useExisting: TypeOrmSessionUserReader,
     },
     EmailVerificationService,
+    EmailRegistrationService,
+    TypeOrmWorkspaceOwnerProvisioner,
+    {
+      provide: WORKSPACE_OWNER_PROVISIONER,
+      useExisting: TypeOrmWorkspaceOwnerProvisioner,
+    },
     TypeOrmEmailVerificationStore,
     {
       provide: EMAIL_VERIFICATION_STORE,

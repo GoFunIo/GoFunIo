@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from './users.entity';
 import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
+  assertEmailClaimable,
+  rethrowEmailClaimError,
 } from './email-claim.util';
 import { EmailChangeEmailInUseError } from './email-change.errors';
 
@@ -20,16 +19,6 @@ export interface EmailChangeStore {
     expiresAt: Date,
   ): Promise<boolean>;
   consume(tokenHash: string, now: Date): Promise<boolean>;
-}
-
-const UNIQUE_VIOLATION = '23505';
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    error instanceof QueryFailedError &&
-    (error.driverError as { code?: string } | undefined)?.code ===
-      UNIQUE_VIOLATION
-  );
 }
 
 @Injectable()
@@ -47,11 +36,12 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
   ): Promise<boolean> {
     try {
       return await this.users.manager.transaction(async (manager) => {
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        if (await emailClaimInUse(manager, email, userId)) {
-          throw new EmailChangeEmailInUseError();
-        }
+        await assertEmailClaimable(
+          manager,
+          email,
+          () => new EmailChangeEmailInUseError(),
+          userId,
+        );
         const result = await manager
           .createQueryBuilder()
           .update(User)
@@ -76,8 +66,7 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
         return (result.affected ?? 0) > 0;
       });
     } catch (error) {
-      if (isUniqueViolation(error)) throw new EmailChangeEmailInUseError();
-      throw error;
+      rethrowEmailClaimError(error, () => new EmailChangeEmailInUseError());
     }
   }
 
@@ -111,8 +100,7 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
         .execute();
       return (result.affected ?? 0) > 0;
     } catch (error) {
-      if (isUniqueViolation(error)) throw new EmailChangeEmailInUseError();
-      throw error;
+      rethrowEmailClaimError(error, () => new EmailChangeEmailInUseError());
     }
   }
 }

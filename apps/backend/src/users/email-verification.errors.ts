@@ -4,10 +4,3 @@ export class InvalidOrExpiredVerificationTokenError extends Error {
     this.name = 'InvalidOrExpiredVerificationTokenError';
   }
 }
-
-export class VerificationEmailInUseError extends Error {
-  constructor() {
-    super('Email already in use');
-    this.name = 'VerificationEmailInUseError';
-  }
-}

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import { User } from './users.entity';
@@ -15,9 +15,8 @@ import { Membership } from './membership.entity';
 import type { SessionPrincipal } from './session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
+  assertEmailClaimable,
+  rethrowEmailClaimError,
 } from './email-claim.util';
 import { PasswordRecoveryService } from './password-recovery.service';
 
@@ -48,11 +47,11 @@ export class CompanyUsersService {
       user = await this.users.manager.transaction(async (manager) => {
         const admins = await this.lockAdmins(manager, actor.companyId);
         this.requireAdmin(admins, actor.id);
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        if (await emailClaimInUse(manager, email)) {
-          throw new ConflictException('Email already in use');
-        }
+        await assertEmailClaimable(
+          manager,
+          email,
+          () => new ConflictException('Email already in use'),
+        );
         const created = await manager.save(
           manager.create(User, {
             companyId: actor.companyId,
@@ -74,10 +73,10 @@ export class CompanyUsersService {
         return created;
       });
     } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('Email already in use');
-      }
-      throw error;
+      rethrowEmailClaimError(
+        error,
+        () => new ConflictException('Email already in use'),
+      );
     }
 
     // ponytail: post-commit issuance keeps transaction details out of the workflow seam; use an outbox if guaranteed activation is required.
@@ -196,12 +195,5 @@ export class CompanyUsersService {
     if (!admins.some(({ id }) => id === actorId)) {
       throw new ForbiddenException();
     }
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    if (!(error instanceof QueryFailedError)) return false;
-    return (
-      (error.driverError as { code?: string } | undefined)?.code === '23505'
-    );
   }
 }

@@ -1,16 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from './users.entity';
-import { Company } from '../companies/companies.entity';
-import { MembershipRole } from './membership-role';
-import { Membership } from './membership.entity';
-import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
-} from './email-claim.util';
-import { VerificationEmailInUseError } from './email-verification.errors';
 
 export const EMAIL_VERIFICATION_STORE = Symbol('EMAIL_VERIFICATION_STORE');
 
@@ -19,28 +10,7 @@ export interface PendingVerification {
   email: string;
 }
 
-export interface ProvisionedAccount {
-  id: string;
-  companyId: string;
-  email: string;
-  role: MembershipRole;
-  firstName: string | null;
-  lastName: string | null;
-  phone: string | null;
-  address: string | null;
-  postalCode: string | null;
-  city: string | null;
-  pendingEmail: string | null;
-  hasPassword: true;
-}
-
 export interface EmailVerificationStore {
-  createAccount(
-    email: string,
-    passwordHash: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<ProvisionedAccount>;
   assign(
     email: string,
     tokenHash: string,
@@ -49,72 +19,11 @@ export interface EmailVerificationStore {
   consume(tokenHash: string, now: Date): Promise<string | null>;
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    error instanceof QueryFailedError &&
-    (error.driverError as { code?: string } | undefined)?.code === '23505'
-  );
-}
-
 @Injectable()
 export class TypeOrmEmailVerificationStore implements EmailVerificationStore {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
-
-  async createAccount(
-    email: string,
-    passwordHash: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<ProvisionedAccount> {
-    try {
-      return await this.users.manager.transaction(async (manager) => {
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        if (await emailClaimInUse(manager, email)) {
-          throw new VerificationEmailInUseError();
-        }
-        const company = await manager.save(
-          manager.create(Company, { name: 'Moja firma' }),
-        );
-        const user = await manager.save(
-          manager.create(User, {
-            companyId: company.id,
-            email,
-            password: passwordHash,
-            role: MembershipRole.ADMIN,
-            verificationTokenHash: tokenHash,
-            verificationTokenExpiresAt: expiresAt,
-          }),
-        );
-        await manager.save(
-          manager.create(Membership, {
-            userId: user.id,
-            companyId: user.companyId,
-            role: user.role,
-          }),
-        );
-        return {
-          id: user.id,
-          companyId: user.companyId,
-          email: user.email,
-          role: user.role,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          address: user.address,
-          postalCode: user.postalCode,
-          city: user.city,
-          pendingEmail: user.pendingEmail,
-          hasPassword: true,
-        };
-      });
-    } catch (error) {
-      if (isUniqueViolation(error)) throw new VerificationEmailInUseError();
-      throw error;
-    }
-  }
 
   async assign(
     email: string,
@@ -184,32 +93,6 @@ export class InMemoryEmailVerificationStore implements EmailVerificationStore {
 
   seed(user: { id: string; email: string; verified: boolean }): void {
     this.users.set(user.email, user);
-  }
-
-  createAccount(
-    email: string,
-    _passwordHash: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<ProvisionedAccount> {
-    if (this.users.has(email)) throw new VerificationEmailInUseError();
-    const user = { id: `user-${this.users.size + 1}`, email, verified: false };
-    this.users.set(email, user);
-    this.tokens.set(tokenHash, { userId: user.id, expiresAt });
-    return Promise.resolve({
-      id: user.id,
-      companyId: `company-${this.users.size}`,
-      email,
-      role: MembershipRole.ADMIN,
-      firstName: null,
-      lastName: null,
-      phone: null,
-      address: null,
-      postalCode: null,
-      city: null,
-      pendingEmail: null,
-      hasPassword: true,
-    });
   }
 
   assign(

@@ -5,7 +5,6 @@ import {
   EMAIL_VERIFICATION_STORE,
   type EmailVerificationStore,
   type PendingVerification,
-  type ProvisionedAccount,
 } from './email-verification.store';
 import { InvalidOrExpiredVerificationTokenError } from './email-verification.errors';
 import {
@@ -22,25 +21,6 @@ export class EmailVerificationService {
     private readonly config: ConfigService,
     private readonly events: EventEmitter2,
   ) {}
-
-  async register(
-    email: string,
-    passwordHash: string,
-    origin?: string,
-  ): Promise<ProvisionedAccount> {
-    email = email.trim().toLowerCase();
-    const { token, tokenHash, expiresAt } = generateToken(
-      this.config.getOrThrow<number>('VERIFICATION_TOKEN_TTL_HOURS'),
-    );
-    const account = await this.store.createAccount(
-      email,
-      passwordHash,
-      tokenHash,
-      expiresAt,
-    );
-    this.emit({ userId: account.id, email: account.email }, token, origin);
-    return account;
-  }
 
   async verify(token: string): Promise<string> {
     const userId = await this.store.consume(hashToken(token), new Date());

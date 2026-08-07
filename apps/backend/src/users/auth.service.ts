@@ -11,14 +11,9 @@ import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import { Membership } from './membership.entity';
-import { hashPassword } from './password.util';
-import { EmailVerificationService } from './email-verification.service';
-import type { ProvisionedAccount } from './email-verification.store';
-import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
-} from './email-claim.util';
+import { EmailRegistrationService } from './email-registration.service';
+import type { UserAccount } from './user-account';
+import { assertEmailClaimable } from './email-claim.util';
 
 const UNIQUE_VIOLATION_CODE = '23505';
 
@@ -32,7 +27,7 @@ function isUniqueViolation(err: unknown): boolean {
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private emailVerification: EmailVerificationService,
+    private emailRegistration: EmailRegistrationService,
     private config: ConfigService,
     private dataSource: DataSource,
   ) {}
@@ -45,13 +40,8 @@ export class AuthService {
     email: string,
     password: string,
     origin?: string,
-  ): Promise<ProvisionedAccount> {
-    email = this.normalizeEmail(email);
-    return this.emailVerification.register(
-      email,
-      await hashPassword(password),
-      origin,
-    );
+  ): Promise<UserAccount> {
+    return this.emailRegistration.register(email, password, origin);
   }
 
   async signInWithGoogle(credential: string): Promise<User> {
@@ -111,17 +101,22 @@ export class AuthService {
 
     try {
       return await this.dataSource.transaction(async (manager) => {
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        const concurrentUser = await manager
-          .createQueryBuilder(User, 'user')
-          .innerJoinAndSelect('user.company', 'company')
-          .where('user.googleId = :googleId', { googleId })
-          .andWhere('company."deletedAt" IS NULL')
-          .getOne();
-        if (concurrentUser) return concurrentUser;
-        if (await emailClaimInUse(manager, email)) {
-          throw new ConflictException('Email already in use');
+        try {
+          await assertEmailClaimable(
+            manager,
+            email,
+            () => new ConflictException('Email already in use'),
+          );
+        } catch (error) {
+          if (!(error instanceof ConflictException)) throw error;
+          const concurrentUser = await manager
+            .createQueryBuilder(User, 'user')
+            .innerJoinAndSelect('user.company', 'company')
+            .where('user.googleId = :googleId', { googleId })
+            .andWhere('company."deletedAt" IS NULL')
+            .getOne();
+          if (concurrentUser) return concurrentUser;
+          throw error;
         }
 
         const company = manager.create(Company, { name: 'Moja firma' });

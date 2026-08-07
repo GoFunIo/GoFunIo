@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from './users.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
-import { EmailVerificationService } from './email-verification.service';
+import { EmailRegistrationService } from './email-registration.service';
 
 const mockVerifyIdToken = jest.fn();
 
@@ -53,8 +53,8 @@ describe('AuthService', () => {
   let usersService: jest.Mocked<
     Pick<UsersService, 'findActiveByEmail' | 'findActiveByGoogleId' | 'update'>
   >;
-  let emailVerification: jest.Mocked<
-    Pick<EmailVerificationService, 'register'>
+  let emailRegistration: jest.Mocked<
+    Pick<EmailRegistrationService, 'register'>
   >;
   let config: { get: jest.Mock };
   let dataSource: { transaction: jest.Mock };
@@ -65,7 +65,7 @@ describe('AuthService', () => {
       findActiveByGoogleId: jest.fn(),
       update: jest.fn(),
     };
-    emailVerification = { register: jest.fn() };
+    emailRegistration = { register: jest.fn() };
     config = {
       get: jest.fn().mockImplementation((key: string) => {
         if (key === 'GOOGLE_CLIENT_ID') {
@@ -80,7 +80,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UsersService, useValue: usersService },
-        { provide: EmailVerificationService, useValue: emailVerification },
+        { provide: EmailRegistrationService, useValue: emailRegistration },
         { provide: ConfigService, useValue: config },
         { provide: DataSource, useValue: dataSource },
       ],
@@ -94,13 +94,24 @@ describe('AuthService', () => {
   });
 
   describe('signup', () => {
-    it('hashes credentials and delegates atomic provisioning', async () => {
+    it('delegates email registration', async () => {
       const savedUser = makeUser({
         email: 'new@example.com',
         emailVerifiedAt: null,
       });
-      const account = { ...savedUser, hasPassword: true as const };
-      emailVerification.register.mockResolvedValue(account);
+      const account = {
+        id: savedUser.id,
+        email: savedUser.email,
+        firstName: null,
+        lastName: null,
+        phone: null,
+        address: null,
+        postalCode: null,
+        city: null,
+        pendingEmail: null,
+        hasPassword: true,
+      };
+      emailRegistration.register.mockResolvedValue(account);
 
       const result = await service.signup(
         ' New@Example.com ',
@@ -109,9 +120,9 @@ describe('AuthService', () => {
       );
 
       expect(result).toBe(account);
-      expect(emailVerification.register).toHaveBeenCalledWith(
-        'new@example.com',
-        expect.not.stringContaining('password123'),
+      expect(emailRegistration.register).toHaveBeenCalledWith(
+        ' New@Example.com ',
+        'password123',
         'http://localhost',
       );
       expect(dataSource.transaction).not.toHaveBeenCalled();

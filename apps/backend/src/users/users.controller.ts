@@ -33,7 +33,6 @@ import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { EmailChangeService } from './email-change.service';
-import type { ProvisionedAccount } from './email-verification.store';
 import { CredentialAuthenticationService } from './credential-authentication.service';
 import type { UserAccount } from './user-account';
 
@@ -56,7 +55,7 @@ export class UsersController {
   async signup(
     @Body() body: SignupDto,
     @Headers('origin') origin?: string,
-  ): Promise<ProvisionedAccount> {
+  ): Promise<UserAccount> {
     return this.authService.signup(body.email, body.password, origin);
   }
 

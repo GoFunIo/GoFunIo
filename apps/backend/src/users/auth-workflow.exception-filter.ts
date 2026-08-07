@@ -5,10 +5,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import {
-  InvalidOrExpiredVerificationTokenError,
-  VerificationEmailInUseError,
-} from './email-verification.errors';
+import { InvalidOrExpiredVerificationTokenError } from './email-verification.errors';
+import { EmailRegistrationEmailInUseError } from './email-registration.errors';
 import { InvalidOrExpiredPasswordRecoveryTokenError } from './password-recovery.errors';
 import {
   EmailChangeEmailInUseError,
@@ -29,7 +27,7 @@ import { SessionVersionChangedError } from './session.errors';
 
 @Catch(
   InvalidOrExpiredVerificationTokenError,
-  VerificationEmailInUseError,
+  EmailRegistrationEmailInUseError,
   InvalidOrExpiredPasswordRecoveryTokenError,
   InvalidOrExpiredEmailChangeTokenError,
   EmailChangeEmailInUseError,
