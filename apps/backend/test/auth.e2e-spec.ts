@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { createTestApp } from './helpers/create-test-app';
+import { User } from '../src/users/users.entity';
 import {
   type CapturedEvents,
   captureEmittedEvents,
@@ -444,6 +445,30 @@ describe('Auth (e2e)', () => {
       .expect((res) => {
         expect(res.body.email).toBe(email);
       });
+  });
+
+  it('explicitly links a non-authoritative Google identity', async () => {
+    const email = 'explicit-google@example.com';
+    const password = 'password123';
+    await createVerifiedUser(app, email, password);
+    const agent = request.agent(app.getHttpServer());
+    await agent.post('/auth/signin').send({ email, password }).expect(201);
+    mockVerifyIdToken.mockResolvedValueOnce(
+      buildGoogleVerifyResult({ sub: 'google-explicit-user', email }),
+    );
+
+    await agent
+      .post('/auth/google/link')
+      .set('Origin', 'http://localhost:5173')
+      .send({ credential: 'valid-google-token', password })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.email).toBe(email);
+      });
+
+    await expect(
+      app.get(DataSource).getRepository(User).findOneByOrFail({ email }),
+    ).resolves.toMatchObject({ googleId: 'google-explicit-user' });
   });
 
   it('google signin rejects unverified email account with 409', async () => {

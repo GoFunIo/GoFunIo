@@ -14,6 +14,7 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { User } from './users.entity';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
+import { GoogleLinkDto } from './dtos/google-link.dto';
 import { SignupDto } from './dtos/signup.dto';
 import { SigninDto } from './dtos/signin.dto';
 import { VerifyEmailDto } from './dtos/verify-email.dto';
@@ -35,6 +36,7 @@ import { PasswordRecoveryService } from './password-recovery.service';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
 import type { UserAccount } from './user-account';
+import { GoogleAuthenticationService } from './google-authentication.service';
 
 @Controller('auth')
 export class UsersController {
@@ -46,6 +48,7 @@ export class UsersController {
     private readonly passwordRecovery: PasswordRecoveryService,
     private readonly emailChange: EmailChangeService,
     private readonly credentials: CredentialAuthenticationService,
+    private readonly googleAuthentication: GoogleAuthenticationService,
   ) {}
 
   @Post('signup')
@@ -90,10 +93,29 @@ export class UsersController {
   async googleSignIn(
     @Body() body: GoogleAuthDto,
     @Session() session: SessionData,
-  ): Promise<User> {
-    const user = await this.authService.signInWithGoogle(body.credential);
-    await this.sessions.establish(session, user.id);
-    return user;
+  ): Promise<UserAccount & Pick<SessionPrincipal, 'companyId' | 'role'>> {
+    const account = await this.googleAuthentication.signin(body.credential);
+    const principal = await this.sessions.establish(session, account.id);
+    return {
+      ...account,
+      companyId: principal.companyId,
+      role: principal.role,
+    };
+  }
+
+  @Post('google/link')
+  @Serialize(UserDto)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard, ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  googleLink(
+    @Body() body: GoogleLinkDto,
+    @CurrentPrincipal() principal: SessionPrincipal,
+  ): Promise<UserAccount> {
+    return this.googleAuthentication.link(
+      principal.id,
+      body.credential,
+      body.password,
+    );
   }
 
   @Post('signout')

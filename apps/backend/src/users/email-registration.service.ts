@@ -10,8 +10,10 @@ import { generateToken } from './token.util';
 import type { UserAccount } from './user-account';
 import {
   WORKSPACE_OWNER_PROVISIONER,
+  WorkspaceOwnerConflictError,
   type WorkspaceOwnerProvisioner,
 } from './workspace-owner-provisioner';
+import { EmailRegistrationEmailInUseError } from './email-registration.errors';
 
 @Injectable()
 export class EmailRegistrationService {
@@ -33,12 +35,20 @@ export class EmailRegistrationService {
     const { token, tokenHash, expiresAt } = generateToken(
       this.config.getOrThrow<number>('VERIFICATION_TOKEN_TTL_HOURS'),
     );
-    const account = await this.provisioner.provision({
-      email,
-      passwordHash,
-      verificationTokenHash: tokenHash,
-      verificationTokenExpiresAt: expiresAt,
-    });
+    let account: UserAccount;
+    try {
+      account = await this.provisioner.provision({
+        email,
+        passwordHash,
+        verificationTokenHash: tokenHash,
+        verificationTokenExpiresAt: expiresAt,
+      });
+    } catch (error) {
+      if (error instanceof WorkspaceOwnerConflictError) {
+        throw new EmailRegistrationEmailInUseError();
+      }
+      throw error;
+    }
     this.events.emit(
       EMAIL_VERIFICATION_REQUESTED_EVENT,
       new EmailVerificationRequestedEvent(account.id, {

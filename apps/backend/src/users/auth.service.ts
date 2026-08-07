@@ -1,40 +1,10 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { OAuth2Client, TokenPayload } from 'google-auth-library';
-import { DataSource, QueryFailedError } from 'typeorm';
-import { UsersService } from './users.service';
-import { Company } from '../companies/companies.entity';
-import { User } from './users.entity';
-import { MembershipRole } from './membership-role';
-import { Membership } from './membership.entity';
+import { Injectable } from '@nestjs/common';
 import { EmailRegistrationService } from './email-registration.service';
 import type { UserAccount } from './user-account';
-import { assertEmailClaimable } from './email-claim.util';
-
-const UNIQUE_VIOLATION_CODE = '23505';
-
-function isUniqueViolation(err: unknown): boolean {
-  if (!(err instanceof QueryFailedError)) return false;
-  const code = (err.driverError as { code?: string } | undefined)?.code;
-  return code === UNIQUE_VIOLATION_CODE;
-}
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private emailRegistration: EmailRegistrationService,
-    private config: ConfigService,
-    private dataSource: DataSource,
-  ) {}
-
-  private normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
-  }
+  constructor(private emailRegistration: EmailRegistrationService) {}
 
   async signup(
     email: string,
@@ -42,117 +12,5 @@ export class AuthService {
     origin?: string,
   ): Promise<UserAccount> {
     return this.emailRegistration.register(email, password, origin);
-  }
-
-  async signInWithGoogle(credential: string): Promise<User> {
-    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')!;
-
-    let payload: TokenPayload | undefined;
-
-    try {
-      const client = new OAuth2Client(clientId);
-      const ticket = await client.verifyIdToken({
-        idToken: credential,
-        audience: clientId,
-      });
-      payload = ticket.getPayload();
-      if (!payload?.sub || !payload.email || payload.email_verified !== true) {
-        throw new UnauthorizedException('Invalid Google token');
-      }
-    } catch (err) {
-      if (err instanceof UnauthorizedException) {
-        throw err;
-      }
-      throw new UnauthorizedException('Invalid Google token');
-    }
-
-    const { sub: googleId } = payload;
-    const email = this.normalizeEmail(payload.email);
-
-    const existingByGoogle =
-      await this.usersService.findActiveByGoogleId(googleId);
-    if (existingByGoogle) {
-      await this.usersService.update(existingByGoogle.id, {
-        lastLoginAt: new Date(),
-      });
-      return existingByGoogle;
-    }
-
-    const existingByEmail = await this.usersService.findActiveByEmail(email);
-    if (existingByEmail) {
-      if (existingByEmail.googleId && existingByEmail.googleId !== googleId) {
-        throw new ConflictException('Google account conflict');
-      }
-      if (!existingByEmail.emailVerifiedAt) {
-        throw new ConflictException('Verify email before linking Google');
-      }
-      if (!payload.email?.toLowerCase().endsWith('@gmail.com') && !payload.hd) {
-        throw new ConflictException(
-          'Sign in with password before linking Google',
-        );
-      }
-      await this.usersService.update(existingByEmail.id, {
-        googleId,
-        lastLoginAt: new Date(),
-      });
-      existingByEmail.googleId = googleId;
-      return existingByEmail;
-    }
-
-    try {
-      return await this.dataSource.transaction(async (manager) => {
-        try {
-          await assertEmailClaimable(
-            manager,
-            email,
-            () => new ConflictException('Email already in use'),
-          );
-        } catch (error) {
-          if (!(error instanceof ConflictException)) throw error;
-          const concurrentUser = await manager
-            .createQueryBuilder(User, 'user')
-            .innerJoinAndSelect('user.company', 'company')
-            .where('user.googleId = :googleId', { googleId })
-            .andWhere('company."deletedAt" IS NULL')
-            .getOne();
-          if (concurrentUser) return concurrentUser;
-          throw error;
-        }
-
-        const company = manager.create(Company, { name: 'Moja firma' });
-        const savedCompany = await manager.save(company);
-
-        const newUser = manager.create(User, {
-          companyId: savedCompany.id,
-          email,
-          password: null,
-          googleId,
-          firstName: payload.given_name ?? null,
-          lastName: payload.family_name ?? null,
-          role: MembershipRole.ADMIN,
-          emailVerifiedAt: new Date(),
-        });
-
-        const savedUser = await manager.save(newUser);
-        await manager.save(
-          manager.create(Membership, {
-            userId: savedUser.id,
-            companyId: savedUser.companyId,
-            role: savedUser.role,
-          }),
-        );
-        return savedUser;
-      });
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        const concurrentUser =
-          await this.usersService.findActiveByGoogleId(googleId);
-        if (concurrentUser) {
-          return concurrentUser;
-        }
-        throw new ConflictException('Email already in use');
-      }
-      throw err;
-    }
   }
 }

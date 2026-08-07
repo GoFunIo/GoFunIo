@@ -24,6 +24,14 @@ import {
   InvalidCredentialsError,
 } from './credential-authentication.errors';
 import { SessionVersionChangedError } from './session.errors';
+import {
+  GoogleAccountConflictError,
+  GoogleEmailUnverifiedError,
+  GoogleExplicitLinkRequiredError,
+  GoogleLinkChangedError,
+  InvalidGoogleIdentityError,
+  InvalidGoogleLinkCredentialsError,
+} from './google-authentication.errors';
 
 @Catch(
   InvalidOrExpiredVerificationTokenError,
@@ -41,6 +49,12 @@ import { SessionVersionChangedError } from './session.errors';
   CredentialChangedError,
   CredentialPasswordUnchangedError,
   SessionVersionChangedError,
+  InvalidGoogleIdentityError,
+  GoogleAccountConflictError,
+  GoogleEmailUnverifiedError,
+  GoogleExplicitLinkRequiredError,
+  InvalidGoogleLinkCredentialsError,
+  GoogleLinkChangedError,
 )
 export class AuthWorkflowExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost) {
@@ -48,14 +62,20 @@ export class AuthWorkflowExceptionFilter implements ExceptionFilter {
     const status =
       exception instanceof EmailChangeEmailInUseError ||
       exception instanceof PasswordRequiredForEmailChangeError ||
-      exception instanceof CredentialPasswordRequiredError
+      exception instanceof CredentialPasswordRequiredError ||
+      exception instanceof GoogleAccountConflictError ||
+      exception instanceof GoogleEmailUnverifiedError ||
+      exception instanceof GoogleExplicitLinkRequiredError ||
+      exception instanceof GoogleLinkChangedError
         ? HttpStatus.CONFLICT
         : exception instanceof InvalidCurrentPasswordError ||
             exception instanceof InvalidCredentialsError ||
             exception instanceof CredentialEmailNotVerifiedError ||
             exception instanceof CredentialCurrentPasswordError ||
             exception instanceof CredentialChangedError ||
-            exception instanceof SessionVersionChangedError
+            exception instanceof SessionVersionChangedError ||
+            exception instanceof InvalidGoogleIdentityError ||
+            exception instanceof InvalidGoogleLinkCredentialsError
           ? HttpStatus.UNAUTHORIZED
           : HttpStatus.BAD_REQUEST;
     response.status(status).json({

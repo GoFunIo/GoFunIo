@@ -42,6 +42,15 @@ import {
   TypeOrmWorkspaceOwnerProvisioner,
   WORKSPACE_OWNER_PROVISIONER,
 } from './workspace-owner-provisioner';
+import { GoogleAuthenticationService } from './google-authentication.service';
+import {
+  GOOGLE_AUTHENTICATION_STORE,
+  TypeOrmGoogleAuthenticationStore,
+} from './google-authentication.store';
+import {
+  GOOGLE_IDENTITY_VERIFIER,
+  GoogleSdkIdentityVerifier,
+} from './google-identity-verifier';
 
 @Module({
   imports: [
@@ -87,6 +96,17 @@ import {
       useExisting: TypeOrmEmailChangeStore,
     },
     CredentialAuthenticationService,
+    GoogleAuthenticationService,
+    TypeOrmGoogleAuthenticationStore,
+    {
+      provide: GOOGLE_AUTHENTICATION_STORE,
+      useExisting: TypeOrmGoogleAuthenticationStore,
+    },
+    GoogleSdkIdentityVerifier,
+    {
+      provide: GOOGLE_IDENTITY_VERIFIER,
+      useExisting: GoogleSdkIdentityVerifier,
+    },
     TypeOrmCredentialStore,
     {
       provide: CREDENTIAL_STORE,

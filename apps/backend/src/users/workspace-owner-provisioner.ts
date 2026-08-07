@@ -1,12 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-import {
-  assertEmailClaimable,
-  rethrowEmailClaimError,
-} from './email-claim.util';
-import { EmailRegistrationEmailInUseError } from './email-registration.errors';
+import { assertEmailClaimable } from './email-claim.util';
 import { Membership } from './membership.entity';
 import { MembershipRole } from './membership-role';
 import type { UserAccount } from './user-account';
@@ -16,11 +12,29 @@ export const WORKSPACE_OWNER_PROVISIONER = Symbol(
   'WORKSPACE_OWNER_PROVISIONER',
 );
 
-export interface WorkspaceOwnerProvisioning {
+interface EmailWorkspaceOwnerProvisioning {
   email: string;
   passwordHash: string;
   verificationTokenHash: string;
   verificationTokenExpiresAt: Date;
+}
+
+interface GoogleWorkspaceOwnerProvisioning {
+  email: string;
+  googleId: string;
+  firstName: string | null;
+  lastName: string | null;
+  emailVerifiedAt: Date;
+}
+
+export type WorkspaceOwnerProvisioning =
+  | EmailWorkspaceOwnerProvisioning
+  | GoogleWorkspaceOwnerProvisioning;
+
+export class WorkspaceOwnerConflictError extends Error {
+  constructor() {
+    super('Workspace owner identity already in use');
+  }
 }
 
 export interface WorkspaceOwnerProvisioner {
@@ -39,7 +53,7 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
         await assertEmailClaimable(
           manager,
           input.email,
-          () => new EmailRegistrationEmailInUseError(),
+          () => new WorkspaceOwnerConflictError(),
         );
         const company = await manager.save(
           manager.create(Company, { name: 'Moja firma' }),
@@ -48,10 +62,20 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           manager.create(User, {
             companyId: company.id,
             email: input.email,
-            password: input.passwordHash,
+            password: 'passwordHash' in input ? input.passwordHash : null,
+            googleId: 'googleId' in input ? input.googleId : null,
+            firstName: 'googleId' in input ? input.firstName : null,
+            lastName: 'googleId' in input ? input.lastName : null,
             role: MembershipRole.ADMIN,
-            verificationTokenHash: input.verificationTokenHash,
-            verificationTokenExpiresAt: input.verificationTokenExpiresAt,
+            emailVerifiedAt: 'googleId' in input ? input.emailVerifiedAt : null,
+            verificationTokenHash:
+              'verificationTokenHash' in input
+                ? input.verificationTokenHash
+                : null,
+            verificationTokenExpiresAt:
+              'verificationTokenExpiresAt' in input
+                ? input.verificationTokenExpiresAt
+                : null,
           }),
         );
         await manager.save(
@@ -71,14 +95,25 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           postalCode: user.postalCode,
           city: user.city,
           pendingEmail: user.pendingEmail,
-          hasPassword: true,
+          hasPassword: 'passwordHash' in input,
         };
       });
     } catch (error) {
-      rethrowEmailClaimError(
-        error,
-        () => new EmailRegistrationEmailInUseError(),
-      );
+      if (
+        error instanceof WorkspaceOwnerConflictError ||
+        (error instanceof QueryFailedError &&
+          (
+            error.driverError as
+              | { code?: string; constraint?: string }
+              | undefined
+          )?.code === '23505' &&
+          ['IDX_users_email', 'IDX_users_googleId'].includes(
+            (error.driverError as { constraint?: string }).constraint ?? '',
+          ))
+      ) {
+        throw new WorkspaceOwnerConflictError();
+      }
+      throw error;
     }
   }
 }
@@ -93,14 +128,14 @@ export class FakeWorkspaceOwnerProvisioner implements WorkspaceOwnerProvisioner 
     return Promise.resolve({
       id: `user-${this.calls.length}`,
       email: input.email,
-      firstName: null,
-      lastName: null,
       phone: null,
       address: null,
       postalCode: null,
       city: null,
       pendingEmail: null,
-      hasPassword: true,
+      firstName: 'googleId' in input ? input.firstName : null,
+      lastName: 'googleId' in input ? input.lastName : null,
+      hasPassword: 'passwordHash' in input,
     });
   }
 }

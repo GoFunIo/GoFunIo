@@ -21,6 +21,7 @@ import { PasswordRecoveryService } from './password-recovery.service';
 import type { SessionPrincipal } from './session-principal';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
+import { GoogleAuthenticationService } from './google-authentication.service';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -63,9 +64,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let authService: jest.Mocked<
-    Pick<AuthService, 'signup' | 'signInWithGoogle'>
-  >;
+  let authService: jest.Mocked<Pick<AuthService, 'signup'>>;
   let emailVerification: jest.Mocked<
     Pick<EmailVerificationService, 'verify' | 'resend'>
   >;
@@ -76,18 +75,19 @@ describe('UsersController', () => {
   let credentials: jest.Mocked<Pick<CredentialAuthenticationService, 'signin'>>;
   let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
   let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
+  let googleAuthentication: jest.Mocked<
+    Pick<GoogleAuthenticationService, 'signin' | 'link'>
+  >;
 
   beforeEach(async () => {
-    authService = {
-      signup: jest.fn(),
-      signInWithGoogle: jest.fn(),
-    };
+    authService = { signup: jest.fn() };
     emailVerification = { verify: jest.fn(), resend: jest.fn() };
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
     emailChange = { confirm: jest.fn() };
     credentials = { signin: jest.fn() };
     sessions = { establish: jest.fn(), clear: jest.fn() };
     users = { findActiveById: jest.fn() };
+    googleAuthentication = { signin: jest.fn(), link: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
@@ -99,6 +99,10 @@ describe('UsersController', () => {
         { provide: CredentialAuthenticationService, useValue: credentials },
         { provide: SessionsService, useValue: sessions },
         { provide: UsersService, useValue: users },
+        {
+          provide: GoogleAuthenticationService,
+          useValue: googleAuthentication,
+        },
       ],
     })
       .overrideGuard(ThrottlerGuard)
@@ -174,7 +178,13 @@ describe('UsersController', () => {
   describe('googleSignIn', () => {
     it('delegates authentication and session establishment', async () => {
       const user = makeUser({ passwordVersion: 4, password: null });
-      authService.signInWithGoogle.mockResolvedValue(user);
+      const account = { ...user, hasPassword: false };
+      googleAuthentication.signin.mockResolvedValue(account);
+      sessions.establish.mockResolvedValue({
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role,
+      });
       const session = {} as SessionData;
 
       const result = await controller.googleSignIn(
@@ -182,11 +192,39 @@ describe('UsersController', () => {
         session,
       );
 
-      expect(authService.signInWithGoogle).toHaveBeenCalledWith(
+      expect(googleAuthentication.signin).toHaveBeenCalledWith(
         'google-id-token',
       );
       expect(sessions.establish).toHaveBeenCalledWith(session, user.id);
-      expect(result).toBe(user);
+      expect(result).toMatchObject({
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role,
+        hasPassword: false,
+      });
+    });
+
+    it('links Google to the authenticated principal', async () => {
+      const user = makeUser();
+      const account = { ...user, hasPassword: true };
+      googleAuthentication.link.mockResolvedValue(account);
+      const principal: SessionPrincipal = {
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role,
+      };
+
+      await expect(
+        controller.googleLink(
+          { credential: 'google-id-token', password: 'secret' },
+          principal,
+        ),
+      ).resolves.toBe(account);
+      expect(googleAuthentication.link).toHaveBeenCalledWith(
+        user.id,
+        'google-id-token',
+        'secret',
+      );
     });
   });
 

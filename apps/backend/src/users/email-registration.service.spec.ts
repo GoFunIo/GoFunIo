@@ -53,8 +53,11 @@ describe('EmailRegistrationService', () => {
         origin: 'http://localhost',
       },
     });
+    const provisioning = provisioner.calls[0];
+    expect('verificationTokenHash' in provisioning).toBe(true);
+    if (!('verificationTokenHash' in provisioning)) return;
     expect(hashToken(event.delivery.token)).toBe(
-      provisioner.calls[0].verificationTokenHash,
+      provisioning.verificationTokenHash,
     );
     expect(account).not.toHaveProperty('companyId');
     expect(account).not.toHaveProperty('role');
