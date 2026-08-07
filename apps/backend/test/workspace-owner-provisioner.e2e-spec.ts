@@ -1,11 +1,13 @@
 import './helpers/test-env';
 import { DataSource } from 'typeorm';
 import { Company } from '../src/companies/companies.entity';
-import { EmailRegistrationEmailInUseError } from '../src/users/email-registration.errors';
 import { Membership } from '../src/users/membership.entity';
 import { MembershipRole } from '../src/users/membership-role';
 import { User } from '../src/users/users.entity';
-import { TypeOrmWorkspaceOwnerProvisioner } from '../src/users/workspace-owner-provisioner';
+import {
+  TypeOrmWorkspaceOwnerProvisioner,
+  WorkspaceOwnerConflictError,
+} from '../src/users/workspace-owner-provisioner';
 
 describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
   let dataSource: DataSource;
@@ -83,7 +85,7 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
       1,
     );
     expect(results.find(({ status }) => status === 'rejected')).toMatchObject({
-      reason: expect.any(EmailRegistrationEmailInUseError),
+      reason: expect.any(WorkspaceOwnerConflictError),
     });
     const [user] = await dataSource.getRepository(User).findBy({ email });
     expect(user).toBeDefined();
