@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
-import { UsersController } from './users.controller';
+import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { UsersService } from './users.service';
-import { AuthService } from './auth.service';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { UserProfileController } from './user-profile.controller';
@@ -57,10 +56,9 @@ import {
     TypeOrmModule.forFeature([User, Company]),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
   ],
-  controllers: [UsersController, UserProfileController, CompanyUsersController],
+  controllers: [AuthController, UserProfileController, CompanyUsersController],
   providers: [
     UsersService,
-    AuthService,
     SessionAuthGuard,
     AllowedOriginGuard,
     AdminGuard,

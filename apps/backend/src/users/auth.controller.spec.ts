@@ -7,15 +7,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { UsersController } from './users.controller';
-import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { EmailRegistrationService } from './email-registration.service';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import type { SessionData } from '../types/session.types';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { SessionsService } from './sessions.service';
-import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import type { SessionPrincipal } from './session-principal';
@@ -62,9 +61,11 @@ function makeUser(overrides: Partial<User> = {}): User {
   };
 }
 
-describe('UsersController', () => {
-  let controller: UsersController;
-  let authService: jest.Mocked<Pick<AuthService, 'signup'>>;
+describe('AuthController', () => {
+  let controller: AuthController;
+  let emailRegistration: jest.Mocked<
+    Pick<EmailRegistrationService, 'register'>
+  >;
   let emailVerification: jest.Mocked<
     Pick<EmailVerificationService, 'verify' | 'resend'>
   >;
@@ -72,33 +73,35 @@ describe('UsersController', () => {
     Pick<PasswordRecoveryService, 'request' | 'reset'>
   >;
   let emailChange: jest.Mocked<Pick<EmailChangeService, 'confirm'>>;
-  let credentials: jest.Mocked<Pick<CredentialAuthenticationService, 'signin'>>;
+  let credentials: jest.Mocked<
+    Pick<CredentialAuthenticationService, 'signin' | 'findAccount'>
+  >;
   let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
-  let users: jest.Mocked<Pick<UsersService, 'findActiveById'>>;
   let googleAuthentication: jest.Mocked<
     Pick<GoogleAuthenticationService, 'signin' | 'link'>
   >;
 
   beforeEach(async () => {
-    authService = { signup: jest.fn() };
+    emailRegistration = { register: jest.fn() };
     emailVerification = { verify: jest.fn(), resend: jest.fn() };
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
     emailChange = { confirm: jest.fn() };
-    credentials = { signin: jest.fn() };
+    credentials = { signin: jest.fn(), findAccount: jest.fn() };
     sessions = { establish: jest.fn(), clear: jest.fn() };
-    users = { findActiveById: jest.fn() };
     googleAuthentication = { signin: jest.fn(), link: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
+      controllers: [AuthController],
       providers: [
-        { provide: AuthService, useValue: authService },
+        {
+          provide: EmailRegistrationService,
+          useValue: emailRegistration,
+        },
         { provide: EmailVerificationService, useValue: emailVerification },
         { provide: PasswordRecoveryService, useValue: passwordRecovery },
         { provide: EmailChangeService, useValue: emailChange },
         { provide: CredentialAuthenticationService, useValue: credentials },
         { provide: SessionsService, useValue: sessions },
-        { provide: UsersService, useValue: users },
         {
           provide: GoogleAuthenticationService,
           useValue: googleAuthentication,
@@ -113,7 +116,7 @@ describe('UsersController', () => {
       .useClass(MockThrottlerGuard)
       .compile();
 
-    controller = module.get(UsersController);
+    controller = module.get(AuthController);
   });
 
   afterEach(() => {
@@ -121,16 +124,16 @@ describe('UsersController', () => {
   });
 
   describe('signup', () => {
-    it('delegates to AuthService with email, password and origin', async () => {
+    it('delegates to EmailRegistrationService with email, password and origin', async () => {
       const user = { ...makeUser(), hasPassword: true as const };
-      authService.signup.mockResolvedValue(user);
+      emailRegistration.register.mockResolvedValue(user);
 
       const result = await controller.signup(
         { email: 'new@example.com', password: 'secret' },
         'http://localhost:5173',
       );
 
-      expect(authService.signup).toHaveBeenCalledWith(
+      expect(emailRegistration.register).toHaveBeenCalledWith(
         'new@example.com',
         'secret',
         'http://localhost:5173',
@@ -242,26 +245,42 @@ describe('UsersController', () => {
   });
 
   describe('getMe', () => {
-    it('loads the profile by principal id', async () => {
+    it('composes the current user view from account and principal', async () => {
       const user = makeUser();
+      const account = {
+        id: user.id,
+        email: user.email,
+        firstName: null,
+        lastName: null,
+        phone: null,
+        address: null,
+        postalCode: null,
+        city: null,
+        pendingEmail: null,
+        hasPassword: true,
+      };
       const principal: SessionPrincipal = {
         id: user.id,
         companyId: user.companyId,
         role: user.role,
       };
-      users.findActiveById.mockResolvedValue(user);
+      credentials.findAccount.mockResolvedValue(account);
 
-      await expect(controller.getMe(principal)).resolves.toBe(user);
-      expect(users.findActiveById).toHaveBeenCalledWith(user.id);
+      await expect(controller.getMe(principal)).resolves.toEqual({
+        ...account,
+        companyId: principal.companyId,
+        role: principal.role,
+      });
+      expect(credentials.findAccount).toHaveBeenCalledWith(user.id);
     });
 
-    it('rejects a missing profile', async () => {
+    it('rejects a missing account', async () => {
       const principal: SessionPrincipal = {
         id: 'missing-user',
         companyId: 'company-1',
         role: MembershipRole.ADMIN,
       };
-      users.findActiveById.mockResolvedValue(null);
+      credentials.findAccount.mockResolvedValue(null);
 
       await expect(controller.getMe(principal)).rejects.toBeInstanceOf(
         UnauthorizedException,

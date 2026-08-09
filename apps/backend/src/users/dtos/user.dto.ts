@@ -1,6 +1,6 @@
 import { Expose, Transform } from 'class-transformer';
-import { User } from '../users.entity';
 import { MembershipRole } from '../membership-role';
+import type { CurrentUserView } from '../current-user-view';
 
 export class UserDto {
   @Expose()
@@ -37,8 +37,6 @@ export class UserDto {
   pendingEmail!: string | null;
 
   @Expose()
-  @Transform(({ obj }: { obj: User | { hasPassword: boolean } }) =>
-    Boolean(obj.hasPassword),
-  )
+  @Transform(({ obj }: { obj: CurrentUserView }) => Boolean(obj.hasPassword))
   hasPassword!: boolean;
 }

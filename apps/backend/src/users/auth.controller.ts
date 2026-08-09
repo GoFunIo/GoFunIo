@@ -12,7 +12,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { User } from './users.entity';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
 import { GoogleLinkDto } from './dtos/google-link.dto';
 import { SignupDto } from './dtos/signup.dto';
@@ -23,27 +22,26 @@ import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
-import { AuthService } from './auth.service';
+import { EmailRegistrationService } from './email-registration.service';
 import type { SessionData } from '../types/session.types';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
-import { UsersService } from './users.service';
 import { EmailVerificationService } from './email-verification.service';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
+import type { CurrentUserView } from './current-user-view';
 import type { UserAccount } from './user-account';
 import { GoogleAuthenticationService } from './google-authentication.service';
 
 @Controller('auth')
-export class UsersController {
+export class AuthController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly emailRegistration: EmailRegistrationService,
     private readonly sessions: SessionsService,
-    private readonly users: UsersService,
     private readonly emailVerification: EmailVerificationService,
     private readonly passwordRecovery: PasswordRecoveryService,
     private readonly emailChange: EmailChangeService,
@@ -59,7 +57,7 @@ export class UsersController {
     @Body() body: SignupDto,
     @Headers('origin') origin?: string,
   ): Promise<UserAccount> {
-    return this.authService.signup(body.email, body.password, origin);
+    return this.emailRegistration.register(body.email, body.password, origin);
   }
 
   @Post('signin')
@@ -69,7 +67,7 @@ export class UsersController {
   async signin(
     @Body() body: SigninDto,
     @Session() session: SessionData,
-  ): Promise<UserAccount & Pick<SessionPrincipal, 'companyId' | 'role'>> {
+  ): Promise<CurrentUserView> {
     const authenticated = await this.credentials.signin(
       body.email,
       body.password,
@@ -93,7 +91,7 @@ export class UsersController {
   async googleSignIn(
     @Body() body: GoogleAuthDto,
     @Session() session: SessionData,
-  ): Promise<UserAccount & Pick<SessionPrincipal, 'companyId' | 'role'>> {
+  ): Promise<CurrentUserView> {
     const account = await this.googleAuthentication.signin(body.credential);
     const principal = await this.sessions.establish(session, account.id);
     return {
@@ -128,10 +126,16 @@ export class UsersController {
   @Get('me')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard)
-  async getMe(@CurrentPrincipal() principal: SessionPrincipal): Promise<User> {
-    const user = await this.users.findActiveById(principal.id);
-    if (!user) throw new UnauthorizedException();
-    return user;
+  async getMe(
+    @CurrentPrincipal() principal: SessionPrincipal,
+  ): Promise<CurrentUserView> {
+    const account = await this.credentials.findAccount(principal.id);
+    if (!account) throw new UnauthorizedException();
+    return {
+      ...account,
+      companyId: principal.companyId,
+      role: principal.role,
+    };
   }
 
   @Get('verify-email')

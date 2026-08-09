@@ -23,6 +23,11 @@ export class CredentialAuthenticationService {
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
   ) {}
 
+  async findAccount(userId: string): Promise<UserAccount | null> {
+    const credential = await this.store.findById(userId);
+    return credential?.account ?? null;
+  }
+
   async signin(email: string, password: string): Promise<AuthenticatedAccount> {
     const credential = await this.store.findByEmail(email.trim().toLowerCase());
     const matches = await this.hasher.verify(

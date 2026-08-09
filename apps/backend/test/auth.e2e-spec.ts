@@ -66,6 +66,7 @@ describe('Auth (e2e)', () => {
     expect(me.body).toMatchObject({
       email,
       role: 'ADMIN',
+      hasPassword: true,
     });
     expect(me.body.password).toBeUndefined();
     expect(me.body.id).toBeDefined();
@@ -390,6 +391,7 @@ describe('Auth (e2e)', () => {
 
     const me = await agent.get('/auth/me').expect(200);
     expect(me.body.email).toBe('new-google@example.com');
+    expect(me.body.hasPassword).toBe(false);
   });
 
   it('google signin is idempotent for same googleId', async () => {
