@@ -5,15 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import {
-  DataSource,
-  EntityManager,
-  In,
-  IsNull,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { DataSource, EntityManager, IsNull, SelectQueryBuilder } from 'typeorm';
 import { Membership } from '../users/membership.entity';
 import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
+import { User } from '../users/users.entity';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -29,6 +24,7 @@ import { Vehicle } from '../vehicles/vehicles.entity';
 import type { FleetVehicleAccessStore } from './fleet-unit-of-work';
 import type {
   FleetManagerAssignment,
+  FleetManagerProjection,
   FleetVehiclePage,
   VehicleAccess,
 } from './vehicle-access';
@@ -123,11 +119,15 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
     });
   }
 
-  activeManagerIds(
+  activeManagers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>> {
-    return this.activeIds(this.dataSource.manager, companyId, vehicleIds);
+  ): Promise<Map<string, FleetManagerProjection[]>> {
+    return this.activeManagersFrom(
+      this.dataSource.manager,
+      companyId,
+      vehicleIds,
+    );
   }
 
   async closeManager(companyId: string, managerId: string): Promise<void> {
@@ -156,8 +156,8 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
         this.assign(manager, companyId, vehicleId, managerId),
       unassign: (companyId, vehicleId, managerId) =>
         this.unassign(manager, companyId, vehicleId, managerId),
-      activeManagerIds: (companyId, vehicleIds) =>
-        this.activeIds(manager, companyId, vehicleIds),
+      activeManagers: (companyId, vehicleIds) =>
+        this.activeManagersFrom(manager, companyId, vehicleIds),
       closeVehicle: (companyId, vehicleId) =>
         this.close(manager, companyId, 'vehicleId', vehicleId),
     };
@@ -283,21 +283,41 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
       .execute();
   }
 
-  private async activeIds(
+  private async activeManagersFrom(
     manager: EntityManager,
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>> {
+  ): Promise<Map<string, FleetManagerProjection[]>> {
     const result = new Map(
-      vehicleIds.map((vehicleId) => [vehicleId, [] as string[]]),
+      vehicleIds.map((vehicleId) => [
+        vehicleId,
+        [] as FleetManagerProjection[],
+      ]),
     );
     if (!vehicleIds.length) return result;
-    const assignments = await manager.find(ManagerVehicleAssignment, {
-      select: { vehicleId: true, managerId: true },
-      where: { companyId, vehicleId: In(vehicleIds), assignedTo: IsNull() },
-    });
-    for (const { vehicleId, managerId } of assignments) {
-      result.get(vehicleId)?.push(managerId);
+    const assignments = await manager
+      .createQueryBuilder(ManagerVehicleAssignment, 'assignment')
+      .innerJoin(
+        Membership,
+        'membership',
+        `membership."userId" = assignment."managerId"
+          AND membership."companyId" = assignment."companyId"
+          AND membership.status = :status
+          AND membership.role = :role`,
+        { status: 'active', role: MembershipRole.MANAGER },
+      )
+      .innerJoin(User, 'user', 'user.id = membership."userId"')
+      .select('assignment.vehicleId', 'vehicleId')
+      .addSelect('user.id', 'id')
+      .addSelect('user.firstName', 'firstName')
+      .addSelect('user.lastName', 'lastName')
+      .addSelect('user.email', 'email')
+      .where('assignment.companyId = :companyId', { companyId })
+      .andWhere('assignment.vehicleId IN (:...vehicleIds)', { vehicleIds })
+      .andWhere('assignment.assignedTo IS NULL')
+      .getRawMany<FleetManagerProjection & { vehicleId: string }>();
+    for (const { vehicleId, ...profile } of assignments) {
+      result.get(vehicleId)?.push(profile);
     }
     return result;
   }

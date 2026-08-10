@@ -3,6 +3,12 @@ import type { FleetDriver, FleetDriverAssignment } from './fleet-unit-of-work';
 
 export const DRIVER_ALLOCATION = Symbol('DRIVER_ALLOCATION');
 
+export interface FleetDriverProjection {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface DriverAllocationStore {
   requireActor(actor: SessionPrincipal): Promise<void>;
   find(
@@ -24,10 +30,10 @@ export interface DriverAllocationStore {
     companyId: string,
     vehicleId: string,
   ): Promise<FleetDriverAssignment[]>;
-  activeDriverIds(
+  activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>>;
+  ): Promise<Map<string, FleetDriverProjection | null>>;
   closeDriver(companyId: string, driverId: string): Promise<void>;
   closeVehicle(companyId: string, vehicleId: string): Promise<void>;
 }
@@ -35,8 +41,8 @@ export interface DriverAllocationStore {
 export interface DriverAllocation {
   list(actor: SessionPrincipal): Promise<FleetDriver[]>;
   find(actor: SessionPrincipal, driverId: string): Promise<FleetDriver>;
-  activeDriverIds(
+  activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>>;
+  ): Promise<Map<string, FleetDriverProjection | null>>;
 }

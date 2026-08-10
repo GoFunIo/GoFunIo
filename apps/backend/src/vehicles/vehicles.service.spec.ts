@@ -21,10 +21,21 @@ describe('VehiclesService create workflow', () => {
       membership(adminId, MembershipRole.ADMIN),
       membership(managerId, MembershipRole.MANAGER),
     );
-    fleet.drivers.push({ id: driverId, companyId });
+    fleet.managerProfiles.push({
+      id: managerId,
+      firstName: 'Jan',
+      lastName: null,
+      email: 'manager@example.com',
+    });
+    fleet.drivers.push({
+      id: driverId,
+      companyId,
+      firstName: 'Anna',
+      lastName: 'Nowak',
+    });
     const vehicleAccess = {
       list: jest.fn(),
-      activeManagerIds: jest.fn(
+      activeManagers: jest.fn(
         async (_companyId, vehicleIds: string[]) =>
           new Map(
             vehicleIds.map((vehicleId) => [
@@ -35,24 +46,29 @@ describe('VehiclesService create workflow', () => {
                     assignment.vehicleId === vehicleId &&
                     assignment.assignedTo === null,
                 )
-                .map(({ managerId }) => managerId),
+                .map(({ managerId }) => ({
+                  id: managerId,
+                  firstName: 'Jan',
+                  lastName: null,
+                  email: 'manager@example.com',
+                })),
             ]),
           ),
       ),
     };
     const driverAllocation = {
-      activeDriverIds: jest.fn(
+      activeDrivers: jest.fn(
         async (_companyId, vehicleIds: string[]) =>
           new Map(
             vehicleIds.map((vehicleId) => [
               vehicleId,
-              fleet.driverAssignments
-                .filter(
-                  (assignment) =>
-                    assignment.vehicleId === vehicleId &&
-                    assignment.assignedTo === null,
-                )
-                .map(({ driverId }) => driverId),
+              fleet.driverAssignments.some(
+                (assignment) =>
+                  assignment.vehicleId === vehicleId &&
+                  assignment.assignedTo === null,
+              )
+                ? { id: driverId, firstName: 'Anna', lastName: 'Nowak' }
+                : null,
             ]),
           ),
       ),
@@ -79,8 +95,8 @@ describe('VehiclesService create workflow', () => {
 
     expect(vehicle).toMatchObject({
       brand: 'Ford',
-      managerIds: [],
-      driverIds: [],
+      managers: [],
+      driver: null,
     });
     expect(vehicle).not.toBeInstanceOf(Vehicle);
     expect(fleet.vehicles).toHaveLength(1);
@@ -113,8 +129,8 @@ describe('VehiclesService create workflow', () => {
         driverId,
       );
     });
-    vehicleAccess.activeManagerIds.mockClear();
-    driverAllocation.activeDriverIds.mockClear();
+    vehicleAccess.activeManagers.mockClear();
+    driverAllocation.activeDrivers.mockClear();
     vehicleAccess.list.mockResolvedValue({
       items: fleet.vehicles,
       page: 1,
@@ -128,18 +144,27 @@ describe('VehiclesService create workflow', () => {
 
     expect(page.items).toEqual([
       expect.objectContaining({
-        managerIds: [managerId],
-        driverIds: [driverId],
+        managers: [
+          {
+            id: managerId,
+            firstName: 'Jan',
+            lastName: null,
+            email: 'manager@example.com',
+          },
+        ],
+        driver: { id: driverId, firstName: 'Anna', lastName: 'Nowak' },
       }),
-      expect.objectContaining({ managerIds: [], driverIds: [] }),
+      expect.objectContaining({ managers: [], driver: null }),
     ]);
-    expect(vehicleAccess.activeManagerIds).toHaveBeenCalledTimes(1);
-    expect(vehicleAccess.activeManagerIds).toHaveBeenCalledWith(
+    expect(page.items[0]).not.toHaveProperty('managerIds');
+    expect(page.items[0]).not.toHaveProperty('driverIds');
+    expect(vehicleAccess.activeManagers).toHaveBeenCalledTimes(1);
+    expect(vehicleAccess.activeManagers).toHaveBeenCalledWith(
       companyId,
       vehicleIds,
     );
-    expect(driverAllocation.activeDriverIds).toHaveBeenCalledTimes(1);
-    expect(driverAllocation.activeDriverIds).toHaveBeenCalledWith(
+    expect(driverAllocation.activeDrivers).toHaveBeenCalledTimes(1);
+    expect(driverAllocation.activeDrivers).toHaveBeenCalledWith(
       companyId,
       vehicleIds,
     );

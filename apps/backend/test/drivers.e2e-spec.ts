@@ -94,7 +94,7 @@ describe('Drivers (e2e)', () => {
     expect(driver.body.companyId).toBeUndefined();
 
     const created = await admin.post('/vehicles').send(vehicle()).expect(201);
-    expect(created.body.driverIds).toEqual([]);
+    expect(created.body.driver).toBeNull();
 
     await admin
       .post(`/vehicles/${created.body.id}/drivers`)

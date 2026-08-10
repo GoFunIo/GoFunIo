@@ -190,18 +190,18 @@ export class VehiclesService {
   private async views(
     companyId: string,
     vehicles: FleetVehicle[],
-    vehicleAccess: Pick<FleetVehicleAccessStore, 'activeManagerIds'>,
-    driverAllocation: Pick<DriverAllocation, 'activeDriverIds'>,
+    vehicleAccess: Pick<FleetVehicleAccessStore, 'activeManagers'>,
+    driverAllocation: Pick<DriverAllocation, 'activeDrivers'>,
   ): Promise<VehicleView[]> {
     const vehicleIds = vehicles.map(({ id }) => id);
-    const [managerIds, driverIds] = await Promise.all([
-      vehicleAccess.activeManagerIds(companyId, vehicleIds),
-      driverAllocation.activeDriverIds(companyId, vehicleIds),
+    const [managers, drivers] = await Promise.all([
+      vehicleAccess.activeManagers(companyId, vehicleIds),
+      driverAllocation.activeDrivers(companyId, vehicleIds),
     ]);
     return vehicles.map((vehicle) => ({
       ...vehicle,
-      managerIds: managerIds.get(vehicle.id) ?? [],
-      driverIds: driverIds.get(vehicle.id) ?? [],
+      managers: managers.get(vehicle.id) ?? [],
+      driver: drivers.get(vehicle.id) ?? null,
     }));
   }
 

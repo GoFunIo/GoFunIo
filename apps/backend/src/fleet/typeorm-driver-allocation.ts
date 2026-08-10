@@ -4,13 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import {
-  DataSource,
-  EntityManager,
-  In,
-  IsNull,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { DataSource, EntityManager, IsNull, SelectQueryBuilder } from 'typeorm';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
 import { Membership } from '../users/membership.entity';
@@ -23,6 +17,7 @@ import { Vehicle } from '../vehicles/vehicles.entity';
 import type {
   DriverAllocation,
   DriverAllocationStore,
+  FleetDriverProjection,
 } from './driver-allocation';
 
 @Injectable()
@@ -41,11 +36,15 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
     return this.findVisible(this.dataSource.manager, actor, driverId);
   }
 
-  activeDriverIds(
+  activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>> {
-    return this.activeIds(this.dataSource.manager, companyId, vehicleIds);
+  ): Promise<Map<string, FleetDriverProjection | null>> {
+    return this.activeDriversFrom(
+      this.dataSource.manager,
+      companyId,
+      vehicleIds,
+    );
   }
 
   transactionStore(manager: EntityManager): DriverAllocationStore {
@@ -62,8 +61,8 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
           where: { companyId, vehicleId },
           order: { assignedFrom: 'DESC', createdAt: 'DESC' },
         }),
-      activeDriverIds: (companyId, vehicleIds) =>
-        this.activeIds(manager, companyId, vehicleIds),
+      activeDrivers: (companyId, vehicleIds) =>
+        this.activeDriversFrom(manager, companyId, vehicleIds),
       closeDriver: (companyId, driverId) =>
         this.close(manager, companyId, 'driverId', driverId),
       closeVehicle: (companyId, vehicleId) =>
@@ -210,21 +209,32 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
       .execute();
   }
 
-  private async activeIds(
+  private async activeDriversFrom(
     manager: EntityManager,
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>> {
-    const result = new Map(
-      vehicleIds.map((vehicleId) => [vehicleId, [] as string[]]),
+  ): Promise<Map<string, FleetDriverProjection | null>> {
+    const result = new Map<string, FleetDriverProjection | null>(
+      vehicleIds.map((vehicleId) => [vehicleId, null]),
     );
     if (!vehicleIds.length) return result;
-    const assignments = await manager.find(DriverVehicleAssignment, {
-      select: { vehicleId: true, driverId: true },
-      where: { companyId, vehicleId: In(vehicleIds), assignedTo: IsNull() },
-    });
-    for (const { vehicleId, driverId } of assignments) {
-      result.get(vehicleId)?.push(driverId);
+    const assignments = await manager
+      .createQueryBuilder(DriverVehicleAssignment, 'assignment')
+      .innerJoin(
+        Driver,
+        'driver',
+        'driver.id = assignment."driverId" AND driver."companyId" = assignment."companyId"',
+      )
+      .select('assignment.vehicleId', 'vehicleId')
+      .addSelect('driver.id', 'id')
+      .addSelect('driver.firstName', 'firstName')
+      .addSelect('driver.lastName', 'lastName')
+      .where('assignment.companyId = :companyId', { companyId })
+      .andWhere('assignment.vehicleId IN (:...vehicleIds)', { vehicleIds })
+      .andWhere('assignment.assignedTo IS NULL')
+      .getRawMany<FleetDriverProjection & { vehicleId: string }>();
+    for (const { vehicleId, ...profile } of assignments) {
+      result.set(vehicleId, profile);
     }
     return result;
   }

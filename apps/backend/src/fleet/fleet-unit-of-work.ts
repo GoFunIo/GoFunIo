@@ -10,7 +10,10 @@ import {
 } from '../users/membership-role';
 import type { SessionPrincipal } from '../users/session-principal';
 import type { VehicleFuelType } from '../vehicles/vehicles.entity';
-import type { FleetManagerAssignment } from './vehicle-access';
+import type {
+  FleetManagerAssignment,
+  FleetManagerProjection,
+} from './vehicle-access';
 import type { DriverAllocationStore } from './driver-allocation';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
@@ -50,6 +53,8 @@ export interface FleetDriver {
   companyId: string;
   userId?: string | null;
   deletedAt?: Date | null;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface FleetDriverInput {
@@ -97,10 +102,10 @@ export interface FleetVehicleAccessStore {
     vehicleId: string,
     managerId: string,
   ): Promise<void>;
-  activeManagerIds(
+  activeManagers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>>;
+  ): Promise<Map<string, FleetManagerProjection[]>>;
   closeVehicle(companyId: string, vehicleId: string): Promise<void>;
 }
 
@@ -132,6 +137,7 @@ export interface FleetUnitOfWork {
 
 export class FakeFleetUnitOfWork implements FleetUnitOfWork {
   readonly memberships: FleetMembership[] = [];
+  readonly managerProfiles: FleetManagerProjection[] = [];
   readonly drivers: FleetDriver[] = [];
   readonly vehicles: FleetVehicle[] = [];
   readonly managerAssignments: FleetManagerAssignment[] = [];
@@ -318,7 +324,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             }
             assignment.assignedTo = new Date();
           },
-          activeManagerIds: async (companyId, vehicleIds) =>
+          activeManagers: async (companyId, vehicleIds) =>
             new Map(
               vehicleIds.map((vehicleId) => [
                 vehicleId,
@@ -329,7 +335,12 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
                       assignment.vehicleId === vehicleId &&
                       assignment.assignedTo === null,
                   )
-                  .map(({ managerId }) => managerId),
+                  .flatMap(({ managerId }) => {
+                    const manager = this.managerProfiles.find(
+                      ({ id }) => id === managerId,
+                    );
+                    return manager ? [manager] : [];
+                  }),
               ]),
             ),
           closeVehicle: async (companyId, vehicleId) => {
@@ -469,18 +480,32 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
                 assignment.companyId === companyId &&
                 assignment.vehicleId === vehicleId,
             ),
-          activeDriverIds: async (companyId, vehicleIds) =>
+          activeDrivers: async (companyId, vehicleIds) =>
             new Map(
               vehicleIds.map((vehicleId) => [
                 vehicleId,
-                this.driverAssignments
-                  .filter(
-                    (assignment) =>
-                      assignment.companyId === companyId &&
-                      assignment.vehicleId === vehicleId &&
-                      assignment.assignedTo === null,
-                  )
-                  .map(({ driverId }) => driverId),
+                (() => {
+                  const assignment = this.driverAssignments.find(
+                    (entry) =>
+                      entry.companyId === companyId &&
+                      entry.vehicleId === vehicleId &&
+                      entry.assignedTo === null,
+                  );
+                  const driver = assignment
+                    ? this.drivers.find(
+                        (entry) =>
+                          entry.companyId === companyId &&
+                          entry.id === assignment.driverId,
+                      )
+                    : undefined;
+                  return driver
+                    ? {
+                        id: driver.id,
+                        firstName: driver.firstName ?? '',
+                        lastName: driver.lastName ?? '',
+                      }
+                    : null;
+                })(),
               ]),
             ),
           closeVehicle: async (companyId, vehicleId) => {

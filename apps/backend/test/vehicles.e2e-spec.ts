@@ -90,28 +90,88 @@ describe('Vehicles (e2e)', () => {
     await request(app.getHttpServer()).get('/vehicles').expect(401);
   });
 
-  it('always returns managerIds and driverIds in vehicle views', async () => {
+  it('projects current managers and driver in every vehicle view', async () => {
     const admin = await signedIn('vehicle-view@example.com');
     const created = await createVehicle(admin);
-    const assertView = (body: Record<string, unknown>) => {
-      expect(body.managerIds).toEqual([]);
-      expect(body.driverIds).toEqual([]);
+    const assertEmptyView = (body: Record<string, unknown>) => {
+      expect(body.managers).toEqual([]);
+      expect(body.driver).toBeNull();
+      expect(body).not.toHaveProperty('managerIds');
+      expect(body).not.toHaveProperty('driverIds');
     };
 
-    assertView(created.body);
+    assertEmptyView(created.body);
+    const { user } = await inviteManager(
+      admin,
+      'vehicle-view-manager@example.com',
+    );
+    const driver = await admin
+      .post('/drivers')
+      .send({ firstName: 'Anna', lastName: 'Nowak' })
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/managers`)
+      .send({ managerId: user.id })
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/drivers`)
+      .send({ driverId: driver.body.id })
+      .expect(201);
+    const assertProjectedView = (body: Record<string, unknown>) => {
+      expect(body.managers).toEqual([
+        {
+          id: user.id,
+          firstName: null,
+          lastName: null,
+          email: 'vehicle-view-manager@example.com',
+        },
+      ]);
+      expect(body.driver).toEqual({
+        id: driver.body.id,
+        firstName: 'Anna',
+        lastName: 'Nowak',
+      });
+      expect(body).not.toHaveProperty('managerIds');
+      expect(body).not.toHaveProperty('driverIds');
+    };
     await admin
       .get('/vehicles')
       .expect(200)
-      .expect((res) => assertView(res.body.items[0]));
+      .expect((res) => assertProjectedView(res.body.items[0]));
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => assertView(res.body));
+      .expect((res) => assertProjectedView(res.body));
     await admin
       .patch(`/vehicles/${created.body.id}`)
       .send({ notes: 'Updated' })
       .expect(200)
-      .expect((res) => assertView(res.body));
+      .expect((res) => assertProjectedView(res.body));
+    await admin
+      .delete(`/vehicles/${created.body.id}/drivers/${driver.body.id}`)
+      .expect(204);
+    await admin
+      .get(`/vehicles/${created.body.id}`)
+      .expect(200)
+      .expect((res) => expect(res.body.driver).toBeNull());
+  });
+
+  it('loads projections with query count independent of page size', async () => {
+    const admin = await signedIn('vehicle-query-count@example.com');
+    await createVehicle(admin, { vin: null, registrationNumber: 'QUERY1' });
+    const query = jest.spyOn(app.get(DataSource).logger, 'logQuery');
+    try {
+      await admin.get('/vehicles').expect(200);
+      const oneVehicle = query.mock.calls.length;
+      await createVehicle(admin, { vin: null, registrationNumber: 'QUERY2' });
+      query.mockClear();
+
+      await admin.get('/vehicles').expect(200);
+
+      expect(query).toHaveBeenCalledTimes(oneVehicle);
+    } finally {
+      query.mockRestore();
+    }
   });
 
   it('supports ADMIN CRUD, normalization and identifier reuse after delete', async () => {
@@ -204,7 +264,11 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerIds).toEqual([user.id]));
+      .expect((res) =>
+        expect(res.body.managers.map(({ id }: { id: string }) => id)).toEqual([
+          user.id,
+        ]),
+      );
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
     const second = await inviteManager(admin, 'scope-manager-two@example.com');
     await admin
@@ -215,9 +279,9 @@ describe('Vehicles (e2e)', () => {
       .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
       .expect((res) =>
-        expect(res.body.managerIds.sort()).toEqual(
-          [user.id, second.user.id].sort(),
-        ),
+        expect(
+          res.body.managers.map(({ id }: { id: string }) => id).sort(),
+        ).toEqual([user.id, second.user.id].sort()),
       );
     await second.manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
     await admin
@@ -230,7 +294,11 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerIds).toEqual([user.id]));
+      .expect((res) =>
+        expect(res.body.managers.map(({ id }: { id: string }) => id)).toEqual([
+          user.id,
+        ]),
+      );
     await admin
       .get(`/vehicles/${unassigned.body.id}/manager-assignments`)
       .expect(200)
@@ -287,7 +355,7 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerIds).toEqual([]));
+      .expect((res) => expect(res.body.managers).toEqual([]));
 
     const second = await inviteManager(admin, 'deleted-manager@example.com');
     await admin
@@ -298,7 +366,7 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.managerIds).toEqual([]));
+      .expect((res) => expect(res.body.managers).toEqual([]));
     await admin.delete(`/vehicles/${created.body.id}`).expect(204);
     await admin
       .get(`/vehicles/${created.body.id}/manager-assignments`)
@@ -318,7 +386,39 @@ describe('Vehicles (e2e)', () => {
     const first = await signedIn('vehicle-first@example.com');
     const second = await signedIn('vehicle-second@example.com');
     const firstVehicle = await createVehicle(first);
-    await createVehicle(second);
+    const secondVehicle = await createVehicle(second);
+    const firstManager = await inviteManager(
+      first,
+      'vehicle-first-manager@example.com',
+    );
+    const secondManager = await inviteManager(
+      second,
+      'vehicle-second-manager@example.com',
+    );
+    const firstDriver = await first
+      .post('/drivers')
+      .send({ firstName: 'First', lastName: 'Driver' })
+      .expect(201);
+    const secondDriver = await second
+      .post('/drivers')
+      .send({ firstName: 'Second', lastName: 'Driver' })
+      .expect(201);
+    await first
+      .post(`/vehicles/${firstVehicle.body.id}/managers`)
+      .send({ managerId: firstManager.user.id })
+      .expect(201);
+    await second
+      .post(`/vehicles/${secondVehicle.body.id}/managers`)
+      .send({ managerId: secondManager.user.id })
+      .expect(201);
+    await first
+      .post(`/vehicles/${firstVehicle.body.id}/drivers`)
+      .send({ driverId: firstDriver.body.id })
+      .expect(201);
+    await second
+      .post(`/vehicles/${secondVehicle.body.id}/drivers`)
+      .send({ driverId: secondDriver.body.id })
+      .expect(201);
 
     await second.get(`/vehicles/${firstVehicle.body.id}`).expect(404);
     await second
@@ -332,6 +432,18 @@ describe('Vehicles (e2e)', () => {
       .expect((res) => {
         expect(res.body.total).toBe(1);
         expect(res.body.items[0].id).not.toBe(firstVehicle.body.id);
+        expect(res.body.items[0].managers).toEqual([
+          expect.objectContaining({ id: secondManager.user.id }),
+        ]);
+        expect(res.body.items[0].driver).toEqual({
+          id: secondDriver.body.id,
+          firstName: 'Second',
+          lastName: 'Driver',
+        });
+        expect(res.body.items[0].managers).not.toContainEqual(
+          expect.objectContaining({ id: firstManager.user.id }),
+        );
+        expect(res.body.items[0].driver.id).not.toBe(firstDriver.body.id);
       });
   });
 

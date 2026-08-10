@@ -72,7 +72,7 @@ describe('VehicleAccess policy', () => {
       await stores.vehicleAccess.closeVehicle(companyId, vehicle.id);
       expect(fleet.managerAssignments[0].assignedTo).toBe(closedAt);
       await expect(
-        stores.vehicleAccess.activeManagerIds(companyId, [vehicle.id]),
+        stores.vehicleAccess.activeManagers(companyId, [vehicle.id]),
       ).resolves.toEqual(new Map([[vehicle.id, []]]));
     });
   });

@@ -14,6 +14,13 @@ export interface FleetManagerAssignment {
   createdAt: Date;
 }
 
+export interface FleetManagerProjection {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+}
+
 export interface FleetVehiclePage {
   items: FleetVehicle[];
   page: number;
@@ -32,9 +39,9 @@ export interface VehicleAccess {
     actor: SessionPrincipal,
     vehicleId: string,
   ): Promise<FleetManagerAssignment[]>;
-  activeManagerIds(
+  activeManagers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, string[]>>;
+  ): Promise<Map<string, FleetManagerProjection[]>>;
   closeManager(companyId: string, managerId: string): Promise<void>;
 }
