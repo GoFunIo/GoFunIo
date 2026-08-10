@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import type { UserAccount } from './user-account';
 import type { ProfileChanges } from './user-profiles';
 import { User } from './users.entity';
@@ -20,17 +20,20 @@ export class UserProfileStore {
     userId: string,
     changes: ProfileChanges,
   ): Promise<UserAccount | null> {
-    const user = await this.users.findOneBy({ id: userId });
-    if (!user) return null;
+    const profile: ProfileChanges = {};
+    if (changes.firstName !== undefined) profile.firstName = changes.firstName;
+    if (changes.lastName !== undefined) profile.lastName = changes.lastName;
+    if (changes.phone !== undefined) profile.phone = changes.phone;
+    if (changes.address !== undefined) profile.address = changes.address;
+    if (changes.postalCode !== undefined)
+      profile.postalCode = changes.postalCode;
+    if (changes.city !== undefined) profile.city = changes.city;
 
-    if (changes.firstName !== undefined) user.firstName = changes.firstName;
-    if (changes.lastName !== undefined) user.lastName = changes.lastName;
-    if (changes.phone !== undefined) user.phone = changes.phone;
-    if (changes.address !== undefined) user.address = changes.address;
-    if (changes.postalCode !== undefined) user.postalCode = changes.postalCode;
-    if (changes.city !== undefined) user.city = changes.city;
-
-    return this.account(await this.users.save(user));
+    const result = await this.users.update(
+      { id: userId, deletedAt: IsNull() },
+      profile,
+    );
+    return result.affected ? this.get(userId) : null;
   }
 
   private account(user: User): UserAccount {

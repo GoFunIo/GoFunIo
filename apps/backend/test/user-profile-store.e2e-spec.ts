@@ -55,4 +55,21 @@ describe('UserProfileStore (integration)', () => {
     expect(persisted.email).toBe(user.email);
     expect(persisted.password).toBe('secret.hash');
   });
+
+  it('preserves concurrent changes to different profile fields', async () => {
+    const repository = dataSource.getRepository(User);
+    const user = await repository.save(
+      repository.create({ email: `profile-race-${Date.now()}@example.com` }),
+    );
+
+    await Promise.all([
+      store.update(user.id, { firstName: 'Jan' }),
+      store.update(user.id, { city: 'Warszawa' }),
+    ]);
+
+    await expect(store.get(user.id)).resolves.toMatchObject({
+      firstName: 'Jan',
+      city: 'Warszawa',
+    });
+  });
 });
