@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { MembershipRole } from '../src/users/membership-role';
@@ -249,6 +250,106 @@ describe('Drivers (e2e)', () => {
       .patch(`/drivers/${driver.body.id}`)
       .send({ notes: 'Admin' })
       .expect(200);
+  });
+
+  it('links one membership and preserves identity through removal', async () => {
+    const admin = await signedIn('driver-link-admin@example.com');
+    const { manager, user } = await inviteManager(
+      admin,
+      'driver-link-manager@example.com',
+    );
+
+    await manager
+      .post('/drivers')
+      .send({ firstName: 'Blocked', lastName: 'Link', userId: user.id })
+      .expect(403);
+
+    const driver = await admin
+      .post('/drivers')
+      .send({ firstName: 'Linked', lastName: 'Driver', userId: user.id })
+      .expect(201);
+    expect(driver.body.userId).toBe(user.id);
+
+    await admin
+      .post('/drivers')
+      .send({ firstName: 'Duplicate', lastName: 'Driver', userId: user.id })
+      .expect(409);
+    await admin
+      .post('/drivers')
+      .send({ firstName: 'Ghost', lastName: 'Driver', userId: randomUUID() })
+      .expect(400);
+
+    const outsider = await signedIn('driver-link-outsider@example.com');
+    await outsider
+      .post('/drivers')
+      .send({ firstName: 'Cross', lastName: 'Driver', userId: user.id })
+      .expect(400);
+
+    const created = await admin
+      .post('/vehicles')
+      .send(
+        vehicle({ driverIds: [driver.body.id], registrationNumber: 'DRV401' }),
+      )
+      .expect(201);
+    await admin
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ userId: null })
+      .expect(200)
+      .expect((res) => expect(res.body.userId).toBeNull());
+    await manager
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ userId: user.id })
+      .expect(403);
+    await admin
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ userId: user.id })
+      .expect(200);
+
+    await admin.delete(`/users/${user.id}`).expect(204);
+    await admin
+      .get(`/drivers/${driver.body.id}`)
+      .expect(200)
+      .expect((res) => expect(res.body.userId).toBe(user.id));
+    await admin
+      .get(`/vehicles/${created.body.id}/driver-assignments`)
+      .expect(200)
+      .expect((res) =>
+        expect(
+          res.body.some(
+            ({ assignedTo }: { assignedTo: string | null }) =>
+              assignedTo === null,
+          ),
+        ).toBe(true),
+      );
+
+    const events = captureEmittedEvents(app);
+    try {
+      await admin
+        .post('/users/invitations')
+        .send({
+          email: 'driver-link-manager@example.com',
+          role: MembershipRole.MANAGER,
+        })
+        .expect(201);
+      const invited = request.agent(app.getHttpServer());
+      await invited
+        .post('/auth/signin')
+        .send({
+          email: 'driver-link-manager@example.com',
+          password: 'manager-password',
+        })
+        .expect(201);
+      await invited
+        .post('/auth/invitations/accept')
+        .send({ token: events.membershipInvitationToken })
+        .expect(204);
+    } finally {
+      events.restore();
+    }
+    await admin
+      .get(`/drivers/${driver.body.id}`)
+      .expect(200)
+      .expect((res) => expect(res.body.userId).toBe(user.id));
   });
 
   it('isolates drivers between companies', async () => {

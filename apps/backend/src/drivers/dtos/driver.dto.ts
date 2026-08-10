@@ -18,4 +18,7 @@ export class DriverDto {
 
   @Expose()
   notes!: string | null;
+
+  @Expose()
+  userId!: string | null;
 }

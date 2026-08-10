@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, EntityManager, In } from 'typeorm';
+import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import {
@@ -15,6 +16,20 @@ import {
 } from './fleet-unit-of-work';
 import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
 import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
+
+function throwMembershipLinkError(error: unknown): never {
+  const constraint =
+    error instanceof QueryFailedError
+      ? (error.driverError as { constraint?: string } | undefined)?.constraint
+      : undefined;
+  if (constraint === 'FK_drivers_membership') {
+    throw new BadRequestException('Invalid membership');
+  }
+  if (constraint === 'UQ_drivers_active_membership') {
+    throw new ConflictException('Membership already linked');
+  }
+  throw error;
+}
 
 @Injectable()
 export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
@@ -67,9 +82,19 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       },
       vehicleAccess: this.vehicleAccess.transactionStore(manager),
       drivers: {
-        create: (input) => manager.save(manager.create(Driver, input)),
+        create: async (input) => {
+          try {
+            return await manager.save(manager.create(Driver, input));
+          } catch (error) {
+            throwMembershipLinkError(error);
+          }
+        },
         update: async (driverId, fields) => {
-          await manager.update(Driver, driverId, fields);
+          try {
+            await manager.update(Driver, driverId, fields);
+          } catch (error) {
+            throwMembershipLinkError(error);
+          }
           const driver = await manager.findOneBy(Driver, { id: driverId });
           if (!driver) throw new NotFoundException('Driver not found');
           return driver;

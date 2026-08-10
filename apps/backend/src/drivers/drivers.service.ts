@@ -48,11 +48,15 @@ export class DriversService {
   create(actor: SessionPrincipal, body: CreateDriverDto): Promise<Driver> {
     return this.fleet.transact(async (fleet) => {
       await fleet.driverAllocations.requireActor(actor);
+      if (body.userId !== undefined && !isWorkspaceAdmin(actor.role)) {
+        throw new ForbiddenException();
+      }
       return Object.assign(
         new Driver(),
         await fleet.drivers.create({
           ...body,
           companyId: requireCompanyId(actor),
+          userId: body.userId ?? null,
           email: body.email ?? null,
           phone: body.phone ?? null,
           notes: body.notes ?? null,
@@ -71,6 +75,9 @@ export class DriversService {
     }
     return this.fleet.transact(async (fleet) => {
       await fleet.driverAllocations.requireActor(actor);
+      if (body.userId !== undefined && !isWorkspaceAdmin(actor.role)) {
+        throw new ForbiddenException();
+      }
       await fleet.driverAllocations.find(actor, id, true);
       return Object.assign(new Driver(), await fleet.drivers.update(id, body));
     });

@@ -12,6 +12,7 @@ import { ReferenceManagerMembership1756000000000 } from '../src/migrations/17560
 import { AllowRemovedMemberships1757000000000 } from '../src/migrations/1757000000000-AllowRemovedMemberships';
 import { DropUserCompanyRole1758000000000 } from '../src/migrations/1758000000000-DropUserCompanyRole';
 import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-AddWorkspaceOwner';
+import { LinkDriverMembership1760000000000 } from '../src/migrations/1760000000000-LinkDriverMembership';
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
@@ -39,6 +40,7 @@ describe('database migrations', () => {
         AllowRemovedMemberships1757000000000,
         DropUserCompanyRole1758000000000,
         AddWorkspaceOwner1759000000000,
+        LinkDriverMembership1760000000000,
       ],
     });
 
@@ -107,6 +109,54 @@ describe('database migrations', () => {
                 ($2, $3, 'ADMIN', '2026-01-02T00:00:00Z')`,
         [backfillUsers[0].id, backfillUsers[1].id, backfillCompanyId],
       );
+
+      const [{ id: linkCompanyId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "companies" (name) VALUES ('Driver link') RETURNING id`,
+      );
+      const [{ id: linkUserId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" (email) VALUES ('driver-link@example.com') RETURNING id`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", role)
+         VALUES ($1, $2, 'MANAGER')`,
+        [linkUserId, linkCompanyId],
+      );
+      const [{ id: linkedDriverId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+         VALUES ($1, 'Linked', 'Driver', $2) RETURNING "id"`,
+        [linkCompanyId, linkUserId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+           VALUES ($1, 'Duplicate', 'Driver', $2)`,
+          [linkCompanyId, linkUserId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+      await expect(
+        database.query(
+          `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+           VALUES ($1, 'Cross', 'Driver', $2)`,
+          [linkCompanyId, backfillUsers[0].id],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      await database.query(
+        `UPDATE "drivers" SET "deletedAt" = now() WHERE "id" = $1`,
+        [linkedDriverId],
+      );
+      await database.query(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+         VALUES ($1, 'Replacement', 'Driver', $2)`,
+        [linkCompanyId, linkUserId],
+      );
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ column_name: string }[]>(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = 'drivers' AND column_name = 'userId'`,
+          [schema],
+        ),
+      ).resolves.toEqual([]);
       await database.undoLastMigration();
       await database.runMigrations();
       await expect(
@@ -291,6 +341,7 @@ describe('database migrations', () => {
       >(
         `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
       );
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await expect(database.undoLastMigration()).rejects.toThrow(
         'users without memberships exist',

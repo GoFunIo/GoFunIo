@@ -24,6 +24,9 @@ export class Driver {
   @JoinColumn({ name: 'companyId' })
   company!: Company;
 
+  @Column({ type: 'uuid', nullable: true })
+  userId!: string | null;
+
   @Column({ type: 'varchar', length: 100 })
   firstName!: string;
 

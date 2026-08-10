@@ -48,11 +48,13 @@ export interface FleetMembership {
 export interface FleetDriver {
   id: string;
   companyId: string;
+  userId?: string | null;
   deletedAt?: Date | null;
 }
 
 export interface FleetDriverInput {
   companyId: string;
+  userId: string | null;
   firstName: string;
   lastName: string;
   email: string | null;
@@ -139,6 +141,27 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
       () => undefined,
     );
     return result;
+  }
+
+  private requireMembershipLink(
+    companyId: string,
+    userId: string | null,
+    excludeDriverId?: string,
+  ): void {
+    if (!userId) return;
+    const member = this.memberships.some(
+      (membership) =>
+        membership.userId === userId && membership.companyId === companyId,
+    );
+    if (!member) throw new BadRequestException('Invalid membership');
+    const linked = this.drivers.some(
+      (driver) =>
+        driver.id !== excludeDriverId &&
+        driver.companyId === companyId &&
+        driver.userId === userId &&
+        !driver.deletedAt,
+    );
+    if (linked) throw new ConflictException('Membership already linked');
   }
 
   private async run<T>(
@@ -322,6 +345,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         },
         drivers: {
           create: async (input) => {
+            this.requireMembershipLink(input.companyId, input.userId);
             const driver = {
               ...input,
               id: `driver-${this.drivers.length + 1}`,
@@ -333,6 +357,13 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
           update: async (driverId, fields) => {
             const driver = this.drivers.find(({ id }) => id === driverId);
             if (!driver) throw new NotFoundException('Driver not found');
+            if (fields.userId) {
+              this.requireMembershipLink(
+                driver.companyId,
+                fields.userId,
+                driverId,
+              );
+            }
             Object.assign(driver, fields);
             return driver;
           },

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
@@ -44,4 +45,8 @@ export class UpdateDriverDto {
   @IsString()
   @MaxLength(5000)
   notes?: string | null;
+
+  @ValidateIf((_, value) => value !== undefined && value !== null)
+  @IsUUID()
+  userId?: string | null;
 }
