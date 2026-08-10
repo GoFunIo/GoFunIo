@@ -438,18 +438,15 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             return driver;
           },
           assign: async (companyId, vehicleId, driverId) => {
-            if (
-              this.driverAssignments.some(
-                (assignment) =>
-                  assignment.companyId === companyId &&
-                  assignment.vehicleId === vehicleId &&
-                  assignment.driverId === driverId &&
-                  assignment.assignedTo === null,
-              )
-            ) {
-              throw new ConflictException('Driver already assigned');
-            }
+            const active = this.driverAssignments.find(
+              (assignment) =>
+                assignment.companyId === companyId &&
+                assignment.vehicleId === vehicleId &&
+                assignment.assignedTo === null,
+            );
+            if (active?.driverId === driverId) return active;
             const now = new Date();
+            if (active) active.assignedTo = now;
             const assignment = {
               id: `driver-assignment-${this.driverAssignments.length + 1}`,
               companyId,
@@ -463,18 +460,20 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             return assignment;
           },
           assignInitial: async (companyId, vehicleId, driverIds) => {
-            for (const driverId of driverIds) {
-              const now = new Date();
-              this.driverAssignments.push({
-                id: `driver-assignment-${this.driverAssignments.length + 1}`,
-                companyId,
-                vehicleId,
-                driverId,
-                assignedFrom: now,
-                assignedTo: null,
-                createdAt: now,
-              });
+            if (driverIds.length > 1) {
+              throw new BadRequestException('Only one active driver allowed');
             }
+            if (!driverIds.length) return;
+            const now = new Date();
+            this.driverAssignments.push({
+              id: `driver-assignment-${this.driverAssignments.length + 1}`,
+              companyId,
+              vehicleId,
+              driverId: driverIds[0],
+              assignedFrom: now,
+              assignedTo: null,
+              createdAt: now,
+            });
           },
           unassign: async (companyId, vehicleId, driverId) => {
             const assignment = this.driverAssignments.find(

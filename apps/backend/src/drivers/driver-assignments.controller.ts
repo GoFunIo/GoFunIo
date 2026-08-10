@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiConflictResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -54,7 +53,6 @@ export class DriverAssignmentsController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Vehicle or driver not found' })
-  @ApiConflictResponse({ description: 'Driver already assigned' })
   @Post('drivers')
   @Serialize(DriverAssignmentDto)
   @UseGuards(AllowedOriginGuard)

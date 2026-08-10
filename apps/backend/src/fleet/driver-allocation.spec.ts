@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MembershipRole } from '../users/membership-role';
 import { FakeFleetUnitOfWork } from './fleet-unit-of-work';
 
@@ -6,25 +6,47 @@ describe('DriverAllocation lifecycle', () => {
   const companyId = 'company-one';
   const driverId = 'driver-one';
 
-  it('allows many vehicles, rejects only an active pair, and retains history', async () => {
+  it('keeps one active driver per vehicle and retains replacement history', async () => {
     const fleet = setup();
 
     await fleet.transact(async ({ driverAllocations }) => {
-      await driverAllocations.assign(companyId, 'vehicle-one', driverId);
+      const first = await driverAllocations.assign(
+        companyId,
+        'vehicle-one',
+        driverId,
+      );
       await driverAllocations.assign(companyId, 'vehicle-two', driverId);
       await expect(
         driverAllocations.assign(companyId, 'vehicle-one', driverId),
-      ).rejects.toThrow(new ConflictException('Driver already assigned'));
-
-      await driverAllocations.unassign(companyId, 'vehicle-one', driverId);
-      await driverAllocations.assign(companyId, 'vehicle-one', driverId);
-      await driverAllocations.closeDriver(companyId, driverId);
+      ).resolves.toMatchObject({ id: first.id });
+      await driverAllocations.assign(companyId, 'vehicle-one', 'driver-two');
     });
 
     expect(fleet.driverAssignments).toHaveLength(3);
     expect(
-      fleet.driverAssignments.every(({ assignedTo }) => assignedTo !== null),
-    ).toBe(true);
+      fleet.driverAssignments.filter(({ assignedTo }) => assignedTo === null),
+    ).toHaveLength(2);
+    expect(
+      fleet.driverAssignments.find(
+        ({ vehicleId, assignedTo }) =>
+          vehicleId === 'vehicle-one' && assignedTo === null,
+      )?.driverId,
+    ).toBe('driver-two');
+  });
+
+  it('rejects multiple initial drivers', async () => {
+    const fleet = setup();
+
+    await expect(
+      fleet.transact(({ driverAllocations }) =>
+        driverAllocations.assignInitial(companyId, 'vehicle-one', [
+          driverId,
+          'driver-two',
+        ]),
+      ),
+    ).rejects.toThrow(
+      new BadRequestException('Only one active driver allowed'),
+    );
   });
 
   it('lets each manager edit a shared driver and rolls cleanup back on failure', async () => {

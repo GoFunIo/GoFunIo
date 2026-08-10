@@ -91,7 +91,7 @@ describe('Drivers (e2e)', () => {
     await admin
       .post(`/vehicles/${created.body.id}/drivers`)
       .send({ driverId: driver.body.id })
-      .expect(409);
+      .expect(201);
     await admin
       .delete(`/vehicles/${created.body.id}/drivers/${driver.body.id}`)
       .expect(204);
@@ -136,6 +136,55 @@ describe('Drivers (e2e)', () => {
       .get(`/vehicles/${created.body.id}/driver-assignments`)
       .expect(200)
       .expect((res) => expect(res.body).toHaveLength(2));
+  });
+
+  it('replaces the active driver and preserves allocation history', async () => {
+    const admin = await signedIn('driver-replacement-admin@example.com');
+    const first = await admin
+      .post('/drivers')
+      .send({ firstName: 'First', lastName: 'Driver' })
+      .expect(201);
+    const second = await admin
+      .post('/drivers')
+      .send({ firstName: 'Second', lastName: 'Driver' })
+      .expect(201);
+
+    await admin
+      .post('/vehicles')
+      .send(
+        vehicle({
+          driverIds: [first.body.id, second.body.id],
+          registrationNumber: 'DRV102',
+        }),
+      )
+      .expect(400);
+    const created = await admin
+      .post('/vehicles')
+      .send(
+        vehicle({ driverIds: [first.body.id], registrationNumber: 'DRV103' }),
+      )
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/drivers`)
+      .send({ driverId: second.body.id })
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/drivers`)
+      .send({ driverId: second.body.id })
+      .expect(201);
+
+    await admin
+      .get(`/vehicles/${created.body.id}/driver-assignments`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveLength(2);
+        expect(
+          res.body.find(
+            ({ assignedTo }: { assignedTo: string | null }) =>
+              assignedTo === null,
+          )?.driverId,
+        ).toBe(second.body.id);
+      });
   });
 
   it('limits manager writes to assigned vehicles and reserves delete for admin', async () => {

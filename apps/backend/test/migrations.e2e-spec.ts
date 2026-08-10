@@ -13,6 +13,7 @@ import { AllowRemovedMemberships1757000000000 } from '../src/migrations/17570000
 import { DropUserCompanyRole1758000000000 } from '../src/migrations/1758000000000-DropUserCompanyRole';
 import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-AddWorkspaceOwner';
 import { LinkDriverMembership1760000000000 } from '../src/migrations/1760000000000-LinkDriverMembership';
+import { EnforceSingleActiveDriver1761000000000 } from '../src/migrations/1761000000000-EnforceSingleActiveDriver';
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
@@ -41,6 +42,7 @@ describe('database migrations', () => {
         DropUserCompanyRole1758000000000,
         AddWorkspaceOwner1759000000000,
         LinkDriverMembership1760000000000,
+        EnforceSingleActiveDriver1761000000000,
       ],
     });
 
@@ -144,11 +146,63 @@ describe('database migrations', () => {
         `UPDATE "drivers" SET "deletedAt" = now() WHERE "id" = $1`,
         [linkedDriverId],
       );
-      await database.query(
+      const [{ id: replacementDriverId }] = await database.query<
+        { id: string }[]
+      >(
         `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
-         VALUES ($1, 'Replacement', 'Driver', $2)`,
+         VALUES ($1, 'Replacement', 'Driver', $2) RETURNING "id"`,
         [linkCompanyId, linkUserId],
       );
+
+      await database.undoLastMigration();
+      const [{ id: allocationVehicleId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "vehicles" ("companyId", brand, model, "registrationNumber")
+         VALUES ($1, 'Migration', 'Allocation', 'MIG100') RETURNING id`,
+        [linkCompanyId],
+      );
+      const [{ id: newerDriverId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName")
+         VALUES ($1, 'Newer', 'Driver') RETURNING id`,
+        [linkCompanyId],
+      );
+      await database.query(
+        `INSERT INTO "driver_vehicle_assignments"
+         ("companyId", "vehicleId", "driverId", "assignedFrom", "createdAt")
+         VALUES ($1, $2, $3, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+                ($1, $2, $4, '2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z')`,
+        [
+          linkCompanyId,
+          allocationVehicleId,
+          replacementDriverId,
+          newerDriverId,
+        ],
+      );
+      await database.runMigrations();
+      await expect(
+        database.query<{ driverId: string }[]>(
+          `SELECT "driverId" FROM "driver_vehicle_assignments"
+           WHERE "vehicleId" = $1 AND "assignedTo" IS NULL`,
+          [allocationVehicleId],
+        ),
+      ).resolves.toEqual([{ driverId: newerDriverId }]);
+      await expect(
+        database.query(
+          `INSERT INTO "driver_vehicle_assignments"
+           ("companyId", "vehicleId", "driverId") VALUES ($1, $2, $3)`,
+          [linkCompanyId, allocationVehicleId, replacementDriverId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes
+           WHERE schemaname = $1 AND indexname = 'IDX_driver_assignments_active_pair'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
       await database.undoLastMigration();
       await expect(
         database.query<{ column_name: string }[]>(
@@ -341,6 +395,7 @@ describe('database migrations', () => {
       >(
         `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
       );
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();
       await expect(database.undoLastMigration()).rejects.toThrow(

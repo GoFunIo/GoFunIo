@@ -1,5 +1,5 @@
 import {
-  ConflictException,
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -10,7 +10,6 @@ import {
   EntityManager,
   In,
   IsNull,
-  QueryFailedError,
   SelectQueryBuilder,
 } from 'typeorm';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
@@ -22,6 +21,7 @@ import {
   type SessionPrincipal,
 } from '../users/session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
+import { Vehicle } from '../vehicles/vehicles.entity';
 import type {
   DriverAllocation,
   DriverAllocationStore,
@@ -167,17 +167,32 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
     vehicleId: string,
     driverId: string,
   ): Promise<DriverVehicleAssignment> {
-    try {
-      return await manager.save(
-        manager.create(DriverVehicleAssignment, {
-          companyId,
-          vehicleId,
-          driverId,
-        }),
-      );
-    } catch (error) {
-      this.throwActivePairConflict(error);
+    await manager.findOne(Vehicle, {
+      where: { id: vehicleId, companyId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    const active = await manager.findOne(DriverVehicleAssignment, {
+      where: { companyId, vehicleId, assignedTo: IsNull() },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (active?.driverId === driverId) return active;
+    if (active) {
+      await manager
+        .createQueryBuilder()
+        .update(DriverVehicleAssignment)
+        .set({
+          assignedTo: () => 'GREATEST("assignedFrom", clock_timestamp())',
+        })
+        .where('id = :id', { id: active.id })
+        .execute();
     }
+    return manager.save(
+      manager.create(DriverVehicleAssignment, {
+        companyId,
+        vehicleId,
+        driverId,
+      }),
+    );
   }
 
   private async assignInitial(
@@ -186,20 +201,11 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
     vehicleId: string,
     driverIds: string[],
   ): Promise<void> {
-    if (!driverIds.length) return;
-    try {
-      await manager.save(
-        driverIds.map((driverId) =>
-          manager.create(DriverVehicleAssignment, {
-            companyId,
-            vehicleId,
-            driverId,
-          }),
-        ),
-      );
-    } catch (error) {
-      this.throwActivePairConflict(error);
+    if (driverIds.length > 1) {
+      throw new BadRequestException('Only one active driver allowed');
     }
+    if (!driverIds.length) return;
+    await this.assign(manager, companyId, vehicleId, driverIds[0]);
   }
 
   private async unassign(
@@ -254,16 +260,5 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
       .andWhere(`"${field}" = :id`, { id })
       .andWhere('"assignedTo" IS NULL')
       .execute();
-  }
-
-  private throwActivePairConflict(error: unknown): never {
-    if (
-      error instanceof QueryFailedError &&
-      (error.driverError as { constraint?: string } | undefined)?.constraint ===
-        'IDX_driver_assignments_active_pair'
-    ) {
-      throw new ConflictException('Driver already assigned');
-    }
-    throw error;
   }
 }

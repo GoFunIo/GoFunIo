@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsDateString,
@@ -26,6 +27,7 @@ export class CreateVehicleDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(1)
   @ArrayUnique()
   @IsUUID('4', { each: true })
   driverIds?: string[];

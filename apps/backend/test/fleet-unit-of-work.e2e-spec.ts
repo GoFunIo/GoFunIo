@@ -1,5 +1,4 @@
 import './helpers/test-env';
-import { ConflictException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Company } from '../src/companies/companies.entity';
 import { DriverVehicleAssignment } from '../src/drivers/driver-vehicle-assignment.entity';
@@ -119,9 +118,14 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     ).resolves.toBe(2);
   });
 
-  it('allows many-to-many allocations, rejects an active pair, and restores closed pairs', async () => {
+  it('keeps one active driver per vehicle and restores closed history', async () => {
     const seed = await seedFleet();
     const firstVehicleId = await createVehicle(seed);
+    const secondDriver = await dataSource.getRepository(Driver).save({
+      companyId: seed.companyId,
+      firstName: 'Anna',
+      lastName: 'Nowak',
+    });
     const secondVehicleId = await fleet.transact(async (stores) => {
       const vehicle = await stores.vehicles.create({
         ...vehicleInput(seed.companyId),
@@ -135,27 +139,20 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
       return vehicle.id;
     });
 
-    await expect(
-      fleet.transact((stores) =>
-        stores.driverAllocations.assign(
-          seed.companyId,
-          firstVehicleId,
-          seed.driverId,
-        ),
+    await fleet.transact((stores) =>
+      stores.driverAllocations.assign(
+        seed.companyId,
+        firstVehicleId,
+        seed.driverId,
       ),
-    ).rejects.toThrow(new ConflictException('Driver already assigned'));
-    await fleet.transact(async (stores) => {
-      await stores.driverAllocations.unassign(
+    );
+    await fleet.transact((stores) =>
+      stores.driverAllocations.assign(
         seed.companyId,
         firstVehicleId,
-        seed.driverId,
-      );
-      await stores.driverAllocations.assign(
-        seed.companyId,
-        firstVehicleId,
-        seed.driverId,
-      );
-    });
+        secondDriver.id,
+      ),
+    );
 
     const assignments = await dataSource
       .getRepository(DriverVehicleAssignment)
@@ -170,6 +167,48 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(
       assignments.some(({ vehicleId }) => vehicleId === secondVehicleId),
     ).toBe(true);
+    expect(
+      assignments.find(
+        ({ vehicleId, assignedTo }) =>
+          vehicleId === firstVehicleId && assignedTo === null,
+      )?.driverId,
+    ).toBe(secondDriver.id);
+  });
+
+  it('serializes concurrent driver replacements', async () => {
+    const seed = await seedFleet();
+    const vehicleId = await createVehicle(seed);
+    const drivers = await dataSource.getRepository(Driver).save([
+      {
+        companyId: seed.companyId,
+        firstName: 'First',
+        lastName: 'Replacement',
+      },
+      {
+        companyId: seed.companyId,
+        firstName: 'Second',
+        lastName: 'Replacement',
+      },
+    ]);
+
+    await Promise.all(
+      drivers.map((driver) =>
+        fleet.transact((stores) =>
+          stores.driverAllocations.assign(seed.companyId, vehicleId, driver.id),
+        ),
+      ),
+    );
+
+    const assignments = await dataSource
+      .getRepository(DriverVehicleAssignment)
+      .findBy({ vehicleId });
+    expect(assignments).toHaveLength(3);
+    expect(
+      assignments.filter(({ assignedTo }) => assignedTo === null),
+    ).toHaveLength(1);
+    expect(drivers.map(({ id }) => id)).toContain(
+      assignments.find(({ assignedTo }) => assignedTo === null)?.driverId,
+    );
   });
 
   async function seedFleet() {
