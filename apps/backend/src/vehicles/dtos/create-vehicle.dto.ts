@@ -1,8 +1,5 @@
 import { Transform } from 'class-transformer';
 import {
-  ArrayMaxSize,
-  ArrayUnique,
-  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
@@ -13,25 +10,11 @@ import {
   Max,
   MaxLength,
   Min,
-  IsUUID,
 } from 'class-validator';
 import { VehicleFuelType } from '../vehicles.entity';
 import { vehicleTransforms } from './vehicle-transforms';
 
 export class CreateVehicleDto {
-  @IsOptional()
-  @IsArray()
-  @ArrayUnique()
-  @IsUUID('4', { each: true })
-  managerIds?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(1)
-  @ArrayUnique()
-  @IsUUID('4', { each: true })
-  driverIds?: string[];
-
   @Transform(vehicleTransforms.trim)
   @IsString()
   @IsNotEmpty()

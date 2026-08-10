@@ -26,6 +26,7 @@ import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
+import { AdminGuard } from '../users/guards/admin.guard';
 import type { SessionPrincipal } from '../users/session-principal';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
@@ -35,6 +36,7 @@ import { VehicleListDto } from './dtos/vehicle-list.dto';
 import type { VehicleView } from './vehicle-view';
 import { VehiclesService } from './vehicles.service';
 import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
+import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto';
 
 @ApiTags('Vehicles')
 @Controller('vehicles')
@@ -85,16 +87,47 @@ export class VehiclesController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiConflictResponse({
-    description: 'Registration number, VIN, or manager already in use',
+    description: 'Registration number or VIN already in use',
   })
   @Post()
   @Serialize(VehicleDto)
-  @UseGuards(AllowedOriginGuard)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
   create(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateVehicleDto,
   ): Promise<VehicleView> {
     return this.vehicles.create(principal, body);
+  }
+
+  @ApiOperation({ summary: 'Assign manager to vehicle' })
+  @ApiCreatedResponse({ type: ManagerAssignmentDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @Post(':id/managers')
+  @Serialize(ManagerAssignmentDto)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
+  assignManager(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateManagerAssignmentDto,
+  ) {
+    return this.vehicles.assignManager(principal, id, body);
+  }
+
+  @ApiOperation({ summary: 'Unassign manager from vehicle' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle or assignment not found' })
+  @Delete(':id/managers/:managerId')
+  @HttpCode(204)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
+  unassignManager(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('managerId', ParseUUIDPipe) managerId: string,
+  ): Promise<void> {
+    return this.vehicles.unassignManager(principal, id, managerId);
   }
 
   @ApiOperation({ summary: 'Update vehicle' })
@@ -103,7 +136,7 @@ export class VehiclesController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @ApiConflictResponse({
-    description: 'Registration number, VIN, or manager already in use',
+    description: 'Registration number or VIN already in use',
   })
   @Patch(':id')
   @Serialize(VehicleDto)

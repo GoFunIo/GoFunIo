@@ -87,10 +87,15 @@ export interface FleetVehicleAccessStore {
     actor: SessionPrincipal,
     vehicleId: string,
   ): Promise<FleetVehicle>;
-  sync(
+  assign(
     companyId: string,
     vehicleId: string,
-    managerIds: string[],
+    managerId: string,
+  ): Promise<FleetManagerAssignment>;
+  unassign(
+    companyId: string,
+    vehicleId: string,
+    managerId: string,
   ): Promise<void>;
   activeManagerIds(
     companyId: string,
@@ -116,7 +121,6 @@ export interface FleetTransaction {
       fields: Partial<Omit<FleetDriverInput, 'companyId'>>,
     ): Promise<FleetDriver>;
     softDelete(driverId: string): Promise<void>;
-    requireAll(companyId: string, driverIds: string[]): Promise<void>;
     requireOne(companyId: string, driverId: string): Promise<void>;
   };
   driverAllocations: DriverAllocationStore;
@@ -271,50 +275,48 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             }
             return vehicle;
           },
-          sync: async (companyId, vehicleId, managerIds) => {
-            const valid = managerIds.every((managerId) =>
-              this.memberships.some(
-                (membership) =>
-                  membership.userId === managerId &&
-                  membership.companyId === companyId &&
-                  membership.role === 'MANAGER' &&
-                  membership.status === 'active',
-              ),
+          assign: async (companyId, vehicleId, managerId) => {
+            const valid = this.memberships.some(
+              (membership) =>
+                membership.userId === managerId &&
+                membership.companyId === companyId &&
+                membership.role === 'MANAGER' &&
+                membership.status === 'active',
             );
             if (!valid) throw new BadRequestException('Invalid manager');
-            const now = new Date();
-            for (const assignment of this.managerAssignments) {
-              if (
+            const active = this.managerAssignments.find(
+              (assignment) =>
                 assignment.companyId === companyId &&
                 assignment.vehicleId === vehicleId &&
-                assignment.assignedTo === null &&
-                !managerIds.includes(assignment.managerId)
-              ) {
-                assignment.assignedTo = now;
-              }
-            }
-            this.managerAssignments.push(
-              ...managerIds
-                .filter(
-                  (managerId) =>
-                    !this.managerAssignments.some(
-                      (assignment) =>
-                        assignment.companyId === companyId &&
-                        assignment.vehicleId === vehicleId &&
-                        assignment.managerId === managerId &&
-                        assignment.assignedTo === null,
-                    ),
-                )
-                .map((managerId, index) => ({
-                  id: `manager-assignment-${this.managerAssignments.length + index + 1}`,
-                  companyId,
-                  vehicleId,
-                  managerId,
-                  assignedFrom: now,
-                  assignedTo: null,
-                  createdAt: now,
-                })),
+                assignment.managerId === managerId &&
+                assignment.assignedTo === null,
             );
+            if (active) return active;
+            const now = new Date();
+            const assignment = {
+              id: `manager-assignment-${this.managerAssignments.length + 1}`,
+              companyId,
+              vehicleId,
+              managerId,
+              assignedFrom: now,
+              assignedTo: null,
+              createdAt: now,
+            };
+            this.managerAssignments.push(assignment);
+            return assignment;
+          },
+          unassign: async (companyId, vehicleId, managerId) => {
+            const assignment = this.managerAssignments.find(
+              (entry) =>
+                entry.companyId === companyId &&
+                entry.vehicleId === vehicleId &&
+                entry.managerId === managerId &&
+                entry.assignedTo === null,
+            );
+            if (!assignment) {
+              throw new NotFoundException('Assignment not found');
+            }
+            assignment.assignedTo = new Date();
           },
           activeManagerIds: async (companyId, vehicleIds) =>
             new Map(
@@ -371,17 +373,6 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const driver = this.drivers.find(({ id }) => id === driverId);
             if (!driver) throw new NotFoundException('Driver not found');
             driver.deletedAt = new Date();
-          },
-          requireAll: async (companyId, driverIds) => {
-            const valid = driverIds.every((driverId) =>
-              this.drivers.some(
-                (driver) =>
-                  driver.id === driverId &&
-                  driver.companyId === companyId &&
-                  !driver.deletedAt,
-              ),
-            );
-            if (!valid) throw new BadRequestException('Invalid driver');
           },
           requireOne: async (companyId, driverId) => {
             const valid = this.drivers.some(
@@ -458,22 +449,6 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             };
             this.driverAssignments.push(assignment);
             return assignment;
-          },
-          assignInitial: async (companyId, vehicleId, driverIds) => {
-            if (driverIds.length > 1) {
-              throw new BadRequestException('Only one active driver allowed');
-            }
-            if (!driverIds.length) return;
-            const now = new Date();
-            this.driverAssignments.push({
-              id: `driver-assignment-${this.driverAssignments.length + 1}`,
-              companyId,
-              vehicleId,
-              driverId: driverIds[0],
-              assignedFrom: now,
-              assignedTo: null,
-              createdAt: now,
-            });
           },
           unassign: async (companyId, vehicleId, driverId) => {
             const assignment = this.driverAssignments.find(

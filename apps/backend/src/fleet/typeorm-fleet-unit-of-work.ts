@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import {
@@ -101,16 +101,6 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         },
         softDelete: async (driverId) => {
           await manager.softDelete(Driver, driverId);
-        },
-        requireAll: async (companyId, driverIds) => {
-          if (!driverIds.length) return;
-          const drivers = await manager.find(Driver, {
-            where: { id: In(driverIds), companyId },
-            lock: { mode: 'pessimistic_write' },
-          });
-          if (drivers.length !== driverIds.length) {
-            throw new BadRequestException('Invalid driver');
-          }
         },
         requireOne: async (companyId, driverId) => {
           const driver = await manager.findOne(Driver, {

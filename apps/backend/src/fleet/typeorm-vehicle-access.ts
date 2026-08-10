@@ -152,8 +152,10 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
         this.findVisible(manager, actor, vehicleId, lock),
       findForHistory: (actor, vehicleId) =>
         this.findForHistory(manager, actor, vehicleId),
-      sync: (companyId, vehicleId, managerIds) =>
-        this.sync(manager, companyId, vehicleId, managerIds),
+      assign: (companyId, vehicleId, managerId) =>
+        this.assign(manager, companyId, vehicleId, managerId),
+      unassign: (companyId, vehicleId, managerId) =>
+        this.unassign(manager, companyId, vehicleId, managerId),
       activeManagerIds: (companyId, vehicleIds) =>
         this.activeIds(manager, companyId, vehicleIds),
       closeVehicle: (companyId, vehicleId) =>
@@ -232,53 +234,53 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
     return vehicle;
   }
 
-  private async sync(
+  private async assign(
     manager: EntityManager,
     companyId: string,
     vehicleId: string,
-    managerIds: string[],
-  ): Promise<void> {
-    if (managerIds.length) {
-      const memberships = await manager.find(Membership, {
-        where: {
-          userId: In(managerIds),
-          companyId,
-          role: MembershipRole.MANAGER,
-          status: 'active',
-        },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (memberships.length !== managerIds.length) {
-        throw new BadRequestException('Invalid manager');
-      }
-    }
-    const active = await manager.find(ManagerVehicleAssignment, {
-      where: { companyId, vehicleId, assignedTo: IsNull() },
+    managerId: string,
+  ): Promise<ManagerVehicleAssignment> {
+    const membership = await manager.findOne(Membership, {
+      where: {
+        userId: managerId,
+        companyId,
+        role: MembershipRole.MANAGER,
+        status: 'active',
+      },
       lock: { mode: 'pessimistic_write' },
     });
-    const requested = new Set(managerIds);
-    const existing = new Set(active.map(({ managerId }) => managerId));
-    const removed = active.filter(({ managerId }) => !requested.has(managerId));
-    if (removed.length) {
-      await manager
-        .createQueryBuilder()
-        .update(ManagerVehicleAssignment)
-        .set({ assignedTo: () => 'clock_timestamp()' })
-        .whereInIds(removed.map(({ id }) => id))
-        .execute();
-    }
-    const added = managerIds.filter((managerId) => !existing.has(managerId));
-    if (added.length) {
-      await manager.save(
-        added.map((managerId) =>
-          manager.create(ManagerVehicleAssignment, {
-            companyId,
-            managerId,
-            vehicleId,
-          }),
-        ),
-      );
-    }
+    if (!membership) throw new BadRequestException('Invalid manager');
+    const active = await manager.findOne(ManagerVehicleAssignment, {
+      where: { companyId, vehicleId, managerId, assignedTo: IsNull() },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (active) return active;
+    return manager.save(
+      manager.create(ManagerVehicleAssignment, {
+        companyId,
+        vehicleId,
+        managerId,
+      }),
+    );
+  }
+
+  private async unassign(
+    manager: EntityManager,
+    companyId: string,
+    vehicleId: string,
+    managerId: string,
+  ): Promise<void> {
+    const assignment = await manager.findOne(ManagerVehicleAssignment, {
+      where: { companyId, vehicleId, managerId, assignedTo: IsNull() },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await manager
+      .createQueryBuilder()
+      .update(ManagerVehicleAssignment)
+      .set({ assignedTo: () => 'clock_timestamp()' })
+      .where('id = :id', { id: assignment.id })
+      .execute();
   }
 
   private async activeIds(

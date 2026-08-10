@@ -63,6 +63,17 @@ describe('Drivers (e2e)', () => {
     };
   }
 
+  async function assignManager(
+    admin: ReturnType<typeof request.agent>,
+    vehicleId: string,
+    managerId: string,
+  ) {
+    await admin
+      .post(`/vehicles/${vehicleId}/managers`)
+      .send({ managerId })
+      .expect(201);
+  }
+
   it('manages drivers and preserves assignment history', async () => {
     const admin = await signedIn('drivers-admin@example.com');
     const driver = await admin
@@ -82,11 +93,8 @@ describe('Drivers (e2e)', () => {
     });
     expect(driver.body.companyId).toBeUndefined();
 
-    const created = await admin
-      .post('/vehicles')
-      .send(vehicle({ driverIds: [driver.body.id] }))
-      .expect(201);
-    expect(created.body.driverIds).toEqual([driver.body.id]);
+    const created = await admin.post('/vehicles').send(vehicle()).expect(201);
+    expect(created.body.driverIds).toEqual([]);
 
     await admin
       .post(`/vehicles/${created.body.id}/drivers`)
@@ -160,9 +168,11 @@ describe('Drivers (e2e)', () => {
       .expect(400);
     const created = await admin
       .post('/vehicles')
-      .send(
-        vehicle({ driverIds: [first.body.id], registrationNumber: 'DRV103' }),
-      )
+      .send(vehicle({ registrationNumber: 'DRV103' }))
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/drivers`)
+      .send({ driverId: first.body.id })
       .expect(201);
     await admin
       .post(`/vehicles/${created.body.id}/drivers`)
@@ -205,8 +215,9 @@ describe('Drivers (e2e)', () => {
 
     const assigned = await admin
       .post('/vehicles')
-      .send(vehicle({ managerIds: [user.id], registrationNumber: 'DRV201' }))
+      .send(vehicle({ registrationNumber: 'DRV201' }))
       .expect(201);
+    await assignManager(admin, assigned.body.id, user.id);
     const unassigned = await admin
       .post('/vehicles')
       .send(vehicle({ registrationNumber: 'DRV202' }))
@@ -247,10 +258,9 @@ describe('Drivers (e2e)', () => {
       );
     const firstVehicle = await admin
       .post('/vehicles')
-      .send(
-        vehicle({ managerIds: [first.user.id], registrationNumber: 'DRV301' }),
-      )
+      .send(vehicle({ registrationNumber: 'DRV301' }))
       .expect(201);
+    await assignManager(admin, firstVehicle.body.id, first.user.id);
     await first.manager
       .post(`/vehicles/${firstVehicle.body.id}/drivers`)
       .send({ driverId: driver.body.id })
@@ -271,10 +281,9 @@ describe('Drivers (e2e)', () => {
 
     const secondVehicle = await admin
       .post('/vehicles')
-      .send(
-        vehicle({ managerIds: [second.user.id], registrationNumber: 'DRV302' }),
-      )
+      .send(vehicle({ registrationNumber: 'DRV302' }))
       .expect(201);
+    await assignManager(admin, secondVehicle.body.id, second.user.id);
     await second.manager
       .post(`/vehicles/${secondVehicle.body.id}/drivers`)
       .send({ driverId: driver.body.id })
@@ -336,9 +345,11 @@ describe('Drivers (e2e)', () => {
 
     const created = await admin
       .post('/vehicles')
-      .send(
-        vehicle({ driverIds: [driver.body.id], registrationNumber: 'DRV401' }),
-      )
+      .send(vehicle({ registrationNumber: 'DRV401' }))
+      .expect(201);
+    await admin
+      .post(`/vehicles/${created.body.id}/drivers`)
+      .send({ driverId: driver.body.id })
       .expect(201);
     await admin
       .patch(`/drivers/${driver.body.id}`)

@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { MembershipRole } from '../users/membership-role';
 import { FakeFleetUnitOfWork } from './fleet-unit-of-work';
 
@@ -32,21 +32,6 @@ describe('DriverAllocation lifecycle', () => {
           vehicleId === 'vehicle-one' && assignedTo === null,
       )?.driverId,
     ).toBe('driver-two');
-  });
-
-  it('rejects multiple initial drivers', async () => {
-    const fleet = setup();
-
-    await expect(
-      fleet.transact(({ driverAllocations }) =>
-        driverAllocations.assignInitial(companyId, 'vehicle-one', [
-          driverId,
-          'driver-two',
-        ]),
-      ),
-    ).rejects.toThrow(
-      new BadRequestException('Only one active driver allowed'),
-    );
   });
 
   it('lets each manager edit a shared driver and rolls cleanup back on failure', async () => {

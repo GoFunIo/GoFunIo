@@ -23,9 +23,11 @@ describe('VehicleAccess policy', () => {
 
     await fleet.transact(async (stores) => {
       const vehicle = await stores.vehicles.create(vehicleInput());
-      await stores.vehicleAccess.sync(companyId, vehicle.id, [
+      await stores.vehicleAccess.assign(
+        companyId,
+        vehicle.id,
         assignedManagerId,
-      ]);
+      );
 
       await expect(
         stores.vehicleAccess.find(
@@ -48,17 +50,21 @@ describe('VehicleAccess policy', () => {
     });
   });
 
-  it('synchronizes and closes access idempotently', async () => {
+  it('assigns once and closes access idempotently with vehicle cleanup', async () => {
     const fleet = setup();
 
     await fleet.transact(async (stores) => {
       const vehicle = await stores.vehicles.create(vehicleInput());
-      await stores.vehicleAccess.sync(companyId, vehicle.id, [
+      await stores.vehicleAccess.assign(
+        companyId,
+        vehicle.id,
         assignedManagerId,
-      ]);
-      await stores.vehicleAccess.sync(companyId, vehicle.id, [
+      );
+      await stores.vehicleAccess.assign(
+        companyId,
+        vehicle.id,
         assignedManagerId,
-      ]);
+      );
       expect(fleet.managerAssignments).toHaveLength(1);
 
       await stores.vehicleAccess.closeVehicle(companyId, vehicle.id);

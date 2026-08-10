@@ -150,20 +150,29 @@ describe('Vehicles (e2e)', () => {
     });
   });
 
-  it('allows MANAGER to perform CRUD', async () => {
-    const manager = await signedIn('vehicle-manager@example.com');
-    await app.get(DataSource).query(
-      `UPDATE "memberships" SET "role" = 'MANAGER'
-       WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,
-      ['vehicle-manager@example.com'],
+  it('allows MANAGER to modify only assigned vehicles, but not create them', async () => {
+    const admin = await signedIn('vehicle-manager-admin@example.com');
+    const { manager, user } = await inviteManager(
+      admin,
+      'vehicle-manager@example.com',
     );
-
-    const created = await createVehicle(manager, {
+    await manager
+      .post('/vehicles')
+      .send(
+        vehicle({
+          vin: null,
+          registrationNumber: 'BLOCKED1',
+        }),
+      )
+      .expect(403);
+    const created = await createVehicle(admin, {
       vin: null,
       registrationNumber: 'MAN123',
     });
-    const me = await manager.get('/auth/me').expect(200);
-    expect(created.body.managerIds).toEqual([me.body.id]);
+    await admin
+      .post(`/vehicles/${created.body.id}/managers`)
+      .send({ managerId: user.id })
+      .expect(201);
     await manager.get('/vehicles').expect(200);
     await manager
       .patch(`/vehicles/${created.body.id}`)
@@ -189,15 +198,21 @@ describe('Vehicles (e2e)', () => {
       .expect((res) => expect(res.body.total).toBe(0));
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(404);
     await admin
-      .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerIds: [user.id] })
+      .post(`/vehicles/${unassigned.body.id}/managers`)
+      .send({ managerId: user.id })
+      .expect(201);
+    await admin
+      .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
       .expect((res) => expect(res.body.managerIds).toEqual([user.id]));
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
     const second = await inviteManager(admin, 'scope-manager-two@example.com');
     await admin
-      .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerIds: [user.id, second.user.id] })
+      .post(`/vehicles/${unassigned.body.id}/managers`)
+      .send({ managerId: second.user.id })
+      .expect(201);
+    await admin
+      .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
       .expect((res) =>
         expect(res.body.managerIds.sort()).toEqual(
@@ -209,14 +224,35 @@ describe('Vehicles (e2e)', () => {
       .get(`/vehicles/${unassigned.body.id}/manager-assignments`)
       .expect(200)
       .expect((res) => expect(res.body).toHaveLength(2));
+    await admin
+      .delete(`/vehicles/${unassigned.body.id}/managers/${second.user.id}`)
+      .expect(204);
+    await admin
+      .get(`/vehicles/${unassigned.body.id}`)
+      .expect(200)
+      .expect((res) => expect(res.body.managerIds).toEqual([user.id]));
+    await admin
+      .get(`/vehicles/${unassigned.body.id}/manager-assignments`)
+      .expect(200)
+      .expect((res) => {
+        const closed = res.body.find(
+          ({ managerId }: { managerId: string }) =>
+            managerId === second.user.id,
+        );
+        expect(closed.assignedTo).not.toBeNull();
+      });
     await manager
       .patch(`/vehicles/${unassigned.body.id}`)
       .send({ notes: 'Manager update' })
       .expect(200);
     await manager
+      .post(`/vehicles/${unassigned.body.id}/managers`)
+      .send({ managerId: user.id })
+      .expect(403);
+    await admin
       .patch(`/vehicles/${unassigned.body.id}`)
       .send({ managerIds: [] })
-      .expect(403);
+      .expect(400);
 
     const foreignManager = await signedIn('foreign-manager@example.com');
     await app.get(DataSource).query(
@@ -226,8 +262,8 @@ describe('Vehicles (e2e)', () => {
     );
     const foreignMe = await foreignManager.get('/auth/me').expect(200);
     await admin
-      .patch(`/vehicles/${unassigned.body.id}`)
-      .send({ managerIds: [foreignMe.body.id] })
+      .post(`/vehicles/${unassigned.body.id}/managers`)
+      .send({ managerId: foreignMe.body.id })
       .expect(400);
     await manager.delete(`/vehicles/${unassigned.body.id}`).expect(204);
   });
@@ -236,10 +272,13 @@ describe('Vehicles (e2e)', () => {
     const admin = await signedIn('manager-lifecycle-admin@example.com');
     const first = await inviteManager(admin, 'promoted-manager@example.com');
     const created = await createVehicle(admin, {
-      managerIds: [first.user.id],
       vin: 'WAU123456789ABCDE',
       registrationNumber: 'LIFE1',
     });
+    await admin
+      .post(`/vehicles/${created.body.id}/managers`)
+      .send({ managerId: first.user.id })
+      .expect(201);
 
     await admin
       .patch(`/users/${first.user.id}`)
@@ -252,9 +291,9 @@ describe('Vehicles (e2e)', () => {
 
     const second = await inviteManager(admin, 'deleted-manager@example.com');
     await admin
-      .patch(`/vehicles/${created.body.id}`)
-      .send({ managerIds: [second.user.id] })
-      .expect(200);
+      .post(`/vehicles/${created.body.id}/managers`)
+      .send({ managerId: second.user.id })
+      .expect(201);
     await admin.delete(`/users/${second.user.id}`).expect(204);
     await admin
       .get(`/vehicles/${created.body.id}`)
@@ -349,6 +388,15 @@ describe('Vehicles (e2e)', () => {
       .expect(400);
     await admin
       .post('/vehicles')
+      .send(vehicle({ managerIds: [], registrationNumber: 'ACCESS1' }))
+      .expect(400);
+    const existing = await admin.get('/vehicles').expect(200);
+    await admin
+      .patch(`/vehicles/${existing.body.items[0].id}`)
+      .send({ driverIds: [] })
+      .expect(400);
+    await admin
+      .post('/vehicles')
       .send(
         vehicle({
           productionYear: new Date().getFullYear() + 1,
@@ -371,7 +419,6 @@ describe('Vehicles (e2e)', () => {
         vehicle({ purchaseDate: '2999-01-01', registrationNumber: 'DATE123' }),
       )
       .expect(400);
-    const existing = await admin.get('/vehicles').expect(200);
     await admin
       .patch(`/vehicles/${existing.body.items[0].id}`)
       .send({})

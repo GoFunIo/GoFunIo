@@ -15,11 +15,6 @@ export interface DriverAllocationStore {
     vehicleId: string,
     driverId: string,
   ): Promise<FleetDriverAssignment>;
-  assignInitial(
-    companyId: string,
-    vehicleId: string,
-    driverIds: string[],
-  ): Promise<void>;
   unassign(
     companyId: string,
     vehicleId: string,

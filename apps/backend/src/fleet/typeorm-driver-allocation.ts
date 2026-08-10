@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -20,7 +19,6 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
-import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import type {
   DriverAllocation,
@@ -57,8 +55,6 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
         this.findVisible(manager, actor, driverId, lock),
       assign: (companyId, vehicleId, driverId) =>
         this.assign(manager, companyId, vehicleId, driverId),
-      assignInitial: (companyId, vehicleId, driverIds) =>
-        this.assignInitial(manager, companyId, vehicleId, driverIds),
       unassign: (companyId, vehicleId, driverId) =>
         this.unassign(manager, companyId, vehicleId, driverId),
       history: (companyId, vehicleId) =>
@@ -193,19 +189,6 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
         driverId,
       }),
     );
-  }
-
-  private async assignInitial(
-    manager: EntityManager,
-    companyId: string,
-    vehicleId: string,
-    driverIds: string[],
-  ): Promise<void> {
-    if (driverIds.length > 1) {
-      throw new BadRequestException('Only one active driver allowed');
-    }
-    if (!driverIds.length) return;
-    await this.assign(manager, companyId, vehicleId, driverIds[0]);
   }
 
   private async unassign(

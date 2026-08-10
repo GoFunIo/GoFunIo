@@ -21,12 +21,13 @@ import {
   type FleetVehiclePage,
   type VehicleAccess,
 } from '../fleet/vehicle-access';
-import { MembershipRole } from '../users/membership-role';
+import { isWorkspaceAdmin } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
+import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
 import type { VehicleView } from './vehicle-view';
@@ -81,18 +82,11 @@ export class VehiclesService {
     this.validatePurchaseDate(body.purchaseDate);
     try {
       const companyId = requireCompanyId(actor);
-      const { managerIds, driverIds, ...vehicleFields } = body;
-      if (actor.role === MembershipRole.MANAGER && managerIds !== undefined) {
-        throw new ForbiddenException();
-      }
-      const activeManagerIds =
-        actor.role === MembershipRole.MANAGER ? [actor.id] : (managerIds ?? []);
-      const activeDriverIds = driverIds ?? [];
       return await this.fleet.transact(async (fleet) => {
-        if (!actor.role) throw new ForbiddenException();
+        if (!isWorkspaceAdmin(actor.role)) throw new ForbiddenException();
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         const created = await fleet.vehicles.create({
-          ...vehicleFields,
+          ...body,
           companyId,
           productionYear: body.productionYear ?? null,
           fuelType: body.fuelType ?? null,
@@ -104,13 +98,6 @@ export class VehiclesService {
           technicalInspectionExpiry: body.technicalInspectionExpiry ?? null,
           notes: body.notes ?? null,
         });
-        await fleet.vehicleAccess.sync(companyId, created.id, activeManagerIds);
-        await fleet.drivers.requireAll(companyId, activeDriverIds);
-        await fleet.driverAllocations.assignInitial(
-          companyId,
-          created.id,
-          activeDriverIds,
-        );
         return (
           await this.views(
             companyId,
@@ -138,17 +125,10 @@ export class VehiclesService {
     try {
       const companyId = requireCompanyId(actor);
       return await this.fleet.transact(async (fleet) => {
-        const { managerIds, ...vehicleFields } = body;
-        if (actor.role === MembershipRole.MANAGER && managerIds !== undefined) {
-          throw new ForbiddenException();
-        }
         if (!actor.role) throw new ForbiddenException();
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         await fleet.vehicleAccess.find(actor, id, true);
-        if (managerIds !== undefined) {
-          await fleet.vehicleAccess.sync(companyId, id, managerIds);
-        }
-        const vehicle = await fleet.vehicles.update(id, vehicleFields);
+        const vehicle = await fleet.vehicles.update(id, body);
         return (
           await this.views(
             companyId,
@@ -177,6 +157,34 @@ export class VehiclesService {
 
   async managerHistory(actor: SessionPrincipal, id: string) {
     return this.vehicleAccess.history(actor, id);
+  }
+
+  assignManager(
+    actor: SessionPrincipal,
+    vehicleId: string,
+    body: CreateManagerAssignmentDto,
+  ) {
+    return this.fleet.transact(async (fleet) => {
+      if (!isWorkspaceAdmin(actor.role)) throw new ForbiddenException();
+      const companyId = requireCompanyId(actor);
+      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      await fleet.vehicleAccess.find(actor, vehicleId, true);
+      return fleet.vehicleAccess.assign(companyId, vehicleId, body.managerId);
+    });
+  }
+
+  async unassignManager(
+    actor: SessionPrincipal,
+    vehicleId: string,
+    managerId: string,
+  ): Promise<void> {
+    await this.fleet.transact(async (fleet) => {
+      if (!isWorkspaceAdmin(actor.role)) throw new ForbiddenException();
+      const companyId = requireCompanyId(actor);
+      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      await fleet.vehicleAccess.find(actor, vehicleId, true);
+      await fleet.vehicleAccess.unassign(companyId, vehicleId, managerId);
+    });
   }
 
   private async views(
@@ -223,9 +231,6 @@ export class VehiclesService {
       }
       if (constraint === 'IDX_vehicles_company_vin_active') {
         throw new ConflictException('VIN already in use');
-      }
-      if (constraint === 'IDX_manager_assignments_active_pair') {
-        throw new ConflictException('Manager already assigned');
       }
     }
     throw error;

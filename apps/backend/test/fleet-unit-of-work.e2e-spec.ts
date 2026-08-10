@@ -75,14 +75,16 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
         const vehicle = await stores.vehicles.create(
           vehicleInput(seed.companyId),
         );
-        await stores.vehicleAccess.sync(seed.companyId, vehicle.id, [
-          seed.managerId,
-        ]);
-        await stores.drivers.requireAll(seed.companyId, [seed.driverId]);
-        await stores.driverAllocations.assignInitial(
+        await stores.vehicleAccess.assign(
           seed.companyId,
           vehicle.id,
-          [seed.driverId],
+          seed.managerId,
+        );
+        await stores.drivers.requireOne(seed.companyId, seed.driverId);
+        await stores.driverAllocations.assign(
+          seed.companyId,
+          vehicle.id,
+          seed.driverId,
         );
         throw new Error('stop');
       }),
@@ -111,7 +113,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(stillClosed.assignedTo).toEqual(closed.assignedTo);
 
     await fleet.transact((stores) =>
-      stores.vehicleAccess.sync(seed.companyId, vehicleId, [seed.managerId]),
+      stores.vehicleAccess.assign(seed.companyId, vehicleId, seed.managerId),
     );
     await expect(
       dataSource.getRepository(ManagerVehicleAssignment).countBy({ vehicleId }),
@@ -240,13 +242,17 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
       const vehicle = await stores.vehicles.create(
         vehicleInput(seed.companyId),
       );
-      await stores.vehicleAccess.sync(seed.companyId, vehicle.id, [
+      await stores.vehicleAccess.assign(
+        seed.companyId,
+        vehicle.id,
         seed.managerId,
-      ]);
-      await stores.drivers.requireAll(seed.companyId, [seed.driverId]);
-      await stores.driverAllocations.assignInitial(seed.companyId, vehicle.id, [
+      );
+      await stores.drivers.requireOne(seed.companyId, seed.driverId);
+      await stores.driverAllocations.assign(
+        seed.companyId,
+        vehicle.id,
         seed.driverId,
-      ]);
+      );
       return vehicle.id;
     });
   }

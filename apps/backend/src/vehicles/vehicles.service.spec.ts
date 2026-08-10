@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import {
   FakeFleetUnitOfWork,
   type FleetMembership,
@@ -65,7 +65,7 @@ describe('VehiclesService create workflow', () => {
     return { driverAllocation, fleet, service, vehicleAccess };
   }
 
-  it('creates a vehicle with its initial access and allocation atomically', async () => {
+  it('creates a vehicle without access or allocation', async () => {
     const { fleet, service } = setup();
 
     const vehicle = await service.create(
@@ -74,24 +74,18 @@ describe('VehiclesService create workflow', () => {
         brand: 'Ford',
         model: 'Transit',
         registrationNumber: 'WA1234',
-        managerIds: [managerId],
-        driverIds: [driverId],
       },
     );
 
     expect(vehicle).toMatchObject({
       brand: 'Ford',
-      managerIds: [managerId],
-      driverIds: [driverId],
+      managerIds: [],
+      driverIds: [],
     });
     expect(vehicle).not.toBeInstanceOf(Vehicle);
     expect(fleet.vehicles).toHaveLength(1);
-    expect(fleet.managerAssignments).toEqual([
-      expect.objectContaining({ companyId, vehicleId: vehicle.id, managerId }),
-    ]);
-    expect(fleet.driverAssignments).toEqual([
-      expect.objectContaining({ companyId, vehicleId: vehicle.id, driverId }),
-    ]);
+    expect(fleet.managerAssignments).toEqual([]);
+    expect(fleet.driverAssignments).toEqual([]);
   });
 
   it('composes a non-empty page with one batched read per assignment seam', async () => {
@@ -101,13 +95,23 @@ describe('VehiclesService create workflow', () => {
       brand: 'Ford',
       model: 'Transit',
       registrationNumber: 'WA1234',
-      managerIds: [managerId],
-      driverIds: [driverId],
     });
     await service.create(actor, {
       brand: 'Ford',
       model: 'Focus',
       registrationNumber: 'WA5678',
+    });
+    await fleet.transact(async (stores) => {
+      await stores.vehicleAccess.assign(
+        companyId,
+        fleet.vehicles[0].id,
+        managerId,
+      );
+      await stores.driverAllocations.assign(
+        companyId,
+        fleet.vehicles[0].id,
+        driverId,
+      );
     });
     vehicleAccess.activeManagerIds.mockClear();
     driverAllocation.activeDriverIds.mockClear();
@@ -141,56 +145,35 @@ describe('VehiclesService create workflow', () => {
     );
   });
 
-  it('automatically gives a creating manager access', async () => {
-    const { fleet, service } = setup();
-
-    const vehicle = await service.create(
-      { id: managerId, companyId, role: MembershipRole.MANAGER },
-      { brand: 'Ford', model: 'Transit', registrationNumber: 'WA1234' },
-    );
-
-    expect(vehicle.managerIds).toEqual([managerId]);
-    expect(fleet.managerAssignments).toEqual([
-      expect.objectContaining({ companyId, vehicleId: vehicle.id, managerId }),
-    ]);
-  });
-
-  it('rejects managerIds supplied by a manager before writing', async () => {
+  it('rejects vehicle creation by a manager before writing', async () => {
     const { fleet, service } = setup();
 
     await expect(
       service.create(
         { id: managerId, companyId, role: MembershipRole.MANAGER },
-        {
-          brand: 'Ford',
-          model: 'Transit',
-          registrationNumber: 'WA1234',
-          managerIds: [],
-        },
+        { brand: 'Ford', model: 'Transit', registrationNumber: 'WA1234' },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(fleet.vehicles).toHaveLength(0);
   });
 
-  it('rolls back earlier writes when a driver belongs to another workspace', async () => {
+  it('assigns idempotently and unassigns one manager', async () => {
     const { fleet, service } = setup();
-    fleet.drivers[0].companyId = 'company-two';
+    const actor = { id: adminId, companyId, role: MembershipRole.ADMIN };
+    const vehicle = await service.create(actor, {
+      brand: 'Ford',
+      model: 'Transit',
+      registrationNumber: 'WA1234',
+    });
 
-    await expect(
-      service.create(
-        { id: adminId, companyId, role: MembershipRole.ADMIN },
-        {
-          brand: 'Ford',
-          model: 'Transit',
-          registrationNumber: 'WA1234',
-          managerIds: [managerId],
-          driverIds: [driverId],
-        },
-      ),
-    ).rejects.toThrow(new BadRequestException('Invalid driver'));
-    expect(fleet.vehicles).toHaveLength(0);
-    expect(fleet.managerAssignments).toHaveLength(0);
-    expect(fleet.driverAssignments).toHaveLength(0);
+    const assignment = await service.assignManager(actor, vehicle.id, {
+      managerId,
+    });
+    await service.assignManager(actor, vehicle.id, { managerId });
+    expect(fleet.managerAssignments).toHaveLength(1);
+
+    await service.unassignManager(actor, vehicle.id, managerId);
+    expect(assignment.assignedTo).not.toBeNull();
   });
 
   function membership(userId: string, role: MembershipRole): FleetMembership {
