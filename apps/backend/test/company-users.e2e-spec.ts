@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { MembershipRole } from '../src/users/membership-role';
 import {
   captureEmittedEvents,
@@ -10,9 +11,11 @@ import { createTestApp } from './helpers/create-test-app';
 
 describe('Company users (e2e)', () => {
   let app: INestApplication<App>;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     app = (await createTestApp()) as INestApplication<App>;
+    dataSource = app.get(DataSource);
   });
 
   afterAll(async () => app.close());
@@ -186,7 +189,7 @@ describe('Company users (e2e)', () => {
     ]);
   });
 
-  it('soft-deletes a member and invalidates their session', async () => {
+  it('removes only the membership and keeps a zero-workspace user active', async () => {
     const admin = await signedIn('delete-admin@example.com');
     const { user, token } = await invite(admin, 'deleted-member@example.com');
     await request(app.getHttpServer())
@@ -210,8 +213,30 @@ describe('Company users (e2e)', () => {
       .expect(204);
 
     await admin.delete(`/users/${user.id}`).expect(204);
-    await member.get('/auth/me').expect(401);
-    await invite(admin, 'released-pending@example.com');
+    await member
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.companyId).toBeNull();
+        expect(body.role).toBeNull();
+      });
+    await member.get('/auth/companies').expect(200, []);
+    const [stored] = await dataSource.query<
+      Array<{ deletedAt: Date | null; status: string }>
+    >(
+      `SELECT user_account."deletedAt", membership.status
+       FROM "users" user_account
+       JOIN "memberships" membership ON membership."userId" = user_account.id
+       WHERE user_account.id = $1`,
+      [user.id],
+    );
+    expect(stored.deletedAt).toBeNull();
+    expect(stored.status).toBe('removed');
+
+    await member
+      .post('/companies')
+      .send({ name: 'Member workspace' })
+      .expect(201);
     await admin
       .get('/users')
       .expect(200)
@@ -223,5 +248,63 @@ describe('Company users (e2e)', () => {
           ),
         ).toBe(false);
       });
+  });
+
+  it('allows a manager to leave but blocks the sole admin', async () => {
+    const admin = await signedIn('leave-admin@example.com');
+    const { token } = await invite(admin, 'leave-manager@example.com');
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token, password: 'manager-password' })
+      .expect(204);
+    const manager = request.agent(app.getHttpServer());
+    await manager
+      .post('/auth/signin')
+      .send({
+        email: 'leave-manager@example.com',
+        password: 'manager-password',
+      })
+      .expect(201);
+
+    await admin.delete('/users/me').expect(409);
+    await manager.delete('/users/me').expect(204);
+    await manager
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => expect(body.companyId).toBeNull());
+  });
+
+  it('soft-deletes a workspace after its last membership leaves', async () => {
+    const manager = await signedIn('last-member@example.com');
+    const me = await manager.get('/auth/me').expect(200);
+    const [{ id: companyId }] = await dataSource.query<Array<{ id: string }>>(
+      `INSERT INTO "companies" (name) VALUES ('Temporary workspace') RETURNING id`,
+    );
+    await dataSource.query(
+      `INSERT INTO "memberships" ("userId", "companyId", role, status)
+       VALUES ($1, $2, 'MANAGER', 'active')`,
+      [me.body.id, companyId],
+    );
+    await manager.post('/auth/switch-company').send({ companyId }).expect(204);
+
+    await manager.delete('/users/me').expect(204);
+    const [company] = await dataSource.query<Array<{ deletedAt: Date | null }>>(
+      `SELECT "deletedAt" FROM "companies" WHERE id = $1`,
+      [companyId],
+    );
+    const [membership] = await dataSource.query<Array<{ status: string }>>(
+      `SELECT status FROM "memberships" WHERE "userId" = $1 AND "companyId" = $2`,
+      [me.body.id, companyId],
+    );
+    expect(company.deletedAt).not.toBeNull();
+    expect(membership.status).toBe('removed');
+    await manager
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => expect(body.companyId).toBeNull());
+    await manager
+      .post('/auth/switch-company')
+      .send({ companyId: me.body.companyId })
+      .expect(204);
   });
 });

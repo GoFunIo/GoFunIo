@@ -8,6 +8,8 @@ import { CreateDrivers1752000000000 } from '../src/migrations/1752000000000-Crea
 import { CreateMemberships1753000000000 } from '../src/migrations/1753000000000-CreateMemberships';
 import { AddMembershipInvitations1754000000000 } from '../src/migrations/1754000000000-AddMembershipInvitations';
 import { AllowUsersWithoutCompany1755000000000 } from '../src/migrations/1755000000000-AllowUsersWithoutCompany';
+import { ReferenceManagerMembership1756000000000 } from '../src/migrations/1756000000000-ReferenceManagerMembership';
+import { AllowRemovedMemberships1757000000000 } from '../src/migrations/1757000000000-AllowRemovedMemberships';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -30,6 +32,8 @@ describe('database migrations', () => {
         CreateMemberships1753000000000,
         AddMembershipInvitations1754000000000,
         AllowUsersWithoutCompany1755000000000,
+        ReferenceManagerMembership1756000000000,
+        AllowRemovedMemberships1757000000000,
       ],
     });
 
@@ -109,6 +113,11 @@ describe('database migrations', () => {
          VALUES ($1, 'other-manager@example.com', 'MANAGER') RETURNING "id"`,
         [otherCompanyId],
       );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role")
+         VALUES ($1, $2, 'MANAGER')`,
+        [otherManagerId, otherCompanyId],
+      );
       const [{ id: vehicleId }] = await database.query<{ id: string }[]>(
         `INSERT INTO "vehicles" ("companyId", "brand", "model", "registrationNumber")
          VALUES ($1, 'BMW', 'X5', 'CROSS1') RETURNING "id"`,
@@ -127,6 +136,18 @@ describe('database migrations', () => {
         `INSERT INTO "users" ("companyId", "email", "role")
          VALUES ($1, 'local-manager@example.com', 'MANAGER') RETURNING "id"`,
         [companyId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "manager_vehicle_assignments" ("companyId", "managerId", "vehicleId")
+           VALUES ($1, $2, $3)`,
+          [companyId, managerId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role")
+         VALUES ($1, $2, 'MANAGER')`,
+        [managerId, companyId],
       );
       await expect(
         database.query(
@@ -204,7 +225,36 @@ describe('database migrations', () => {
          VALUES ($1, $2, 'MANAGER', 'pending')`,
         [invitedUserId, companyId],
       );
+      await database.query(
+        `INSERT INTO "manager_vehicle_assignments" ("companyId", "managerId", "vehicleId")
+         VALUES ($1, $2, $3)`,
+        [companyId, invitedUserId, vehicleId],
+      );
+      await database.query(
+        `UPDATE "memberships" SET "status" = 'removed' WHERE "userId" = $1`,
+        [invitedUserId],
+      );
+      await expect(
+        database.query(
+          `UPDATE "memberships" SET "status" = 'unknown' WHERE "userId" = $1`,
+          [invitedUserId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
 
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ status: string }[]>(
+          `SELECT "status" FROM "memberships" WHERE "userId" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual([{ status: 'declined' }]);
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ id: string }[]>(
+          `SELECT "id" FROM "manager_vehicle_assignments" WHERE "managerId" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toHaveLength(1);
       await database.undoLastMigration();
       const [restoredCompanyIdColumn] = await database.query<
         Array<{ is_nullable: string }>

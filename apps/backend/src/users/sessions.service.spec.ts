@@ -34,9 +34,7 @@ describe('SessionsService', () => {
 
   it('establishes a session without company for a user without memberships', async () => {
     const reader: SessionUserReader = {
-      findActiveById: jest
-        .fn()
-        .mockResolvedValue({ ...user, memberships: [] }),
+      findActiveById: jest.fn().mockResolvedValue({ ...user, memberships: [] }),
     };
     const service = new SessionsService(reader);
     const session = {} as SessionData;
@@ -83,9 +81,7 @@ describe('SessionsService', () => {
 
   it('authenticates a session without a current company', async () => {
     const reader: SessionUserReader = {
-      findActiveById: jest
-        .fn()
-        .mockResolvedValue({ ...user, memberships: [] }),
+      findActiveById: jest.fn().mockResolvedValue({ ...user, memberships: [] }),
     };
     const service = new SessionsService(reader);
     const session = {
@@ -101,7 +97,7 @@ describe('SessionsService', () => {
     });
   });
 
-  it('clears the session when the current company is not an active membership', async () => {
+  it('keeps authentication without switching to another workspace', async () => {
     const reader: SessionUserReader = {
       findActiveById: jest.fn().mockResolvedValue(user),
     };
@@ -112,8 +108,32 @@ describe('SessionsService', () => {
       currentCompanyId: 'company-foreign',
     } as SessionData;
 
-    await expect(service.authenticate(session)).resolves.toBeNull();
-    expect(session.userId).toBeNull();
+    await expect(service.authenticate(session)).resolves.toEqual({
+      id: user.id,
+      companyId: null,
+      role: null,
+    });
+    expect(session.userId).toBe(user.id);
+    expect(session.currentCompanyId).toBeNull();
+  });
+
+  it('keeps a zero-workspace user authenticated after removal', async () => {
+    const reader: SessionUserReader = {
+      findActiveById: jest.fn().mockResolvedValue({ ...user, memberships: [] }),
+    };
+    const service = new SessionsService(reader);
+    const session = {
+      userId: user.id,
+      passwordVersion: user.passwordVersion,
+      currentCompanyId: 'company-removed',
+    } as SessionData;
+
+    await expect(service.authenticate(session)).resolves.toEqual({
+      id: user.id,
+      companyId: null,
+      role: null,
+    });
+    expect(session.userId).toBe(user.id);
     expect(session.currentCompanyId).toBeNull();
   });
 

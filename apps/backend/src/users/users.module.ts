@@ -53,10 +53,12 @@ import {
 } from './google-identity-verifier';
 import { MembershipInvitationsController } from './membership-invitations.controller';
 import { MembershipInvitationsService } from './membership-invitations.service';
+import { FleetModule } from '../fleet/fleet.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Company, Membership]),
+    FleetModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
   ],
   controllers: [

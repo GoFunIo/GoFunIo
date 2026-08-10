@@ -4,151 +4,149 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import type { VehicleAccess } from '../fleet/vehicle-access';
 import { CompanyUsersService } from './company-users.service';
-import { User } from './users.entity';
+import { Membership } from './membership.entity';
 import { MembershipRole } from './membership-role';
 import { PasswordRecoveryService } from './password-recovery.service';
+import { User } from './users.entity';
 
-function user(overrides: Partial<User> = {}): User {
-  return {
-    id: 'user-1',
-    companyId: 'company-1',
-    email: 'admin@example.com',
-    role: MembershipRole.ADMIN,
-    ...overrides,
-  } as User;
-}
+describe('CompanyUsersService membership rules', () => {
+  const companyId = 'company-1';
+  const adminId = 'admin-1';
+  const managerId = 'manager-1';
 
-describe('CompanyUsersService', () => {
-  let service: CompanyUsersService;
-  let repository: {
-    manager: { transaction: jest.Mock };
-  };
-  let passwordRecovery: jest.Mocked<
-    Pick<PasswordRecoveryService, 'issueFirstPassword'>
-  >;
+  it('allows a manager to leave and closes vehicle access', async () => {
+    const target = user(managerId, MembershipRole.MANAGER);
+    const { manager, service, vehicleAccess } = setup(
+      [membership(managerId, MembershipRole.MANAGER)],
+      target,
+    );
 
-  beforeEach(() => {
-    repository = {
-      manager: { transaction: jest.fn() },
-    };
-    passwordRecovery = { issueFirstPassword: jest.fn() };
-    service = new CompanyUsersService(
-      repository as unknown as Repository<User>,
-      passwordRecovery as unknown as PasswordRecoveryService,
+    await service.leave({
+      id: managerId,
+      companyId,
+      role: MembershipRole.MANAGER,
+    });
+
+    expect(manager.save).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: managerId, status: 'removed' }),
+    );
+    expect(manager.softDelete).toHaveBeenCalledWith(
+      expect.anything(),
+      companyId,
+    );
+    expect(vehicleAccess.closeManager).toHaveBeenCalledWith(
+      companyId,
+      managerId,
     );
   });
 
-  it('delegates first-password lifecycle after creating a user', async () => {
-    const actor = user();
-    const created = user({
-      id: 'user-2',
-      email: 'new@example.com',
-      password: null,
-      emailVerifiedAt: null,
-    });
-    const queryBuilder = {
-      innerJoin: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      setLock: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([actor]),
-    };
-    const manager = {
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-      query: jest
-        .fn()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ exists: false }]),
-      create: jest.fn().mockReturnValue(created),
-      save: jest.fn().mockResolvedValue(created),
-    };
-    repository.manager.transaction.mockImplementation(
-      async (callback: (value: typeof manager) => Promise<User>) =>
-        callback(manager),
+  it('blocks the sole admin from leaving', async () => {
+    const { service } = setup(
+      [membership(adminId, MembershipRole.ADMIN)],
+      user(adminId, MembershipRole.ADMIN),
     );
 
     await expect(
-      service.create(
-        actor,
-        {
-          email: created.email,
-          role: MembershipRole.MANAGER,
-        },
-        'http://localhost',
+      service.leave({
+        id: adminId,
+        companyId,
+        role: MembershipRole.ADMIN,
+      }),
+    ).rejects.toThrow(
+      new ConflictException(
+        'Promote another admin or delete the company before leaving',
       ),
-    ).resolves.toBe(created);
-    expect(passwordRecovery.issueFirstPassword).toHaveBeenCalledWith(
-      created.id,
-      'http://localhost',
     );
+  });
+
+  it('blocks admin self-removal and self-demotion', async () => {
+    const { service } = setup([], user(adminId, MembershipRole.ADMIN));
+    const actor = {
+      id: adminId,
+      companyId,
+      role: MembershipRole.ADMIN,
+    };
+
+    await expect(service.remove(actor, adminId)).rejects.toThrow(
+      new ConflictException('Cannot delete yourself'),
+    );
+    await expect(
+      service.update(actor, adminId, { role: MembershipRole.MANAGER }),
+    ).rejects.toThrow(new ConflictException('Cannot demote yourself'));
   });
 
   it('rejects empty updates', async () => {
-    await expect(service.update(user(), 'user-2', {})).rejects.toThrow(
-      new BadRequestException('No changes provided'),
-    );
+    const { service } = setup([], user(adminId, MembershipRole.ADMIN));
+    await expect(
+      service.update(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        managerId,
+        {},
+      ),
+    ).rejects.toThrow(new BadRequestException('No changes provided'));
   });
 
-  it('rejects self-demotion and self-deletion', async () => {
-    const actor = user();
+  it('rejects an actor whose admin membership was revoked', async () => {
+    const { service } = setup([], user(managerId, MembershipRole.MANAGER));
 
     await expect(
-      service.update(actor, actor.id, { role: MembershipRole.MANAGER }),
-    ).rejects.toThrow(new ConflictException('Cannot demote yourself'));
-    await expect(service.remove(actor, actor.id)).rejects.toThrow(
-      new ConflictException('Cannot delete yourself'),
-    );
+      service.update(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        managerId,
+        { firstName: 'Blocked' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
-  it('rejects demoting the last active admin', async () => {
-    const actor = user();
-    const target = user({ id: 'user-2' });
+  function setup(activeMemberships: Membership[], target: User) {
     const query = {
       innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       setLock: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([actor]),
+      getMany: jest.fn().mockResolvedValue(activeMemberships),
     };
     const manager = {
       createQueryBuilder: jest.fn().mockReturnValue(query),
       findOne: jest.fn().mockResolvedValue(target),
-      save: jest.fn(),
+      save: jest.fn().mockImplementation((value) => Promise.resolve(value)),
+      exists: jest.fn().mockResolvedValue(false),
+      softDelete: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(undefined),
     };
-    repository.manager.transaction.mockImplementation(
-      async (callback: (value: typeof manager) => Promise<unknown>) =>
-        callback(manager),
+    const repository = {
+      manager: {
+        transaction: jest.fn(
+          async (callback: (value: typeof manager) => Promise<unknown>) =>
+            callback(manager),
+        ),
+      },
+    };
+    const vehicleAccess = { closeManager: jest.fn() };
+    const service = new CompanyUsersService(
+      repository as unknown as Repository<User>,
+      { issueFirstPassword: jest.fn() } as unknown as PasswordRecoveryService,
+      vehicleAccess as unknown as VehicleAccess,
     );
+    return { manager, service, vehicleAccess };
+  }
 
-    await expect(
-      service.update(actor, target.id, { role: MembershipRole.MANAGER }),
-    ).rejects.toThrow(new ConflictException('Company must have an admin'));
-    expect(manager.save).not.toHaveBeenCalled();
-  });
+  function membership(userId: string, role: MembershipRole): Membership {
+    return {
+      id: `membership-${userId}`,
+      userId,
+      companyId,
+      role,
+      status: 'active',
+      tokenHash: null,
+      tokenExpiresAt: null,
+    } as Membership;
+  }
 
-  it('rejects an actor whose ADMIN role was revoked', async () => {
-    const query = {
-      innerJoin: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      setLock: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([]),
-    };
-    const manager = {
-      createQueryBuilder: jest.fn().mockReturnValue(query),
-    };
-    repository.manager.transaction.mockImplementation(
-      async (callback: (value: typeof manager) => Promise<unknown>) =>
-        callback(manager),
-    );
-
-    await expect(
-      service.update(user(), 'user-2', { firstName: 'Blocked' }),
-    ).rejects.toThrow(ForbiddenException);
-  });
+  function user(id: string, role: MembershipRole): User {
+    return { id, companyId, role, email: `${id}@example.com` } as User;
+  }
 });

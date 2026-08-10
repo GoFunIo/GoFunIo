@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Headers,
   HttpCode,
   Patch,
@@ -23,6 +24,7 @@ import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
+import { CompanyUsersService } from './company-users.service';
 
 @Controller('users/me')
 export class UserProfileController {
@@ -31,7 +33,15 @@ export class UserProfileController {
     private sessions: SessionsService,
     private emailChange: EmailChangeService,
     private credentials: CredentialAuthenticationService,
+    private companyUsers: CompanyUsersService,
   ) {}
+
+  @Delete()
+  @HttpCode(204)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard)
+  leave(@CurrentPrincipal() principal: SessionPrincipal): Promise<void> {
+    return this.companyUsers.leave(principal);
+  }
 
   @Patch()
   @Serialize(UserDto)

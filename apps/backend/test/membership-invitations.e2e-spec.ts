@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
+import { MembershipRole } from '../src/users/membership-role';
 import {
   captureEmittedEvents,
   createVerifiedUser,
@@ -190,7 +191,7 @@ describe('Membership invitations (e2e)', () => {
       .post('/auth/signin')
       .send({ email: 'accept-admin@example.com', password: 'password123' })
       .expect(201);
-    await target
+    const targetSignin = await target
       .post('/auth/signin')
       .send({ email: 'accept-target@example.com', password: 'password123' })
       .expect(201);
@@ -235,6 +236,30 @@ describe('Membership invitations (e2e)', () => {
       .post('/users/invitations')
       .send({ email: 'accept-other@example.com', role: 'MANAGER' })
       .expect(403);
+    await admin
+      .get('/users')
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: targetSignin.body.id,
+              role: MembershipRole.MANAGER,
+            }),
+          ]),
+        ),
+      );
+    await admin
+      .patch(`/users/${targetSignin.body.id}`)
+      .send({ firstName: 'Updated' })
+      .expect(200);
+    await admin.delete(`/users/${targetSignin.body.id}`).expect(204);
+    await target
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.companyId).not.toBe(adminSignin.body.companyId),
+      );
   });
 
   it('declines in-app and permits a fresh invitation', async () => {

@@ -2,23 +2,25 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
+import { Company } from '../companies/companies.entity';
+import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
 import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
-import { User } from './users.entity';
-import { MembershipRole } from './membership-role';
-import { Membership } from './membership.entity';
-import { requireCompanyId, type SessionPrincipal } from './session-principal';
-import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
   assertEmailClaimable,
   rethrowEmailClaimError,
 } from './email-claim.util';
+import { Membership } from './membership.entity';
+import { MembershipRole } from './membership-role';
 import { PasswordRecoveryService } from './password-recovery.service';
+import { requireCompanyId, type SessionPrincipal } from './session-principal';
+import { User } from './users.entity';
 
 @Injectable()
 export class CompanyUsersService {
@@ -26,13 +28,29 @@ export class CompanyUsersService {
     @InjectRepository(User)
     private readonly users: Repository<User>,
     private readonly passwordRecovery: PasswordRecoveryService,
+    @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
   ) {}
 
-  list(companyId: string): Promise<User[]> {
-    return this.users.find({
-      where: { companyId },
-      order: { createdAt: 'ASC' },
-    });
+  async list(companyId: string): Promise<User[]> {
+    const { entities, raw } = await this.users
+      .createQueryBuilder('user')
+      .innerJoin(
+        Membership,
+        'membership',
+        'membership."userId" = user.id AND membership."companyId" = :companyId AND membership.status = :status',
+        { companyId, status: 'active' },
+      )
+      .addSelect('membership.role', 'contextRole')
+      .orderBy('membership.createdAt', 'ASC')
+      .addOrderBy('user.id', 'ASC')
+      .getRawAndEntities();
+    return entities.map((user, index) =>
+      this.contextualUser(
+        user,
+        companyId,
+        raw[index].contextRole as MembershipRole,
+      ),
+    );
   }
 
   async create(
@@ -42,12 +60,14 @@ export class CompanyUsersService {
   ): Promise<User> {
     const email = body.email.trim().toLowerCase();
     const companyId = requireCompanyId(actor);
-
     let user: User;
     try {
       user = await this.users.manager.transaction(async (manager) => {
-        const admins = await this.lockAdmins(manager, companyId);
-        this.requireAdmin(admins, actor.id);
+        const memberships = await this.lockActiveMemberships(
+          manager,
+          companyId,
+        );
+        this.requireAdmin(memberships, actor.id);
         await assertEmailClaimable(
           manager,
           email,
@@ -68,7 +88,7 @@ export class CompanyUsersService {
           manager.create(Membership, {
             userId: created.id,
             companyId,
-            role: created.role,
+            role: body.role,
           }),
         );
         return created;
@@ -80,7 +100,7 @@ export class CompanyUsersService {
       );
     }
 
-    // ponytail: post-commit issuance keeps transaction details out of the workflow seam; use an outbox if guaranteed activation is required.
+    // ponytail: use an outbox if guaranteed first-password delivery becomes required.
     await this.passwordRecovery.issueFirstPassword(user.id, origin);
     return user;
   }
@@ -97,36 +117,42 @@ export class CompanyUsersService {
       throw new ConflictException('Cannot demote yourself');
     }
     const companyId = requireCompanyId(actor);
-
-    return this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, companyId);
-      this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, companyId, id);
+    const result = await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      this.requireAdmin(memberships, actor.id);
+      const { membership, user } = await this.findCompanyUser(
+        manager,
+        memberships,
+        id,
+      );
+      const admins = memberships.filter(
+        ({ role }) => role === MembershipRole.ADMIN,
+      );
       if (
-        target.role === MembershipRole.ADMIN &&
+        membership.role === MembershipRole.ADMIN &&
         body.role === MembershipRole.MANAGER &&
         admins.length <= 1
       ) {
         throw new ConflictException('Company must have an admin');
       }
 
-      if (
-        target.role === MembershipRole.MANAGER &&
-        body.role === MembershipRole.ADMIN
-      ) {
-        await this.closeManagerAssignments(manager, companyId, target.id);
+      const cleanupManager =
+        membership.role === MembershipRole.MANAGER &&
+        body.role === MembershipRole.ADMIN;
+      const { role, ...profile } = body;
+      Object.assign(user, profile);
+      if (role) {
+        membership.role = role;
+        await manager.save(membership);
+        if (user.companyId === companyId) user.role = role;
       }
-
-      Object.assign(target, body);
-      if (body.role) {
-        await manager.update(
-          Membership,
-          { userId: target.id, companyId },
-          { role: body.role },
-        );
+      if (cleanupManager) {
+        await this.vehicleAccess.closeManager(companyId, id);
       }
-      return manager.save(target);
+      const saved = await manager.save(user);
+      return this.contextualUser(saved, companyId, membership.role);
     });
+    return result;
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
@@ -134,76 +160,138 @@ export class CompanyUsersService {
       throw new ConflictException('Cannot delete yourself');
     }
     const companyId = requireCompanyId(actor);
-
     await this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, companyId);
-      this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, companyId, id);
-      if (target.role === MembershipRole.ADMIN && admins.length <= 1) {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      this.requireAdmin(memberships, actor.id);
+      const { membership, user } = await this.findCompanyUser(
+        manager,
+        memberships,
+        id,
+      );
+      const adminCount = memberships.filter(
+        ({ role }) => role === MembershipRole.ADMIN,
+      ).length;
+      if (membership.role === MembershipRole.ADMIN && adminCount <= 1) {
         throw new ConflictException('Company must have an admin');
       }
-      if (target.role === MembershipRole.MANAGER) {
-        await this.closeManagerAssignments(manager, companyId, target.id);
+      await this.deactivateMembership(manager, membership, user);
+      if (membership.role === MembershipRole.MANAGER) {
+        await this.vehicleAccess.closeManager(companyId, id);
       }
-      await manager.update(User, target.id, {
-        pendingEmail: null,
-        emailChangeTokenHash: null,
-        emailChangeTokenExpiresAt: null,
-        verificationTokenHash: null,
-        verificationTokenExpiresAt: null,
-        passwordResetTokenHash: null,
-        passwordResetTokenExpiresAt: null,
-      });
-      await manager.softDelete(User, target.id);
+      await this.softDeleteIfEmpty(manager, companyId);
+    });
+  }
+
+  async leave(actor: SessionPrincipal): Promise<void> {
+    const companyId = requireCompanyId(actor);
+    await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      const { membership, user } = await this.findCompanyUser(
+        manager,
+        memberships,
+        actor.id,
+      );
+      const adminCount = memberships.filter(
+        ({ role }) => role === MembershipRole.ADMIN,
+      ).length;
+      if (membership.role === MembershipRole.ADMIN && adminCount <= 1) {
+        throw new ConflictException(
+          'Promote another admin or delete the company before leaving',
+        );
+      }
+      await this.deactivateMembership(manager, membership, user);
+      if (membership.role === MembershipRole.MANAGER) {
+        await this.vehicleAccess.closeManager(companyId, actor.id);
+      }
+      await this.softDeleteIfEmpty(manager, companyId);
     });
   }
 
   private async findCompanyUser(
     manager: EntityManager,
-    companyId: string,
+    memberships: Membership[],
     id: string,
-  ): Promise<User> {
+  ): Promise<{ membership: Membership; user: User }> {
+    const membership = memberships.find(({ userId }) => userId === id);
+    if (!membership) throw new NotFoundException('User not found');
     const user = await manager.findOne(User, {
-      where: { id, companyId },
+      where: { id },
       lock: { mode: 'pessimistic_write' },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    return { membership, user };
   }
 
-  private async closeManagerAssignments(
+  private lockActiveMemberships(
     manager: EntityManager,
     companyId: string,
-    managerId: string,
-  ): Promise<void> {
-    await manager
-      .createQueryBuilder()
-      .update(ManagerVehicleAssignment)
-      .set({ assignedTo: () => 'clock_timestamp()' })
-      .where('"companyId" = :companyId', { companyId })
-      .andWhere('"managerId" = :managerId', { managerId })
-      .andWhere('"assignedTo" IS NULL')
-      .execute();
-  }
-
-  private lockAdmins(
-    manager: EntityManager,
-    companyId: string,
-  ): Promise<User[]> {
+  ): Promise<Membership[]> {
     return manager
-      .createQueryBuilder(User, 'user')
-      .innerJoin('user.company', 'company')
-      .where('user.companyId = :companyId', { companyId })
-      .andWhere('user.role = :role', { role: MembershipRole.ADMIN })
-      .andWhere('company."deletedAt" IS NULL')
-      .orderBy('user.id', 'ASC')
+      .createQueryBuilder(Membership, 'membership')
+      .innerJoin(
+        Company,
+        'company',
+        'company.id = membership."companyId" AND company."deletedAt" IS NULL',
+      )
+      .where('membership."companyId" = :companyId', { companyId })
+      .andWhere('membership.status = :status', { status: 'active' })
+      .orderBy('membership.id', 'ASC')
       .setLock('pessimistic_write')
       .getMany();
   }
 
-  private requireAdmin(admins: User[], actorId: string): void {
-    if (!admins.some(({ id }) => id === actorId)) {
+  private requireAdmin(memberships: Membership[], actorId: string): void {
+    if (
+      !memberships.some(
+        ({ userId, role }) =>
+          userId === actorId && role === MembershipRole.ADMIN,
+      )
+    ) {
       throw new ForbiddenException();
     }
+  }
+
+  private async deactivateMembership(
+    manager: EntityManager,
+    membership: Membership,
+    user: User,
+  ): Promise<void> {
+    Object.assign(membership, {
+      status: 'removed',
+      tokenHash: null,
+      tokenExpiresAt: null,
+    });
+    await manager.save(membership);
+    if (user.companyId === membership.companyId) {
+      user.companyId = null;
+      await manager.save(user);
+    }
+  }
+
+  private async softDeleteIfEmpty(
+    manager: EntityManager,
+    companyId: string,
+  ): Promise<void> {
+    if (
+      await manager.exists(Membership, {
+        where: { companyId, status: 'active' },
+      })
+    ) {
+      return;
+    }
+    await manager.softDelete(Company, companyId);
+    await manager.update(
+      Membership,
+      { companyId },
+      { status: 'removed', tokenHash: null, tokenExpiresAt: null },
+    );
+  }
+
+  private contextualUser(
+    user: User,
+    companyId: string,
+    role: MembershipRole,
+  ): User {
+    return Object.assign(user, { companyId, role });
   }
 }

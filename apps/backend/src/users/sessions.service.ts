@@ -59,15 +59,12 @@ export class SessionsService {
       user.memberships.find(
         (entry) => entry.companyId === session.currentCompanyId,
       ) ?? null;
-    if (!membership) {
-      this.clear(session);
-      return null;
-    }
+    session.currentCompanyId = membership?.companyId ?? null;
 
     return {
       id: user.id,
-      companyId: membership.companyId,
-      role: membership.role,
+      companyId: membership?.companyId ?? null,
+      role: membership?.role ?? null,
     };
   }
 

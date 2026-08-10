@@ -13,6 +13,7 @@ describe('UserProfileController', () => {
       sessions as never,
       {} as never,
       credentials as never,
+      {} as never,
     );
     const principal = {
       id: 'user-1',
