@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './users.entity';
+import { Membership } from './membership.entity';
 
 export const PASSWORD_RECOVERY_STORE = Symbol('PASSWORD_RECOVERY_STORE');
 
@@ -21,6 +22,7 @@ export interface PasswordRecoveryStore {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    membershipId?: string,
   ): Promise<PasswordRecoveryTarget | null>;
   consume(tokenHash: string, passwordHash: string, now: Date): Promise<boolean>;
 }
@@ -49,15 +51,29 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    membershipId?: string,
   ): Promise<PasswordRecoveryTarget | null> {
-    const result = await this.assign(
-      'id = :userId',
-      { userId },
-      tokenHash,
-      expiresAt,
-      true,
-    );
-    return this.target(result);
+    return this.users.manager.transaction(async (manager) => {
+      const result = await this.assign(
+        'id = :userId',
+        { userId },
+        tokenHash,
+        expiresAt,
+        true,
+        manager.getRepository(User),
+      );
+      const target = this.target(result);
+      if (!target || !membershipId) return target;
+      const linked = await manager.update(
+        Membership,
+        { id: membershipId, userId, status: 'pending' },
+        { tokenHash, tokenExpiresAt: expiresAt },
+      );
+      if (linked.affected !== 1) {
+        throw new Error('Cannot link first password to invitation');
+      }
+      return target;
+    });
   }
 
   async consume(
@@ -65,30 +81,62 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
     passwordHash: string,
     now: Date,
   ): Promise<boolean> {
-    const result = await this.users
-      .createQueryBuilder()
-      .update(User)
-      .set({
-        password: passwordHash,
-        emailVerifiedAt: () =>
-          'CASE WHEN "password" IS NULL THEN COALESCE("emailVerifiedAt", now()) ELSE "emailVerifiedAt" END',
-        passwordResetTokenHash: null,
-        passwordResetTokenExpiresAt: null,
-        passwordVersion: () => '"passwordVersion" + 1',
-      })
-      .where('"passwordResetTokenHash" = :tokenHash', { tokenHash })
-      .andWhere('"passwordResetTokenExpiresAt" > :now', { now })
-      .andWhere('"deletedAt" IS NULL')
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "companyId"
-          AND "company"."deletedAt" IS NULL
-        )`,
-      )
-      .execute();
+    return this.users.manager.transaction(async (manager) => {
+      const user = await manager
+        .createQueryBuilder(User, 'user')
+        .addSelect('user.password')
+        .where('user.passwordResetTokenHash = :tokenHash', { tokenHash })
+        .andWhere('user.passwordResetTokenExpiresAt > :now', { now })
+        .andWhere('user.deletedAt IS NULL')
+        .andWhere(
+          `(EXISTS (
+            SELECT 1 FROM "companies" "company"
+            WHERE "company"."id" = "user"."companyId"
+            AND "company"."deletedAt" IS NULL
+          ) OR EXISTS (
+            SELECT 1 FROM "memberships" "membership"
+            WHERE "membership"."userId" = "user"."id"
+            AND "membership"."status" = 'pending'
+          ))`,
+        )
+        .setLock('pessimistic_write')
+        .getOne();
+      if (!user) return false;
 
-    return (result.affected ?? 0) > 0;
+      const firstPassword = user.password === null;
+      const invitation = firstPassword
+        ? await manager
+            .createQueryBuilder(Membership, 'membership')
+            .where('membership.userId = :userId', { userId: user.id })
+            .andWhere('membership.status = :status', { status: 'pending' })
+            .andWhere('membership.tokenHash = :tokenHash', { tokenHash })
+            .andWhere('membership.tokenExpiresAt > :now', { now })
+            .setLock('pessimistic_write')
+            .getOne()
+        : null;
+      const result = await manager.update(
+        User,
+        { id: user.id, passwordResetTokenHash: tokenHash },
+        {
+          password: passwordHash,
+          emailVerifiedAt: firstPassword
+            ? (user.emailVerifiedAt ?? now)
+            : user.emailVerifiedAt,
+          passwordResetTokenHash: null,
+          passwordResetTokenExpiresAt: null,
+          passwordVersion: () => '"passwordVersion" + 1',
+        },
+      );
+      if (result.affected !== 1) return false;
+      if (invitation) {
+        await manager.update(
+          Membership,
+          { id: invitation.id, status: 'pending', tokenHash },
+          { status: 'active', tokenHash: null, tokenExpiresAt: null },
+        );
+      }
+      return true;
+    });
   }
 
   private assign(
@@ -97,8 +145,9 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
     tokenHash: string,
     expiresAt: Date,
     firstPasswordOnly = false,
+    users = this.users,
   ) {
-    let query = this.users
+    let query = users
       .createQueryBuilder()
       .update(User)
       .set({
@@ -108,11 +157,21 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
       .where(where, parameters)
       .andWhere('"deletedAt" IS NULL')
       .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "companyId"
-          AND "company"."deletedAt" IS NULL
-        )`,
+        firstPasswordOnly
+          ? `(EXISTS (
+              SELECT 1 FROM "companies" "company"
+              WHERE "company"."id" = "companyId"
+              AND "company"."deletedAt" IS NULL
+            ) OR EXISTS (
+              SELECT 1 FROM "memberships" "membership"
+              WHERE "membership"."userId" = "users"."id"
+              AND "membership"."status" = 'pending'
+            ))`
+          : `EXISTS (
+              SELECT 1 FROM "companies" "company"
+              WHERE "company"."id" = "companyId"
+              AND "company"."deletedAt" IS NULL
+            )`,
       );
     if (firstPasswordOnly) {
       query = query.andWhere('"password" IS NULL');
@@ -177,6 +236,7 @@ export class InMemoryPasswordRecoveryStore implements PasswordRecoveryStore {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    _membershipId?: string,
   ): Promise<PasswordRecoveryTarget | null> {
     const user = this.users.get(userId);
     return Promise.resolve(

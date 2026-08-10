@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Company } from '../src/companies/companies.entity';
 import { User } from '../src/users/users.entity';
 import { MembershipRole } from '../src/users/membership-role';
+import { Membership } from '../src/users/membership.entity';
 import { TypeOrmPasswordRecoveryStore } from '../src/users/password-recovery.store';
 
 describe('TypeOrmPasswordRecoveryStore (integration)', () => {
@@ -14,7 +15,7 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company],
+      entities: [User, Company, Membership],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,
@@ -137,6 +138,64 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
       .getOneOrFail();
     expect(row.password).toBe('first.hash');
     expect(row.emailVerifiedAt).toBeInstanceOf(Date);
+  });
+
+  it('does not accept pending invitations during regular password recovery', async () => {
+    const user = await seedUser({ password: null, emailVerifiedAt: null });
+    const invitedCompany = await dataSource.getRepository(Company).save({
+      name: 'Invited Co',
+    });
+    const membership = await dataSource.getRepository(Membership).save({
+      userId: user.id,
+      companyId: invitedCompany.id,
+      role: MembershipRole.MANAGER,
+      status: 'pending',
+    });
+    await store.assignByEmail(
+      user.email,
+      'regular-reset-hash',
+      new Date(Date.now() + 60_000),
+    );
+
+    await store.consume('regular-reset-hash', 'new.hash', new Date());
+
+    await expect(
+      dataSource.getRepository(Membership).findOneByOrFail({
+        id: membership.id,
+      }),
+    ).resolves.toMatchObject({ status: 'pending' });
+  });
+
+  it('accepts only the invitation linked to the first-password token', async () => {
+    const user = await seedUser({ password: null, emailVerifiedAt: null });
+    const companies = await dataSource
+      .getRepository(Company)
+      .save([{ name: 'First invitation' }, { name: 'Second invitation' }]);
+    const memberships = await dataSource.getRepository(Membership).save(
+      companies.map((company) => ({
+        userId: user.id,
+        companyId: company.id,
+        role: MembershipRole.MANAGER,
+        status: 'pending',
+      })),
+    );
+    await store.assignFirstPassword(
+      user.id,
+      'linked-token',
+      new Date(Date.now() + 60_000),
+      memberships[0].id,
+    );
+
+    await store.consume('linked-token', 'first.hash', new Date());
+
+    await expect(
+      dataSource.getRepository(Membership).findBy({ userId: user.id }),
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: memberships[0].id, status: 'active' }),
+        expect.objectContaining({ id: memberships[1].id, status: 'pending' }),
+      ]),
+    );
   });
 
   it('rejects unknown, expired and consumed tokens', async () => {

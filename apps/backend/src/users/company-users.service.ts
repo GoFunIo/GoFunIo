@@ -12,10 +12,7 @@ import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import { Membership } from './membership.entity';
-import {
-  requireCompanyId,
-  type SessionPrincipal,
-} from './session-principal';
+import { requireCompanyId, type SessionPrincipal } from './session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
   assertEmailClaimable,
@@ -70,7 +67,7 @@ export class CompanyUsersService {
         await manager.save(
           manager.create(Membership, {
             userId: created.id,
-            companyId: created.companyId,
+            companyId,
             role: created.role,
           }),
         );

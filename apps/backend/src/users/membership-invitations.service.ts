@@ -15,6 +15,7 @@ import {
   MEMBERSHIP_INVITATION_REQUESTED_EVENT,
   MembershipInvitationRequestedEvent,
 } from './events/membership-invitation-requested.event';
+import { PasswordRecoveryService } from './password-recovery.service';
 
 const INVITATION_TTL_HOURS = 7 * 24;
 
@@ -33,6 +34,7 @@ export class MembershipInvitationsService {
     @InjectRepository(Membership)
     private readonly memberships: Repository<Membership>,
     private readonly events: EventEmitter2,
+    private readonly passwordRecovery: PasswordRecoveryService,
   ) {}
 
   async invite(
@@ -44,12 +46,36 @@ export class MembershipInvitationsService {
     const generated = generateToken(INVITATION_TTL_HOURS);
     const invited = await this.memberships.manager.transaction(
       async (manager) => {
-        const user = await manager.findOne(User, {
-          where: { email },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (!user || user.deletedAt) {
-          throw new NotFoundException('Existing account not found');
+        await manager.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          [email],
+        );
+        let user = await manager
+          .createQueryBuilder(User, 'user')
+          .withDeleted()
+          .addSelect('user.password')
+          .where('user.email = :email', { email })
+          .setLock('pessimistic_write')
+          .getOne();
+        if (user?.deletedAt) {
+          throw new ConflictException('Account is unavailable');
+        }
+        const firstPassword = user
+          ? user.password === null &&
+            user.googleId === null &&
+            user.emailVerifiedAt === null
+          : true;
+        if (!user) {
+          user = await manager.save(
+            manager.create(User, {
+              companyId: null,
+              email,
+              password: null,
+              googleId: null,
+              role,
+              emailVerifiedAt: null,
+            }),
+          );
         }
 
         let membership = await manager.findOne(Membership, {
@@ -70,14 +96,28 @@ export class MembershipInvitationsService {
           tokenExpiresAt: generated.expiresAt,
         });
         await manager.save(membership);
-        return user.email;
+        return {
+          membershipId: membership.id,
+          userId: user.id,
+          email: user.email,
+          firstPassword,
+        };
       },
     );
 
+    if (invited.firstPassword) {
+      await this.passwordRecovery.issueFirstPassword(
+        invited.userId,
+        origin,
+        invited.membershipId,
+        INVITATION_TTL_HOURS,
+      );
+      return;
+    }
     this.events.emit(
       MEMBERSHIP_INVITATION_REQUESTED_EVENT,
       new MembershipInvitationRequestedEvent({
-        email: invited,
+        email: invited.email,
         token: generated.token,
         origin,
       }),

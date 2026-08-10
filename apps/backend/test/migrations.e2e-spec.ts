@@ -7,6 +7,7 @@ import { CreateVehicles1751000000000 } from '../src/migrations/1751000000000-Cre
 import { CreateDrivers1752000000000 } from '../src/migrations/1752000000000-CreateDrivers';
 import { CreateMemberships1753000000000 } from '../src/migrations/1753000000000-CreateMemberships';
 import { AddMembershipInvitations1754000000000 } from '../src/migrations/1754000000000-AddMembershipInvitations';
+import { AllowUsersWithoutCompany1755000000000 } from '../src/migrations/1755000000000-AllowUsersWithoutCompany';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -28,6 +29,7 @@ describe('database migrations', () => {
         CreateDrivers1752000000000,
         CreateMemberships1753000000000,
         AddMembershipInvitations1754000000000,
+        AllowUsersWithoutCompany1755000000000,
       ],
     });
 
@@ -184,6 +186,39 @@ describe('database migrations', () => {
           [companyId, driverId, vehicleId],
         ),
       ).rejects.toMatchObject({ code: '23505' });
+
+      const [companyIdColumn] = await database.query<
+        Array<{ is_nullable: string }>
+      >(
+        `SELECT is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'users' AND column_name = 'companyId'`,
+        [schema],
+      );
+      expect(companyIdColumn.is_nullable).toBe('YES');
+
+      const [{ id: invitedUserId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" ("companyId", "email", "role")
+         VALUES (NULL, 'migration-invitee@example.com', 'MANAGER') RETURNING "id"`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role", "status")
+         VALUES ($1, $2, 'MANAGER', 'pending')`,
+        [invitedUserId, companyId],
+      );
+
+      await database.undoLastMigration();
+      const [restoredCompanyIdColumn] = await database.query<
+        Array<{ is_nullable: string }>
+      >(
+        `SELECT is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'users' AND column_name = 'companyId'`,
+        [schema],
+      );
+      expect(restoredCompanyIdColumn.is_nullable).toBe('NO');
+      await expect(
+        database.query<Array<{ companyId: string }>>(
+          `SELECT "companyId" FROM "users" WHERE "id" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual([{ companyId }]);
 
       await database.undoLastMigration();
       const invitationColumns = await database.query<{ column_name: string }[]>(

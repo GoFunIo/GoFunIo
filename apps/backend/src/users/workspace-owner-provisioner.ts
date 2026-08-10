@@ -50,16 +50,39 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
   async provision(input: WorkspaceOwnerProvisioning): Promise<UserAccount> {
     try {
       return await this.users.manager.transaction(async (manager) => {
+        await manager.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          [input.email],
+        );
+        const existing = await manager
+          .createQueryBuilder(User, 'user')
+          .withDeleted()
+          .addSelect('user.password')
+          .where('user.email = :email', { email: input.email })
+          .getOne();
+        const reservation =
+          'passwordHash' in input &&
+          existing?.deletedAt === null &&
+          existing.companyId === null &&
+          existing.password === null &&
+          existing.googleId === null &&
+          existing.emailVerifiedAt === null &&
+          (await manager.exists(Membership, {
+            where: { userId: existing.id, status: 'pending' },
+          }))
+            ? existing
+            : null;
         await assertEmailClaimable(
           manager,
           input.email,
           () => new WorkspaceOwnerConflictError(),
+          reservation?.id,
         );
         const company = await manager.save(
           manager.create(Company, { name: 'Moja firma' }),
         );
         const user = await manager.save(
-          manager.create(User, {
+          Object.assign(reservation ?? manager.create(User), {
             companyId: company.id,
             email: input.email,
             password: 'passwordHash' in input ? input.passwordHash : null,
@@ -76,12 +99,14 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
               'verificationTokenExpiresAt' in input
                 ? input.verificationTokenExpiresAt
                 : null,
+            passwordResetTokenHash: null,
+            passwordResetTokenExpiresAt: null,
           }),
         );
         await manager.save(
           manager.create(Membership, {
             userId: user.id,
-            companyId: user.companyId,
+            companyId: company.id,
             role: user.role,
           }),
         );

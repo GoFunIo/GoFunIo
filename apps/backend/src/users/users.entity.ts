@@ -19,12 +19,12 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  companyId!: string;
+  @Column({ type: 'uuid', nullable: true })
+  companyId!: string | null;
 
-  @ManyToOne(() => Company, { nullable: false })
+  @ManyToOne(() => Company, { nullable: true })
   @JoinColumn({ name: 'companyId' })
-  company!: Company;
+  company!: Company | null;
 
   @Column()
   email!: string;

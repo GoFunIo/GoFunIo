@@ -94,9 +94,14 @@ export class TypeOrmCredentialStore implements CredentialStore {
     const user = await this.users
       .createQueryBuilder('user')
       .addSelect('user.password')
-      .innerJoin('user.company', 'company')
       .where(where, parameters)
-      .andWhere('company."deletedAt" IS NULL')
+      .andWhere(
+        `("user"."companyId" IS NULL OR EXISTS (
+          SELECT 1 FROM "companies" "company"
+          WHERE "company"."id" = "user"."companyId"
+          AND "company"."deletedAt" IS NULL
+        ))`,
+      )
       .getOne();
     return user
       ? {

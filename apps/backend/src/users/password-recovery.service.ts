@@ -33,17 +33,24 @@ export class PasswordRecoveryService {
     if (target) this.emit(target, token, ttlHours, origin);
   }
 
-  async issueFirstPassword(userId: string, origin?: string): Promise<void> {
-    const { token, tokenHash, expiresAt, ttlHours } = this.token();
+  async issueFirstPassword(
+    userId: string,
+    origin?: string,
+    membershipId?: string,
+    ttlHours?: number,
+  ): Promise<void> {
+    const generated = this.token(ttlHours);
+    const { token, tokenHash, expiresAt } = generated;
     const target = await this.store.assignFirstPassword(
       userId,
       tokenHash,
       expiresAt,
+      membershipId,
     );
     if (!target) {
       throw new Error('Cannot issue first password for this user');
     }
-    this.emit(target, token, ttlHours, origin);
+    this.emit(target, token, generated.ttlHours, origin);
   }
 
   async reset(token: string, newPassword: string): Promise<void> {
@@ -57,8 +64,8 @@ export class PasswordRecoveryService {
     }
   }
 
-  private token() {
-    const ttlHours = this.config.getOrThrow<number>(
+  private token(ttlHours?: number) {
+    ttlHours ??= this.config.getOrThrow<number>(
       'PASSWORD_RESET_TOKEN_TTL_HOURS',
     );
     return { ...generateToken(ttlHours), ttlHours };

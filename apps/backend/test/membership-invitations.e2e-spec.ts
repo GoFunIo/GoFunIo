@@ -61,6 +61,123 @@ describe('Membership invitations (e2e)', () => {
       .expect(({ body }) => expect(body).toHaveLength(1));
   });
 
+  it('creates an account without a company and activates it through first password', async () => {
+    await createVerifiedUser(
+      app,
+      'new-invite-admin@example.com',
+      'password123',
+    );
+    const admin = request.agent(app.getHttpServer());
+    const adminSignin = await admin
+      .post('/auth/signin')
+      .send({ email: 'new-invite-admin@example.com', password: 'password123' })
+      .expect(201);
+    const database = app.get(DataSource);
+    const companiesBefore = await database.query<Array<{ count: string }>>(
+      `SELECT count(*) FROM "companies"`,
+    );
+
+    const events = captureEmittedEvents(app);
+    try {
+      await admin
+        .post('/users/invitations')
+        .send({ email: ' NEW-INVITEE@example.com ', role: 'MANAGER' })
+        .expect(201);
+
+      expect(events.passwordResetToken).toHaveLength(64);
+      expect(events.membershipInvitationToken).toBeNull();
+      const [invited] = await database.query<
+        Array<{ id: string; companyId: string | null; status: string }>
+      >(
+        `SELECT "users"."id", "users"."companyId", "memberships"."status"
+         FROM "users"
+         JOIN "memberships" ON "memberships"."userId" = "users"."id"
+         WHERE "users"."email" = $1`,
+        ['new-invitee@example.com'],
+      );
+      expect(invited).toMatchObject({ companyId: null, status: 'pending' });
+      await expect(
+        database.query(`SELECT count(*) FROM "companies"`),
+      ).resolves.toEqual(companiesBefore);
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: events.passwordResetToken, password: 'new-password-99' })
+        .expect(204);
+      await expect(
+        database.query<Array<{ status: string }>>(
+          `SELECT "status" FROM "memberships" WHERE "userId" = $1`,
+          [invited.id],
+        ),
+      ).resolves.toEqual([{ status: 'active' }]);
+      await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({
+          email: 'new-invitee@example.com',
+          password: 'new-password-99',
+        })
+        .expect(201)
+        .expect(({ body }) =>
+          expect(body.companyId).toBe(adminSignin.body.companyId),
+        );
+    } finally {
+      events.restore();
+    }
+  });
+
+  it('lets normal signup claim an invited account', async () => {
+    await createVerifiedUser(app, 'claim-admin@example.com', 'password123');
+    const admin = request.agent(app.getHttpServer());
+    const adminSignin = await admin
+      .post('/auth/signin')
+      .send({ email: 'claim-admin@example.com', password: 'password123' })
+      .expect(201);
+    const events = captureEmittedEvents(app);
+    try {
+      await admin
+        .post('/users/invitations')
+        .send({ email: 'claim-invitee@example.com', role: 'MANAGER' })
+        .expect(201);
+      const firstPasswordToken = events.passwordResetToken;
+
+      await request(app.getHttpServer())
+        .post('/auth/signup')
+        .send({
+          email: ' CLAIM-INVITEE@example.com ',
+          password: 'signup-password',
+        })
+        .expect(201);
+      expect(events.verificationToken).toHaveLength(64);
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: firstPasswordToken, password: 'stale-password' })
+        .expect(400);
+      await request(app.getHttpServer())
+        .get('/auth/verify-email')
+        .query({ token: events.verificationToken })
+        .expect(200);
+
+      const signin = await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({
+          email: 'claim-invitee@example.com',
+          password: 'signup-password',
+        })
+        .expect(201);
+      expect(signin.body.companyId).not.toBe(adminSignin.body.companyId);
+      await expect(
+        app.get(DataSource).query<Array<{ status: string }>>(
+          `SELECT "status" FROM "memberships"
+           WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)
+             AND "companyId" = $2`,
+          ['claim-invitee@example.com', adminSignin.body.companyId],
+        ),
+      ).resolves.toEqual([{ status: 'pending' }]);
+    } finally {
+      events.restore();
+    }
+  });
+
   it('accepts a valid link only for the invited signed-in account', async () => {
     await createVerifiedUser(app, 'accept-admin@example.com', 'password123');
     await createVerifiedUser(app, 'accept-target@example.com', 'password123');
