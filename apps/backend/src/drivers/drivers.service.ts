@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
-import type { SessionPrincipal } from '../users/session-principal';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { CreateDriverDto } from './dtos/create-driver.dto';
@@ -24,7 +27,7 @@ export class DriversService {
 
   list(actor: SessionPrincipal): Promise<Driver[]> {
     return this.drivers.find({
-      where: { companyId: actor.companyId },
+      where: { companyId: requireCompanyId(actor) },
       order: { lastName: 'ASC', firstName: 'ASC', id: 'ASC' },
     });
   }
@@ -32,7 +35,7 @@ export class DriversService {
   async findOne(actor: SessionPrincipal, id: string): Promise<Driver> {
     const driver = await this.drivers.findOneBy({
       id,
-      companyId: actor.companyId,
+      companyId: requireCompanyId(actor),
     });
     if (!driver) throw new NotFoundException('Driver not found');
     return driver;
@@ -42,7 +45,7 @@ export class DriversService {
     return this.drivers.save(
       this.drivers.create({
         ...body,
-        companyId: actor.companyId,
+        companyId: requireCompanyId(actor),
         email: body.email ?? null,
         phone: body.phone ?? null,
         notes: body.notes ?? null,
@@ -60,7 +63,7 @@ export class DriversService {
     }
     return this.drivers.manager.transaction(async (manager) => {
       const driver = await manager.findOne(Driver, {
-        where: { id, companyId: actor.companyId },
+        where: { id, companyId: requireCompanyId(actor) },
         lock: { mode: 'pessimistic_write' },
       });
       if (!driver) throw new NotFoundException('Driver not found');
@@ -72,7 +75,7 @@ export class DriversService {
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
     await this.drivers.manager.transaction(async (manager) => {
       const driver = await manager.findOne(Driver, {
-        where: { id, companyId: actor.companyId },
+        where: { id, companyId: requireCompanyId(actor) },
         lock: { mode: 'pessimistic_write' },
       });
       if (!driver) throw new NotFoundException('Driver not found');
@@ -80,7 +83,9 @@ export class DriversService {
         .createQueryBuilder()
         .update(DriverVehicleAssignment)
         .set({ assignedTo: () => 'clock_timestamp()' })
-        .where('"companyId" = :companyId', { companyId: actor.companyId })
+        .where('"companyId" = :companyId', {
+          companyId: requireCompanyId(actor),
+        })
         .andWhere('"driverId" = :driverId', { driverId: id })
         .andWhere('"assignedTo" IS NULL')
         .execute();
@@ -95,7 +100,7 @@ export class DriversService {
       vehicleId,
     );
     return this.drivers.manager.find(DriverVehicleAssignment, {
-      where: { companyId: actor.companyId, vehicleId },
+      where: { companyId: requireCompanyId(actor), vehicleId },
       order: { assignedFrom: 'DESC', createdAt: 'DESC' },
     });
   }
@@ -114,13 +119,13 @@ export class DriversService {
           true,
         );
         const driver = await manager.findOne(Driver, {
-          where: { id: body.driverId, companyId: actor.companyId },
+          where: { id: body.driverId, companyId: requireCompanyId(actor) },
           lock: { mode: 'pessimistic_write' },
         });
         if (!driver) throw new BadRequestException('Invalid driver');
         return manager.save(
           manager.create(DriverVehicleAssignment, {
-            companyId: actor.companyId,
+            companyId: requireCompanyId(actor),
             vehicleId,
             driverId: driver.id,
           }),
@@ -152,7 +157,7 @@ export class DriversService {
       );
       const assignment = await manager.findOne(DriverVehicleAssignment, {
         where: {
-          companyId: actor.companyId,
+          companyId: requireCompanyId(actor),
           vehicleId,
           driverId,
           assignedTo: IsNull(),

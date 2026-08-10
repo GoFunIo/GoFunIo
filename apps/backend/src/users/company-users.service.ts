@@ -12,7 +12,10 @@ import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import { User } from './users.entity';
 import { MembershipRole } from './membership-role';
 import { Membership } from './membership.entity';
-import type { SessionPrincipal } from './session-principal';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from './session-principal';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import {
   assertEmailClaimable,
@@ -41,11 +44,12 @@ export class CompanyUsersService {
     origin?: string,
   ): Promise<User> {
     const email = body.email.trim().toLowerCase();
+    const companyId = requireCompanyId(actor);
 
     let user: User;
     try {
       user = await this.users.manager.transaction(async (manager) => {
-        const admins = await this.lockAdmins(manager, actor.companyId);
+        const admins = await this.lockAdmins(manager, companyId);
         this.requireAdmin(admins, actor.id);
         await assertEmailClaimable(
           manager,
@@ -54,7 +58,7 @@ export class CompanyUsersService {
         );
         const created = await manager.save(
           manager.create(User, {
-            companyId: actor.companyId,
+            companyId,
             email,
             firstName: body.firstName ?? null,
             lastName: body.lastName ?? null,
@@ -95,11 +99,12 @@ export class CompanyUsersService {
     if (id === actor.id && body.role && body.role !== MembershipRole.ADMIN) {
       throw new ConflictException('Cannot demote yourself');
     }
+    const companyId = requireCompanyId(actor);
 
     return this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, actor.companyId);
+      const admins = await this.lockAdmins(manager, companyId);
       this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, actor.companyId, id);
+      const target = await this.findCompanyUser(manager, companyId, id);
       if (
         target.role === MembershipRole.ADMIN &&
         body.role === MembershipRole.MANAGER &&
@@ -112,10 +117,17 @@ export class CompanyUsersService {
         target.role === MembershipRole.MANAGER &&
         body.role === MembershipRole.ADMIN
       ) {
-        await this.closeManagerAssignments(manager, actor.companyId, target.id);
+        await this.closeManagerAssignments(manager, companyId, target.id);
       }
 
       Object.assign(target, body);
+      if (body.role) {
+        await manager.update(
+          Membership,
+          { userId: target.id, companyId },
+          { role: body.role },
+        );
+      }
       return manager.save(target);
     });
   }
@@ -124,16 +136,17 @@ export class CompanyUsersService {
     if (id === actor.id) {
       throw new ConflictException('Cannot delete yourself');
     }
+    const companyId = requireCompanyId(actor);
 
     await this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, actor.companyId);
+      const admins = await this.lockAdmins(manager, companyId);
       this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, actor.companyId, id);
+      const target = await this.findCompanyUser(manager, companyId, id);
       if (target.role === MembershipRole.ADMIN && admins.length <= 1) {
         throw new ConflictException('Company must have an admin');
       }
       if (target.role === MembershipRole.MANAGER) {
-        await this.closeManagerAssignments(manager, actor.companyId, target.id);
+        await this.closeManagerAssignments(manager, companyId, target.id);
       }
       await manager.update(User, target.id, {
         pendingEmail: null,

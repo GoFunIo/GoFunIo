@@ -31,26 +31,44 @@ export class SessionsService {
       throw new SessionVersionChangedError();
     }
 
+    const membership = user.memberships[0] ?? null;
     session.userId = user.id;
     session.passwordVersion = user.passwordVersion;
-    session.currentCompanyId = user.companyId;
-    return { id: user.id, companyId: user.companyId, role: user.role };
+    session.currentCompanyId = membership?.companyId ?? null;
+    return {
+      id: user.id,
+      companyId: membership?.companyId ?? null,
+      role: membership?.role ?? null,
+    };
   }
 
   async authenticate(session: SessionData): Promise<SessionPrincipal | null> {
     const user = session.userId
       ? await this.users.findActiveById(session.userId)
       : null;
-    if (
-      !user ||
-      session.passwordVersion !== user.passwordVersion ||
-      session.currentCompanyId !== user.companyId
-    ) {
+    if (!user || session.passwordVersion !== user.passwordVersion) {
       this.clear(session);
       return null;
     }
 
-    return { id: user.id, companyId: user.companyId, role: user.role };
+    if (!session.currentCompanyId) {
+      return { id: user.id, companyId: null, role: null };
+    }
+
+    const membership =
+      user.memberships.find(
+        (entry) => entry.companyId === session.currentCompanyId,
+      ) ?? null;
+    if (!membership) {
+      this.clear(session);
+      return null;
+    }
+
+    return {
+      id: user.id,
+      companyId: membership.companyId,
+      role: membership.role,
+    };
   }
 
   clear(session: SessionData): void {

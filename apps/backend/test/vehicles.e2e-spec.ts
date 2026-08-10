@@ -128,11 +128,11 @@ describe('Vehicles (e2e)', () => {
 
   it('allows MANAGER to perform CRUD', async () => {
     const manager = await signedIn('vehicle-manager@example.com');
-    await app
-      .get(DataSource)
-      .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [
-        'vehicle-manager@example.com',
-      ]);
+    await app.get(DataSource).query(
+      `UPDATE "memberships" SET "role" = 'MANAGER'
+       WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,
+      ['vehicle-manager@example.com'],
+    );
 
     const created = await createVehicle(manager, {
       vin: null,
@@ -200,6 +200,11 @@ describe('Vehicles (e2e)', () => {
       .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [
         'foreign-manager@example.com',
       ]);
+    await app.get(DataSource).query(
+      `UPDATE "memberships" SET "role" = 'MANAGER'
+       WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,
+      ['foreign-manager@example.com'],
+    );
     const foreignMe = await foreignManager.get('/auth/me').expect(200);
     await admin
       .patch(`/vehicles/${unassigned.body.id}`)

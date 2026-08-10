@@ -16,7 +16,10 @@ import {
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
 import { MembershipRole } from '../users/membership-role';
-import type { SessionPrincipal } from '../users/session-principal';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
 import { User } from '../users/users.entity';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import {
@@ -56,7 +59,9 @@ export class VehiclesService {
   async list(actor: SessionPrincipal, query: ListVehiclesQueryDto) {
     const qb = this.vehicles
       .createQueryBuilder('vehicle')
-      .where('vehicle.companyId = :companyId', { companyId: actor.companyId })
+      .where('vehicle.companyId = :companyId', {
+        companyId: requireCompanyId(actor),
+      })
       .andWhere('vehicle.deletedAt IS NULL');
     if (actor.role === MembershipRole.MANAGER) {
       qb.andWhere(
@@ -136,32 +141,33 @@ export class VehiclesService {
     this.validatePurchaseDate(body.purchaseDate);
     try {
       return await this.vehicles.manager.transaction(async (manager) => {
-        const currentActor = await this.lockActor(manager, actor);
+        const companyId = requireCompanyId(actor);
+        await this.lockActor(manager, actor.id);
         const { managerIds, driverIds, ...vehicleFields } = body;
         if (
-          currentActor.role === MembershipRole.MANAGER &&
+          actor.role === MembershipRole.MANAGER &&
           managerIds !== undefined
         ) {
           throw new ForbiddenException();
         }
 
         const activeManagerIds =
-          currentActor.role === MembershipRole.MANAGER
-            ? [currentActor.id]
+          actor.role === MembershipRole.MANAGER
+            ? [actor.id]
             : await this.validateManagerIds(
                 manager,
-                currentActor.companyId,
+                companyId,
                 managerIds ?? [],
               );
         const activeDriverIds = await this.validateDriverIds(
           manager,
-          currentActor.companyId,
+          companyId,
           driverIds ?? [],
         );
         const vehicle = await manager.save(
           manager.create(Vehicle, {
             ...vehicleFields,
-            companyId: currentActor.companyId,
+            companyId,
             productionYear: body.productionYear ?? null,
             fuelType: body.fuelType ?? null,
             vin: body.vin ?? null,
@@ -178,7 +184,7 @@ export class VehiclesService {
           await manager.save(
             activeManagerIds.map((managerId) =>
               manager.create(ManagerVehicleAssignment, {
-                companyId: currentActor.companyId,
+                companyId,
                 managerId,
                 vehicleId: vehicle.id,
               }),
@@ -189,7 +195,7 @@ export class VehiclesService {
           await manager.save(
             activeDriverIds.map((driverId) =>
               manager.create(DriverVehicleAssignment, {
-                companyId: currentActor.companyId,
+                companyId,
                 driverId,
                 vehicleId: vehicle.id,
               }),
@@ -217,24 +223,25 @@ export class VehiclesService {
     this.validatePurchaseDate(body.purchaseDate);
     try {
       return await this.vehicles.manager.transaction(async (manager) => {
-        const currentActor = await this.lockActor(manager, actor);
+        const companyId = requireCompanyId(actor);
+        await this.lockActor(manager, actor.id);
         const { managerIds, ...vehicleFields } = body;
         if (
-          currentActor.role === MembershipRole.MANAGER &&
+          actor.role === MembershipRole.MANAGER &&
           managerIds !== undefined
         ) {
           throw new ForbiddenException();
         }
         const vehicle = await this.findAccessibleVehicle(
           manager,
-          currentActor,
+          actor,
           id,
           true,
         );
         if (managerIds !== undefined) {
           const validIds = await this.validateManagerIds(
             manager,
-            currentActor.companyId,
+            companyId,
             managerIds,
           );
           await this.syncManagerAssignments(manager, vehicle, validIds);
@@ -251,23 +258,24 @@ export class VehiclesService {
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
     await this.vehicles.manager.transaction(async (manager) => {
-      const currentActor = await this.lockActor(manager, actor);
+      const companyId = requireCompanyId(actor);
+      await this.lockActor(manager, actor.id);
       const vehicle = await this.findAccessibleVehicle(
         manager,
-        currentActor,
+        actor,
         id,
         true,
       );
       await this.closeActiveAssignments(
         manager,
         ManagerVehicleAssignment,
-        currentActor.companyId,
+        companyId,
         id,
       );
       await this.closeActiveAssignments(
         manager,
         DriverVehicleAssignment,
-        currentActor.companyId,
+        companyId,
         id,
       );
       await manager.softDelete(Vehicle, vehicle.id);
@@ -277,7 +285,7 @@ export class VehiclesService {
   async managerHistory(actor: SessionPrincipal, id: string) {
     await this.findVehicleForHistory(this.vehicles.manager, actor, id);
     return this.vehicles.manager.find(ManagerVehicleAssignment, {
-      where: { companyId: actor.companyId, vehicleId: id },
+      where: { companyId: requireCompanyId(actor), vehicleId: id },
       order: { assignedFrom: 'DESC', createdAt: 'DESC' },
     });
   }
@@ -292,7 +300,7 @@ export class VehiclesService {
       .createQueryBuilder(Vehicle, 'vehicle')
       .where('vehicle.id = :id', { id })
       .andWhere('vehicle.companyId = :companyId', {
-        companyId: actor.companyId,
+        companyId: requireCompanyId(actor),
       })
       .andWhere('vehicle.deletedAt IS NULL');
     if (actor.role === MembershipRole.MANAGER) {
@@ -326,7 +334,7 @@ export class VehiclesService {
       .withDeleted()
       .where('vehicle.id = :id', { id })
       .andWhere('vehicle.companyId = :companyId', {
-        companyId: actor.companyId,
+        companyId: requireCompanyId(actor),
       })
       .getOne();
     if (!vehicle) throw new NotFoundException('Vehicle not found');
@@ -445,14 +453,13 @@ export class VehiclesService {
 
   private async lockActor(
     manager: EntityManager,
-    actor: SessionPrincipal,
-  ): Promise<User> {
+    actorId: string,
+  ): Promise<void> {
     const current = await manager.findOne(User, {
-      where: { id: actor.id, companyId: actor.companyId },
+      where: { id: actorId },
       lock: { mode: 'pessimistic_write' },
     });
     if (!current) throw new ForbiddenException();
-    return current;
   }
 
   private validatePurchaseDate(value?: string | null): void {

@@ -22,7 +22,10 @@ import { UserDto } from './dtos/user.dto';
 import { AdminGuard } from './guards/admin.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { User } from './users.entity';
-import type { SessionPrincipal } from './session-principal';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from './session-principal';
 
 @Controller('users')
 @Serialize(UserDto)
@@ -32,7 +35,7 @@ export class CompanyUsersController {
 
   @Get()
   list(@CurrentPrincipal() principal: SessionPrincipal): Promise<User[]> {
-    return this.companyUsers.list(principal.companyId);
+    return this.companyUsers.list(requireCompanyId(principal));
   }
 
   @Post()

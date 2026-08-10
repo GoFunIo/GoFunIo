@@ -6,12 +6,14 @@ import { SessionsService } from './sessions.service';
 describe('SessionsService', () => {
   const user = {
     id: 'user-1',
-    companyId: 'company-1',
-    role: MembershipRole.ADMIN,
     passwordVersion: 3,
+    memberships: [
+      { companyId: 'company-1', role: MembershipRole.ADMIN },
+      { companyId: 'company-2', role: MembershipRole.MANAGER },
+    ],
   };
 
-  it('establishes a session for an active user', async () => {
+  it('establishes a session on the oldest active membership', async () => {
     const reader: SessionUserReader = {
       findActiveById: jest.fn().mockResolvedValue(user),
     };
@@ -20,14 +22,32 @@ describe('SessionsService', () => {
 
     await expect(service.establish(session, user.id)).resolves.toEqual({
       id: user.id,
-      companyId: user.companyId,
-      role: user.role,
+      companyId: 'company-1',
+      role: MembershipRole.ADMIN,
     });
 
     expect(reader.findActiveById).toHaveBeenCalledWith(user.id);
     expect(session.userId).toBe(user.id);
     expect(session.passwordVersion).toBe(user.passwordVersion);
-    expect(session.currentCompanyId).toBe(user.companyId);
+    expect(session.currentCompanyId).toBe('company-1');
+  });
+
+  it('establishes a session without company for a user without memberships', async () => {
+    const reader: SessionUserReader = {
+      findActiveById: jest
+        .fn()
+        .mockResolvedValue({ ...user, memberships: [] }),
+    };
+    const service = new SessionsService(reader);
+    const session = {} as SessionData;
+
+    await expect(service.establish(session, user.id)).resolves.toEqual({
+      id: user.id,
+      companyId: null,
+      role: null,
+    });
+    expect(session.userId).toBe(user.id);
+    expect(session.currentCompanyId).toBeNull();
   });
 
   it('rejects a stale authenticated password version', async () => {
@@ -43,7 +63,7 @@ describe('SessionsService', () => {
     expect(session.userId).toBeNull();
   });
 
-  it('authenticates a current session', async () => {
+  it('authenticates a session against the membership of the current company', async () => {
     const reader: SessionUserReader = {
       findActiveById: jest.fn().mockResolvedValue(user),
     };
@@ -51,14 +71,50 @@ describe('SessionsService', () => {
     const session = {
       userId: user.id,
       passwordVersion: user.passwordVersion,
-      currentCompanyId: user.companyId,
+      currentCompanyId: 'company-2',
     } as SessionData;
 
     await expect(service.authenticate(session)).resolves.toEqual({
       id: user.id,
-      companyId: user.companyId,
-      role: user.role,
+      companyId: 'company-2',
+      role: MembershipRole.MANAGER,
     });
+  });
+
+  it('authenticates a session without a current company', async () => {
+    const reader: SessionUserReader = {
+      findActiveById: jest
+        .fn()
+        .mockResolvedValue({ ...user, memberships: [] }),
+    };
+    const service = new SessionsService(reader);
+    const session = {
+      userId: user.id,
+      passwordVersion: user.passwordVersion,
+      currentCompanyId: null,
+    } as SessionData;
+
+    await expect(service.authenticate(session)).resolves.toEqual({
+      id: user.id,
+      companyId: null,
+      role: null,
+    });
+  });
+
+  it('clears the session when the current company is not an active membership', async () => {
+    const reader: SessionUserReader = {
+      findActiveById: jest.fn().mockResolvedValue(user),
+    };
+    const service = new SessionsService(reader);
+    const session = {
+      userId: user.id,
+      passwordVersion: user.passwordVersion,
+      currentCompanyId: 'company-foreign',
+    } as SessionData;
+
+    await expect(service.authenticate(session)).resolves.toBeNull();
+    expect(session.userId).toBeNull();
+    expect(session.currentCompanyId).toBeNull();
   });
 
   it('clears the session when the user is missing', async () => {
@@ -69,7 +125,7 @@ describe('SessionsService', () => {
     const session = {
       userId: user.id,
       passwordVersion: user.passwordVersion,
-      currentCompanyId: user.companyId,
+      currentCompanyId: 'company-1',
     } as SessionData;
 
     await expect(service.authenticate(session)).resolves.toBeNull();
@@ -86,24 +142,11 @@ describe('SessionsService', () => {
     const session = {
       userId: user.id,
       passwordVersion: user.passwordVersion - 1,
-      currentCompanyId: user.companyId,
+      currentCompanyId: 'company-1',
     } as SessionData;
 
     await expect(service.authenticate(session)).resolves.toBeNull();
     expect(session.userId).toBeNull();
-  });
-
-  it('does not authenticate a session without the current company', async () => {
-    const reader: SessionUserReader = {
-      findActiveById: jest.fn().mockResolvedValue(user),
-    };
-    const service = new SessionsService(reader);
-    const session = {
-      userId: user.id,
-      passwordVersion: user.passwordVersion,
-    } as SessionData;
-
-    await expect(service.authenticate(session)).resolves.toBeNull();
   });
 
   it('clears a session', () => {
@@ -111,7 +154,7 @@ describe('SessionsService', () => {
     const session = {
       userId: user.id,
       passwordVersion: user.passwordVersion,
-      currentCompanyId: user.companyId,
+      currentCompanyId: 'company-1',
     } as SessionData;
 
     service.clear(session);

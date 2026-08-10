@@ -1,13 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { SessionPrincipal } from './session-principal';
+import { Company } from '../companies/companies.entity';
+import type { MembershipRole } from './membership-role';
+import { Membership } from './membership.entity';
 import { User } from './users.entity';
 
 export const SESSION_USER_READER = Symbol('SESSION_USER_READER');
 
-export interface SessionUser extends SessionPrincipal {
+export interface SessionMembership {
+  companyId: string;
+  role: MembershipRole;
+}
+
+export interface SessionUser {
+  id: string;
   passwordVersion: number;
+  memberships: SessionMembership[];
 }
 
 export interface SessionUserReader {
@@ -18,20 +27,38 @@ export interface SessionUserReader {
 export class TypeOrmSessionUserReader implements SessionUserReader {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Membership)
+    private readonly memberships: Repository<Membership>,
   ) {}
 
-  findActiveById(id: string): Promise<SessionUser | null> {
-    return this.users
+  async findActiveById(id: string): Promise<SessionUser | null> {
+    const user = await this.users
       .createQueryBuilder('user')
-      .select([
-        'user.id',
-        'user.companyId',
-        'user.role',
-        'user.passwordVersion',
-      ])
-      .innerJoin('user.company', 'company')
+      .select(['user.id', 'user.passwordVersion'])
       .where('user.id = :id', { id })
-      .andWhere('company."deletedAt" IS NULL')
       .getOne();
+    if (!user) return null;
+
+    const memberships = await this.memberships
+      .createQueryBuilder('membership')
+      .select(['membership.companyId', 'membership.role'])
+      .innerJoin(
+        Company,
+        'company',
+        'company.id = membership.companyId AND company."deletedAt" IS NULL',
+      )
+      .where('membership.userId = :id', { id })
+      .andWhere('membership.status = :status', { status: 'active' })
+      .orderBy('membership.createdAt', 'ASC')
+      .getMany();
+
+    return {
+      id: user.id,
+      passwordVersion: user.passwordVersion,
+      memberships: memberships.map((membership) => ({
+        companyId: membership.companyId,
+        role: membership.role,
+      })),
+    };
   }
 }

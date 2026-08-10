@@ -132,11 +132,11 @@ describe('Profile and company (e2e)', () => {
       .expect(200)
       .expect((res) => expect(res.body.taxId).toBe('1234567890'));
     await agent.patch('/company').send({ name: null }).expect(400);
-    await app
-      .get(DataSource)
-      .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [
-        email,
-      ]);
+    await app.get(DataSource).query(
+      `UPDATE "memberships" SET "role" = 'MANAGER'
+       WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,
+      [email],
+    );
     await agent.patch('/company').send({ name: 'Nope' }).expect(403);
     await agent.get('/company').expect(200);
   });

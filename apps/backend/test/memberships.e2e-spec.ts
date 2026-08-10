@@ -116,4 +116,56 @@ describe('Memberships dual-write (e2e)', () => {
       },
     ]);
   });
+
+  it('signin picks the oldest active membership as the current company', async () => {
+    const email = 'member-oldest@example.com';
+    await createVerifiedUser(app, email, 'password123');
+    const [user] = await dataSource.query<{ id: string; companyId: string }[]>(
+      `SELECT "id", "companyId" FROM "users" WHERE "email" = $1`,
+      [email],
+    );
+    const [newerCompany] = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
+       VALUES ('Newer workspace', now(), now()) RETURNING "id"`,
+    );
+    await dataSource.query(
+      `INSERT INTO "memberships" ("userId", "companyId", "role", "status", "createdAt", "updatedAt")
+       VALUES ($1, $2, 'MANAGER', 'active', now() + interval '1 minute', now())`,
+      [user.id, newerCompany.id],
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/auth/signin')
+      .send({ email, password: 'password123' })
+      .expect(201);
+    const me = await agent.get('/auth/me').expect(200);
+
+    expect(me.body.companyId).toBe(user.companyId);
+    expect(me.body.role).toBe(MembershipRole.ADMIN);
+  });
+
+  it('user without memberships signs in with a company-less session', async () => {
+    const email = 'member-less@example.com';
+    await createVerifiedUser(app, email, 'password123');
+    const [user] = await dataSource.query<{ id: string }[]>(
+      `SELECT "id" FROM "users" WHERE "email" = $1`,
+      [email],
+    );
+    await dataSource.query(
+      `DELETE FROM "memberships" WHERE "userId" = $1`,
+      [user.id],
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/auth/signin')
+      .send({ email, password: 'password123' })
+      .expect(201);
+    const me = await agent.get('/auth/me').expect(200);
+
+    expect(me.body.companyId).toBeNull();
+    expect(me.body.role).toBeNull();
+    await agent.get('/vehicles').expect(403);
+  });
 });

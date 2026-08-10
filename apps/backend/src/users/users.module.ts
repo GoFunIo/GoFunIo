@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
+import { Membership } from './membership.entity';
 import { UsersService } from './users.service';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
@@ -53,7 +54,7 @@ import {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Company]),
+    TypeOrmModule.forFeature([User, Company, Membership]),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
   ],
   controllers: [AuthController, UserProfileController, CompanyUsersController],

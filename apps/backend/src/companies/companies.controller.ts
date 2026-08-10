@@ -4,7 +4,10 @@ import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { AdminGuard } from '../users/guards/admin.guard';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
-import type { SessionPrincipal } from '../users/session-principal';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
 import { CompaniesService } from './companies.service';
 import { CompanyDto } from './dtos/company.dto';
 import { UpdateCompanyDto } from './dtos/update-company.dto';
@@ -17,7 +20,7 @@ export class CompaniesController {
   @Get()
   @UseGuards(SessionAuthGuard)
   getCompany(@CurrentPrincipal() principal: SessionPrincipal) {
-    return this.companies.findActive(principal.companyId);
+    return this.companies.findActive(requireCompanyId(principal));
   }
 
   @Patch()
@@ -26,6 +29,6 @@ export class CompaniesController {
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: UpdateCompanyDto,
   ) {
-    return this.companies.update(principal.companyId, body);
+    return this.companies.update(requireCompanyId(principal), body);
   }
 }
