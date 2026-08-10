@@ -7,6 +7,7 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
@@ -23,6 +24,7 @@ import { CreateCompanyDto } from './dtos/create-company.dto';
 import { CompanyDto } from './dtos/company.dto';
 import { UpdateCompanyDto } from './dtos/update-company.dto';
 
+@ApiTags('Companies')
 @Controller()
 @Serialize(CompanyDto)
 export class CompaniesController {
@@ -31,12 +33,14 @@ export class CompaniesController {
     private readonly sessions: SessionsService,
   ) {}
 
+  @ApiOperation({ summary: 'Get active company' })
   @Get('company')
   @UseGuards(SessionAuthGuard)
   getCompany(@CurrentPrincipal() principal: SessionPrincipal) {
     return this.companies.findActive(requireCompanyId(principal));
   }
 
+  @ApiOperation({ summary: 'Update active company' })
   @Patch('company')
   @UseGuards(SessionAuthGuard, AllowedOriginGuard, AdminGuard)
   updateCompany(
@@ -46,6 +50,7 @@ export class CompaniesController {
     return this.companies.update(requireCompanyId(principal), body);
   }
 
+  @ApiOperation({ summary: 'Create company and switch to it' })
   @Post('companies')
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
   async createCompany(

@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
@@ -19,10 +20,12 @@ import { SessionAuthGuard } from './guards/session-auth.guard';
 import { MembershipInvitationsService } from './membership-invitations.service';
 import { requireCompanyId, SessionPrincipal } from './session-principal';
 
+@ApiTags('Invitations')
 @Controller()
 export class MembershipInvitationsController {
   constructor(private readonly invitations: MembershipInvitationsService) {}
 
+  @ApiOperation({ summary: 'Invite user to company' })
   @Post('users/invitations')
   @UseGuards(SessionAuthGuard, AdminGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -39,12 +42,14 @@ export class MembershipInvitationsController {
     );
   }
 
+  @ApiOperation({ summary: 'List pending invitations for current user' })
   @Get('auth/invitations')
   @UseGuards(SessionAuthGuard)
   list(@CurrentPrincipal() principal: SessionPrincipal) {
     return this.invitations.listPending(principal.id);
   }
 
+  @ApiOperation({ summary: 'Accept invitation by token' })
   @Post('auth/invitations/accept')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -55,6 +60,7 @@ export class MembershipInvitationsController {
     return this.invitations.acceptToken(principal.id, body.token);
   }
 
+  @ApiOperation({ summary: 'Decline invitation' })
   @Post('auth/invitations/:membershipId/decline')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -65,6 +71,7 @@ export class MembershipInvitationsController {
     return this.invitations.decline(principal.id, membershipId);
   }
 
+  @ApiOperation({ summary: 'Accept invitation by id' })
   @Post('auth/invitations/:membershipId/accept')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)

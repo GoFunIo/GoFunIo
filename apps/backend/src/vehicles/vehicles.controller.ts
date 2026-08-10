@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -25,11 +26,13 @@ import type { VehicleView } from './vehicle-view';
 import { VehiclesService } from './vehicles.service';
 import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
 
+@ApiTags('Vehicles')
 @Controller('vehicles')
 @UseGuards(SessionAuthGuard)
 export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
 
+  @ApiOperation({ summary: 'List vehicles' })
   @Get()
   @Serialize(VehicleListDto)
   list(
@@ -39,6 +42,7 @@ export class VehiclesController {
     return this.vehicles.list(principal, query);
   }
 
+  @ApiOperation({ summary: 'Get vehicle by id' })
   @Get(':id')
   @Serialize(VehicleDto)
   findOne(
@@ -48,6 +52,7 @@ export class VehiclesController {
     return this.vehicles.findOne(principal, id);
   }
 
+  @ApiOperation({ summary: 'List manager assignment history for vehicle' })
   @Get(':id/manager-assignments')
   @Serialize(ManagerAssignmentDto)
   managerHistory(
@@ -57,6 +62,7 @@ export class VehiclesController {
     return this.vehicles.managerHistory(principal, id);
   }
 
+  @ApiOperation({ summary: 'Create vehicle' })
   @Post()
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
@@ -67,6 +73,7 @@ export class VehiclesController {
     return this.vehicles.create(principal, body);
   }
 
+  @ApiOperation({ summary: 'Update vehicle' })
   @Patch(':id')
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
@@ -78,6 +85,7 @@ export class VehiclesController {
     return this.vehicles.update(principal, id, body);
   }
 
+  @ApiOperation({ summary: 'Delete vehicle' })
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)

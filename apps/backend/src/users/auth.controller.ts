@@ -12,6 +12,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
 import { GoogleLinkDto } from './dtos/google-link.dto';
@@ -40,6 +41,7 @@ import { GoogleAuthenticationService } from './google-authentication.service';
 import { SwitchCompanyDto } from './dtos/switch-company.dto';
 import { USER_PROFILES, type UserProfiles } from './user-profiles';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -53,6 +55,7 @@ export class AuthController {
     @Inject(USER_PROFILES) private readonly userProfiles: UserProfiles,
   ) {}
 
+  @ApiOperation({ summary: 'Sign up with email and password' })
   @Post('signup')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -63,6 +66,7 @@ export class AuthController {
     return this.emailRegistration.register(body.email, body.password, origin);
   }
 
+  @ApiOperation({ summary: 'Sign in with email and password' })
   @Post('signin')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -86,6 +90,7 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Sign in with Google' })
   @Post('google')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -102,6 +107,7 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'Link Google account to current user' })
   @Post('google/link')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -117,6 +123,7 @@ export class AuthController {
     );
   }
 
+  @ApiOperation({ summary: 'Sign out' })
   @Post('signout')
   @UseGuards(AllowedOriginGuard)
   @HttpCode(204)
@@ -124,6 +131,7 @@ export class AuthController {
     this.sessions.clear(session);
   }
 
+  @ApiOperation({ summary: 'Get current user' })
   @Get('me')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard)
@@ -139,12 +147,14 @@ export class AuthController {
     };
   }
 
+  @ApiOperation({ summary: 'List companies of current user' })
   @Get('companies')
   @UseGuards(SessionAuthGuard)
   listCompanies(@CurrentPrincipal() principal: SessionPrincipal) {
     return this.sessions.listCompanies(principal.id);
   }
 
+  @ApiOperation({ summary: 'Switch active company' })
   @Post('switch-company')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -156,6 +166,7 @@ export class AuthController {
     return this.sessions.switchCompany(session, principal.id, body.companyId);
   }
 
+  @ApiOperation({ summary: 'Verify email address' })
   @Get('verify-email')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmail(
@@ -170,6 +181,7 @@ export class AuthController {
     return { verified: true };
   }
 
+  @ApiOperation({ summary: 'Confirm email change' })
   @Post('verify-email-change')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -180,6 +192,7 @@ export class AuthController {
     return { verified: true };
   }
 
+  @ApiOperation({ summary: 'Resend verification email' })
   @Post('resend-verification')
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
@@ -190,6 +203,7 @@ export class AuthController {
     await this.emailVerification.resend(body.email, origin);
   }
 
+  @ApiOperation({ summary: 'Request password reset email' })
   @Post('forgot-password')
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
@@ -200,6 +214,7 @@ export class AuthController {
     await this.passwordRecovery.request(body.email, origin);
   }
 
+  @ApiOperation({ summary: 'Reset password with token' })
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(204)

@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -19,11 +20,13 @@ import { DriverAssignmentDto } from './dtos/driver-assignment.dto';
 import { DriverVehicleAssignment } from './driver-vehicle-assignment.entity';
 import { DriversService } from './drivers.service';
 
+@ApiTags('Drivers')
 @Controller('vehicles/:vehicleId')
 @UseGuards(SessionAuthGuard)
 export class DriverAssignmentsController {
   constructor(private readonly drivers: DriversService) {}
 
+  @ApiOperation({ summary: 'List driver assignment history for vehicle' })
   @Get('driver-assignments')
   @Serialize(DriverAssignmentDto)
   history(
@@ -33,6 +36,7 @@ export class DriverAssignmentsController {
     return this.drivers.assignmentHistory(principal, vehicleId);
   }
 
+  @ApiOperation({ summary: 'Assign driver to vehicle' })
   @Post('drivers')
   @Serialize(DriverAssignmentDto)
   @UseGuards(AllowedOriginGuard)
@@ -44,6 +48,7 @@ export class DriverAssignmentsController {
     return this.drivers.assign(principal, vehicleId, body);
   }
 
+  @ApiOperation({ summary: 'Unassign driver from vehicle' })
   @Delete('drivers/:driverId')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)

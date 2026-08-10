@@ -8,6 +8,7 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
@@ -27,6 +28,7 @@ import { Inject } from '@nestjs/common';
 import { USER_PROFILES, type UserProfiles } from './user-profiles';
 import type { CurrentUserView } from './current-user-view';
 
+@ApiTags('Profile')
 @Controller('users/me')
 export class UserProfileController {
   constructor(
@@ -37,6 +39,7 @@ export class UserProfileController {
     private companyUsers: CompanyUsersService,
   ) {}
 
+  @ApiOperation({ summary: 'Leave current company' })
   @Delete()
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -44,6 +47,7 @@ export class UserProfileController {
     return this.companyUsers.leave(principal);
   }
 
+  @ApiOperation({ summary: 'Update own profile' })
   @Patch()
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -58,6 +62,7 @@ export class UserProfileController {
     }));
   }
 
+  @ApiOperation({ summary: 'Request email change' })
   @Patch('email')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -75,6 +80,7 @@ export class UserProfileController {
     );
   }
 
+  @ApiOperation({ summary: 'Change password' })
   @Patch('password')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
