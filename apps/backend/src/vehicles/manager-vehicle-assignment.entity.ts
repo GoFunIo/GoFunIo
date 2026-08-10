@@ -35,7 +35,7 @@ export class ManagerVehicleAssignment {
   @Column({ type: 'uuid' })
   vehicleId!: string;
 
-  @ManyToOne(() => Vehicle, (vehicle) => vehicle.managerAssignments, {
+  @ManyToOne(() => Vehicle, {
     nullable: false,
     onDelete: 'RESTRICT',
   })

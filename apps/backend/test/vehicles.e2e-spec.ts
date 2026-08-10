@@ -90,6 +90,30 @@ describe('Vehicles (e2e)', () => {
     await request(app.getHttpServer()).get('/vehicles').expect(401);
   });
 
+  it('always returns managerIds and driverIds in vehicle views', async () => {
+    const admin = await signedIn('vehicle-view@example.com');
+    const created = await createVehicle(admin);
+    const assertView = (body: Record<string, unknown>) => {
+      expect(body.managerIds).toEqual([]);
+      expect(body.driverIds).toEqual([]);
+    };
+
+    assertView(created.body);
+    await admin
+      .get('/vehicles')
+      .expect(200)
+      .expect((res) => assertView(res.body.items[0]));
+    await admin
+      .get(`/vehicles/${created.body.id}`)
+      .expect(200)
+      .expect((res) => assertView(res.body));
+    await admin
+      .patch(`/vehicles/${created.body.id}`)
+      .send({ notes: 'Updated' })
+      .expect(200)
+      .expect((res) => assertView(res.body));
+  });
+
   it('supports ADMIN CRUD, normalization and identifier reuse after delete', async () => {
     const admin = await signedIn('vehicle-admin@example.com');
 
@@ -195,11 +219,6 @@ describe('Vehicles (e2e)', () => {
       .expect(403);
 
     const foreignManager = await signedIn('foreign-manager@example.com');
-    await app
-      .get(DataSource)
-      .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [
-        'foreign-manager@example.com',
-      ]);
     await app.get(DataSource).query(
       `UPDATE "memberships" SET "role" = 'MANAGER'
        WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,

@@ -55,22 +55,21 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
       email,
       password: 'one.password.hash',
       verificationTokenHash: 'one.token.hash',
-      role: MembershipRole.ADMIN,
     });
-    expect(user.companyId).not.toBeNull();
+    const membership = await dataSource
+      .getRepository(Membership)
+      .findOneByOrFail({
+        userId: user.id,
+        role: MembershipRole.ADMIN,
+        status: 'active',
+      });
     await expect(
       dataSource
         .getRepository(Company)
-        .findOneByOrFail({ id: user.companyId! }),
+        .findOneByOrFail({ id: membership.companyId }),
     ).resolves.toBeDefined();
-    await expect(
-      dataSource.getRepository(Membership).findOneByOrFail({
-        userId: user.id,
-        companyId: user.companyId!,
-        role: MembershipRole.ADMIN,
-        status: 'active',
-      }),
-    ).resolves.toBeDefined();
+    expect(user).not.toHaveProperty('companyId');
+    expect(user).not.toHaveProperty('role');
     expect(account).not.toHaveProperty('companyId');
     expect(account).not.toHaveProperty('role');
     expect(account).not.toHaveProperty('password');

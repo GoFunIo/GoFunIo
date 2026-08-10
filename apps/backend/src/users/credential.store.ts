@@ -95,13 +95,6 @@ export class TypeOrmCredentialStore implements CredentialStore {
       .createQueryBuilder('user')
       .addSelect('user.password')
       .where(where, parameters)
-      .andWhere(
-        `("user"."companyId" IS NULL OR EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "user"."companyId"
-          AND "company"."deletedAt" IS NULL
-        ))`,
-      )
       .getOne();
     return user
       ? {

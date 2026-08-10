@@ -21,7 +21,7 @@ import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
 import { VehicleDto } from './dtos/vehicle.dto';
 import { VehicleListDto } from './dtos/vehicle-list.dto';
-import { Vehicle } from './vehicles.entity';
+import type { VehicleView } from './vehicle-view';
 import { VehiclesService } from './vehicles.service';
 import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
 
@@ -44,7 +44,7 @@ export class VehiclesController {
   findOne(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<Vehicle> {
+  ): Promise<VehicleView> {
     return this.vehicles.findOne(principal, id);
   }
 
@@ -63,7 +63,7 @@ export class VehiclesController {
   create(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateVehicleDto,
-  ): Promise<Vehicle> {
+  ): Promise<VehicleView> {
     return this.vehicles.create(principal, body);
   }
 
@@ -74,7 +74,7 @@ export class VehiclesController {
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateVehicleDto,
-  ): Promise<Vehicle> {
+  ): Promise<VehicleView> {
     return this.vehicles.update(principal, id, body);
   }
 

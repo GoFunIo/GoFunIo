@@ -1,11 +1,10 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { Repository } from 'typeorm';
 import {
   FakeFleetUnitOfWork,
   type FleetMembership,
 } from '../fleet/fleet-unit-of-work';
-import { Driver } from '../drivers/drivers.entity';
 import type { VehicleAccess } from '../fleet/vehicle-access';
+import type { DriverAllocation } from '../fleet/driver-allocation';
 import { MembershipRole } from '../users/membership-role';
 import { Vehicle } from './vehicles.entity';
 import { VehiclesService } from './vehicles.service';
@@ -23,12 +22,47 @@ describe('VehiclesService create workflow', () => {
       membership(managerId, MembershipRole.MANAGER),
     );
     fleet.drivers.push({ id: driverId, companyId });
+    const vehicleAccess = {
+      list: jest.fn(),
+      activeManagerIds: jest.fn(
+        async (_companyId, vehicleIds: string[]) =>
+          new Map(
+            vehicleIds.map((vehicleId) => [
+              vehicleId,
+              fleet.managerAssignments
+                .filter(
+                  (assignment) =>
+                    assignment.vehicleId === vehicleId &&
+                    assignment.assignedTo === null,
+                )
+                .map(({ managerId }) => managerId),
+            ]),
+          ),
+      ),
+    };
+    const driverAllocation = {
+      activeDriverIds: jest.fn(
+        async (_companyId, vehicleIds: string[]) =>
+          new Map(
+            vehicleIds.map((vehicleId) => [
+              vehicleId,
+              fleet.driverAssignments
+                .filter(
+                  (assignment) =>
+                    assignment.vehicleId === vehicleId &&
+                    assignment.assignedTo === null,
+                )
+                .map(({ driverId }) => driverId),
+            ]),
+          ),
+      ),
+    };
     const service = new VehiclesService(
-      {} as Repository<Vehicle>,
       fleet,
-      {} as VehicleAccess,
+      vehicleAccess as unknown as VehicleAccess,
+      driverAllocation as unknown as DriverAllocation,
     );
-    return { fleet, service };
+    return { driverAllocation, fleet, service, vehicleAccess };
   }
 
   it('creates a vehicle with its initial access and allocation atomically', async () => {
@@ -50,6 +84,7 @@ describe('VehiclesService create workflow', () => {
       managerIds: [managerId],
       driverIds: [driverId],
     });
+    expect(vehicle).not.toBeInstanceOf(Vehicle);
     expect(fleet.vehicles).toHaveLength(1);
     expect(fleet.managerAssignments).toEqual([
       expect.objectContaining({ companyId, vehicleId: vehicle.id, managerId }),
@@ -57,6 +92,53 @@ describe('VehiclesService create workflow', () => {
     expect(fleet.driverAssignments).toEqual([
       expect.objectContaining({ companyId, vehicleId: vehicle.id, driverId }),
     ]);
+  });
+
+  it('composes a non-empty page with one batched read per assignment seam', async () => {
+    const { driverAllocation, fleet, service, vehicleAccess } = setup();
+    const actor = { id: adminId, companyId, role: MembershipRole.ADMIN };
+    await service.create(actor, {
+      brand: 'Ford',
+      model: 'Transit',
+      registrationNumber: 'WA1234',
+      managerIds: [managerId],
+      driverIds: [driverId],
+    });
+    await service.create(actor, {
+      brand: 'Ford',
+      model: 'Focus',
+      registrationNumber: 'WA5678',
+    });
+    vehicleAccess.activeManagerIds.mockClear();
+    driverAllocation.activeDriverIds.mockClear();
+    vehicleAccess.list.mockResolvedValue({
+      items: fleet.vehicles,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+      totalPages: 1,
+    });
+
+    const page = await service.list(actor, {} as never);
+    const vehicleIds = fleet.vehicles.map(({ id }) => id);
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        managerIds: [managerId],
+        driverIds: [driverId],
+      }),
+      expect.objectContaining({ managerIds: [], driverIds: [] }),
+    ]);
+    expect(vehicleAccess.activeManagerIds).toHaveBeenCalledTimes(1);
+    expect(vehicleAccess.activeManagerIds).toHaveBeenCalledWith(
+      companyId,
+      vehicleIds,
+    );
+    expect(driverAllocation.activeDriverIds).toHaveBeenCalledTimes(1);
+    expect(driverAllocation.activeDriverIds).toHaveBeenCalledWith(
+      companyId,
+      vehicleIds,
+    );
   });
 
   it('automatically gives a creating manager access', async () => {

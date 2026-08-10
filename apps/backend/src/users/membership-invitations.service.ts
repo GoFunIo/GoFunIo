@@ -72,11 +72,9 @@ export class MembershipInvitationsService {
         if (!user) {
           user = await manager.save(
             manager.create(User, {
-              companyId: null,
               email,
               password: null,
               googleId: null,
-              role,
               emailVerifiedAt: null,
             }),
           );

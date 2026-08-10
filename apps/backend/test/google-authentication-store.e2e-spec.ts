@@ -1,9 +1,7 @@
 import './helpers/test-env';
 import { DataSource } from 'typeorm';
-import { Company } from '../src/companies/companies.entity';
 import { GoogleAccountConflictError } from '../src/users/google-authentication.errors';
 import { TypeOrmGoogleAuthenticationStore } from '../src/users/google-authentication.store';
-import { MembershipRole } from '../src/users/membership-role';
 import { User } from '../src/users/users.entity';
 
 describe('TypeOrmGoogleAuthenticationStore (integration)', () => {
@@ -15,7 +13,7 @@ describe('TypeOrmGoogleAuthenticationStore (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company],
+      entities: [User],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,
@@ -33,15 +31,10 @@ describe('TypeOrmGoogleAuthenticationStore (integration)', () => {
     suffix: string,
     overrides: Partial<User> = {},
   ): Promise<User> {
-    const company = await dataSource.getRepository(Company).save({
-      name: `Google Store ${suffix}`,
-    });
     return dataSource.getRepository(User).save({
-      companyId: company.id,
       email: `google-store-${suffix}-${Date.now()}@example.com`,
       password: `${suffix}.password.hash`,
       emailVerifiedAt: new Date(),
-      role: MembershipRole.ADMIN,
       ...overrides,
     });
   }

@@ -107,19 +107,22 @@ describe('Company users (e2e)', () => {
   it('isolates companies and rejects client-owned security fields', async () => {
     const firstAdmin = await signedIn('first-admin@example.com');
     const secondAdmin = await signedIn('second-admin@example.com');
-    const { user } = await invite(firstAdmin, 'first-member@example.com');
+    const { user: member } = await invite(
+      firstAdmin,
+      'first-member@example.com',
+    );
 
     await secondAdmin
-      .patch(`/users/${user.id}`)
+      .patch(`/users/${member.id}`)
       .send({ firstName: 'Stolen' })
       .expect(404);
-    await secondAdmin.delete(`/users/${user.id}`).expect(404);
+    await secondAdmin.delete(`/users/${member.id}`).expect(404);
     await secondAdmin
       .post('/users')
       .send({
         email: 'invalid@example.com',
         role: MembershipRole.MANAGER,
-        companyId: user.companyId,
+        companyId: member.companyId,
       })
       .expect(400);
     await secondAdmin

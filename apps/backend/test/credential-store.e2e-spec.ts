@@ -1,8 +1,6 @@
 import './helpers/test-env';
 import { DataSource } from 'typeorm';
-import { Company } from '../src/companies/companies.entity';
 import { User } from '../src/users/users.entity';
-import { MembershipRole } from '../src/users/membership-role';
 import { TypeOrmCredentialStore } from '../src/users/credential.store';
 
 describe('TypeOrmCredentialStore (integration)', () => {
@@ -14,7 +12,7 @@ describe('TypeOrmCredentialStore (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company],
+      entities: [User],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,
@@ -27,16 +25,11 @@ describe('TypeOrmCredentialStore (integration)', () => {
   afterAll(async () => dataSource?.destroy());
 
   async function seedUser(overrides: Partial<User> = {}): Promise<User> {
-    const company = await dataSource
-      .getRepository(Company)
-      .save(dataSource.getRepository(Company).create({ name: 'Test Co' }));
     return dataSource.getRepository(User).save(
       dataSource.getRepository(User).create({
-        companyId: company.id,
         email: `credential-${Date.now()}-${Math.random()}@example.com`,
         password: 'password.hash',
         emailVerifiedAt: new Date(),
-        role: MembershipRole.ADMIN,
         ...overrides,
       }),
     );

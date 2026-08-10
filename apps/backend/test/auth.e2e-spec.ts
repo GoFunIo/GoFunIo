@@ -341,7 +341,7 @@ describe('Auth (e2e)', () => {
     await request(app.getHttpServer()).get('/auth/me').expect(401);
   });
 
-  it('invalidates session when company is soft-deleted', async () => {
+  it('keeps the account authenticated when its company is soft-deleted', async () => {
     const email = 'deleted-company@example.com';
     const password = 'password123';
     await createVerifiedUser(app, email, password);
@@ -351,15 +351,32 @@ describe('Auth (e2e)', () => {
 
     await app.get(DataSource).query(
       `UPDATE "companies" SET "deletedAt" = now()
-       WHERE "id" = (SELECT "companyId" FROM "users" WHERE "email" = $1)`,
+       WHERE "id" = (
+         SELECT membership."companyId"
+         FROM "memberships" membership
+         JOIN "users" user_account ON user_account.id = membership."userId"
+         WHERE user_account.email = $1 AND membership.status = 'active'
+         ORDER BY membership."createdAt", membership.id
+         LIMIT 1
+       )`,
       [email],
     );
 
-    await agent.get('/auth/me').expect(401);
+    await agent
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.companyId).toBeNull();
+        expect(body.role).toBeNull();
+      });
     await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ email, password })
-      .expect(401);
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.companyId).toBeNull();
+        expect(body.role).toBeNull();
+      });
   });
 
   it('signup rejects invalid email with 400', async () => {

@@ -15,10 +15,7 @@ export class UsersService {
   }
 
   private activeUsers(): SelectQueryBuilder<User> {
-    return this.usersRepository
-      .createQueryBuilder('user')
-      .innerJoinAndSelect('user.company', 'company')
-      .andWhere('company."deletedAt" IS NULL');
+    return this.usersRepository.createQueryBuilder('user');
   }
 
   async findActiveById(id: string): Promise<User | null> {

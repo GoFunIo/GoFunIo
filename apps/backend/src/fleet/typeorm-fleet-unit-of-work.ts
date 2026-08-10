@@ -4,8 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, EntityManager, In, IsNull } from 'typeorm';
-import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import {
@@ -15,12 +14,14 @@ import {
   type FleetVehicleInput,
 } from './fleet-unit-of-work';
 import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
+import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
 
 @Injectable()
 export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly vehicleAccess: TypeOrmVehicleAccess,
+    private readonly driverAllocation: TypeOrmDriverAllocation,
   ) {}
 
   transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -66,6 +67,16 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       },
       vehicleAccess: this.vehicleAccess.transactionStore(manager),
       drivers: {
+        create: (input) => manager.save(manager.create(Driver, input)),
+        update: async (driverId, fields) => {
+          await manager.update(Driver, driverId, fields);
+          const driver = await manager.findOneBy(Driver, { id: driverId });
+          if (!driver) throw new NotFoundException('Driver not found');
+          return driver;
+        },
+        softDelete: async (driverId) => {
+          await manager.softDelete(Driver, driverId);
+        },
         requireAll: async (companyId, driverIds) => {
           if (!driverIds.length) return;
           const drivers = await manager.find(Driver, {
@@ -84,79 +95,7 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           if (!driver) throw new BadRequestException('Invalid driver');
         },
       },
-      driverAllocations: {
-        assign: async (companyId, vehicleId, driverId) =>
-          manager.save(
-            manager.create(DriverVehicleAssignment, {
-              companyId,
-              vehicleId,
-              driverId,
-            }),
-          ),
-        assignInitial: async (companyId, vehicleId, driverIds) => {
-          if (!driverIds.length) return;
-          await manager.save(
-            driverIds.map((driverId) =>
-              manager.create(DriverVehicleAssignment, {
-                companyId,
-                vehicleId,
-                driverId,
-              }),
-            ),
-          );
-        },
-        unassign: async (companyId, vehicleId, driverId) => {
-          const assignment = await manager.findOne(DriverVehicleAssignment, {
-            where: {
-              companyId,
-              vehicleId,
-              driverId,
-              assignedTo: IsNull(),
-            },
-            lock: { mode: 'pessimistic_write' },
-          });
-          if (!assignment) throw new NotFoundException('Assignment not found');
-          await manager
-            .createQueryBuilder()
-            .update(DriverVehicleAssignment)
-            .set({ assignedTo: () => 'clock_timestamp()' })
-            .where('id = :id', { id: assignment.id })
-            .execute();
-        },
-        history: (companyId, vehicleId) =>
-          manager.find(DriverVehicleAssignment, {
-            where: { companyId, vehicleId },
-            order: { assignedFrom: 'DESC', createdAt: 'DESC' },
-          }),
-        activeDriverIds: async (companyId, vehicleIds) => {
-          const result = new Map(
-            vehicleIds.map((vehicleId) => [vehicleId, [] as string[]]),
-          );
-          if (!vehicleIds.length) return result;
-          const assignments = await manager.find(DriverVehicleAssignment, {
-            select: { vehicleId: true, driverId: true },
-            where: {
-              companyId,
-              vehicleId: In(vehicleIds),
-              assignedTo: IsNull(),
-            },
-          });
-          for (const { vehicleId, driverId } of assignments) {
-            result.get(vehicleId)?.push(driverId);
-          }
-          return result;
-        },
-        closeVehicle: async (companyId, vehicleId) => {
-          await manager
-            .createQueryBuilder()
-            .update(DriverVehicleAssignment)
-            .set({ assignedTo: () => 'clock_timestamp()' })
-            .where('"companyId" = :companyId', { companyId })
-            .andWhere('"vehicleId" = :vehicleId', { vehicleId })
-            .andWhere('"assignedTo" IS NULL')
-            .execute();
-        },
-      },
+      driverAllocations: this.driverAllocation.transactionStore(manager),
     };
   }
 }

@@ -88,15 +88,15 @@ describe('Membership invitations (e2e)', () => {
       expect(events.passwordResetToken).toHaveLength(64);
       expect(events.membershipInvitationToken).toBeNull();
       const [invited] = await database.query<
-        Array<{ id: string; companyId: string | null; status: string }>
+        Array<{ id: string; status: string }>
       >(
-        `SELECT "users"."id", "users"."companyId", "memberships"."status"
+        `SELECT "users"."id", "memberships"."status"
          FROM "users"
          JOIN "memberships" ON "memberships"."userId" = "users"."id"
          WHERE "users"."email" = $1`,
         ['new-invitee@example.com'],
       );
-      expect(invited).toMatchObject({ companyId: null, status: 'pending' });
+      expect(invited).toMatchObject({ status: 'pending' });
       await expect(
         database.query(`SELECT count(*) FROM "companies"`),
       ).resolves.toEqual(companiesBefore);

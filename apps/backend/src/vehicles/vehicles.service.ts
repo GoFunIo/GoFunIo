@@ -5,14 +5,22 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, QueryFailedError, Repository } from 'typeorm';
-import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { QueryFailedError } from 'typeorm';
+import {
+  DRIVER_ALLOCATION,
+  type DriverAllocation,
+} from '../fleet/driver-allocation';
 import {
   FLEET_UNIT_OF_WORK,
   type FleetUnitOfWork,
+  type FleetVehicle,
+  type FleetVehicleAccessStore,
 } from '../fleet/fleet-unit-of-work';
-import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
+import {
+  VEHICLE_ACCESS,
+  type FleetVehiclePage,
+  type VehicleAccess,
+} from '../fleet/vehicle-access';
 import { MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
@@ -21,39 +29,54 @@ import {
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
-import { Vehicle } from './vehicles.entity';
+import type { VehicleView } from './vehicle-view';
 
 @Injectable()
 export class VehiclesService {
   constructor(
-    @InjectRepository(Vehicle)
-    private readonly vehicles: Repository<Vehicle>,
     @Inject(FLEET_UNIT_OF_WORK) private readonly fleet: FleetUnitOfWork,
     @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
+    @Inject(DRIVER_ALLOCATION)
+    private readonly driverAllocation: DriverAllocation,
   ) {}
 
-  async list(actor: SessionPrincipal, query: ListVehiclesQueryDto) {
+  async list(
+    actor: SessionPrincipal,
+    query: ListVehiclesQueryDto,
+  ): Promise<
+    Omit<FleetVehiclePage, 'items'> & {
+      items: VehicleView[];
+    }
+  > {
     const page = await this.vehicleAccess.list(actor, query);
-    const items = page.items.map((vehicle) =>
-      Object.assign(new Vehicle(), vehicle),
-    );
-    await this.loadActiveAssignments(actor.companyId, items);
-    return { ...page, items };
+    if (!page.items.length || !actor.companyId) return { ...page, items: [] };
+    return {
+      ...page,
+      items: await this.views(
+        actor.companyId,
+        page.items,
+        this.vehicleAccess,
+        this.driverAllocation,
+      ),
+    };
   }
 
-  async findOne(actor: SessionPrincipal, id: string): Promise<Vehicle> {
-    const vehicle = Object.assign(
-      new Vehicle(),
-      await this.vehicleAccess.find(actor, id),
-    );
-    await this.loadActiveAssignments(actor.companyId, [vehicle]);
-    return vehicle;
+  async findOne(actor: SessionPrincipal, id: string): Promise<VehicleView> {
+    const vehicle = await this.vehicleAccess.find(actor, id);
+    return (
+      await this.views(
+        requireCompanyId(actor),
+        [vehicle],
+        this.vehicleAccess,
+        this.driverAllocation,
+      )
+    )[0];
   }
 
   async create(
     actor: SessionPrincipal,
     body: CreateVehicleDto,
-  ): Promise<Vehicle> {
+  ): Promise<VehicleView> {
     this.validateProductionYear(body.productionYear);
     this.validatePurchaseDate(body.purchaseDate);
     try {
@@ -65,7 +88,7 @@ export class VehiclesService {
       const activeManagerIds =
         actor.role === MembershipRole.MANAGER ? [actor.id] : (managerIds ?? []);
       const activeDriverIds = driverIds ?? [];
-      const vehicle = await this.fleet.transact(async (fleet) => {
+      return await this.fleet.transact(async (fleet) => {
         if (!actor.role) throw new ForbiddenException();
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         const created = await fleet.vehicles.create({
@@ -88,11 +111,14 @@ export class VehiclesService {
           created.id,
           activeDriverIds,
         );
-        return created;
-      });
-      return Object.assign(new Vehicle(), vehicle, {
-        managerIds: activeManagerIds,
-        driverIds: activeDriverIds,
+        return (
+          await this.views(
+            companyId,
+            [created],
+            fleet.vehicleAccess,
+            fleet.driverAllocations,
+          )
+        )[0];
       });
     } catch (error) {
       this.throwConflict(error);
@@ -103,15 +129,15 @@ export class VehiclesService {
     actor: SessionPrincipal,
     id: string,
     body: UpdateVehicleDto,
-  ): Promise<Vehicle> {
+  ): Promise<VehicleView> {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
     this.validateProductionYear(body.productionYear);
     this.validatePurchaseDate(body.purchaseDate);
     try {
+      const companyId = requireCompanyId(actor);
       return await this.fleet.transact(async (fleet) => {
-        const companyId = requireCompanyId(actor);
         const { managerIds, ...vehicleFields } = body;
         if (actor.role === MembershipRole.MANAGER && managerIds !== undefined) {
           throw new ForbiddenException();
@@ -123,14 +149,14 @@ export class VehiclesService {
           await fleet.vehicleAccess.sync(companyId, id, managerIds);
         }
         const vehicle = await fleet.vehicles.update(id, vehicleFields);
-        const [managerIdsByVehicle, driverIdsByVehicle] = await Promise.all([
-          fleet.vehicleAccess.activeManagerIds(companyId, [id]),
-          fleet.driverAllocations.activeDriverIds(companyId, [id]),
-        ]);
-        return Object.assign(new Vehicle(), vehicle, {
-          managerIds: managerIdsByVehicle.get(id) ?? [],
-          driverIds: driverIdsByVehicle.get(id) ?? [],
-        });
+        return (
+          await this.views(
+            companyId,
+            [vehicle],
+            fleet.vehicleAccess,
+            fleet.driverAllocations,
+          )
+        )[0];
       });
     } catch (error) {
       this.throwConflict(error);
@@ -153,24 +179,22 @@ export class VehiclesService {
     return this.vehicleAccess.history(actor, id);
   }
 
-  private async loadActiveAssignments(
-    companyId: string | null,
-    vehicles: Vehicle[],
-  ): Promise<void> {
-    if (!vehicles.length || !companyId) return;
+  private async views(
+    companyId: string,
+    vehicles: FleetVehicle[],
+    vehicleAccess: Pick<FleetVehicleAccessStore, 'activeManagerIds'>,
+    driverAllocation: Pick<DriverAllocation, 'activeDriverIds'>,
+  ): Promise<VehicleView[]> {
     const vehicleIds = vehicles.map(({ id }) => id);
-    const [managerAssignments, driverAssignments] = await Promise.all([
-      this.vehicleAccess.activeManagerIds(companyId, vehicleIds),
-      this.vehicles.manager.find(DriverVehicleAssignment, {
-        where: { companyId, vehicleId: In(vehicleIds), assignedTo: IsNull() },
-      }),
+    const [managerIds, driverIds] = await Promise.all([
+      vehicleAccess.activeManagerIds(companyId, vehicleIds),
+      driverAllocation.activeDriverIds(companyId, vehicleIds),
     ]);
-    for (const vehicle of vehicles) {
-      vehicle.managerIds = managerAssignments.get(vehicle.id) ?? [];
-      vehicle.driverIds = driverAssignments
-        .filter(({ vehicleId }) => vehicleId === vehicle.id)
-        .map(({ driverId }) => driverId);
-    }
+    return vehicles.map((vehicle) => ({
+      ...vehicle,
+      managerIds: managerIds.get(vehicle.id) ?? [],
+      driverIds: driverIds.get(vehicle.id) ?? [],
+    }));
   }
 
   private validatePurchaseDate(value?: string | null): void {
@@ -202,9 +226,6 @@ export class VehiclesService {
       }
       if (constraint === 'IDX_manager_assignments_active_pair') {
         throw new ConflictException('Manager already assigned');
-      }
-      if (constraint === 'IDX_driver_assignments_active_pair') {
-        throw new ConflictException('Driver already assigned');
       }
     }
     throw error;

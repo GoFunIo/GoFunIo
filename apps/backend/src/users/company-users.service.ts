@@ -22,6 +22,11 @@ import { PasswordRecoveryService } from './password-recovery.service';
 import { requireCompanyId, type SessionPrincipal } from './session-principal';
 import { User } from './users.entity';
 
+export type CompanyUser = User & {
+  companyId: string;
+  role: MembershipRole;
+};
+
 @Injectable()
 export class CompanyUsersService {
   constructor(
@@ -31,7 +36,7 @@ export class CompanyUsersService {
     @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
   ) {}
 
-  async list(companyId: string): Promise<User[]> {
+  async list(companyId: string): Promise<CompanyUser[]> {
     const { entities, raw } = await this.users
       .createQueryBuilder('user')
       .innerJoin(
@@ -57,10 +62,10 @@ export class CompanyUsersService {
     actor: SessionPrincipal,
     body: CreateCompanyUserDto,
     origin?: string,
-  ): Promise<User> {
+  ): Promise<CompanyUser> {
     const email = body.email.trim().toLowerCase();
     const companyId = requireCompanyId(actor);
-    let user: User;
+    let user: CompanyUser;
     try {
       user = await this.users.manager.transaction(async (manager) => {
         const memberships = await this.lockActiveMemberships(
@@ -75,11 +80,9 @@ export class CompanyUsersService {
         );
         const created = await manager.save(
           manager.create(User, {
-            companyId,
             email,
             firstName: body.firstName ?? null,
             lastName: body.lastName ?? null,
-            role: body.role,
             password: null,
             emailVerifiedAt: null,
           }),
@@ -91,7 +94,7 @@ export class CompanyUsersService {
             role: body.role,
           }),
         );
-        return created;
+        return this.contextualUser(created, companyId, body.role);
       });
     } catch (error) {
       rethrowEmailClaimError(
@@ -109,7 +112,7 @@ export class CompanyUsersService {
     actor: SessionPrincipal,
     id: string,
     body: UpdateCompanyUserDto,
-  ): Promise<User> {
+  ): Promise<CompanyUser> {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
@@ -144,7 +147,6 @@ export class CompanyUsersService {
       if (role) {
         membership.role = role;
         await manager.save(membership);
-        if (user.companyId === companyId) user.role = role;
       }
       if (cleanupManager) {
         await this.vehicleAccess.closeManager(companyId, id);
@@ -163,7 +165,7 @@ export class CompanyUsersService {
     await this.users.manager.transaction(async (manager) => {
       const memberships = await this.lockActiveMemberships(manager, companyId);
       this.requireAdmin(memberships, actor.id);
-      const { membership, user } = await this.findCompanyUser(
+      const { membership } = await this.findCompanyUser(
         manager,
         memberships,
         id,
@@ -174,7 +176,7 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.ADMIN && adminCount <= 1) {
         throw new ConflictException('Company must have an admin');
       }
-      await this.deactivateMembership(manager, membership, user);
+      await this.deactivateMembership(manager, membership);
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(companyId, id);
       }
@@ -186,7 +188,7 @@ export class CompanyUsersService {
     const companyId = requireCompanyId(actor);
     await this.users.manager.transaction(async (manager) => {
       const memberships = await this.lockActiveMemberships(manager, companyId);
-      const { membership, user } = await this.findCompanyUser(
+      const { membership } = await this.findCompanyUser(
         manager,
         memberships,
         actor.id,
@@ -199,7 +201,7 @@ export class CompanyUsersService {
           'Promote another admin or delete the company before leaving',
         );
       }
-      await this.deactivateMembership(manager, membership, user);
+      await this.deactivateMembership(manager, membership);
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(companyId, actor.id);
       }
@@ -254,7 +256,6 @@ export class CompanyUsersService {
   private async deactivateMembership(
     manager: EntityManager,
     membership: Membership,
-    user: User,
   ): Promise<void> {
     Object.assign(membership, {
       status: 'removed',
@@ -262,10 +263,6 @@ export class CompanyUsersService {
       tokenExpiresAt: null,
     });
     await manager.save(membership);
-    if (user.companyId === membership.companyId) {
-      user.companyId = null;
-      await manager.save(user);
-    }
   }
 
   private async softDeleteIfEmpty(
@@ -291,7 +288,7 @@ export class CompanyUsersService {
     user: User,
     companyId: string,
     role: MembershipRole,
-  ): User {
+  ): CompanyUser {
     return Object.assign(user, { companyId, role });
   }
 }

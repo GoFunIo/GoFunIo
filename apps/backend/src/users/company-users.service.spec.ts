@@ -17,7 +17,7 @@ describe('CompanyUsersService membership rules', () => {
   const managerId = 'manager-1';
 
   it('allows a manager to leave and closes vehicle access', async () => {
-    const target = user(managerId, MembershipRole.MANAGER);
+    const target = user(managerId);
     const { manager, service, vehicleAccess } = setup(
       [membership(managerId, MembershipRole.MANAGER)],
       target,
@@ -45,7 +45,7 @@ describe('CompanyUsersService membership rules', () => {
   it('blocks the sole admin from leaving', async () => {
     const { service } = setup(
       [membership(adminId, MembershipRole.ADMIN)],
-      user(adminId, MembershipRole.ADMIN),
+      user(adminId),
     );
 
     await expect(
@@ -62,7 +62,7 @@ describe('CompanyUsersService membership rules', () => {
   });
 
   it('blocks admin self-removal and self-demotion', async () => {
-    const { service } = setup([], user(adminId, MembershipRole.ADMIN));
+    const { service } = setup([], user(adminId));
     const actor = {
       id: adminId,
       companyId,
@@ -78,7 +78,7 @@ describe('CompanyUsersService membership rules', () => {
   });
 
   it('rejects empty updates', async () => {
-    const { service } = setup([], user(adminId, MembershipRole.ADMIN));
+    const { service } = setup([], user(adminId));
     await expect(
       service.update(
         { id: adminId, companyId, role: MembershipRole.ADMIN },
@@ -89,7 +89,7 @@ describe('CompanyUsersService membership rules', () => {
   });
 
   it('rejects an actor whose admin membership was revoked', async () => {
-    const { service } = setup([], user(managerId, MembershipRole.MANAGER));
+    const { service } = setup([], user(managerId));
 
     await expect(
       service.update(
@@ -146,7 +146,7 @@ describe('CompanyUsersService membership rules', () => {
     } as Membership;
   }
 
-  function user(id: string, role: MembershipRole): User {
-    return { id, companyId, role, email: `${id}@example.com` } as User;
+  function user(id: string): User {
+    return { id, email: `${id}@example.com` } as User;
   }
 });

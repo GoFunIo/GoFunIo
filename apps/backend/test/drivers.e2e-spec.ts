@@ -172,6 +172,85 @@ describe('Drivers (e2e)', () => {
       .expect(404);
   });
 
+  it('shows managers unallocated or accessible drivers, including shared drivers', async () => {
+    const admin = await signedIn('driver-visibility-admin@example.com');
+    const first = await inviteManager(
+      admin,
+      'driver-visibility-one@example.com',
+    );
+    const second = await inviteManager(
+      admin,
+      'driver-visibility-two@example.com',
+    );
+    const driver = await admin
+      .post('/drivers')
+      .send({ firstName: 'Shared', lastName: 'Driver' })
+      .expect(201);
+
+    await first.manager
+      .get('/drivers')
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.map(({ id }: { id: string }) => id)).toContain(
+          driver.body.id,
+        ),
+      );
+    const firstVehicle = await admin
+      .post('/vehicles')
+      .send(
+        vehicle({ managerIds: [first.user.id], registrationNumber: 'DRV301' }),
+      )
+      .expect(201);
+    await first.manager
+      .post(`/vehicles/${firstVehicle.body.id}/drivers`)
+      .send({ driverId: driver.body.id })
+      .expect(201);
+    await second.manager
+      .get('/drivers')
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.map(({ id }: { id: string }) => id)).not.toContain(
+          driver.body.id,
+        ),
+      );
+    await second.manager.get(`/drivers/${driver.body.id}`).expect(404);
+    await second.manager
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ notes: 'Hidden' })
+      .expect(404);
+
+    const secondVehicle = await admin
+      .post('/vehicles')
+      .send(
+        vehicle({ managerIds: [second.user.id], registrationNumber: 'DRV302' }),
+      )
+      .expect(201);
+    await second.manager
+      .post(`/vehicles/${secondVehicle.body.id}/drivers`)
+      .send({ driverId: driver.body.id })
+      .expect(201);
+    await first.manager
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ phone: '111222333' })
+      .expect(200);
+    await second.manager
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ notes: 'Shared' })
+      .expect(200);
+    await admin
+      .get('/drivers')
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.map(({ id }: { id: string }) => id)).toContain(
+          driver.body.id,
+        ),
+      );
+    await admin
+      .patch(`/drivers/${driver.body.id}`)
+      .send({ notes: 'Admin' })
+      .expect(200);
+  });
+
   it('isolates drivers between companies', async () => {
     const first = await signedIn('driver-first@example.com');
     const second = await signedIn('driver-second@example.com');

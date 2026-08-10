@@ -4,12 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './users.entity';
-import { MembershipRole } from './membership-role';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
-    companyId: 'company-1',
     email: 'test@example.com',
     password: 'salt.hash',
     googleId: null,
@@ -22,7 +20,6 @@ function makeUser(overrides: Partial<User> = {}): User {
     pendingEmail: null,
     emailChangeTokenHash: null,
     emailChangeTokenExpiresAt: null,
-    role: MembershipRole.ADMIN,
     emailVerifiedAt: new Date(),
     lastLoginAt: null,
     passwordVersion: 1,
@@ -33,7 +30,6 @@ function makeUser(overrides: Partial<User> = {}): User {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-    company: {} as User['company'],
     ...overrides,
   };
 }

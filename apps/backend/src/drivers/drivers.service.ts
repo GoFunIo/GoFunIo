@@ -1,13 +1,13 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import {
+  DRIVER_ALLOCATION,
+  type DriverAllocation,
+} from '../fleet/driver-allocation';
 import {
   FLEET_UNIT_OF_WORK,
   type FleetUnitOfWork,
@@ -16,6 +16,7 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
+import { MembershipRole } from '../users/membership-role';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { CreateDriverDto } from './dtos/create-driver.dto';
 import { UpdateDriverDto } from './dtos/update-driver.dto';
@@ -25,38 +26,39 @@ import { Driver } from './drivers.entity';
 @Injectable()
 export class DriversService {
   constructor(
-    @InjectRepository(Driver)
-    private readonly drivers: Repository<Driver>,
     @Inject(FLEET_UNIT_OF_WORK) private readonly fleet: FleetUnitOfWork,
+    @Inject(DRIVER_ALLOCATION)
+    private readonly driverAllocation: DriverAllocation,
   ) {}
 
-  list(actor: SessionPrincipal): Promise<Driver[]> {
+  async list(actor: SessionPrincipal): Promise<Driver[]> {
     if (!actor.companyId) return Promise.resolve([]);
-    return this.drivers.find({
-      where: { companyId: actor.companyId },
-      order: { lastName: 'ASC', firstName: 'ASC', id: 'ASC' },
-    });
+    return (await this.driverAllocation.list(actor)).map((driver) =>
+      Object.assign(new Driver(), driver),
+    );
   }
 
   async findOne(actor: SessionPrincipal, id: string): Promise<Driver> {
-    const driver = await this.drivers.findOneBy({
-      id,
-      companyId: requireCompanyId(actor),
-    });
-    if (!driver) throw new NotFoundException('Driver not found');
-    return driver;
+    return Object.assign(
+      new Driver(),
+      await this.driverAllocation.find(actor, id),
+    );
   }
 
   create(actor: SessionPrincipal, body: CreateDriverDto): Promise<Driver> {
-    return this.drivers.save(
-      this.drivers.create({
-        ...body,
-        companyId: requireCompanyId(actor),
-        email: body.email ?? null,
-        phone: body.phone ?? null,
-        notes: body.notes ?? null,
-      }),
-    );
+    return this.fleet.transact(async (fleet) => {
+      await fleet.driverAllocations.requireActor(actor);
+      return Object.assign(
+        new Driver(),
+        await fleet.drivers.create({
+          ...body,
+          companyId: requireCompanyId(actor),
+          email: body.email ?? null,
+          phone: body.phone ?? null,
+          notes: body.notes ?? null,
+        }),
+      );
+    });
   }
 
   async update(
@@ -67,35 +69,21 @@ export class DriversService {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
-    return this.drivers.manager.transaction(async (manager) => {
-      const driver = await manager.findOne(Driver, {
-        where: { id, companyId: requireCompanyId(actor) },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!driver) throw new NotFoundException('Driver not found');
-      Object.assign(driver, body);
-      return manager.save(driver);
+    return this.fleet.transact(async (fleet) => {
+      await fleet.driverAllocations.requireActor(actor);
+      await fleet.driverAllocations.find(actor, id, true);
+      return Object.assign(new Driver(), await fleet.drivers.update(id, body));
     });
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
-    await this.drivers.manager.transaction(async (manager) => {
-      const driver = await manager.findOne(Driver, {
-        where: { id, companyId: requireCompanyId(actor) },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!driver) throw new NotFoundException('Driver not found');
-      await manager
-        .createQueryBuilder()
-        .update(DriverVehicleAssignment)
-        .set({ assignedTo: () => 'clock_timestamp()' })
-        .where('"companyId" = :companyId', {
-          companyId: requireCompanyId(actor),
-        })
-        .andWhere('"driverId" = :driverId', { driverId: id })
-        .andWhere('"assignedTo" IS NULL')
-        .execute();
-      await manager.softDelete(Driver, id);
+    await this.fleet.transact(async (fleet) => {
+      if (actor.role !== MembershipRole.ADMIN) throw new ForbiddenException();
+      const companyId = requireCompanyId(actor);
+      await fleet.driverAllocations.requireActor(actor);
+      await fleet.driverAllocations.find(actor, id, true);
+      await fleet.driverAllocations.closeDriver(companyId, id);
+      await fleet.drivers.softDelete(id);
     });
   }
 
@@ -112,32 +100,21 @@ export class DriversService {
     vehicleId: string,
     body: CreateDriverAssignmentDto,
   ): Promise<DriverVehicleAssignment> {
-    try {
-      return await this.fleet.transact(async (fleet) => {
-        const companyId = requireCompanyId(actor);
-        if (!actor.role) throw new ForbiddenException();
-        await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
-        await fleet.vehicleAccess.find(actor, vehicleId, true);
-        await fleet.drivers.requireOne(companyId, body.driverId);
-        return Object.assign(
-          new DriverVehicleAssignment(),
-          await fleet.driverAllocations.assign(
-            companyId,
-            vehicleId,
-            body.driverId,
-          ),
-        );
-      });
-    } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        (error.driverError as { constraint?: string } | undefined)
-          ?.constraint === 'IDX_driver_assignments_active_pair'
-      ) {
-        throw new ConflictException('Driver already assigned');
-      }
-      throw error;
-    }
+    return this.fleet.transact(async (fleet) => {
+      const companyId = requireCompanyId(actor);
+      if (!actor.role) throw new ForbiddenException();
+      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      await fleet.vehicleAccess.find(actor, vehicleId, true);
+      await fleet.drivers.requireOne(companyId, body.driverId);
+      return Object.assign(
+        new DriverVehicleAssignment(),
+        await fleet.driverAllocations.assign(
+          companyId,
+          vehicleId,
+          body.driverId,
+        ),
+      );
+    });
   }
 
   async unassign(

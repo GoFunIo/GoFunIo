@@ -32,7 +32,6 @@ class MockThrottlerGuard implements CanActivate {
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
-    companyId: 'company-1',
     email: 'test@example.com',
     password: 'salt.hash',
     googleId: null,
@@ -45,7 +44,6 @@ function makeUser(overrides: Partial<User> = {}): User {
     pendingEmail: null,
     emailChangeTokenHash: null,
     emailChangeTokenExpiresAt: null,
-    role: MembershipRole.ADMIN,
     emailVerifiedAt: new Date(),
     lastLoginAt: null,
     passwordVersion: 2,
@@ -56,12 +54,13 @@ function makeUser(overrides: Partial<User> = {}): User {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-    company: {} as User['company'],
     ...overrides,
   };
 }
 
 describe('AuthController', () => {
+  const companyId = 'company-1';
+  const role = MembershipRole.ADMIN;
   let controller: AuthController;
   let emailRegistration: jest.Mocked<
     Pick<EmailRegistrationService, 'register'>
@@ -162,8 +161,8 @@ describe('AuthController', () => {
       });
       sessions.establish.mockResolvedValue({
         id: user.id,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
       });
       const session = {} as SessionData;
 
@@ -181,8 +180,8 @@ describe('AuthController', () => {
       expect(result).toMatchObject({
         id: user.id,
         email: user.email,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
         hasPassword: true,
       });
     });
@@ -195,8 +194,8 @@ describe('AuthController', () => {
       googleAuthentication.signin.mockResolvedValue(account);
       sessions.establish.mockResolvedValue({
         id: user.id,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
       });
       const session = {} as SessionData;
 
@@ -211,8 +210,8 @@ describe('AuthController', () => {
       expect(sessions.establish).toHaveBeenCalledWith(session, user.id);
       expect(result).toMatchObject({
         id: user.id,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
         hasPassword: false,
       });
     });
@@ -223,8 +222,8 @@ describe('AuthController', () => {
       googleAuthentication.link.mockResolvedValue(account);
       const principal: SessionPrincipal = {
         id: user.id,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
       };
 
       await expect(
@@ -271,8 +270,8 @@ describe('AuthController', () => {
       };
       const principal: SessionPrincipal = {
         id: user.id,
-        companyId: user.companyId,
-        role: user.role,
+        companyId,
+        role,
       };
       credentials.findAccount.mockResolvedValue(account);
 

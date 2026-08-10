@@ -3,28 +3,15 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
   VirtualColumn,
 } from 'typeorm';
-import { Company } from '../companies/companies.entity';
-import { MembershipRole } from './membership-role';
 
 @Entity('users')
-@Unique('UQ_users_id_company', ['id', 'companyId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-
-  @Column({ type: 'uuid', nullable: true })
-  companyId!: string | null;
-
-  @ManyToOne(() => Company, { nullable: true })
-  @JoinColumn({ name: 'companyId' })
-  company!: Company | null;
 
   @Column()
   email!: string;
@@ -67,9 +54,6 @@ export class User {
 
   @Column({ type: 'timestamptz', nullable: true, select: false })
   emailChangeTokenExpiresAt!: Date | null;
-
-  @Column({ type: 'enum', enum: MembershipRole, enumName: 'user_role' })
-  role!: MembershipRole;
 
   @Column({ type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null;

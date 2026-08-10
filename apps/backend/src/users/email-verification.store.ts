@@ -40,13 +40,6 @@ export class TypeOrmEmailVerificationStore implements EmailVerificationStore {
       .where('email = :email', { email })
       .andWhere('"emailVerifiedAt" IS NULL')
       .andWhere('"deletedAt" IS NULL')
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "companyId"
-          AND "company"."deletedAt" IS NULL
-        )`,
-      )
       .returning(['id', 'email'])
       .execute();
 
@@ -67,13 +60,6 @@ export class TypeOrmEmailVerificationStore implements EmailVerificationStore {
       .andWhere('"emailVerifiedAt" IS NULL')
       .andWhere('"verificationTokenExpiresAt" > :now', { now })
       .andWhere('"deletedAt" IS NULL')
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" "company"
-          WHERE "company"."id" = "companyId"
-          AND "company"."deletedAt" IS NULL
-        )`,
-      )
       .returning('id')
       .execute();
 

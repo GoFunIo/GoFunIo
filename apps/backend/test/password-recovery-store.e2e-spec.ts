@@ -30,16 +30,11 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
   });
 
   async function seedUser(overrides: Partial<User> = {}): Promise<User> {
-    const company = await dataSource
-      .getRepository(Company)
-      .save(dataSource.getRepository(Company).create({ name: 'Test Co' }));
     return dataSource.getRepository(User).save(
       dataSource.getRepository(User).create({
-        companyId: company.id,
         email: `user-${Date.now()}-${Math.random()}@example.com`,
         password: 'old.hash',
         emailVerifiedAt: new Date(),
-        role: MembershipRole.ADMIN,
         ...overrides,
       }),
     );

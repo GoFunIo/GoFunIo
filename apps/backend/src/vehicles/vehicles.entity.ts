@@ -5,14 +5,11 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
-import { ManagerVehicleAssignment } from './manager-vehicle-assignment.entity';
 
 export enum VehicleFuelType {
   DIESEL = 'DIESEL',
@@ -34,16 +31,6 @@ export class Vehicle {
   @ManyToOne(() => Company, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'companyId' })
   company!: Company;
-
-  @OneToMany(() => ManagerVehicleAssignment, (assignment) => assignment.vehicle)
-  managerAssignments!: ManagerVehicleAssignment[];
-
-  @OneToMany(() => DriverVehicleAssignment, (assignment) => assignment.vehicle)
-  driverAssignments!: DriverVehicleAssignment[];
-
-  managerIds!: string[];
-
-  driverIds!: string[];
 
   @Column({ type: 'varchar', length: 100 })
   brand!: string;

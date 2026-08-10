@@ -10,6 +10,8 @@ import { AddMembershipInvitations1754000000000 } from '../src/migrations/1754000
 import { AllowUsersWithoutCompany1755000000000 } from '../src/migrations/1755000000000-AllowUsersWithoutCompany';
 import { ReferenceManagerMembership1756000000000 } from '../src/migrations/1756000000000-ReferenceManagerMembership';
 import { AllowRemovedMemberships1757000000000 } from '../src/migrations/1757000000000-AllowRemovedMemberships';
+import { DropUserCompanyRole1758000000000 } from '../src/migrations/1758000000000-DropUserCompanyRole';
+import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -34,6 +36,7 @@ describe('database migrations', () => {
         AllowUsersWithoutCompany1755000000000,
         ReferenceManagerMembership1756000000000,
         AllowRemovedMemberships1757000000000,
+        DropUserCompanyRole1758000000000,
       ],
     });
 
@@ -73,18 +76,18 @@ describe('database migrations', () => {
         [schema],
       );
       expect(indexes.map(({ indexname }) => indexname)).toEqual([
-        'IDX_users_company',
         'IDX_users_email',
         'IDX_users_googleId',
         'IDX_users_pendingEmail',
       ]);
 
-      await expect(
-        database.query(`
-          INSERT INTO "users" ("companyId", "email", "role")
-          VALUES ('00000000-0000-0000-0000-000000000000', 'test@example.com', 'ADMIN')
-        `),
-      ).rejects.toMatchObject({ code: '23503' });
+      const contractedColumns = await database.query<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = 'users'
+           AND column_name IN ('companyId', 'role')`,
+        [schema],
+      );
+      expect(contractedColumns).toEqual([]);
 
       await expect(
         database.query(`
@@ -109,9 +112,8 @@ describe('database migrations', () => {
         INSERT INTO "companies" ("name") VALUES ('Other company') RETURNING "id"
       `);
       const [{ id: otherManagerId }] = await database.query<{ id: string }[]>(
-        `INSERT INTO "users" ("companyId", "email", "role")
-         VALUES ($1, 'other-manager@example.com', 'MANAGER') RETURNING "id"`,
-        [otherCompanyId],
+        `INSERT INTO "users" ("email")
+         VALUES ('other-manager@example.com') RETURNING "id"`,
       );
       await database.query(
         `INSERT INTO "memberships" ("userId", "companyId", "role")
@@ -133,9 +135,8 @@ describe('database migrations', () => {
       ).rejects.toMatchObject({ code: '23503' });
 
       const [{ id: managerId }] = await database.query<{ id: string }[]>(
-        `INSERT INTO "users" ("companyId", "email", "role")
-         VALUES ($1, 'local-manager@example.com', 'MANAGER') RETURNING "id"`,
-        [companyId],
+        `INSERT INTO "users" ("email")
+         VALUES ('local-manager@example.com') RETURNING "id"`,
       );
       await expect(
         database.query(
@@ -208,17 +209,9 @@ describe('database migrations', () => {
         ),
       ).rejects.toMatchObject({ code: '23505' });
 
-      const [companyIdColumn] = await database.query<
-        Array<{ is_nullable: string }>
-      >(
-        `SELECT is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'users' AND column_name = 'companyId'`,
-        [schema],
-      );
-      expect(companyIdColumn.is_nullable).toBe('YES');
-
       const [{ id: invitedUserId }] = await database.query<{ id: string }[]>(
-        `INSERT INTO "users" ("companyId", "email", "role")
-         VALUES (NULL, 'migration-invitee@example.com', 'MANAGER') RETURNING "id"`,
+        `INSERT INTO "users" ("email")
+          VALUES ('migration-invitee@example.com') RETURNING "id"`,
       );
       await database.query(
         `INSERT INTO "memberships" ("userId", "companyId", "role", "status")
@@ -241,13 +234,60 @@ describe('database migrations', () => {
         ),
       ).rejects.toMatchObject({ code: '23514' });
 
+      const [{ id: membershiplessUserId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
+      );
+      await expect(database.undoLastMigration()).rejects.toThrow(
+        'users without memberships exist',
+      );
+      await database.query(`DELETE FROM "users" WHERE id = $1`, [
+        membershiplessUserId,
+      ]);
+
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role", "status", "createdAt")
+         VALUES ($1, $2, 'ADMIN', 'active', now() + interval '1 day')`,
+        [invitedUserId, otherCompanyId],
+      );
+      await database.undoLastMigration();
+      await expect(
+        database.query<Array<{ companyId: string; role: string }>>(
+          `SELECT "companyId", role FROM "users" WHERE id = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual([
+        { companyId: otherCompanyId, role: MembershipRole.ADMIN },
+      ]);
+      const restoredDependencies = await database.query<
+        Array<{ constraint_name: string }>
+      >(
+        `SELECT constraint_name FROM information_schema.table_constraints
+         WHERE table_schema = $1 AND table_name = 'users'
+           AND constraint_name IN ('FK_users_company', 'UQ_users_id_company')
+         ORDER BY constraint_name`,
+        [schema],
+      );
+      expect(
+        restoredDependencies.map(({ constraint_name }) => constraint_name),
+      ).toEqual(['FK_users_company', 'UQ_users_id_company']);
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_users_company'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
+
       await database.undoLastMigration();
       await expect(
         database.query<{ status: string }[]>(
           `SELECT "status" FROM "memberships" WHERE "userId" = $1`,
           [invitedUserId],
         ),
-      ).resolves.toEqual([{ status: 'declined' }]);
+      ).resolves.toEqual(
+        expect.arrayContaining([{ status: 'active' }, { status: 'declined' }]),
+      );
       await database.undoLastMigration();
       await expect(
         database.query<{ id: string }[]>(

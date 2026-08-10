@@ -55,13 +55,6 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
             expectedPasswordVersion,
           })
           .andWhere('"deletedAt" IS NULL')
-          .andWhere(
-            `EXISTS (
-              SELECT 1 FROM "companies" "company"
-              WHERE "company"."id" = "companyId"
-              AND "company"."deletedAt" IS NULL
-            )`,
-          )
           .execute();
         return (result.affected ?? 0) > 0;
       });
@@ -90,13 +83,6 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
         .andWhere('"emailChangeTokenExpiresAt" > :now', { now })
         .andWhere('"pendingEmail" IS NOT NULL')
         .andWhere('"deletedAt" IS NULL')
-        .andWhere(
-          `EXISTS (
-            SELECT 1 FROM "companies" "company"
-            WHERE "company"."id" = "companyId"
-            AND "company"."deletedAt" IS NULL
-          )`,
-        )
         .execute();
       return (result.affected ?? 0) > 0;
     } catch (error) {

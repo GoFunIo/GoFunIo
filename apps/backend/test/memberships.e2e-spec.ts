@@ -49,15 +49,16 @@ describe('Memberships dual-write (e2e)', () => {
     const email = 'member-signup@example.com';
     await createVerifiedUser(app, email, 'password123');
 
-    const [user] = await dataSource.query<{ id: string; companyId: string }[]>(
-      `SELECT "id", "companyId" FROM "users" WHERE "email" = $1`,
+    const [user] = await dataSource.query<{ id: string }[]>(
+      `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
     );
+    const [membership] = await membershipsFor(user.id);
 
     expect(await membershipsFor(user.id)).toEqual([
       {
         userId: user.id,
-        companyId: user.companyId,
+        companyId: membership.companyId,
         role: MembershipRole.ADMIN,
         status: 'active',
       },
@@ -120,10 +121,11 @@ describe('Memberships dual-write (e2e)', () => {
   it('signin picks the oldest active membership as the current company', async () => {
     const email = 'member-oldest@example.com';
     await createVerifiedUser(app, email, 'password123');
-    const [user] = await dataSource.query<{ id: string; companyId: string }[]>(
-      `SELECT "id", "companyId" FROM "users" WHERE "email" = $1`,
+    const [user] = await dataSource.query<{ id: string }[]>(
+      `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
     );
+    const [initialMembership] = await membershipsFor(user.id);
     const [newerCompany] = await dataSource.query<{ id: string }[]>(
       `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
        VALUES ('Newer workspace', now(), now()) RETURNING "id"`,
@@ -141,7 +143,7 @@ describe('Memberships dual-write (e2e)', () => {
       .expect(201);
     const me = await agent.get('/auth/me').expect(200);
 
-    expect(me.body.companyId).toBe(user.companyId);
+    expect(me.body.companyId).toBe(initialMembership.companyId);
     expect(me.body.role).toBe(MembershipRole.ADMIN);
   });
 
@@ -208,10 +210,11 @@ describe('Memberships dual-write (e2e)', () => {
   it('lists active companies and switches the active workspace', async () => {
     const email = 'member-switch@example.com';
     await createVerifiedUser(app, email, 'password123');
-    const [user] = await dataSource.query<{ id: string; companyId: string }[]>(
-      `SELECT "id", "companyId" FROM "users" WHERE "email" = $1`,
+    const [user] = await dataSource.query<{ id: string }[]>(
+      `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
     );
+    const [initialMembership] = await membershipsFor(user.id);
     const [company] = await dataSource.query<{ id: string }[]>(
       `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
        VALUES ('Second workspace', now(), now()) RETURNING "id"`,
@@ -245,7 +248,7 @@ describe('Memberships dual-write (e2e)', () => {
         expect(response.body).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              id: user.companyId,
+              id: initialMembership.companyId,
               role: MembershipRole.ADMIN,
             }),
             {

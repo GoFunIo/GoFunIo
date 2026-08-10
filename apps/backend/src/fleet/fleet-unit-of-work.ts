@@ -8,6 +8,7 @@ import type { MembershipRole } from '../users/membership-role';
 import type { SessionPrincipal } from '../users/session-principal';
 import type { VehicleFuelType } from '../vehicles/vehicles.entity';
 import type { FleetManagerAssignment } from './vehicle-access';
+import type { DriverAllocationStore } from './driver-allocation';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -44,6 +45,16 @@ export interface FleetMembership {
 export interface FleetDriver {
   id: string;
   companyId: string;
+  deletedAt?: Date | null;
+}
+
+export interface FleetDriverInput {
+  companyId: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
 }
 
 export interface FleetDriverAssignment {
@@ -94,35 +105,16 @@ export interface FleetTransaction {
   };
   vehicleAccess: FleetVehicleAccessStore;
   drivers: {
+    create(input: FleetDriverInput): Promise<FleetDriver>;
+    update(
+      driverId: string,
+      fields: Partial<Omit<FleetDriverInput, 'companyId'>>,
+    ): Promise<FleetDriver>;
+    softDelete(driverId: string): Promise<void>;
     requireAll(companyId: string, driverIds: string[]): Promise<void>;
     requireOne(companyId: string, driverId: string): Promise<void>;
   };
-  driverAllocations: {
-    assign(
-      companyId: string,
-      vehicleId: string,
-      driverId: string,
-    ): Promise<FleetDriverAssignment>;
-    assignInitial(
-      companyId: string,
-      vehicleId: string,
-      driverIds: string[],
-    ): Promise<void>;
-    unassign(
-      companyId: string,
-      vehicleId: string,
-      driverId: string,
-    ): Promise<void>;
-    history(
-      companyId: string,
-      vehicleId: string,
-    ): Promise<FleetDriverAssignment[]>;
-    activeDriverIds(
-      companyId: string,
-      vehicleIds: string[],
-    ): Promise<Map<string, string[]>>;
-    closeVehicle(companyId: string, vehicleId: string): Promise<void>;
-  };
+  driverAllocations: DriverAllocationStore;
 }
 
 export interface FleetUnitOfWork {
@@ -150,6 +142,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
     work: (fleet: FleetTransaction) => Promise<T>,
   ): Promise<T> {
     const vehicles = this.vehicles.map((vehicle) => ({ ...vehicle }));
+    const drivers = this.drivers.map((driver) => ({ ...driver }));
     const managerAssignments = this.managerAssignments.map((assignment) => ({
       ...assignment,
     }));
@@ -325,11 +318,33 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
           },
         },
         drivers: {
+          create: async (input) => {
+            const driver = {
+              ...input,
+              id: `driver-${this.drivers.length + 1}`,
+              deletedAt: null,
+            };
+            this.drivers.push(driver);
+            return driver;
+          },
+          update: async (driverId, fields) => {
+            const driver = this.drivers.find(({ id }) => id === driverId);
+            if (!driver) throw new NotFoundException('Driver not found');
+            Object.assign(driver, fields);
+            return driver;
+          },
+          softDelete: async (driverId) => {
+            const driver = this.drivers.find(({ id }) => id === driverId);
+            if (!driver) throw new NotFoundException('Driver not found');
+            driver.deletedAt = new Date();
+          },
           requireAll: async (companyId, driverIds) => {
             const valid = driverIds.every((driverId) =>
               this.drivers.some(
                 (driver) =>
-                  driver.id === driverId && driver.companyId === companyId,
+                  driver.id === driverId &&
+                  driver.companyId === companyId &&
+                  !driver.deletedAt,
               ),
             );
             if (!valid) throw new BadRequestException('Invalid driver');
@@ -337,12 +352,57 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
           requireOne: async (companyId, driverId) => {
             const valid = this.drivers.some(
               (driver) =>
-                driver.id === driverId && driver.companyId === companyId,
+                driver.id === driverId &&
+                driver.companyId === companyId &&
+                !driver.deletedAt,
             );
             if (!valid) throw new BadRequestException('Invalid driver');
           },
         },
         driverAllocations: {
+          requireActor: async (actor) => {
+            const valid =
+              (actor.role === 'ADMIN' || actor.role === 'MANAGER') &&
+              this.memberships.some(
+                ({ userId, companyId, role, status }) =>
+                  userId === actor.id &&
+                  companyId === actor.companyId &&
+                  role === actor.role &&
+                  status === 'active',
+              );
+            if (!valid) throw new ForbiddenException();
+          },
+          find: async (actor, driverId) => {
+            const driver = this.drivers.find(
+              ({ id, companyId, deletedAt }) =>
+                id === driverId && companyId === actor.companyId && !deletedAt,
+            );
+            const visible =
+              driver &&
+              (actor.role === 'ADMIN' ||
+                (actor.role === 'MANAGER' &&
+                  (!this.driverAssignments.some(
+                    (assignment) =>
+                      assignment.companyId === actor.companyId &&
+                      assignment.driverId === driverId &&
+                      assignment.assignedTo === null,
+                  ) ||
+                    this.driverAssignments.some(
+                      (assignment) =>
+                        assignment.companyId === actor.companyId &&
+                        assignment.driverId === driverId &&
+                        assignment.assignedTo === null &&
+                        this.managerAssignments.some(
+                          (access) =>
+                            access.companyId === actor.companyId &&
+                            access.vehicleId === assignment.vehicleId &&
+                            access.managerId === actor.id &&
+                            access.assignedTo === null,
+                        ),
+                    ))));
+            if (!visible) throw new NotFoundException('Driver not found');
+            return driver;
+          },
           assign: async (companyId, vehicleId, driverId) => {
             if (
               this.driverAssignments.some(
@@ -427,10 +487,23 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
               }
             }
           },
+          closeDriver: async (companyId, driverId) => {
+            const now = new Date();
+            for (const assignment of this.driverAssignments) {
+              if (
+                assignment.companyId === companyId &&
+                assignment.driverId === driverId &&
+                assignment.assignedTo === null
+              ) {
+                assignment.assignedTo = now;
+              }
+            }
+          },
         },
       });
     } catch (error) {
       this.vehicles.splice(0, this.vehicles.length, ...vehicles);
+      this.drivers.splice(0, this.drivers.length, ...drivers);
       this.managerAssignments.splice(
         0,
         this.managerAssignments.length,

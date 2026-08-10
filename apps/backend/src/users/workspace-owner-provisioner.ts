@@ -63,12 +63,14 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
         const reservation =
           'passwordHash' in input &&
           existing?.deletedAt === null &&
-          existing.companyId === null &&
           existing.password === null &&
           existing.googleId === null &&
           existing.emailVerifiedAt === null &&
           (await manager.exists(Membership, {
             where: { userId: existing.id, status: 'pending' },
+          })) &&
+          !(await manager.exists(Membership, {
+            where: { userId: existing.id, status: 'active' },
           }))
             ? existing
             : null;
@@ -83,13 +85,11 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
         );
         const user = await manager.save(
           Object.assign(reservation ?? manager.create(User), {
-            companyId: company.id,
             email: input.email,
             password: 'passwordHash' in input ? input.passwordHash : null,
             googleId: 'googleId' in input ? input.googleId : null,
             firstName: 'googleId' in input ? input.firstName : null,
             lastName: 'googleId' in input ? input.lastName : null,
-            role: MembershipRole.ADMIN,
             emailVerifiedAt: 'googleId' in input ? input.emailVerifiedAt : null,
             verificationTokenHash:
               'verificationTokenHash' in input
@@ -107,7 +107,7 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           manager.create(Membership, {
             userId: user.id,
             companyId: company.id,
-            role: user.role,
+            role: MembershipRole.ADMIN,
           }),
         );
         return {

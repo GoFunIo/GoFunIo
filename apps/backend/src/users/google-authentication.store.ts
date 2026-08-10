@@ -111,9 +111,7 @@ export class TypeOrmGoogleAuthenticationStore implements GoogleAuthenticationSto
   ): Promise<GoogleAccountRecord | null> {
     const user = await this.users
       .createQueryBuilder('user')
-      .innerJoin('user.company', 'company')
       .where(where, parameters)
-      .andWhere('company."deletedAt" IS NULL')
       .getOne();
     return user
       ? {

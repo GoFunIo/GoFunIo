@@ -88,17 +88,6 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
         .where('user.passwordResetTokenHash = :tokenHash', { tokenHash })
         .andWhere('user.passwordResetTokenExpiresAt > :now', { now })
         .andWhere('user.deletedAt IS NULL')
-        .andWhere(
-          `(EXISTS (
-            SELECT 1 FROM "companies" "company"
-            WHERE "company"."id" = "user"."companyId"
-            AND "company"."deletedAt" IS NULL
-          ) OR EXISTS (
-            SELECT 1 FROM "memberships" "membership"
-            WHERE "membership"."userId" = "user"."id"
-            AND "membership"."status" = 'pending'
-          ))`,
-        )
         .setLock('pessimistic_write')
         .getOne();
       if (!user) return false;
@@ -155,24 +144,7 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
         passwordResetTokenExpiresAt: expiresAt,
       })
       .where(where, parameters)
-      .andWhere('"deletedAt" IS NULL')
-      .andWhere(
-        firstPasswordOnly
-          ? `(EXISTS (
-              SELECT 1 FROM "companies" "company"
-              WHERE "company"."id" = "companyId"
-              AND "company"."deletedAt" IS NULL
-            ) OR EXISTS (
-              SELECT 1 FROM "memberships" "membership"
-              WHERE "membership"."userId" = "users"."id"
-              AND "membership"."status" = 'pending'
-            ))`
-          : `EXISTS (
-              SELECT 1 FROM "companies" "company"
-              WHERE "company"."id" = "companyId"
-              AND "company"."deletedAt" IS NULL
-            )`,
-      );
+      .andWhere('"deletedAt" IS NULL');
     if (firstPasswordOnly) {
       query = query.andWhere('"password" IS NULL');
     }
