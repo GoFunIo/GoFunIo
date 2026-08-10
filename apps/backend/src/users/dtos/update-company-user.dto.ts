@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
-  IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -23,6 +23,6 @@ export class UpdateCompanyUserDto {
   lastName?: string | null;
 
   @ValidateIf((_, value) => value !== undefined)
-  @IsEnum(MembershipRole)
+  @IsIn([MembershipRole.ADMIN, MembershipRole.MANAGER])
   role?: MembershipRole;
 }

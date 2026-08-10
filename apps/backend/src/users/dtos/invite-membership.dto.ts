@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsEnum, MaxLength } from 'class-validator';
+import { IsEmail, IsIn, MaxLength } from 'class-validator';
 import { lowercaseEmail } from '../../common/dto-transforms';
 import { MembershipRole } from '../membership-role';
 
@@ -9,6 +9,6 @@ export class InviteMembershipDto {
   @MaxLength(254)
   email!: string;
 
-  @IsEnum(MembershipRole)
+  @IsIn([MembershipRole.ADMIN, MembershipRole.MANAGER])
   role!: MembershipRole;
 }

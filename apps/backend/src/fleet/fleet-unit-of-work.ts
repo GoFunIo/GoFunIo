@@ -4,7 +4,10 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import type { MembershipRole } from '../users/membership-role';
+import {
+  isWorkspaceAdmin,
+  type MembershipRole,
+} from '../users/membership-role';
 import type { SessionPrincipal } from '../users/session-principal';
 import type { VehicleFuelType } from '../vehicles/vehicles.entity';
 import type { FleetManagerAssignment } from './vehicle-access';
@@ -203,7 +206,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             );
             const visible =
               activeMembership &&
-              (actor.role === 'ADMIN' ||
+              (isWorkspaceAdmin(actor.role) ||
                 (actor.role === 'MANAGER' &&
                   this.managerAssignments.some(
                     (assignment) =>
@@ -231,7 +234,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             );
             const visible =
               activeMembership &&
-              (actor.role === 'ADMIN' ||
+              (isWorkspaceAdmin(actor.role) ||
                 (actor.role === 'MANAGER' &&
                   vehicle?.deletedAt === null &&
                   this.managerAssignments.some(
@@ -362,7 +365,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         driverAllocations: {
           requireActor: async (actor) => {
             const valid =
-              (actor.role === 'ADMIN' || actor.role === 'MANAGER') &&
+              (isWorkspaceAdmin(actor.role) || actor.role === 'MANAGER') &&
               this.memberships.some(
                 ({ userId, companyId, role, status }) =>
                   userId === actor.id &&
@@ -379,7 +382,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             );
             const visible =
               driver &&
-              (actor.role === 'ADMIN' ||
+              (isWorkspaceAdmin(actor.role) ||
                 (actor.role === 'MANAGER' &&
                   (!this.driverAssignments.some(
                     (assignment) =>

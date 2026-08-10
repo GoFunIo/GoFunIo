@@ -33,12 +33,12 @@ import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import { UserDto } from './dtos/user.dto';
 import { AdminGuard } from './guards/admin.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
-import { requireCompanyId, type SessionPrincipal } from './session-principal';
+import type { SessionPrincipal } from './session-principal';
 
 @ApiTags('Company Users')
 @Controller('users')
 @Serialize(UserDto)
-@UseGuards(SessionAuthGuard, AdminGuard)
+@UseGuards(SessionAuthGuard)
 export class CompanyUsersController {
   constructor(private readonly companyUsers: CompanyUsersService) {}
 
@@ -47,10 +47,8 @@ export class CompanyUsersController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
   @Get()
-  list(
-    @CurrentPrincipal() principal: SessionPrincipal,
-  ): Promise<CompanyUser[]> {
-    return this.companyUsers.list(requireCompanyId(principal));
+  list(@CurrentPrincipal() principal: SessionPrincipal) {
+    return this.companyUsers.list(principal);
   }
 
   @ApiOperation({ summary: 'Create company user' })
@@ -60,7 +58,7 @@ export class CompanyUsersController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiConflictResponse({ description: 'Email already in use' })
   @Post()
-  @UseGuards(AllowedOriginGuard)
+  @UseGuards(AdminGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   create(
     @CurrentPrincipal() principal: SessionPrincipal,
@@ -80,7 +78,7 @@ export class CompanyUsersController {
     description: 'Cannot demote yourself or remove the last admin',
   })
   @Patch(':id')
-  @UseGuards(AllowedOriginGuard)
+  @UseGuards(AdminGuard, AllowedOriginGuard)
   update(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
@@ -99,11 +97,25 @@ export class CompanyUsersController {
   })
   @Delete(':id')
   @HttpCode(204)
-  @UseGuards(AllowedOriginGuard)
+  @UseGuards(AdminGuard, AllowedOriginGuard)
   remove(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     return this.companyUsers.remove(principal, id);
+  }
+
+  @ApiOperation({ summary: 'Transfer workspace ownership to an active admin' })
+  @ApiNoContentResponse()
+  @ApiForbiddenResponse({ description: 'Owner role required' })
+  @ApiConflictResponse({ description: 'Target must be an active admin' })
+  @Post(':id/transfer-ownership')
+  @HttpCode(204)
+  @UseGuards(AdminGuard, AllowedOriginGuard)
+  transferOwnership(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.companyUsers.transferOwnership(principal, id);
   }
 }

@@ -84,7 +84,7 @@ describe('Company users (e2e)', () => {
       .expect(201);
   });
 
-  it('denies team endpoints to MANAGER', async () => {
+  it('gives MANAGER a minimal read-only team catalog', async () => {
     const admin = await signedIn('role-admin@example.com');
     const { token } = await invite(admin, 'role-manager@example.com');
     await request(app.getHttpServer())
@@ -97,10 +97,60 @@ describe('Company users (e2e)', () => {
       .send({ email: 'role-manager@example.com', password: 'manager-password' })
       .expect(201);
 
-    await manager.get('/users').expect(403);
+    const { body: context } = await admin.get('/auth/me').expect(200);
+    const hiddenUsers = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "users" (email)
+       VALUES ('pending-catalog@example.com'), ('removed-catalog@example.com'), ('foreign-catalog@example.com')
+       RETURNING id`,
+    );
+    const [{ id: foreignCompanyId }] = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "companies" (name) VALUES ('Foreign catalog workspace') RETURNING id`,
+    );
+    await dataSource.query(
+      `INSERT INTO "memberships" ("userId", "companyId", role, status)
+       VALUES ($1, $4, 'MANAGER', 'pending'),
+              ($2, $4, 'MANAGER', 'removed'),
+              ($3, $5, 'MANAGER', 'active')`,
+      [
+        hiddenUsers[0].id,
+        hiddenUsers[1].id,
+        hiddenUsers[2].id,
+        context.companyId,
+        foreignCompanyId,
+      ],
+    );
+
+    await manager
+      .get('/users')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toHaveLength(2);
+        expect(
+          body.map((user: Record<string, unknown>) => Object.keys(user).sort()),
+        ).toEqual([
+          ['email', 'firstName', 'id', 'lastName', 'role'],
+          ['email', 'firstName', 'id', 'lastName', 'role'],
+        ]);
+      });
     await manager
       .post('/users')
       .send({ email: 'blocked@example.com', role: MembershipRole.MANAGER })
+      .expect(403);
+    const team = await admin.get('/users').expect(200);
+    const owner = team.body.find(
+      ({ role }: { role: MembershipRole }) => role === MembershipRole.OWNER,
+    );
+    await manager
+      .patch(`/users/${owner.id}`)
+      .send({ firstName: 'Blocked' })
+      .expect(403);
+    await manager.delete(`/users/${owner.id}`).expect(403);
+    await manager
+      .post('/users/invitations')
+      .send({
+        email: 'blocked-invite@example.com',
+        role: MembershipRole.MANAGER,
+      })
       .expect(403);
   });
 
@@ -160,6 +210,50 @@ describe('Company users (e2e)', () => {
         role: MembershipRole.MANAGER,
       })
       .expect(409);
+  });
+
+  it('transfers ownership to an active admin and protects the new owner', async () => {
+    const owner = await signedIn('owner-transfer@example.com');
+    const { user: admin } = await invite(
+      owner,
+      'new-owner@example.com',
+      MembershipRole.ADMIN,
+    );
+    const { user: manager } = await invite(
+      owner,
+      'owner-transfer-manager@example.com',
+    );
+
+    await owner.post(`/users/${manager.id}/transfer-ownership`).expect(409);
+
+    await owner.post(`/users/${admin.id}/transfer-ownership`).expect(204);
+    await owner
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => expect(body.role).toBe(MembershipRole.ADMIN));
+    await owner
+      .get('/users')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(
+          body.find(({ id }: { id: string }) => id === admin.id).role,
+        ).toBe(MembershipRole.OWNER);
+      });
+    await owner
+      .patch(`/users/${admin.id}`)
+      .send({ firstName: 'Blocked' })
+      .expect(403);
+    await owner.delete(`/users/${admin.id}`).expect(403);
+    await owner.post(`/users/${admin.id}/transfer-ownership`).expect(403);
+  });
+
+  it('rejects OWNER outside ownership transfer', async () => {
+    const owner = await signedIn('owner-role-input@example.com');
+
+    await owner
+      .post('/users')
+      .send({ email: 'second-owner@example.com', role: MembershipRole.OWNER })
+      .expect(400);
   });
 
   it('serializes concurrent email claims', async () => {

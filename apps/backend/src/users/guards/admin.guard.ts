@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { MembershipRole } from '../membership-role';
+import { isWorkspaceAdmin } from '../membership-role';
 import type { SessionPrincipal } from '../session-principal';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class AdminGuard implements CanActivate {
     const principal = context
       .switchToHttp()
       .getRequest<Request & { principal: SessionPrincipal }>().principal;
-    if (principal.role !== MembershipRole.ADMIN) {
+    if (!isWorkspaceAdmin(principal.role)) {
       throw new ForbiddenException();
     }
     return true;

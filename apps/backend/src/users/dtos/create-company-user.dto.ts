@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
-  IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -27,6 +27,6 @@ export class CreateCompanyUserDto {
   @MaxLength(100)
   lastName?: string | null;
 
-  @IsEnum(MembershipRole)
+  @IsIn([MembershipRole.ADMIN, MembershipRole.MANAGER])
   role!: MembershipRole;
 }

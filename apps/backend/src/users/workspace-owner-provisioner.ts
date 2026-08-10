@@ -107,7 +107,7 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           manager.create(Membership, {
             userId: user.id,
             companyId: company.id,
-            role: MembershipRole.ADMIN,
+            role: MembershipRole.OWNER,
           }),
         );
         return {

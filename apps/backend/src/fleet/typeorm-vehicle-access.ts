@@ -13,7 +13,7 @@ import {
   SelectQueryBuilder,
 } from 'typeorm';
 import { Membership } from '../users/membership.entity';
-import { MembershipRole } from '../users/membership-role';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -168,7 +168,7 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
   ): SelectQueryBuilder<Vehicle> {
     const companyId = requireCompanyId(actor);
     if (
-      actor.role !== MembershipRole.ADMIN &&
+      !isWorkspaceAdmin(actor.role) &&
       actor.role !== MembershipRole.MANAGER
     ) {
       throw new ForbiddenException();
@@ -186,7 +186,7 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
         )`,
         { actorId: actor.id, actorRole: actor.role },
       );
-    if (includeDeletedForAdmin && actor.role === MembershipRole.ADMIN) {
+    if (includeDeletedForAdmin && isWorkspaceAdmin(actor.role)) {
       qb.withDeleted();
     }
     if (actor.role === MembershipRole.MANAGER) {

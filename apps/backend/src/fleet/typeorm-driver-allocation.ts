@@ -16,7 +16,7 @@ import {
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
 import { Membership } from '../users/membership.entity';
-import { MembershipRole } from '../users/membership-role';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -81,7 +81,7 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
   ): SelectQueryBuilder<Driver> {
     const companyId = requireCompanyId(actor);
     if (
-      actor.role !== MembershipRole.ADMIN &&
+      !isWorkspaceAdmin(actor.role) &&
       actor.role !== MembershipRole.MANAGER
     ) {
       throw new ForbiddenException();
@@ -128,7 +128,7 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
     actor: SessionPrincipal,
   ): Promise<void> {
     if (
-      actor.role !== MembershipRole.ADMIN &&
+      !isWorkspaceAdmin(actor.role) &&
       actor.role !== MembershipRole.MANAGER
     ) {
       throw new ForbiddenException();

@@ -45,7 +45,7 @@ describe('Memberships dual-write (e2e)', () => {
     );
   }
 
-  it('email signup writes an ADMIN membership', async () => {
+  it('email signup writes an OWNER membership', async () => {
     const email = 'member-signup@example.com';
     await createVerifiedUser(app, email, 'password123');
 
@@ -59,13 +59,13 @@ describe('Memberships dual-write (e2e)', () => {
       {
         userId: user.id,
         companyId: membership.companyId,
-        role: MembershipRole.ADMIN,
+        role: MembershipRole.OWNER,
         status: 'active',
       },
     ]);
   });
 
-  it('google signup writes an ADMIN membership', async () => {
+  it('google signup writes an OWNER membership', async () => {
     mockVerifyIdToken.mockResolvedValue(
       buildGoogleVerifyResult({
         sub: 'google-membership-user',
@@ -82,7 +82,7 @@ describe('Memberships dual-write (e2e)', () => {
       {
         userId: response.body.id,
         companyId: response.body.companyId,
-        role: MembershipRole.ADMIN,
+        role: MembershipRole.OWNER,
         status: 'active',
       },
     ]);
@@ -144,7 +144,7 @@ describe('Memberships dual-write (e2e)', () => {
     const me = await agent.get('/auth/me').expect(200);
 
     expect(me.body.companyId).toBe(initialMembership.companyId);
-    expect(me.body.role).toBe(MembershipRole.ADMIN);
+    expect(me.body.role).toBe(MembershipRole.OWNER);
   });
 
   it('user without memberships signs in with a company-less session', async () => {
@@ -196,13 +196,13 @@ describe('Memberships dual-write (e2e)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body.companyId).toBe(created.body.id);
-        expect(body.role).toBe(MembershipRole.ADMIN);
+        expect(body.role).toBe(MembershipRole.OWNER);
       });
     await agent.get('/auth/companies').expect(200, [
       {
         id: created.body.id,
         name: 'New workspace',
-        role: MembershipRole.ADMIN,
+        role: MembershipRole.OWNER,
       },
     ]);
   });
@@ -249,7 +249,7 @@ describe('Memberships dual-write (e2e)', () => {
           expect.arrayContaining([
             expect.objectContaining({
               id: initialMembership.companyId,
-              role: MembershipRole.ADMIN,
+              role: MembershipRole.OWNER,
             }),
             {
               id: company.id,

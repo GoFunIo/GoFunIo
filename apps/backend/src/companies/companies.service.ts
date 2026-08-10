@@ -32,7 +32,7 @@ export class CompaniesService {
         manager.create(Membership, {
           userId,
           companyId: company.id,
-          role: MembershipRole.ADMIN,
+          role: MembershipRole.OWNER,
         }),
       );
       return company;

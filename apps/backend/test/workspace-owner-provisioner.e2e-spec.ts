@@ -60,7 +60,7 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
       .getRepository(Membership)
       .findOneByOrFail({
         userId: user.id,
-        role: MembershipRole.ADMIN,
+        role: MembershipRole.OWNER,
         status: 'active',
       });
     await expect(

@@ -37,6 +37,8 @@ export class UserDto {
   pendingEmail!: string | null;
 
   @Expose()
-  @Transform(({ obj }: { obj: CurrentUserView }) => Boolean(obj.hasPassword))
+  @Transform(({ obj }: { obj: CurrentUserView }) =>
+    obj.companyId === undefined ? undefined : Boolean(obj.hasPassword),
+  )
   hasPassword!: boolean;
 }

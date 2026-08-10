@@ -8,9 +8,13 @@ Osoba posiadająca jedno konto w systemie. User może nie należeć do żadnego 
 
 Izolowany obszar danych jednej organizacji. W kodzie i bazie jest reprezentowany jako Company.
 
+## Workspace Owner
+
+Jedyna aktywna Membership z rolą OWNER w danym Workspace. Ma wszystkie uprawnienia ADMINa i jest chroniona przed edycją, degradacją oraz usunięciem przez innych członków. Może atomowo przekazać własność aktywnej Membership z rolą ADMIN, stając się ADMINem. Przed opuszczeniem Workspace musi przekazać własność albo usunąć Workspace.
+
 ## Membership
 
-Relacja Usera z Workspace. Określa rolę Usera w danym Workspace oraz stan dostępu, np. oczekujący, aktywny lub odrzucony.
+Relacja Usera z Workspace. Określa rolę Usera w danym Workspace oraz stan dostępu, np. oczekujący, aktywny lub odrzucony. OWNER i ADMIN zarządzają członkami Workspace; MANAGER może przeglądać tożsamości i role wszystkich aktywnych Membership, ale nie może nimi zarządzać.
 
 ## Active Workspace
 
@@ -50,12 +54,12 @@ Pojazd należący do jednego Workspace.
 
 ## Driver
 
-Kierowca należący do jednego Workspace. Driver może mieć jednocześnie dostęp do wielu Vehicle. ADMIN widzi wszystkich Driverów w Workspace. MANAGER widzi Driverów przypisanych do Vehicle objętych jego Vehicle Access oraz Driverów bez żadnego aktywnego Driver Allocation.
+Kierowca należący do jednego Workspace. Driver może opcjonalnie reprezentować tę samą osobę co jedna Membership w tym Workspace, zachowując niezależne dane profilu. Membership może mieć najwyżej jednego Drivera w danym Workspace; odebranie dostępu nie usuwa tej relacji. Driver może być jednocześnie odpowiedzialny za wiele Vehicle. ADMIN widzi wszystkich Driverów w Workspace. MANAGER widzi Driverów przypisanych do Vehicle objętych jego Vehicle Access oraz Driverów bez żadnego aktywnego Driver Allocation.
 
 ## Vehicle Access
 
-Czasowa relacja Managera z Vehicle. Określa, które Vehicle Manager może widzieć i modyfikować. ADMIN ma dostęp do wszystkich Vehicle w Active Workspace bez tej relacji.
+Czasowa relacja Managera z Vehicle. Określa, które Vehicle Manager może widzieć i modyfikować. OWNER i ADMIN zarządzają Vehicle Access; MANAGER nie może go zmieniać. OWNER i ADMIN mają dostęp do wszystkich Vehicle w Active Workspace bez tej relacji.
 
 ## Driver Allocation
 
-Czasowa relacja Drivera z Vehicle. Relacja jest many-to-many: Driver może być aktywnie przypisany do wielu Vehicle, a Vehicle do wielu Driverów.
+Czasowa relacja aktualnej odpowiedzialności Drivera za Vehicle. Driver może mieć wiele aktywnych Driver Allocation, ale Vehicle najwyżej jedno. Nowe przypisanie kończy poprzednie aktywne Driver Allocation tego Vehicle; Vehicle może pozostać bez aktywnego przypisania. OWNER i ADMIN zarządzają Driver Allocation wszystkich Vehicle; MANAGER wyłącznie Vehicle objętych własnym Vehicle Access.

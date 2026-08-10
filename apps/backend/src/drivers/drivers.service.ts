@@ -16,7 +16,7 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
-import { MembershipRole } from '../users/membership-role';
+import { isWorkspaceAdmin } from '../users/membership-role';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { CreateDriverDto } from './dtos/create-driver.dto';
 import { UpdateDriverDto } from './dtos/update-driver.dto';
@@ -78,7 +78,7 @@ export class DriversService {
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
     await this.fleet.transact(async (fleet) => {
-      if (actor.role !== MembershipRole.ADMIN) throw new ForbiddenException();
+      if (!isWorkspaceAdmin(actor.role)) throw new ForbiddenException();
       const companyId = requireCompanyId(actor);
       await fleet.driverAllocations.requireActor(actor);
       await fleet.driverAllocations.find(actor, id, true);

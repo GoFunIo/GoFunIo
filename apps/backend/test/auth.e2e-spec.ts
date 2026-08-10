@@ -65,7 +65,7 @@ describe('Auth (e2e)', () => {
 
     expect(me.body).toMatchObject({
       email,
-      role: 'ADMIN',
+      role: 'OWNER',
       hasPassword: true,
     });
     expect(me.body.password).toBeUndefined();
@@ -402,7 +402,7 @@ describe('Auth (e2e)', () => {
 
     expect(signin.body).toMatchObject({
       email: 'new-google@example.com',
-      role: 'ADMIN',
+      role: 'OWNER',
     });
     expect(signin.body.password).toBeUndefined();
 

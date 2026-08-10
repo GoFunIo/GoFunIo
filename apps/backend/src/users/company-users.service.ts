@@ -17,7 +17,7 @@ import {
   rethrowEmailClaimError,
 } from './email-claim.util';
 import { Membership } from './membership.entity';
-import { MembershipRole } from './membership-role';
+import { isWorkspaceAdmin, MembershipRole } from './membership-role';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { requireCompanyId, type SessionPrincipal } from './session-principal';
 import { User } from './users.entity';
@@ -26,6 +26,11 @@ export type CompanyUser = User & {
   companyId: string;
   role: MembershipRole;
 };
+
+type CompanyUserCatalogEntry = Pick<
+  CompanyUser,
+  'id' | 'firstName' | 'lastName' | 'email' | 'role'
+>;
 
 @Injectable()
 export class CompanyUsersService {
@@ -36,7 +41,10 @@ export class CompanyUsersService {
     @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
   ) {}
 
-  async list(companyId: string): Promise<CompanyUser[]> {
+  async list(
+    actor: SessionPrincipal,
+  ): Promise<Array<CompanyUser | CompanyUserCatalogEntry>> {
+    const companyId = requireCompanyId(actor);
     const { entities, raw } = await this.users
       .createQueryBuilder('user')
       .innerJoin(
@@ -49,13 +57,25 @@ export class CompanyUsersService {
       .orderBy('membership.createdAt', 'ASC')
       .addOrderBy('user.id', 'ASC')
       .getRawAndEntities();
-    return entities.map((user, index) =>
+    const users = entities.map((user, index) =>
       this.contextualUser(
         user,
         companyId,
         raw[index].contextRole as MembershipRole,
       ),
     );
+    if (!users.some(({ id, role }) => id === actor.id && role === actor.role)) {
+      throw new ForbiddenException();
+    }
+    if (isWorkspaceAdmin(actor.role)) return users;
+    if (actor.role !== MembershipRole.MANAGER) throw new ForbiddenException();
+    return users.map(({ id, firstName, lastName, email, role }) => ({
+      id,
+      firstName,
+      lastName,
+      email,
+      role,
+    }));
   }
 
   async create(
@@ -116,7 +136,7 @@ export class CompanyUsersService {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
-    if (id === actor.id && body.role && body.role !== MembershipRole.ADMIN) {
+    if (id === actor.id && body.role && body.role !== actor.role) {
       throw new ConflictException('Cannot demote yourself');
     }
     const companyId = requireCompanyId(actor);
@@ -128,15 +148,11 @@ export class CompanyUsersService {
         memberships,
         id,
       );
-      const admins = memberships.filter(
-        ({ role }) => role === MembershipRole.ADMIN,
-      );
-      if (
-        membership.role === MembershipRole.ADMIN &&
-        body.role === MembershipRole.MANAGER &&
-        admins.length <= 1
-      ) {
-        throw new ConflictException('Company must have an admin');
+      if (membership.role === MembershipRole.OWNER) {
+        if (actor.id !== id) throw new ForbiddenException();
+        if (body.role && body.role !== MembershipRole.OWNER) {
+          throw new ConflictException('Transfer ownership first');
+        }
       }
 
       const cleanupManager =
@@ -170,12 +186,8 @@ export class CompanyUsersService {
         memberships,
         id,
       );
-      const adminCount = memberships.filter(
-        ({ role }) => role === MembershipRole.ADMIN,
-      ).length;
-      if (membership.role === MembershipRole.ADMIN && adminCount <= 1) {
-        throw new ConflictException('Company must have an admin');
-      }
+      if (membership.role === MembershipRole.OWNER)
+        throw new ForbiddenException();
       await this.deactivateMembership(manager, membership);
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(companyId, id);
@@ -193,12 +205,9 @@ export class CompanyUsersService {
         memberships,
         actor.id,
       );
-      const adminCount = memberships.filter(
-        ({ role }) => role === MembershipRole.ADMIN,
-      ).length;
-      if (membership.role === MembershipRole.ADMIN && adminCount <= 1) {
+      if (membership.role === MembershipRole.OWNER) {
         throw new ConflictException(
-          'Promote another admin or delete the company before leaving',
+          'Transfer ownership or delete the company before leaving',
         );
       }
       await this.deactivateMembership(manager, membership);
@@ -206,6 +215,27 @@ export class CompanyUsersService {
         await this.vehicleAccess.closeManager(companyId, actor.id);
       }
       await this.softDeleteIfEmpty(manager, companyId);
+    });
+  }
+
+  async transferOwnership(
+    actor: SessionPrincipal,
+    targetId: string,
+  ): Promise<void> {
+    const companyId = requireCompanyId(actor);
+    await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      const owner = memberships.find(({ userId }) => userId === actor.id);
+      if (owner?.role !== MembershipRole.OWNER) throw new ForbiddenException();
+      const target = memberships.find(({ userId }) => userId === targetId);
+      if (target?.role !== MembershipRole.ADMIN) {
+        throw new ConflictException('Ownership requires an active admin');
+      }
+
+      owner.role = MembershipRole.ADMIN;
+      await manager.save(owner);
+      target.role = MembershipRole.OWNER;
+      await manager.save(target);
     });
   }
 
@@ -245,8 +275,7 @@ export class CompanyUsersService {
   private requireAdmin(memberships: Membership[], actorId: string): void {
     if (
       !memberships.some(
-        ({ userId, role }) =>
-          userId === actorId && role === MembershipRole.ADMIN,
+        ({ userId, role }) => userId === actorId && isWorkspaceAdmin(role),
       )
     ) {
       throw new ForbiddenException();

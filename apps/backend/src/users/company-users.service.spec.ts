@@ -42,9 +42,9 @@ describe('CompanyUsersService membership rules', () => {
     );
   });
 
-  it('blocks the sole admin from leaving', async () => {
+  it('blocks the owner from leaving', async () => {
     const { service } = setup(
-      [membership(adminId, MembershipRole.ADMIN)],
+      [membership(adminId, MembershipRole.OWNER)],
       user(adminId),
     );
 
@@ -52,11 +52,11 @@ describe('CompanyUsersService membership rules', () => {
       service.leave({
         id: adminId,
         companyId,
-        role: MembershipRole.ADMIN,
+        role: MembershipRole.OWNER,
       }),
     ).rejects.toThrow(
       new ConflictException(
-        'Promote another admin or delete the company before leaving',
+        'Transfer ownership or delete the company before leaving',
       ),
     );
   });
@@ -98,6 +98,42 @@ describe('CompanyUsersService membership rules', () => {
         { firstName: 'Blocked' },
       ),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('blocks an admin from changing the owner', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [
+        membership(ownerId, MembershipRole.OWNER),
+        membership(adminId, MembershipRole.ADMIN),
+      ],
+      user(ownerId),
+    );
+
+    await expect(
+      service.update(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        ownerId,
+        { firstName: 'Blocked' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('transfers ownership from the owner to an active admin', async () => {
+    const ownerId = 'owner-1';
+    const owner = membership(ownerId, MembershipRole.OWNER);
+    const admin = membership(adminId, MembershipRole.ADMIN);
+    const { manager, service } = setup([owner, admin], user(adminId));
+
+    await service.transferOwnership(
+      { id: ownerId, companyId, role: MembershipRole.OWNER },
+      adminId,
+    );
+
+    expect(owner.role).toBe(MembershipRole.ADMIN);
+    expect(admin.role).toBe(MembershipRole.OWNER);
+    expect(manager.save).toHaveBeenNthCalledWith(1, owner);
+    expect(manager.save).toHaveBeenNthCalledWith(2, admin);
   });
 
   function setup(activeMemberships: Membership[], target: User) {

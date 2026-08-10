@@ -11,6 +11,7 @@ import { AllowUsersWithoutCompany1755000000000 } from '../src/migrations/1755000
 import { ReferenceManagerMembership1756000000000 } from '../src/migrations/1756000000000-ReferenceManagerMembership';
 import { AllowRemovedMemberships1757000000000 } from '../src/migrations/1757000000000-AllowRemovedMemberships';
 import { DropUserCompanyRole1758000000000 } from '../src/migrations/1758000000000-DropUserCompanyRole';
+import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-AddWorkspaceOwner';
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
@@ -37,6 +38,7 @@ describe('database migrations', () => {
         ReferenceManagerMembership1756000000000,
         AllowRemovedMemberships1757000000000,
         DropUserCompanyRole1758000000000,
+        AddWorkspaceOwner1759000000000,
       ],
     });
 
@@ -88,6 +90,41 @@ describe('database migrations', () => {
         [schema],
       );
       expect(contractedColumns).toEqual([]);
+
+      const [{ id: backfillCompanyId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "companies" (name) VALUES ('Owner backfill') RETURNING id`,
+      );
+      const backfillUsers = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" (email)
+         VALUES ('owner-backfill-first@example.com'), ('owner-backfill-second@example.com')
+         RETURNING id`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", role, "createdAt")
+         VALUES ($1, $3, 'ADMIN', '2026-01-01T00:00:00Z'),
+                ($2, $3, 'ADMIN', '2026-01-02T00:00:00Z')`,
+        [backfillUsers[0].id, backfillUsers[1].id, backfillCompanyId],
+      );
+      await database.undoLastMigration();
+      await database.runMigrations();
+      await expect(
+        database.query<{ userId: string; role: string }[]>(
+          `SELECT "userId", role FROM "memberships" WHERE "companyId" = $1 ORDER BY "createdAt"`,
+          [backfillCompanyId],
+        ),
+      ).resolves.toEqual([
+        { userId: backfillUsers[0].id, role: MembershipRole.OWNER },
+        { userId: backfillUsers[1].id, role: MembershipRole.ADMIN },
+      ]);
+
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_memberships_active_owner'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
 
       await expect(
         database.query(`
@@ -148,6 +185,21 @@ describe('database migrations', () => {
       await database.query(
         `INSERT INTO "memberships" ("userId", "companyId", "role")
          VALUES ($1, $2, 'MANAGER')`,
+        [managerId, companyId],
+      );
+      await database.query(
+        `UPDATE "memberships" SET role = 'OWNER' WHERE "userId" = $1 AND "companyId" = $2`,
+        [managerId, companyId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "memberships" ("userId", "companyId", role)
+           VALUES ($1, $2, 'OWNER')`,
+          [otherManagerId, companyId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+      await database.query(
+        `UPDATE "memberships" SET role = 'MANAGER' WHERE "userId" = $1 AND "companyId" = $2`,
         [managerId, companyId],
       );
       await expect(
@@ -239,6 +291,7 @@ describe('database migrations', () => {
       >(
         `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
       );
+      await database.undoLastMigration();
       await expect(database.undoLastMigration()).rejects.toThrow(
         'users without memberships exist',
       );
