@@ -6,7 +6,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { Membership } from './membership.entity';
-import { UsersService } from './users.service';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { UserProfileController } from './user-profile.controller';
@@ -54,6 +53,9 @@ import {
 import { MembershipInvitationsController } from './membership-invitations.controller';
 import { MembershipInvitationsService } from './membership-invitations.service';
 import { FleetModule } from '../fleet/fleet.module';
+import { UserProfileStore } from './user-profile.store';
+import { UserProfilesService } from './user-profiles.service';
+import { USER_PROFILES } from './user-profiles';
 
 @Module({
   imports: [
@@ -68,7 +70,9 @@ import { FleetModule } from '../fleet/fleet.module';
     MembershipInvitationsController,
   ],
   providers: [
-    UsersService,
+    UserProfileStore,
+    UserProfilesService,
+    { provide: USER_PROFILES, useExisting: UserProfilesService },
     SessionAuthGuard,
     AllowedOriginGuard,
     AdminGuard,
@@ -131,6 +135,6 @@ import { FleetModule } from '../fleet/fleet.module';
       useClass: AuthWorkflowExceptionFilter,
     },
   ],
-  exports: [UsersService, SessionsService, SessionAuthGuard, AdminGuard],
+  exports: [SessionsService, SessionAuthGuard, AdminGuard],
 })
 export class UsersModule {}

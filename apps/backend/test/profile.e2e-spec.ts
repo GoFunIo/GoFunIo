@@ -39,6 +39,27 @@ describe('Profile and company (e2e)', () => {
         });
       });
     await agent.patch('/users/me').send({ role: 'ADMIN' }).expect(400);
+    await agent.patch('/users/me').send({}).expect(400);
+
+    await agent
+      .patch('/users/me')
+      .send({ firstName: null })
+      .expect(200)
+      .expect((res) => expect(res.body.firstName).toBeNull());
+
+    for (const field of [
+      'email',
+      'companyId',
+      'password',
+      'googleId',
+      'verificationTokenHash',
+      'passwordResetTokenHash',
+    ]) {
+      await agent
+        .patch('/users/me')
+        .send({ [field]: 'owned' })
+        .expect(400);
+    }
   });
 
   it('changes password and keeps current session valid', async () => {

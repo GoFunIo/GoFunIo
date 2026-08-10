@@ -5,6 +5,7 @@ import {
   Get,
   Headers,
   HttpCode,
+  Inject,
   Post,
   Query,
   Session,
@@ -37,6 +38,7 @@ import type { CurrentUserView } from './current-user-view';
 import type { UserAccount } from './user-account';
 import { GoogleAuthenticationService } from './google-authentication.service';
 import { SwitchCompanyDto } from './dtos/switch-company.dto';
+import { USER_PROFILES, type UserProfiles } from './user-profiles';
 
 @Controller('auth')
 export class AuthController {
@@ -48,6 +50,7 @@ export class AuthController {
     private readonly emailChange: EmailChangeService,
     private readonly credentials: CredentialAuthenticationService,
     private readonly googleAuthentication: GoogleAuthenticationService,
+    @Inject(USER_PROFILES) private readonly userProfiles: UserProfiles,
   ) {}
 
   @Post('signup')
@@ -130,7 +133,7 @@ export class AuthController {
   async getMe(
     @CurrentPrincipal() principal: SessionPrincipal,
   ): Promise<CurrentUserView> {
-    const account = await this.credentials.findAccount(principal.id);
+    const account = await this.userProfiles.get(principal.id);
     if (!account) throw new UnauthorizedException();
     return {
       ...account,

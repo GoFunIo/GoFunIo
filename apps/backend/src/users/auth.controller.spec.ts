@@ -21,6 +21,7 @@ import type { SessionPrincipal } from './session-principal';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
 import { GoogleAuthenticationService } from './google-authentication.service';
+import { USER_PROFILES, type UserProfiles } from './user-profiles';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -72,9 +73,8 @@ describe('AuthController', () => {
     Pick<PasswordRecoveryService, 'request' | 'reset'>
   >;
   let emailChange: jest.Mocked<Pick<EmailChangeService, 'confirm'>>;
-  let credentials: jest.Mocked<
-    Pick<CredentialAuthenticationService, 'signin' | 'findAccount'>
-  >;
+  let credentials: jest.Mocked<Pick<CredentialAuthenticationService, 'signin'>>;
+  let userProfiles: jest.Mocked<Pick<UserProfiles, 'get'>>;
   let sessions: jest.Mocked<
     Pick<
       SessionsService,
@@ -90,7 +90,8 @@ describe('AuthController', () => {
     emailVerification = { verify: jest.fn(), resend: jest.fn() };
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
     emailChange = { confirm: jest.fn() };
-    credentials = { signin: jest.fn(), findAccount: jest.fn() };
+    credentials = { signin: jest.fn() };
+    userProfiles = { get: jest.fn() };
     sessions = {
       establish: jest.fn(),
       clear: jest.fn(),
@@ -110,6 +111,7 @@ describe('AuthController', () => {
         { provide: PasswordRecoveryService, useValue: passwordRecovery },
         { provide: EmailChangeService, useValue: emailChange },
         { provide: CredentialAuthenticationService, useValue: credentials },
+        { provide: USER_PROFILES, useValue: userProfiles },
         { provide: SessionsService, useValue: sessions },
         {
           provide: GoogleAuthenticationService,
@@ -273,14 +275,14 @@ describe('AuthController', () => {
         companyId,
         role,
       };
-      credentials.findAccount.mockResolvedValue(account);
+      userProfiles.get.mockResolvedValue(account);
 
       await expect(controller.getMe(principal)).resolves.toEqual({
         ...account,
         companyId: principal.companyId,
         role: principal.role,
       });
-      expect(credentials.findAccount).toHaveBeenCalledWith(user.id);
+      expect(userProfiles.get).toHaveBeenCalledWith(user.id);
     });
 
     it('rejects a missing account', async () => {
@@ -289,7 +291,7 @@ describe('AuthController', () => {
         companyId: 'company-1',
         role: MembershipRole.ADMIN,
       };
-      credentials.findAccount.mockResolvedValue(null);
+      userProfiles.get.mockResolvedValue(null);
 
       await expect(controller.getMe(principal)).rejects.toBeInstanceOf(
         UnauthorizedException,

@@ -18,18 +18,19 @@ import { ChangePasswordDto } from './dtos/change-password.dto';
 import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { UserDto } from './dtos/user.dto';
 import { SessionAuthGuard } from './guards/session-auth.guard';
-import { User } from './users.entity';
-import { UsersService } from './users.service';
 import type { SessionPrincipal } from './session-principal';
 import { SessionsService } from './sessions.service';
 import { EmailChangeService } from './email-change.service';
 import { CredentialAuthenticationService } from './credential-authentication.service';
 import { CompanyUsersService } from './company-users.service';
+import { Inject } from '@nestjs/common';
+import { USER_PROFILES, type UserProfiles } from './user-profiles';
+import type { CurrentUserView } from './current-user-view';
 
 @Controller('users/me')
 export class UserProfileController {
   constructor(
-    private usersService: UsersService,
+    @Inject(USER_PROFILES) private readonly userProfiles: UserProfiles,
     private sessions: SessionsService,
     private emailChange: EmailChangeService,
     private credentials: CredentialAuthenticationService,
@@ -49,8 +50,12 @@ export class UserProfileController {
   updateProfile(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: UpdateProfileDto,
-  ): Promise<User> {
-    return this.usersService.update(principal.id, body);
+  ): Promise<CurrentUserView> {
+    return this.userProfiles.update(principal.id, body).then((account) => ({
+      ...account,
+      companyId: principal.companyId,
+      role: principal.role,
+    }));
   }
 
   @Patch('email')
