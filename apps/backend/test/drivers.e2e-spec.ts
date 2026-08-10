@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { MembershipRole } from '../src/users/membership-role';
 import { createTestApp } from './helpers/create-test-app';
 import {
@@ -251,11 +252,12 @@ describe('Drivers (e2e)', () => {
     await first.manager
       .get('/drivers')
       .expect(200)
-      .expect((res) =>
-        expect(res.body.map(({ id }: { id: string }) => id)).toContain(
-          driver.body.id,
-        ),
-      );
+      .expect((res) => {
+        const visible = res.body.find(
+          ({ id }: { id: string }) => id === driver.body.id,
+        );
+        expect(visible.activeVehicles).toEqual([]);
+      });
     const firstVehicle = await admin
       .post('/vehicles')
       .send(vehicle({ registrationNumber: 'DRV301' }))
@@ -265,6 +267,19 @@ describe('Drivers (e2e)', () => {
       .post(`/vehicles/${firstVehicle.body.id}/drivers`)
       .send({ driverId: driver.body.id })
       .expect(201);
+    await first.manager
+      .get(`/drivers/${driver.body.id}`)
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.activeVehicles).toEqual([
+          {
+            id: firstVehicle.body.id,
+            brand: 'Volvo',
+            model: 'FH',
+            registrationNumber: 'DRV301',
+          },
+        ]),
+      );
     await second.manager
       .get('/drivers')
       .expect(200)
@@ -289,6 +304,22 @@ describe('Drivers (e2e)', () => {
       .send({ driverId: driver.body.id })
       .expect(201);
     await first.manager
+      .get(`/drivers/${driver.body.id}`)
+      .expect(200)
+      .expect((res) =>
+        expect(
+          res.body.activeVehicles.map(({ id }: { id: string }) => id),
+        ).toEqual([firstVehicle.body.id]),
+      );
+    await second.manager
+      .get(`/drivers/${driver.body.id}`)
+      .expect(200)
+      .expect((res) =>
+        expect(
+          res.body.activeVehicles.map(({ id }: { id: string }) => id),
+        ).toEqual([secondVehicle.body.id]),
+      );
+    await first.manager
       .patch(`/drivers/${driver.body.id}`)
       .send({ phone: '111222333' })
       .expect(200);
@@ -299,15 +330,42 @@ describe('Drivers (e2e)', () => {
     await admin
       .get('/drivers')
       .expect(200)
-      .expect((res) =>
-        expect(res.body.map(({ id }: { id: string }) => id)).toContain(
-          driver.body.id,
-        ),
-      );
+      .expect((res) => {
+        const visible = res.body.find(
+          ({ id }: { id: string }) => id === driver.body.id,
+        );
+        expect(
+          visible.activeVehicles.map(({ id }: { id: string }) => id).sort(),
+        ).toEqual([firstVehicle.body.id, secondVehicle.body.id].sort());
+      });
     await admin
       .patch(`/drivers/${driver.body.id}`)
       .send({ notes: 'Admin' })
       .expect(200);
+  });
+
+  it('loads active vehicles with query count independent of driver count', async () => {
+    const admin = await signedIn('driver-query-count@example.com');
+    await admin
+      .post('/drivers')
+      .send({ firstName: 'First', lastName: 'Driver' })
+      .expect(201);
+    const query = jest.spyOn(app.get(DataSource).logger, 'logQuery');
+    try {
+      await admin.get('/drivers').expect(200);
+      const oneDriver = query.mock.calls.length;
+      await admin
+        .post('/drivers')
+        .send({ firstName: 'Second', lastName: 'Driver' })
+        .expect(201);
+      query.mockClear();
+
+      await admin.get('/drivers').expect(200);
+
+      expect(query).toHaveBeenCalledTimes(oneDriver);
+    } finally {
+      query.mockRestore();
+    }
   });
 
   it('links one membership and preserves identity through removal', async () => {

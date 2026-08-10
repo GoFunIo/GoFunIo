@@ -9,6 +9,13 @@ export interface FleetDriverProjection {
   lastName: string;
 }
 
+export interface FleetActiveVehicleProjection {
+  id: string;
+  brand: string;
+  model: string;
+  registrationNumber: string;
+}
+
 export interface DriverAllocationStore {
   requireActor(actor: SessionPrincipal): Promise<void>;
   find(
@@ -41,6 +48,10 @@ export interface DriverAllocationStore {
 export interface DriverAllocation {
   list(actor: SessionPrincipal): Promise<FleetDriver[]>;
   find(actor: SessionPrincipal, driverId: string): Promise<FleetDriver>;
+  activeVehicles(
+    actor: SessionPrincipal,
+    driverIds: string[],
+  ): Promise<Map<string, FleetActiveVehicleProjection[]>>;
   activeDrivers(
     companyId: string,
     vehicleIds: string[],

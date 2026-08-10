@@ -30,6 +30,7 @@ import type { SessionPrincipal } from '../users/session-principal';
 import { CreateDriverDto } from './dtos/create-driver.dto';
 import { DriverDto } from './dtos/driver.dto';
 import { UpdateDriverDto } from './dtos/update-driver.dto';
+import type { DriverView } from './driver-view';
 import { Driver } from './drivers.entity';
 import { DriversService } from './drivers.service';
 
@@ -44,7 +45,7 @@ export class DriversController {
   @ApiOkResponse({ type: DriverDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get()
-  list(@CurrentPrincipal() principal: SessionPrincipal): Promise<Driver[]> {
+  list(@CurrentPrincipal() principal: SessionPrincipal): Promise<DriverView[]> {
     return this.drivers.list(principal);
   }
 
@@ -56,7 +57,7 @@ export class DriversController {
   findOne(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<Driver> {
+  ): Promise<DriverView> {
     return this.drivers.findOne(principal, id);
   }
 

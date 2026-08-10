@@ -17,6 +17,7 @@ import { Vehicle } from '../vehicles/vehicles.entity';
 import type {
   DriverAllocation,
   DriverAllocationStore,
+  FleetActiveVehicleProjection,
   FleetDriverProjection,
 } from './driver-allocation';
 
@@ -34,6 +35,13 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
 
   find(actor: SessionPrincipal, driverId: string): Promise<Driver> {
     return this.findVisible(this.dataSource.manager, actor, driverId);
+  }
+
+  activeVehicles(
+    actor: SessionPrincipal,
+    driverIds: string[],
+  ): Promise<Map<string, FleetActiveVehicleProjection[]>> {
+    return this.activeVehiclesFrom(this.dataSource.manager, actor, driverIds);
   }
 
   activeDrivers(
@@ -235,6 +243,72 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
       .getRawMany<FleetDriverProjection & { vehicleId: string }>();
     for (const { vehicleId, ...profile } of assignments) {
       result.set(vehicleId, profile);
+    }
+    return result;
+  }
+
+  private async activeVehiclesFrom(
+    manager: EntityManager,
+    actor: SessionPrincipal,
+    driverIds: string[],
+  ): Promise<Map<string, FleetActiveVehicleProjection[]>> {
+    const result = new Map(
+      driverIds.map((driverId) => [
+        driverId,
+        [] as FleetActiveVehicleProjection[],
+      ]),
+    );
+    if (!driverIds.length) return result;
+    const companyId = requireCompanyId(actor);
+    if (
+      !isWorkspaceAdmin(actor.role) &&
+      actor.role !== MembershipRole.MANAGER
+    ) {
+      throw new ForbiddenException();
+    }
+    const qb = manager
+      .createQueryBuilder(DriverVehicleAssignment, 'assignment')
+      .innerJoin(
+        Vehicle,
+        'vehicle',
+        'vehicle.id = assignment."vehicleId" AND vehicle."companyId" = assignment."companyId"',
+      )
+      .select('assignment.driverId', 'driverId')
+      .addSelect('vehicle.id', 'id')
+      .addSelect('vehicle.brand', 'brand')
+      .addSelect('vehicle.model', 'model')
+      .addSelect('vehicle.registrationNumber', 'registrationNumber')
+      .where('assignment.companyId = :companyId', { companyId })
+      .andWhere('assignment.driverId IN (:...driverIds)', { driverIds })
+      .andWhere('assignment.assignedTo IS NULL')
+      .andWhere('vehicle.deletedAt IS NULL')
+      .andWhere(
+        `EXISTS (
+          SELECT 1 FROM "memberships" actor_membership
+          WHERE actor_membership."userId" = :actorId
+            AND actor_membership."companyId" = assignment."companyId"
+            AND actor_membership.role = :actorRole
+            AND actor_membership.status = 'active'
+        )`,
+        { actorId: actor.id, actorRole: actor.role },
+      );
+    if (actor.role === MembershipRole.MANAGER) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM "manager_vehicle_assignments" access
+          WHERE access."vehicleId" = assignment."vehicleId"
+            AND access."companyId" = assignment."companyId"
+            AND access."managerId" = :managerId
+            AND access."assignedTo" IS NULL
+        )`,
+        { managerId: actor.id },
+      );
+    }
+    const assignments = await qb.getRawMany<
+      FleetActiveVehicleProjection & { driverId: string }
+    >();
+    for (const { driverId, ...vehicle } of assignments) {
+      result.get(driverId)?.push(vehicle);
     }
     return result;
   }

@@ -10,6 +10,7 @@ import {
 } from '../fleet/driver-allocation';
 import {
   FLEET_UNIT_OF_WORK,
+  type FleetDriver,
   type FleetUnitOfWork,
 } from '../fleet/fleet-unit-of-work';
 import {
@@ -20,6 +21,7 @@ import { isWorkspaceAdmin } from '../users/membership-role';
 import { CreateDriverAssignmentDto } from './dtos/create-driver-assignment.dto';
 import { CreateDriverDto } from './dtos/create-driver.dto';
 import { UpdateDriverDto } from './dtos/update-driver.dto';
+import type { DriverView } from './driver-view';
 import { DriverVehicleAssignment } from './driver-vehicle-assignment.entity';
 import { Driver } from './drivers.entity';
 
@@ -31,18 +33,16 @@ export class DriversService {
     private readonly driverAllocation: DriverAllocation,
   ) {}
 
-  async list(actor: SessionPrincipal): Promise<Driver[]> {
+  async list(actor: SessionPrincipal): Promise<DriverView[]> {
     if (!actor.companyId) return Promise.resolve([]);
-    return (await this.driverAllocation.list(actor)).map((driver) =>
-      Object.assign(new Driver(), driver),
-    );
+    return this.views(actor, await this.driverAllocation.list(actor));
   }
 
-  async findOne(actor: SessionPrincipal, id: string): Promise<Driver> {
-    return Object.assign(
-      new Driver(),
+  async findOne(actor: SessionPrincipal, id: string): Promise<DriverView> {
+    const [driver] = await this.views(actor, [
       await this.driverAllocation.find(actor, id),
-    );
+    ]);
+    return driver;
   }
 
   create(actor: SessionPrincipal, body: CreateDriverDto): Promise<Driver> {
@@ -136,5 +136,20 @@ export class DriversService {
       await fleet.vehicleAccess.find(actor, vehicleId, true);
       await fleet.driverAllocations.unassign(companyId, vehicleId, driverId);
     });
+  }
+
+  private async views(
+    actor: SessionPrincipal,
+    drivers: FleetDriver[],
+  ): Promise<DriverView[]> {
+    const activeVehicles = await this.driverAllocation.activeVehicles(
+      actor,
+      drivers.map(({ id }) => id),
+    );
+    return drivers.map((driver) =>
+      Object.assign(new Driver(), driver, {
+        activeVehicles: activeVehicles.get(driver.id) ?? [],
+      }),
+    );
   }
 }
