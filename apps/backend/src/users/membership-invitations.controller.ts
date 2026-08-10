@@ -9,7 +9,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
@@ -26,6 +37,13 @@ export class MembershipInvitationsController {
   constructor(private readonly invitations: MembershipInvitationsService) {}
 
   @ApiOperation({ summary: 'Invite user to company' })
+  @ApiCreatedResponse({ description: 'Invitation sent' })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'User is already a member or account unavailable',
+  })
   @Post('users/invitations')
   @UseGuards(SessionAuthGuard, AdminGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -43,6 +61,8 @@ export class MembershipInvitationsController {
   }
 
   @ApiOperation({ summary: 'List pending invitations for current user' })
+  @ApiOkResponse({ description: 'Pending invitations for current user' })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get('auth/invitations')
   @UseGuards(SessionAuthGuard)
   list(@CurrentPrincipal() principal: SessionPrincipal) {
@@ -50,6 +70,11 @@ export class MembershipInvitationsController {
   }
 
   @ApiOperation({ summary: 'Accept invitation by token' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or invalid/expired invitation',
+  })
   @Post('auth/invitations/accept')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -61,6 +86,9 @@ export class MembershipInvitationsController {
   }
 
   @ApiOperation({ summary: 'Decline invitation' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Pending invitation not found' })
   @Post('auth/invitations/:membershipId/decline')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -72,6 +100,9 @@ export class MembershipInvitationsController {
   }
 
   @ApiOperation({ summary: 'Accept invitation by id' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Pending invitation not found' })
   @Post('auth/invitations/:membershipId/accept')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)

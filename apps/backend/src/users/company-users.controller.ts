@@ -11,7 +11,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
@@ -32,6 +43,9 @@ export class CompanyUsersController {
   constructor(private readonly companyUsers: CompanyUsersService) {}
 
   @ApiOperation({ summary: 'List company users' })
+  @ApiOkResponse({ type: UserDto, isArray: true })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
   @Get()
   list(
     @CurrentPrincipal() principal: SessionPrincipal,
@@ -40,6 +54,11 @@ export class CompanyUsersController {
   }
 
   @ApiOperation({ summary: 'Create company user' })
+  @ApiCreatedResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({ description: 'Email already in use' })
   @Post()
   @UseGuards(AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -52,6 +71,14 @@ export class CompanyUsersController {
   }
 
   @ApiOperation({ summary: 'Update company user' })
+  @ApiOkResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiConflictResponse({
+    description: 'Cannot demote yourself or remove the last admin',
+  })
   @Patch(':id')
   @UseGuards(AllowedOriginGuard)
   update(
@@ -63,6 +90,13 @@ export class CompanyUsersController {
   }
 
   @ApiOperation({ summary: 'Remove company user' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiConflictResponse({
+    description: 'Cannot delete yourself or the last admin',
+  })
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)

@@ -11,7 +11,17 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -33,6 +43,8 @@ export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
 
   @ApiOperation({ summary: 'List vehicles' })
+  @ApiOkResponse({ type: VehicleListDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get()
   @Serialize(VehicleListDto)
   list(
@@ -43,6 +55,9 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Get vehicle by id' })
+  @ApiOkResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Get(':id')
   @Serialize(VehicleDto)
   findOne(
@@ -53,6 +68,9 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'List manager assignment history for vehicle' })
+  @ApiOkResponse({ type: ManagerAssignmentDto, isArray: true })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Get(':id/manager-assignments')
   @Serialize(ManagerAssignmentDto)
   managerHistory(
@@ -63,6 +81,12 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Create vehicle' })
+  @ApiCreatedResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'Registration number, VIN, or manager already in use',
+  })
   @Post()
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
@@ -74,6 +98,13 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Update vehicle' })
+  @ApiOkResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @ApiConflictResponse({
+    description: 'Registration number, VIN, or manager already in use',
+  })
   @Patch(':id')
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
@@ -86,6 +117,9 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Delete vehicle' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)

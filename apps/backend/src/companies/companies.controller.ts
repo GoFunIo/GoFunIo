@@ -7,7 +7,16 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
@@ -34,6 +43,9 @@ export class CompaniesController {
   ) {}
 
   @ApiOperation({ summary: 'Get active company' })
+  @ApiOkResponse({ type: CompanyDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Company not found' })
   @Get('company')
   @UseGuards(SessionAuthGuard)
   getCompany(@CurrentPrincipal() principal: SessionPrincipal) {
@@ -41,6 +53,11 @@ export class CompaniesController {
   }
 
   @ApiOperation({ summary: 'Update active company' })
+  @ApiOkResponse({ type: CompanyDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Company not found' })
   @Patch('company')
   @UseGuards(SessionAuthGuard, AllowedOriginGuard, AdminGuard)
   updateCompany(
@@ -51,6 +68,9 @@ export class CompaniesController {
   }
 
   @ApiOperation({ summary: 'Create company and switch to it' })
+  @ApiCreatedResponse({ type: CompanyDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
   @Post('companies')
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
   async createCompany(

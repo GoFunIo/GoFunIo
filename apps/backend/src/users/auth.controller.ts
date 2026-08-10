@@ -12,7 +12,17 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
 import { GoogleLinkDto } from './dtos/google-link.dto';
@@ -56,6 +66,9 @@ export class AuthController {
   ) {}
 
   @ApiOperation({ summary: 'Sign up with email and password' })
+  @ApiCreatedResponse({ type: UserDto })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({ description: 'Email already in use' })
   @Post('signup')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -67,6 +80,11 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Sign in with email and password' })
+  @ApiCreatedResponse({ type: UserDto })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid credentials or email not verified',
+  })
   @Post('signin')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -91,6 +109,12 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Sign in with Google' })
+  @ApiCreatedResponse({ type: UserDto })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiUnauthorizedResponse({ description: 'Invalid Google identity' })
+  @ApiConflictResponse({
+    description: 'Google account conflict or explicit link required',
+  })
   @Post('google')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -108,6 +132,12 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Link Google account to current user' })
+  @ApiCreatedResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({
+    description: 'Not authenticated or invalid credentials',
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({ description: 'Google account already linked' })
   @Post('google/link')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -124,6 +154,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Sign out' })
+  @ApiNoContentResponse()
   @Post('signout')
   @UseGuards(AllowedOriginGuard)
   @HttpCode(204)
@@ -132,6 +163,8 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Get current user' })
+  @ApiOkResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get('me')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard)
@@ -148,6 +181,8 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'List companies of current user' })
+  @ApiOkResponse({ description: 'Companies of current user' })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get('companies')
   @UseGuards(SessionAuthGuard)
   listCompanies(@CurrentPrincipal() principal: SessionPrincipal) {
@@ -155,6 +190,10 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Switch active company' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiForbiddenResponse({ description: 'Not a member of the company' })
   @Post('switch-company')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -167,6 +206,11 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Verify email address' })
+  @ApiOkResponse({ description: 'Email verified' })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or invalid/expired token',
+  })
+  @ApiConflictResponse({ description: 'Sign out before verifying email' })
   @Get('verify-email')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmail(
@@ -182,6 +226,10 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Confirm email change' })
+  @ApiOkResponse({ description: 'Email change confirmed' })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or invalid/expired token',
+  })
   @Post('verify-email-change')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -193,6 +241,8 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Resend verification email' })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse({ description: 'Validation failed' })
   @Post('resend-verification')
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
@@ -204,6 +254,8 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Request password reset email' })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse({ description: 'Validation failed' })
   @Post('forgot-password')
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
@@ -215,6 +267,10 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Reset password with token' })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse({
+    description: 'Validation failed or invalid/expired token',
+  })
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(204)

@@ -10,7 +10,17 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -31,12 +41,17 @@ export class DriversController {
   constructor(private readonly drivers: DriversService) {}
 
   @ApiOperation({ summary: 'List drivers' })
+  @ApiOkResponse({ type: DriverDto, isArray: true })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get()
   list(@CurrentPrincipal() principal: SessionPrincipal): Promise<Driver[]> {
     return this.drivers.list(principal);
   }
 
   @ApiOperation({ summary: 'Get driver by id' })
+  @ApiOkResponse({ type: DriverDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Driver not found' })
   @Get(':id')
   findOne(
     @CurrentPrincipal() principal: SessionPrincipal,
@@ -46,6 +61,9 @@ export class DriversController {
   }
 
   @ApiOperation({ summary: 'Create driver' })
+  @ApiCreatedResponse({ type: DriverDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
   @Post()
   @UseGuards(AllowedOriginGuard)
   create(
@@ -56,6 +74,10 @@ export class DriversController {
   }
 
   @ApiOperation({ summary: 'Update driver' })
+  @ApiOkResponse({ type: DriverDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Driver not found' })
   @Patch(':id')
   @UseGuards(AllowedOriginGuard)
   update(
@@ -67,6 +89,10 @@ export class DriversController {
   }
 
   @ApiOperation({ summary: 'Delete driver' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiNotFoundResponse({ description: 'Driver not found' })
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AdminGuard, AllowedOriginGuard)

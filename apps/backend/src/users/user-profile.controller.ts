@@ -8,7 +8,15 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
@@ -40,6 +48,11 @@ export class UserProfileController {
   ) {}
 
   @ApiOperation({ summary: 'Leave current company' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiConflictResponse({
+    description: 'Last admin cannot leave the company',
+  })
   @Delete()
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -48,6 +61,9 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Update own profile' })
+  @ApiOkResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
   @Patch()
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -63,6 +79,14 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Request email change' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({
+    description: 'Not authenticated or invalid current password',
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'Email already in use or password required',
+  })
   @Patch('email')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -81,6 +105,12 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Change password' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({
+    description: 'Not authenticated or invalid current password',
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({ description: 'Password required for this account' })
   @Patch('password')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
