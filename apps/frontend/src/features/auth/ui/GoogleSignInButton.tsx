@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { signInWithGoogle } from '../auth.api';
 import { FormError } from './FormError';
@@ -45,10 +44,9 @@ function loadGoogleIdentityScript(): Promise<void> {
   return promise;
 }
 
-export const GoogleSignInButton = () => {
+export const GoogleSignInButton = ({ invitationToken }: { invitationToken?: string }) => {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -71,7 +69,11 @@ export const GoogleSignInButton = () => {
             try {
               const user = await signInWithGoogle(response.credential);
               queryClient.setQueryData(['me'], user);
-              navigate({ to: '/dashboard' });
+              window.location.assign(
+                invitationToken
+                  ? `/accept-invitation?token=${encodeURIComponent(invitationToken)}`
+                  : '/dashboard',
+              );
             } catch (err) {
               const apiError = err as { message?: string };
               setError(apiError.message ?? 'Logowanie przez Google nie powiodło się');
@@ -96,7 +98,7 @@ export const GoogleSignInButton = () => {
     return () => {
       cancelled = true;
     };
-  }, [navigate, queryClient]);
+  }, [queryClient, invitationToken]);
 
   if (!GOOGLE_CLIENT_ID) {
     return null;
