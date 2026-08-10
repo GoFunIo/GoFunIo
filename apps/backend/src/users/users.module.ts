@@ -51,19 +51,27 @@ import {
   GOOGLE_IDENTITY_VERIFIER,
   GoogleSdkIdentityVerifier,
 } from './google-identity-verifier';
+import { MembershipInvitationsController } from './membership-invitations.controller';
+import { MembershipInvitationsService } from './membership-invitations.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Company, Membership]),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
   ],
-  controllers: [AuthController, UserProfileController, CompanyUsersController],
+  controllers: [
+    AuthController,
+    UserProfileController,
+    CompanyUsersController,
+    MembershipInvitationsController,
+  ],
   providers: [
     UsersService,
     SessionAuthGuard,
     AllowedOriginGuard,
     AdminGuard,
     CompanyUsersService,
+    MembershipInvitationsService,
     SessionsService,
     TypeOrmSessionUserReader,
     {

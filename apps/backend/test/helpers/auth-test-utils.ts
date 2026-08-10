@@ -14,11 +14,16 @@ import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
   UserEmailChangeRequestedEvent,
 } from '../../src/users/events/user-email-change-requested.event';
+import {
+  MEMBERSHIP_INVITATION_REQUESTED_EVENT,
+  MembershipInvitationRequestedEvent,
+} from '../../src/users/events/membership-invitation-requested.event';
 
 export interface CapturedEvents {
   verificationToken: string | null;
   passwordResetToken: string | null;
   emailChangeToken: string | null;
+  membershipInvitationToken: string | null;
   restore: () => void;
 }
 
@@ -29,6 +34,7 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
   let verificationToken: string | null = null;
   let passwordResetToken: string | null = null;
   let emailChangeToken: string | null = null;
+  let membershipInvitationToken: string | null = null;
 
   const emitSpy = jest
     .spyOn(eventEmitter, 'emit')
@@ -51,6 +57,12 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
       ) {
         emailChangeToken = args[0].delivery.token;
       }
+      if (
+        event === MEMBERSHIP_INVITATION_REQUESTED_EVENT &&
+        args[0] instanceof MembershipInvitationRequestedEvent
+      ) {
+        membershipInvitationToken = args[0].delivery.token;
+      }
       return originalEmit(event, ...args);
     });
 
@@ -63,6 +75,9 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
     },
     get emailChangeToken() {
       return emailChangeToken;
+    },
+    get membershipInvitationToken() {
+      return membershipInvitationToken;
     },
     restore() {
       emitSpy.mockRestore();

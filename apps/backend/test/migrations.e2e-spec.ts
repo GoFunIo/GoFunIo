@@ -6,6 +6,7 @@ import { AddProfileFields1750000000000 } from '../src/migrations/1750000000000-A
 import { CreateVehicles1751000000000 } from '../src/migrations/1751000000000-CreateVehicles';
 import { CreateDrivers1752000000000 } from '../src/migrations/1752000000000-CreateDrivers';
 import { CreateMemberships1753000000000 } from '../src/migrations/1753000000000-CreateMemberships';
+import { AddMembershipInvitations1754000000000 } from '../src/migrations/1754000000000-AddMembershipInvitations';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -26,6 +27,7 @@ describe('database migrations', () => {
         CreateVehicles1751000000000,
         CreateDrivers1752000000000,
         CreateMemberships1753000000000,
+        AddMembershipInvitations1754000000000,
       ],
     });
 
@@ -182,6 +184,20 @@ describe('database migrations', () => {
           [companyId, driverId, vehicleId],
         ),
       ).rejects.toMatchObject({ code: '23505' });
+
+      await database.undoLastMigration();
+      const invitationColumns = await database.query<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'memberships' AND column_name IN ('tokenHash', 'tokenExpiresAt')`,
+        [schema],
+      );
+      expect(invitationColumns).toEqual([]);
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.memberships`,
+          ])
+        )[0].regclass,
+      ).not.toBeNull();
 
       await database.undoLastMigration();
       expect(

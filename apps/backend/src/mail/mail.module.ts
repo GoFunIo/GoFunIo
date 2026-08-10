@@ -4,6 +4,7 @@ import { EmailVerificationRequestedListener } from './listeners/email-verificati
 import { PasswordResetRequestedListener } from './listeners/password-reset-requested.listener';
 import { FrontendUrlResolver } from '../common/frontend-url.resolver';
 import { UserEmailChangeRequestedListener } from './listeners/user-email-change-requested.listener';
+import { MembershipInvitationRequestedListener } from './listeners/membership-invitation-requested.listener';
 
 @Module({
   providers: [
@@ -11,6 +12,7 @@ import { UserEmailChangeRequestedListener } from './listeners/user-email-change-
     EmailVerificationRequestedListener,
     PasswordResetRequestedListener,
     UserEmailChangeRequestedListener,
+    MembershipInvitationRequestedListener,
     FrontendUrlResolver,
   ],
   exports: [MailService],

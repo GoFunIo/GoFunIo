@@ -27,6 +27,12 @@ export class Membership {
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status!: string;
 
+  @Column({ type: 'varchar', nullable: true, select: false })
+  tokenHash!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true, select: false })
+  tokenExpiresAt!: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

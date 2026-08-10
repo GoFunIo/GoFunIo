@@ -110,6 +110,24 @@ describe('MailService', () => {
     });
   });
 
+  it('sendMembershipInvitation renders the acceptance link and calls Resend', async () => {
+    await service.sendMembershipInvitation({
+      email: 'invitee@example.com',
+      token: 'invite123',
+      origin: 'http://localhost:5173/',
+    });
+
+    expect(renderSpy).toHaveBeenCalledWith('membership-invitation', {
+      acceptUrl: 'http://localhost:5173/accept-invitation?token=invite123',
+    });
+    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+      from: 'GoFunIo <no-reply@test.com>',
+      to: 'invitee@example.com',
+      subject: 'You were invited to a GoFunIo workspace',
+      html: '<html>rendered</html>',
+    });
+  });
+
   it('sendVerificationEmail logs and swallows Resend errors', async () => {
     sendSpy.mockRejectedValue(new Error('Resend API 500: server error'));
     const errorSpy = jest.spyOn(service['logger'], 'error');

@@ -59,6 +59,17 @@ export class MailService {
     );
   }
 
+  async sendMembershipInvitation(delivery: TokenDelivery): Promise<void> {
+    return this.send(
+      'membership-invitation',
+      {
+        acceptUrl: `${this.frontendUrl.resolve(delivery.origin).replace(/\/$/, '')}/accept-invitation?token=${delivery.token}`,
+      },
+      delivery.email,
+      'You were invited to a GoFunIo workspace',
+    );
+  }
+
   // Delivery is best-effort: workflows persist before emitting mail events.
   private async send(
     template: string,
