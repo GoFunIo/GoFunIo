@@ -152,10 +152,9 @@ describe('Memberships dual-write (e2e)', () => {
       `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
     );
-    await dataSource.query(
-      `DELETE FROM "memberships" WHERE "userId" = $1`,
-      [user.id],
-    );
+    await dataSource.query(`DELETE FROM "memberships" WHERE "userId" = $1`, [
+      user.id,
+    ]);
 
     const agent = request.agent(app.getHttpServer());
     await agent
@@ -167,5 +166,79 @@ describe('Memberships dual-write (e2e)', () => {
     expect(me.body.companyId).toBeNull();
     expect(me.body.role).toBeNull();
     await agent.get('/vehicles').expect(403);
+  });
+
+  it('lists active companies and switches the active workspace', async () => {
+    const email = 'member-switch@example.com';
+    await createVerifiedUser(app, email, 'password123');
+    const [user] = await dataSource.query<{ id: string; companyId: string }[]>(
+      `SELECT "id", "companyId" FROM "users" WHERE "email" = $1`,
+      [email],
+    );
+    const [company] = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
+       VALUES ('Second workspace', now(), now()) RETURNING "id"`,
+    );
+    const [pendingCompany] = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
+       VALUES ('Pending workspace', now(), now()) RETURNING "id"`,
+    );
+    const [foreignCompany] = await dataSource.query<{ id: string }[]>(
+      `INSERT INTO "companies" ("name", "createdAt", "updatedAt")
+       VALUES ('Foreign workspace', now(), now()) RETURNING "id"`,
+    );
+    await dataSource.query(
+      `INSERT INTO "memberships" ("userId", "companyId", "role", "status", "createdAt", "updatedAt")
+       VALUES ($1, $2, 'MANAGER', 'active', now(), now()),
+              ($1, $3, 'MANAGER', 'pending', now(), now())`,
+      [user.id, company.id, pendingCompany.id],
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/auth/signin')
+      .send({ email, password: 'password123' })
+      .expect(201);
+
+    await agent
+      .get('/auth/companies')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveLength(2);
+        expect(response.body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: user.companyId,
+              role: MembershipRole.ADMIN,
+            }),
+            {
+              id: company.id,
+              name: 'Second workspace',
+              role: MembershipRole.MANAGER,
+            },
+          ]),
+        );
+      });
+    await agent
+      .post('/auth/switch-company')
+      .send({ companyId: company.id })
+      .expect(204);
+    await agent
+      .post('/auth/switch-company')
+      .send({ companyId: pendingCompany.id })
+      .expect(403);
+    await agent
+      .post('/auth/switch-company')
+      .send({ companyId: foreignCompany.id })
+      .expect(403);
+    await agent
+      .get('/company')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          id: company.id,
+          name: 'Second workspace',
+        });
+      });
   });
 });

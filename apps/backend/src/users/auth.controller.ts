@@ -36,6 +36,7 @@ import { CredentialAuthenticationService } from './credential-authentication.ser
 import type { CurrentUserView } from './current-user-view';
 import type { UserAccount } from './user-account';
 import { GoogleAuthenticationService } from './google-authentication.service';
+import { SwitchCompanyDto } from './dtos/switch-company.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -136,6 +137,23 @@ export class AuthController {
       companyId: principal.companyId,
       role: principal.role,
     };
+  }
+
+  @Get('companies')
+  @UseGuards(SessionAuthGuard)
+  listCompanies(@CurrentPrincipal() principal: SessionPrincipal) {
+    return this.sessions.listCompanies(principal.id);
+  }
+
+  @Post('switch-company')
+  @HttpCode(204)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard)
+  switchCompany(
+    @Body() body: SwitchCompanyDto,
+    @Session() session: SessionData,
+    @CurrentPrincipal() principal: SessionPrincipal,
+  ): Promise<void> {
+    return this.sessions.switchCompany(session, principal.id, body.companyId);
   }
 
   @Get('verify-email')

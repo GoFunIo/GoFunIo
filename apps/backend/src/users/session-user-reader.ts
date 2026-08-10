@@ -10,6 +10,7 @@ export const SESSION_USER_READER = Symbol('SESSION_USER_READER');
 
 export interface SessionMembership {
   companyId: string;
+  companyName: string;
   role: MembershipRole;
 }
 
@@ -41,7 +42,9 @@ export class TypeOrmSessionUserReader implements SessionUserReader {
 
     const memberships = await this.memberships
       .createQueryBuilder('membership')
-      .select(['membership.companyId', 'membership.role'])
+      .select('membership.companyId', 'companyId')
+      .addSelect('membership.role', 'role')
+      .addSelect('company.name', 'companyName')
       .innerJoin(
         Company,
         'company',
@@ -50,15 +53,12 @@ export class TypeOrmSessionUserReader implements SessionUserReader {
       .where('membership.userId = :id', { id })
       .andWhere('membership.status = :status', { status: 'active' })
       .orderBy('membership.createdAt', 'ASC')
-      .getMany();
+      .getRawMany<SessionMembership>();
 
     return {
       id: user.id,
       passwordVersion: user.passwordVersion,
-      memberships: memberships.map((membership) => ({
-        companyId: membership.companyId,
-        role: membership.role,
-      })),
+      memberships,
     };
   }
 }

@@ -76,7 +76,12 @@ describe('AuthController', () => {
   let credentials: jest.Mocked<
     Pick<CredentialAuthenticationService, 'signin' | 'findAccount'>
   >;
-  let sessions: jest.Mocked<Pick<SessionsService, 'establish' | 'clear'>>;
+  let sessions: jest.Mocked<
+    Pick<
+      SessionsService,
+      'establish' | 'clear' | 'listCompanies' | 'switchCompany'
+    >
+  >;
   let googleAuthentication: jest.Mocked<
     Pick<GoogleAuthenticationService, 'signin' | 'link'>
   >;
@@ -87,7 +92,12 @@ describe('AuthController', () => {
     passwordRecovery = { request: jest.fn(), reset: jest.fn() };
     emailChange = { confirm: jest.fn() };
     credentials = { signin: jest.fn(), findAccount: jest.fn() };
-    sessions = { establish: jest.fn(), clear: jest.fn() };
+    sessions = {
+      establish: jest.fn(),
+      clear: jest.fn(),
+      listCompanies: jest.fn(),
+      switchCompany: jest.fn(),
+    };
     googleAuthentication = { signin: jest.fn(), link: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({

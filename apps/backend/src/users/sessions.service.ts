@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import type { SessionData } from '../types/session.types';
 import {
   SESSION_USER_READER,
@@ -69,6 +69,27 @@ export class SessionsService {
       companyId: membership.companyId,
       role: membership.role,
     };
+  }
+
+  async listCompanies(userId: string) {
+    const user = await this.users.findActiveById(userId);
+    return (user?.memberships ?? []).map((membership) => ({
+      id: membership.companyId,
+      name: membership.companyName,
+      role: membership.role,
+    }));
+  }
+
+  async switchCompany(
+    session: SessionData,
+    userId: string,
+    companyId: string,
+  ): Promise<void> {
+    const user = await this.users.findActiveById(userId);
+    if (!user?.memberships.some((entry) => entry.companyId === companyId)) {
+      throw new ForbiddenException();
+    }
+    session.currentCompanyId = companyId;
   }
 
   clear(session: SessionData): void {
