@@ -12,13 +12,14 @@ import {
   EmailVerificationRequestedEvent,
 } from './events/email-verification-requested.event';
 import { generateToken, hashToken } from './token.util';
+import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class EmailVerificationService {
   constructor(
     @Inject(EMAIL_VERIFICATION_STORE)
     private readonly store: EmailVerificationStore,
-    private readonly config: ConfigService,
+    private readonly config: ConfigService<EnvVars, true>,
     private readonly events: EventEmitter2,
   ) {}
 

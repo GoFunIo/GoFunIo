@@ -5,8 +5,21 @@ import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
 import { VEHICLE_ACCESS } from './vehicle-access';
 import { DRIVER_ALLOCATION } from './driver-allocation';
 import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Vehicle } from '../vehicles/vehicles.entity';
+import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
+import { Driver } from '../drivers/drivers.entity';
+import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      Vehicle,
+      ManagerVehicleAssignment,
+      Driver,
+      DriverVehicleAssignment,
+    ]),
+  ],
   providers: [
     TypeOrmVehicleAccess,
     TypeOrmDriverAllocation,

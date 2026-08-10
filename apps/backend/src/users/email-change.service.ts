@@ -18,12 +18,13 @@ import {
 } from './events/user-email-change-requested.event';
 import { CREDENTIAL_STORE, type CredentialStore } from './credential.store';
 import { PASSWORD_HASHER, type PasswordHasher } from './password-hasher';
+import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class EmailChangeService {
   constructor(
     @Inject(EMAIL_CHANGE_STORE) private readonly store: EmailChangeStore,
-    private readonly config: ConfigService,
+    private readonly config: ConfigService<EnvVars, true>,
     private readonly events: EventEmitter2,
     @Inject(CREDENTIAL_STORE) private readonly credentials: CredentialStore,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,

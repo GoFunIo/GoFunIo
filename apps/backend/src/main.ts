@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieSession from 'cookie-session';
 import { toMilliseconds } from './common/duration.util';
+import { EnvVars, NodeEnv } from './config/env.validation';
 import {
   FRONTEND_ORIGINS,
   type FrontendOrigins,
@@ -12,11 +13,11 @@ import {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const config = app.get(ConfigService);
-  const cookieKey = config.getOrThrow<string>('COOKIE_KEY');
+  const config = app.get<ConfigService<EnvVars, true>>(ConfigService);
+  const cookieKey = config.get('COOKIE_KEY');
   const frontendOrigins = app.get<FrontendOrigins>(FRONTEND_ORIGINS);
-  const isProd = config.get<string>('NODE_ENV') === 'production';
-  const port = Number(process.env.PORT) || 3000;
+  const isProd = config.get('NODE_ENV') === NodeEnv.Production;
+  const port = config.get('PORT');
 
   if (isProd) {
     app.set('trust proxy', 1);

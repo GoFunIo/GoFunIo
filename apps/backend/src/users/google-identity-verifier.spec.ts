@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { InvalidGoogleIdentityError } from './google-authentication.errors';
 import { GoogleSdkIdentityVerifier } from './google-identity-verifier';
+import type { EnvVars } from '../config/env.validation';
 
 const verifyIdToken = jest.fn();
 
@@ -11,7 +12,7 @@ jest.mock('google-auth-library', () => ({
 describe('GoogleSdkIdentityVerifier', () => {
   const config = {
     getOrThrow: jest.fn().mockReturnValue('client-id'),
-  } as unknown as ConfigService;
+  } as unknown as ConfigService<EnvVars, true>;
 
   beforeEach(() => jest.clearAllMocks());
 

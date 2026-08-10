@@ -8,6 +8,7 @@ import {
   IsString,
   IsUrl,
   Max,
+  Matches,
   MinLength,
   Min,
   validateSync,
@@ -19,9 +20,33 @@ export enum NodeEnv {
   Test = 'test',
 }
 
-export class EnvVars {
+export class DatabaseEnv {
+  @IsString()
+  @IsNotEmpty()
+  DATABASE_URL!: string;
+
+  @IsOptional()
+  @Matches(/^[A-Za-z_][A-Za-z0-9_]*$/)
+  DATABASE_SCHEMA?: string;
+
+  @IsIn(['true', 'false'])
+  DATABASE_SSL: 'true' | 'false' = 'false';
+
+  @IsIn(['true', 'false'])
+  DATABASE_SSL_REJECT_UNAUTHORIZED: 'true' | 'false' = 'true';
+
+  @IsIn(['true', 'false'])
+  RUN_MIGRATIONS: 'true' | 'false' = 'false';
+}
+
+export class EnvVars extends DatabaseEnv {
   @IsEnum(NodeEnv)
   NODE_ENV!: NodeEnv;
+
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  PORT: number = 3000;
 
   @IsString()
   @IsNotEmpty()
@@ -51,11 +76,6 @@ export class EnvVars {
   @Max(24 * 30)
   PASSWORD_RESET_TOKEN_TTL_HOURS: number = 24;
 
-  /** PostgreSQL connection string. */
-  @IsString()
-  @IsNotEmpty()
-  DATABASE_URL!: string;
-
   /** Exact origins used by CORS and mutation protection. */
   @IsOptional()
   @IsString()
@@ -73,18 +93,16 @@ export class EnvVars {
   @IsString()
   FRONTEND_URL_PATTERNS!: RegExp[];
 
-  /** Run pending TypeORM migrations on app startup (staging/production). */
-  @IsOptional()
-  @IsIn(['true', 'false'])
-  RUN_MIGRATIONS?: string;
-
   @IsString()
   @IsNotEmpty()
   GOOGLE_CLIENT_ID!: string;
 }
 
-export function validateEnv(config: Record<string, unknown>): EnvVars {
-  const validated = plainToInstance(EnvVars, config, {
+function validate<T extends object>(
+  type: new () => T,
+  config: Record<string, unknown>,
+): T {
+  const validated = plainToInstance(type, config, {
     enableImplicitConversion: true,
   });
   const errors = validateSync(validated, { skipMissingProperties: false });
@@ -95,6 +113,17 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     );
   }
 
+  return validated;
+}
+
+export function validateDatabaseEnv(
+  config: Record<string, unknown>,
+): DatabaseEnv {
+  return validate(DatabaseEnv, config);
+}
+
+export function validateEnv(config: Record<string, unknown>): EnvVars {
+  const validated = validate(EnvVars, config);
   const corsOrigins = String(config.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())

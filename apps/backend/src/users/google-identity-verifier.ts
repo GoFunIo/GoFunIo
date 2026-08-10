@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import { InvalidGoogleIdentityError } from './google-authentication.errors';
+import type { EnvVars } from '../config/env.validation';
 
 export interface VerifiedGoogleIdentity {
   googleId: string;
@@ -22,7 +23,7 @@ export class GoogleSdkIdentityVerifier implements GoogleIdentityVerifier {
   private readonly client: OAuth2Client;
   private readonly clientId: string;
 
-  constructor(@Inject(ConfigService) config: ConfigService) {
+  constructor(@Inject(ConfigService) config: ConfigService<EnvVars, true>) {
     this.clientId = config.getOrThrow<string>('GOOGLE_CLIENT_ID');
     this.client = new OAuth2Client(this.clientId);
   }

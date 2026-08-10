@@ -13,6 +13,7 @@ import {
 } from './events/user-email-change-requested.event';
 import { InMemoryCredentialStore } from './credential.store';
 import { FakePasswordHasher } from './password-hasher';
+import type { EnvVars } from '../config/env.validation';
 
 describe('EmailChangeService', () => {
   let store: InMemoryEmailChangeStore;
@@ -28,7 +29,10 @@ describe('EmailChangeService', () => {
     events = { emit: jest.fn() };
     service = new EmailChangeService(
       store,
-      { getOrThrow: jest.fn().mockReturnValue(24) } as unknown as ConfigService,
+      { getOrThrow: jest.fn().mockReturnValue(24) } as unknown as ConfigService<
+        EnvVars,
+        true
+      >,
       events as unknown as EventEmitter2,
       credentials,
       hasher,

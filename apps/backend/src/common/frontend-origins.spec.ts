@@ -5,18 +5,22 @@ import { ConfiguredFrontendOrigins } from './frontend-origins';
 function origins(overrides: Partial<EnvVars> = {}) {
   const values: EnvVars = {
     NODE_ENV: NodeEnv.Production,
+    PORT: 3000,
     COOKIE_KEY: 'a'.repeat(32),
     FRONTEND_URL: 'https://app.example.com/base/',
     RESEND_API_KEY: 'resend',
     MAIL_FROM: 'mail@example.com',
     DATABASE_URL: 'postgres://localhost/database',
+    DATABASE_SSL: 'false',
+    DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+    RUN_MIGRATIONS: 'false',
     CORS_ORIGINS: [],
     FRONTEND_URL_PATTERNS: [],
     GOOGLE_CLIENT_ID: 'google',
     VERIFICATION_TOKEN_TTL_HOURS: 24,
     PASSWORD_RESET_TOKEN_TTL_HOURS: 24,
-    ...overrides,
   };
+  Object.assign(values, overrides);
   return new ConfiguredFrontendOrigins({
     get: (key: keyof EnvVars) => values[key],
   } as ConfigService<EnvVars, true>);

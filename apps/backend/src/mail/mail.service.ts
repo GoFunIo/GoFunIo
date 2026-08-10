@@ -7,6 +7,7 @@ import {
 import type { TokenDelivery } from '../users/events/token-delivery';
 import { sendResendEmail } from './resend.client';
 import { renderMailTemplate } from './template-renderer';
+import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class MailService {
@@ -15,7 +16,7 @@ export class MailService {
   private readonly from: string;
 
   constructor(
-    config: ConfigService,
+    config: ConfigService<EnvVars, true>,
     @Inject(FRONTEND_ORIGINS) private readonly frontendOrigins: FrontendOrigins,
   ) {
     this.apiKey = config.getOrThrow<string>('RESEND_API_KEY');

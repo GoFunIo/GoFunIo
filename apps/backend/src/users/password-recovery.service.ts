@@ -13,13 +13,14 @@ import {
 } from './events/password-reset-requested.event';
 import { generateToken, hashToken } from './token.util';
 import { hashPassword } from './password.util';
+import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class PasswordRecoveryService {
   constructor(
     @Inject(PASSWORD_RECOVERY_STORE)
     private readonly store: PasswordRecoveryStore,
-    private readonly config: ConfigService,
+    private readonly config: ConfigService<EnvVars, true>,
     private readonly events: EventEmitter2,
   ) {}
 

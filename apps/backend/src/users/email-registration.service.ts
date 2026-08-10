@@ -14,6 +14,7 @@ import {
   type WorkspaceOwnerProvisioner,
 } from './workspace-owner-provisioner';
 import { EmailRegistrationEmailInUseError } from './email-registration.errors';
+import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class EmailRegistrationService {
@@ -21,7 +22,7 @@ export class EmailRegistrationService {
     @Inject(WORKSPACE_OWNER_PROVISIONER)
     private readonly provisioner: WorkspaceOwnerProvisioner,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
-    private readonly config: ConfigService,
+    private readonly config: ConfigService<EnvVars, true>,
     private readonly events: EventEmitter2,
   ) {}
 

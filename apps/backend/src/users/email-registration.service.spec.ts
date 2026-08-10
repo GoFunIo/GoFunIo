@@ -8,11 +8,12 @@ import {
 import { FakePasswordHasher } from './password-hasher';
 import { hashToken } from './token.util';
 import { FakeWorkspaceOwnerProvisioner } from './workspace-owner-provisioner';
+import type { EnvVars } from '../config/env.validation';
 
 describe('EmailRegistrationService', () => {
   const config = {
     getOrThrow: jest.fn().mockReturnValue(24),
-  } as unknown as ConfigService;
+  } as unknown as ConfigService<EnvVars, true>;
   let provisioner: FakeWorkspaceOwnerProvisioner;
   let hasher: FakePasswordHasher;
   let events: { emit: jest.Mock };

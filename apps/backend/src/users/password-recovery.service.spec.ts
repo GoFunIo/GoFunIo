@@ -9,6 +9,7 @@ import {
 } from './events/password-reset-requested.event';
 import { generateToken } from './token.util';
 import { verifyPassword } from './password.util';
+import type { EnvVars } from '../config/env.validation';
 
 describe('PasswordRecoveryService', () => {
   const TTL_HOURS = 24;
@@ -24,7 +25,7 @@ describe('PasswordRecoveryService', () => {
     config = { getOrThrow: jest.fn().mockReturnValue(TTL_HOURS) };
     service = new PasswordRecoveryService(
       store,
-      config as unknown as ConfigService,
+      config as unknown as ConfigService<EnvVars, true>,
       events as unknown as EventEmitter2,
     );
   });

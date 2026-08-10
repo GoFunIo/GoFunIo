@@ -8,6 +8,7 @@ import {
   EmailVerificationRequestedEvent,
 } from './events/email-verification-requested.event';
 import { generateToken } from './token.util';
+import type { EnvVars } from '../config/env.validation';
 
 describe('EmailVerificationService', () => {
   const TTL_HOURS = 24;
@@ -23,7 +24,7 @@ describe('EmailVerificationService', () => {
     config = { getOrThrow: jest.fn().mockReturnValue(TTL_HOURS) };
     service = new EmailVerificationService(
       store,
-      config as unknown as ConfigService,
+      config as unknown as ConfigService<EnvVars, true>,
       events as unknown as EventEmitter2,
     );
   });
