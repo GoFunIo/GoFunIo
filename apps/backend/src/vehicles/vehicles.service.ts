@@ -201,7 +201,7 @@ export class VehiclesService {
     return vehicles.map((vehicle) => ({
       ...vehicle,
       managers: managers.get(vehicle.id) ?? [],
-      driver: drivers.get(vehicle.id) ?? null,
+      drivers: drivers.get(vehicle.id) ?? [],
     }));
   }
 

@@ -484,28 +484,29 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             new Map(
               vehicleIds.map((vehicleId) => [
                 vehicleId,
-                (() => {
-                  const assignment = this.driverAssignments.find(
+                this.driverAssignments
+                  .filter(
                     (entry) =>
                       entry.companyId === companyId &&
                       entry.vehicleId === vehicleId &&
                       entry.assignedTo === null,
-                  );
-                  const driver = assignment
-                    ? this.drivers.find(
-                        (entry) =>
-                          entry.companyId === companyId &&
-                          entry.id === assignment.driverId,
-                      )
-                    : undefined;
-                  return driver
-                    ? {
-                        id: driver.id,
-                        firstName: driver.firstName ?? '',
-                        lastName: driver.lastName ?? '',
-                      }
-                    : null;
-                })(),
+                  )
+                  .flatMap((assignment) => {
+                    const driver = this.drivers.find(
+                      (entry) =>
+                        entry.companyId === companyId &&
+                        entry.id === assignment.driverId,
+                    );
+                    return driver
+                      ? [
+                          {
+                            id: driver.id,
+                            firstName: driver.firstName ?? '',
+                            lastName: driver.lastName ?? '',
+                          },
+                        ]
+                      : [];
+                  }),
               ]),
             ),
           closeVehicle: async (companyId, vehicleId) => {

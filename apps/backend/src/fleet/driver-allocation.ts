@@ -40,7 +40,7 @@ export interface DriverAllocationStore {
   activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, FleetDriverProjection | null>>;
+  ): Promise<Map<string, FleetDriverProjection[]>>;
   closeDriver(companyId: string, driverId: string): Promise<void>;
   closeVehicle(companyId: string, vehicleId: string): Promise<void>;
 }
@@ -55,5 +55,5 @@ export interface DriverAllocation {
   activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, FleetDriverProjection | null>>;
+  ): Promise<Map<string, FleetDriverProjection[]>>;
 }

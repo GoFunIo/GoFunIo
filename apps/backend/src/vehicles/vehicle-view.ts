@@ -4,5 +4,5 @@ import type { FleetManagerProjection } from '../fleet/vehicle-access';
 
 export interface VehicleView extends FleetVehicle {
   managers: FleetManagerProjection[];
-  driver: FleetDriverProjection | null;
+  drivers: FleetDriverProjection[];
 }

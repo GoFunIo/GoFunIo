@@ -47,7 +47,7 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
   activeDrivers(
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, FleetDriverProjection | null>> {
+  ): Promise<Map<string, FleetDriverProjection[]>> {
     return this.activeDriversFrom(
       this.dataSource.manager,
       companyId,
@@ -221,9 +221,9 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
     manager: EntityManager,
     companyId: string,
     vehicleIds: string[],
-  ): Promise<Map<string, FleetDriverProjection | null>> {
-    const result = new Map<string, FleetDriverProjection | null>(
-      vehicleIds.map((vehicleId) => [vehicleId, null]),
+  ): Promise<Map<string, FleetDriverProjection[]>> {
+    const result = new Map<string, FleetDriverProjection[]>(
+      vehicleIds.map((vehicleId) => [vehicleId, []]),
     );
     if (!vehicleIds.length) return result;
     const assignments = await manager
@@ -242,7 +242,7 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
       .andWhere('assignment.assignedTo IS NULL')
       .getRawMany<FleetDriverProjection & { vehicleId: string }>();
     for (const { vehicleId, ...profile } of assignments) {
-      result.set(vehicleId, profile);
+      result.get(vehicleId)?.push(profile);
     }
     return result;
   }

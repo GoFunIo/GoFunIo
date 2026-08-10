@@ -90,12 +90,12 @@ describe('Vehicles (e2e)', () => {
     await request(app.getHttpServer()).get('/vehicles').expect(401);
   });
 
-  it('projects current managers and driver in every vehicle view', async () => {
+  it('projects current managers and drivers in every vehicle view', async () => {
     const admin = await signedIn('vehicle-view@example.com');
     const created = await createVehicle(admin);
     const assertEmptyView = (body: Record<string, unknown>) => {
       expect(body.managers).toEqual([]);
-      expect(body.driver).toBeNull();
+      expect(body.drivers).toEqual([]);
       expect(body).not.toHaveProperty('managerIds');
       expect(body).not.toHaveProperty('driverIds');
     };
@@ -126,13 +126,16 @@ describe('Vehicles (e2e)', () => {
           email: 'vehicle-view-manager@example.com',
         },
       ]);
-      expect(body.driver).toEqual({
-        id: driver.body.id,
-        firstName: 'Anna',
-        lastName: 'Nowak',
-      });
+      expect(body.drivers).toEqual([
+        {
+          id: driver.body.id,
+          firstName: 'Anna',
+          lastName: 'Nowak',
+        },
+      ]);
       expect(body).not.toHaveProperty('managerIds');
       expect(body).not.toHaveProperty('driverIds');
+      expect(body).not.toHaveProperty('driver');
     };
     await admin
       .get('/vehicles')
@@ -153,7 +156,7 @@ describe('Vehicles (e2e)', () => {
     await admin
       .get(`/vehicles/${created.body.id}`)
       .expect(200)
-      .expect((res) => expect(res.body.driver).toBeNull());
+      .expect((res) => expect(res.body.drivers).toEqual([]));
   });
 
   it('loads projections with query count independent of page size', async () => {
@@ -534,15 +537,17 @@ describe('Vehicles (e2e)', () => {
         expect(res.body.items[0].managers).toEqual([
           expect.objectContaining({ id: secondManager.user.id }),
         ]);
-        expect(res.body.items[0].driver).toEqual({
-          id: secondDriver.body.id,
-          firstName: 'Second',
-          lastName: 'Driver',
-        });
+        expect(res.body.items[0].drivers).toEqual([
+          {
+            id: secondDriver.body.id,
+            firstName: 'Second',
+            lastName: 'Driver',
+          },
+        ]);
         expect(res.body.items[0].managers).not.toContainEqual(
           expect.objectContaining({ id: firstManager.user.id }),
         );
-        expect(res.body.items[0].driver.id).not.toBe(firstDriver.body.id);
+        expect(res.body.items[0].drivers[0].id).not.toBe(firstDriver.body.id);
       });
   });
 

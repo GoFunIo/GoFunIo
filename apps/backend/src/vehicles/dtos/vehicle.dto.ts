@@ -36,7 +36,7 @@ export class VehicleDto {
 
   @Expose()
   @Type(() => VehicleDriverDto)
-  driver!: VehicleDriverDto | null;
+  drivers!: VehicleDriverDto[];
 
   @Expose()
   brand!: string;

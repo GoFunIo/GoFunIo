@@ -67,8 +67,8 @@ describe('VehiclesService create workflow', () => {
                   assignment.vehicleId === vehicleId &&
                   assignment.assignedTo === null,
               )
-                ? { id: driverId, firstName: 'Anna', lastName: 'Nowak' }
-                : null,
+                ? [{ id: driverId, firstName: 'Anna', lastName: 'Nowak' }]
+                : [],
             ]),
           ),
       ),
@@ -96,7 +96,7 @@ describe('VehiclesService create workflow', () => {
     expect(vehicle).toMatchObject({
       brand: 'Ford',
       managers: [],
-      driver: null,
+      drivers: [],
     });
     expect(vehicle).not.toBeInstanceOf(Vehicle);
     expect(fleet.vehicles).toHaveLength(1);
@@ -152,12 +152,13 @@ describe('VehiclesService create workflow', () => {
             email: 'manager@example.com',
           },
         ],
-        driver: { id: driverId, firstName: 'Anna', lastName: 'Nowak' },
+        drivers: [{ id: driverId, firstName: 'Anna', lastName: 'Nowak' }],
       }),
-      expect.objectContaining({ managers: [], driver: null }),
+      expect.objectContaining({ managers: [], drivers: [] }),
     ]);
     expect(page.items[0]).not.toHaveProperty('managerIds');
     expect(page.items[0]).not.toHaveProperty('driverIds');
+    expect(page.items[0]).not.toHaveProperty('driver');
     expect(vehicleAccess.activeManagers).toHaveBeenCalledTimes(1);
     expect(vehicleAccess.activeManagers).toHaveBeenCalledWith(
       companyId,
