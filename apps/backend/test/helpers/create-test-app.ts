@@ -28,12 +28,20 @@ const noopMailService = {
   sendMembershipInvitation: jest.fn().mockResolvedValue(undefined),
 };
 
-export async function createTestApp(): Promise<INestApplication> {
-  const moduleFixture: TestingModule = await Test.createTestingModule({
+export async function createTestApp(
+  options: {
+    enableThrottling?: boolean;
+  } = {},
+): Promise<INestApplication> {
+  let builder = Test.createTestingModule({
     imports: [AppModule],
-  })
-    .overrideGuard(ThrottlerGuard)
-    .useClass(MockThrottlerGuard)
+  });
+  if (!options.enableThrottling) {
+    builder = builder
+      .overrideProvider(ThrottlerGuard)
+      .useClass(MockThrottlerGuard);
+  }
+  const moduleFixture: TestingModule = await builder
     .overrideProvider(MailService)
     .useValue(noopMailService)
     .compile();

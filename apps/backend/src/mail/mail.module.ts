@@ -13,6 +13,5 @@ import { MembershipInvitationRequestedListener } from './listeners/membership-in
     UserEmailChangeRequestedListener,
     MembershipInvitationRequestedListener,
   ],
-  exports: [MailService],
 })
 export class MailModule {}

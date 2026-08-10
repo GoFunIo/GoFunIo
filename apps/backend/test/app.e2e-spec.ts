@@ -7,7 +7,9 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    app = (await createTestApp()) as INestApplication<App>;
+    app = (await createTestApp({
+      enableThrottling: true,
+    })) as INestApplication<App>;
   });
 
   afterAll(async () => {
@@ -20,6 +22,19 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/status')
       .expect(200)
+      .expect('X-RateLimit-Limit', '1000')
       .expect({ message: 'backend is connected' });
+  });
+
+  it('enforces a stricter route override', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({})
+      .expect(400)
+      .expect('X-RateLimit-Limit', '1');
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({})
+      .expect(429);
   });
 });

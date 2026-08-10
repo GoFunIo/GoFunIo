@@ -8,7 +8,7 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
@@ -60,7 +60,7 @@ export class UserProfileController {
 
   @Patch('email')
   @HttpCode(204)
-  @UseGuards(SessionAuthGuard, AllowedOriginGuard, ThrottlerGuard)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   async requestEmailChange(
     @CurrentPrincipal() principal: SessionPrincipal,
@@ -77,7 +77,7 @@ export class UserProfileController {
 
   @Patch('password')
   @HttpCode(204)
-  @UseGuards(SessionAuthGuard, AllowedOriginGuard, ThrottlerGuard)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async changePassword(
     @CurrentPrincipal() principal: SessionPrincipal,

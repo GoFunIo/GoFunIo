@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { InviteMembershipDto } from './dtos/invite-membership.dto';
@@ -24,7 +24,7 @@ export class MembershipInvitationsController {
   constructor(private readonly invitations: MembershipInvitationsService) {}
 
   @Post('users/invitations')
-  @UseGuards(SessionAuthGuard, AdminGuard, AllowedOriginGuard, ThrottlerGuard)
+  @UseGuards(SessionAuthGuard, AdminGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   invite(
     @CurrentPrincipal() principal: SessionPrincipal,

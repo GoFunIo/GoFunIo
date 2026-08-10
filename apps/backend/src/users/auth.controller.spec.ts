@@ -6,7 +6,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { EmailRegistrationService } from './email-registration.service';
 import { User } from './users.entity';
@@ -24,7 +23,7 @@ import { GoogleAuthenticationService } from './google-authentication.service';
 import { USER_PROFILES, type UserProfiles } from './user-profiles';
 
 @Injectable()
-class MockThrottlerGuard implements CanActivate {
+class MockGuard implements CanActivate {
   canActivate(_context: ExecutionContext): boolean {
     return true;
   }
@@ -119,12 +118,10 @@ describe('AuthController', () => {
         },
       ],
     })
-      .overrideGuard(ThrottlerGuard)
-      .useClass(MockThrottlerGuard)
       .overrideGuard(SessionAuthGuard)
-      .useClass(MockThrottlerGuard)
+      .useClass(MockGuard)
       .overrideGuard(AllowedOriginGuard)
-      .useClass(MockThrottlerGuard)
+      .useClass(MockGuard)
       .compile();
 
     controller = module.get(AuthController);

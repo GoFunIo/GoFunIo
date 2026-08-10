@@ -11,7 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CompanyUsersService, type CompanyUser } from './company-users.service';
@@ -37,7 +37,7 @@ export class CompanyUsersController {
   }
 
   @Post()
-  @UseGuards(AllowedOriginGuard, ThrottlerGuard)
+  @UseGuards(AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   create(
     @CurrentPrincipal() principal: SessionPrincipal,

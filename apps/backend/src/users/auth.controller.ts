@@ -12,7 +12,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { GoogleAuthDto } from './dtos/google-auth.dto';
 import { GoogleLinkDto } from './dtos/google-link.dto';
 import { SignupDto } from './dtos/signup.dto';
@@ -55,7 +55,6 @@ export class AuthController {
 
   @Post('signup')
   @Serialize(UserDto)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signup(
     @Body() body: SignupDto,
@@ -66,7 +65,6 @@ export class AuthController {
 
   @Post('signin')
   @Serialize(UserDto)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async signin(
     @Body() body: SigninDto,
@@ -90,7 +88,6 @@ export class AuthController {
 
   @Post('google')
   @Serialize(UserDto)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async googleSignIn(
     @Body() body: GoogleAuthDto,
@@ -107,7 +104,7 @@ export class AuthController {
 
   @Post('google/link')
   @Serialize(UserDto)
-  @UseGuards(SessionAuthGuard, AllowedOriginGuard, ThrottlerGuard)
+  @UseGuards(SessionAuthGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   googleLink(
     @Body() body: GoogleLinkDto,
@@ -160,7 +157,6 @@ export class AuthController {
   }
 
   @Get('verify-email')
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmail(
     @Query() query: VerifyEmailDto,
@@ -176,7 +172,6 @@ export class AuthController {
 
   @Post('verify-email-change')
   @HttpCode(200)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmailChange(
     @Body() body: VerifyEmailDto,
@@ -186,7 +181,6 @@ export class AuthController {
   }
 
   @Post('resend-verification')
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
   async resendVerification(
@@ -197,7 +191,6 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @HttpCode(204)
   async forgotPassword(
@@ -208,7 +201,6 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(204)
   async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {

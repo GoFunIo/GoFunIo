@@ -4,7 +4,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
 import { EnvVars, validateEnv } from './config/env.validation';
@@ -13,6 +12,8 @@ import { CompaniesModule } from './companies/companies.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { DriversModule } from './drivers/drivers.module';
 import { FrontendOriginsModule } from './common/frontend-origins.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FrontendOriginsModule } from './common/frontend-origins.module';
       envFilePath: join(__dirname, '..', '.env'),
     }),
     EventEmitterModule.forRoot(),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvVars, true>) => ({
@@ -45,6 +47,9 @@ import { FrontendOriginsModule } from './common/frontend-origins.module';
     DriversModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    ThrottlerGuard,
+    { provide: APP_GUARD, useExisting: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

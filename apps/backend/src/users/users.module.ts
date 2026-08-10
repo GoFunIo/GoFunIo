@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { Membership } from './membership.entity';
@@ -57,11 +56,7 @@ import { UserProfilesService } from './user-profiles.service';
 import { USER_PROFILES } from './user-profiles';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Company, Membership]),
-    FleetModule,
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }]),
-  ],
+  imports: [TypeOrmModule.forFeature([User, Company, Membership]), FleetModule],
   controllers: [
     AuthController,
     UserProfileController,
