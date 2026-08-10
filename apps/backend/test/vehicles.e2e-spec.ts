@@ -336,6 +336,105 @@ describe('Vehicles (e2e)', () => {
     await manager.delete(`/vehicles/${unassigned.body.id}`).expect(204);
   });
 
+  it('filters visible vehicles by active manager access', async () => {
+    const owner = await signedIn('manager-filter-owner@example.com');
+    const selected = await inviteManager(
+      owner,
+      'manager-filter-selected@example.com',
+    );
+    const viewer = await inviteManager(
+      owner,
+      'manager-filter-viewer@example.com',
+    );
+    const admin = await inviteManager(
+      owner,
+      'manager-filter-admin@example.com',
+    );
+    await owner
+      .patch(`/users/${admin.user.id}`)
+      .send({ role: MembershipRole.ADMIN })
+      .expect(200);
+    const targetOnly = await createVehicle(owner, {
+      brand: 'Audi',
+      vin: null,
+      registrationNumber: 'FILTER1',
+    });
+    const shared = await createVehicle(owner, {
+      brand: 'Volvo',
+      vin: null,
+      registrationNumber: 'FILTER2',
+    });
+    const closed = await createVehicle(owner, {
+      brand: 'BMW',
+      vin: null,
+      registrationNumber: 'FILTER3',
+    });
+    const viewerOnly = await createVehicle(owner, {
+      brand: 'Ford',
+      vin: null,
+      registrationNumber: 'FILTER4',
+    });
+    for (const vehicleId of [
+      targetOnly.body.id,
+      shared.body.id,
+      closed.body.id,
+    ]) {
+      await owner
+        .post(`/vehicles/${vehicleId}/managers`)
+        .send({ managerId: selected.user.id })
+        .expect(201);
+    }
+    for (const vehicleId of [shared.body.id, viewerOnly.body.id]) {
+      await owner
+        .post(`/vehicles/${vehicleId}/managers`)
+        .send({ managerId: viewer.user.id })
+        .expect(201);
+    }
+    await owner
+      .delete(`/vehicles/${closed.body.id}/managers/${selected.user.id}`)
+      .expect(204);
+
+    await owner
+      .get('/vehicles')
+      .query({
+        managerId: selected.user.id,
+        page: 1,
+        pageSize: 1,
+        sortBy: 'brand',
+        sortOrder: 'asc',
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ total: 2, totalPages: 2 });
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
+          targetOnly.body.id,
+        ]);
+      });
+    await admin.manager
+      .get('/vehicles')
+      .query({ managerId: selected.user.id, search: 'Volvo' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.total).toBe(1);
+        expect(body.items[0].id).toBe(shared.body.id);
+      });
+    await viewer.manager
+      .get('/vehicles')
+      .query({ managerId: selected.user.id })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.total).toBe(1);
+        expect(body.items[0].id).toBe(shared.body.id);
+      });
+    const foreignOwner = await signedIn('manager-filter-foreign@example.com');
+    await foreignOwner
+      .get('/vehicles')
+      .query({ managerId: selected.user.id })
+      .expect(200)
+      .expect(({ body }) => expect(body.total).toBe(0));
+    await owner.get('/vehicles').query({ managerId: 'not-a-uuid' }).expect(400);
+  });
+
   it('clears assignments when a manager changes role or is deleted', async () => {
     const admin = await signedIn('manager-lifecycle-admin@example.com');
     const first = await inviteManager(admin, 'promoted-manager@example.com');

@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -43,6 +44,10 @@ export class ListVehiclesQueryDto {
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  @IsOptional()
+  @IsUUID()
+  managerId?: string;
 
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() || undefined : value,

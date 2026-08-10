@@ -64,6 +64,18 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
       };
     }
     const qb = this.visibleVehicles(this.dataSource.manager, actor);
+    if (query.managerId) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM "manager_vehicle_assignments" selected_assignment
+          WHERE selected_assignment."vehicleId" = vehicle.id
+            AND selected_assignment."companyId" = vehicle."companyId"
+            AND selected_assignment."managerId" = :selectedManagerId
+            AND selected_assignment."assignedTo" IS NULL
+        )`,
+        { selectedManagerId: query.managerId },
+      );
+    }
     if (query.search) {
       const search = this.escapeLike(query.search);
       const compact = this.escapeLike(
