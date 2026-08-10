@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from './mail.service';
-import { FrontendUrlResolver } from '../common/frontend-url.resolver';
+import { FRONTEND_ORIGINS } from '../common/frontend-origins';
 import * as resendClient from './resend.client';
 import * as templateRenderer from './template-renderer';
 
@@ -32,9 +32,10 @@ describe('MailService', () => {
           },
         },
         {
-          provide: FrontendUrlResolver,
+          provide: FRONTEND_ORIGINS,
           useValue: {
-            resolve: (origin?: string) => origin ?? 'http://localhost:5173',
+            resolveLinkBase: (origin?: string) =>
+              origin?.replace(/\/$/, '') ?? 'http://localhost:5173',
           },
         },
       ],

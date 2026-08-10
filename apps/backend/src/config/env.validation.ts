@@ -56,10 +56,10 @@ export class EnvVars {
   @IsNotEmpty()
   DATABASE_URL!: string;
 
-  /** Comma-separated origins; defaults to FRONTEND_URL when omitted. */
+  /** Exact origins used by CORS and mutation protection. */
   @IsOptional()
   @IsString()
-  CORS_ORIGINS?: string;
+  CORS_ORIGINS!: string[];
 
   /**
    * Comma-separated regex patterns matched against the request `Origin` header
@@ -71,7 +71,7 @@ export class EnvVars {
    */
   @IsOptional()
   @IsString()
-  FRONTEND_URL_PATTERNS?: string;
+  FRONTEND_URL_PATTERNS!: RegExp[];
 
   /** Run pending TypeORM migrations on app startup (staging/production). */
   @IsOptional()
@@ -95,14 +95,32 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     );
   }
 
-  for (const origin of validated.CORS_ORIGINS?.split(',') ?? []) {
-    const value = origin.trim();
-    if (!value) continue;
+  const corsOrigins = String(config.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of corsOrigins) {
     try {
-      if (new URL(value).origin !== value) throw new Error();
+      if (new URL(origin).origin !== origin) throw new Error();
     } catch {
-      throw new Error(`Invalid CORS origin: ${value}`);
+      throw new Error(`Invalid CORS origin: ${origin}`);
     }
   }
+  validated.CORS_ORIGINS = corsOrigins;
+  validated.FRONTEND_URL_PATTERNS = String(config.FRONTEND_URL_PATTERNS ?? '')
+    .split(',')
+    .map((pattern) => pattern.trim())
+    .filter(Boolean)
+    .map((pattern) => {
+      try {
+        return new RegExp(pattern);
+      } catch (error) {
+        throw new Error(
+          `Invalid FRONTEND_URL_PATTERNS entry "${pattern}": ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    });
   return validated;
 }

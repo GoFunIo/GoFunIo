@@ -7,7 +7,6 @@ import { Company } from '../companies/companies.entity';
 import { User } from './users.entity';
 import { Membership } from './membership.entity';
 import { SessionAuthGuard } from './guards/session-auth.guard';
-import { AllowedOriginGuard } from '../common/allowed-origin.guard';
 import { UserProfileController } from './user-profile.controller';
 import { AdminGuard } from './guards/admin.guard';
 import { CompanyUsersController } from './company-users.controller';
@@ -74,7 +73,6 @@ import { USER_PROFILES } from './user-profiles';
     UserProfilesService,
     { provide: USER_PROFILES, useExisting: UserProfilesService },
     SessionAuthGuard,
-    AllowedOriginGuard,
     AdminGuard,
     CompanyUsersService,
     MembershipInvitationsService,

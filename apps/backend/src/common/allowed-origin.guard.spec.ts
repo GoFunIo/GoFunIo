@@ -1,5 +1,4 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { AllowedOriginGuard } from './allowed-origin.guard';
 
 function context(origin?: string): ExecutionContext {
@@ -11,22 +10,19 @@ function context(origin?: string): ExecutionContext {
 }
 
 describe('AllowedOriginGuard', () => {
-  const config = {
-    get: jest.fn((key: string) =>
-      key === 'NODE_ENV' ? 'production' : undefined,
-    ),
-    getOrThrow: jest.fn(() => 'https://app.example.com'),
-  } as unknown as ConfigService;
-  const guard = new AllowedOriginGuard(config);
+  const origins = { allowsMutation: jest.fn() };
+  const guard = new AllowedOriginGuard(origins as never);
 
-  it('allows configured origin', () => {
+  it('delegates the request origin to the shared policy', () => {
+    origins.allowsMutation.mockReturnValueOnce(true);
     expect(guard.canActivate(context('https://app.example.com'))).toBe(true);
+    expect(origins.allowsMutation).toHaveBeenCalledWith(
+      'https://app.example.com',
+    );
   });
 
-  it('rejects missing or foreign origin', () => {
+  it('rejects a denied origin', () => {
+    origins.allowsMutation.mockReturnValue(false);
     expect(() => guard.canActivate(context())).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(context('https://evil.example'))).toThrow(
-      ForbiddenException,
-    );
   });
 });

@@ -1,6 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { FrontendUrlResolver } from '../common/frontend-url.resolver';
+import {
+  FRONTEND_ORIGINS,
+  type FrontendOrigins,
+} from '../common/frontend-origins';
 import type { TokenDelivery } from '../users/events/token-delivery';
 import { sendResendEmail } from './resend.client';
 import { renderMailTemplate } from './template-renderer';
@@ -13,7 +16,7 @@ export class MailService {
 
   constructor(
     config: ConfigService,
-    private readonly frontendUrl: FrontendUrlResolver,
+    @Inject(FRONTEND_ORIGINS) private readonly frontendOrigins: FrontendOrigins,
   ) {
     this.apiKey = config.getOrThrow<string>('RESEND_API_KEY');
     this.from = config.getOrThrow<string>('MAIL_FROM');
@@ -23,7 +26,7 @@ export class MailService {
     return this.send(
       'verify-email',
       {
-        verificationUrl: `${this.frontendUrl.resolve(delivery.origin).replace(/\/$/, '')}/verify-email?token=${delivery.token}`,
+        verificationUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/verify-email?token=${delivery.token}`,
       },
       delivery.email,
       'Verify your GoFunIo email',
@@ -38,7 +41,7 @@ export class MailService {
     return this.send(
       isFirstPassword ? 'set-password' : 'reset-password',
       {
-        resetUrl: `${this.frontendUrl.resolve(delivery.origin).replace(/\/$/, '')}/reset-password?token=${delivery.token}`,
+        resetUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/reset-password?token=${delivery.token}`,
         ttlHours,
       },
       delivery.email,
@@ -52,7 +55,7 @@ export class MailService {
     return this.send(
       'verify-email-change',
       {
-        verificationUrl: `${this.frontendUrl.resolve(delivery.origin).replace(/\/$/, '')}/verify-email-change?token=${delivery.token}`,
+        verificationUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/verify-email-change?token=${delivery.token}`,
       },
       delivery.email,
       'Verify your new GoFunIo email',
@@ -63,7 +66,7 @@ export class MailService {
     return this.send(
       'membership-invitation',
       {
-        acceptUrl: `${this.frontendUrl.resolve(delivery.origin).replace(/\/$/, '')}/accept-invitation?token=${delivery.token}`,
+        acceptUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/accept-invitation?token=${delivery.token}`,
       },
       delivery.email,
       'You were invited to a GoFunIo workspace',

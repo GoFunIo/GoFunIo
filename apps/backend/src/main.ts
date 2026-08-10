@@ -5,13 +5,16 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieSession from 'cookie-session';
 import { toMilliseconds } from './common/duration.util';
-import { resolveAllowedOrigins } from './common/allowed-origins';
+import {
+  FRONTEND_ORIGINS,
+  type FrontendOrigins,
+} from './common/frontend-origins';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const cookieKey = config.getOrThrow<string>('COOKIE_KEY');
-  const frontendUrl = config.getOrThrow<string>('FRONTEND_URL');
+  const frontendOrigins = app.get<FrontendOrigins>(FRONTEND_ORIGINS);
   const isProd = config.get<string>('NODE_ENV') === 'production';
   const port = Number(process.env.PORT) || 3000;
 
@@ -20,10 +23,7 @@ async function bootstrap() {
   }
 
   app.enableCors({
-    origin: resolveAllowedOrigins(
-      frontendUrl,
-      config.get<string>('CORS_ORIGINS'),
-    ),
+    origin: [...frontendOrigins.corsOrigins],
     credentials: true,
   });
   app.use(

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { EmailVerificationRequestedListener } from './listeners/email-verification-requested.listener';
 import { PasswordResetRequestedListener } from './listeners/password-reset-requested.listener';
-import { FrontendUrlResolver } from '../common/frontend-url.resolver';
 import { UserEmailChangeRequestedListener } from './listeners/user-email-change-requested.listener';
 import { MembershipInvitationRequestedListener } from './listeners/membership-invitation-requested.listener';
 
@@ -13,7 +12,6 @@ import { MembershipInvitationRequestedListener } from './listeners/membership-in
     PasswordResetRequestedListener,
     UserEmailChangeRequestedListener,
     MembershipInvitationRequestedListener,
-    FrontendUrlResolver,
   ],
   exports: [MailService],
 })
