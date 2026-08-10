@@ -165,7 +165,44 @@ describe('Memberships dual-write (e2e)', () => {
 
     expect(me.body.companyId).toBeNull();
     expect(me.body.role).toBeNull();
-    await agent.get('/vehicles').expect(403);
+    await agent
+      .get('/vehicles')
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ items: [], total: 0, totalPages: 0 }),
+      );
+    await agent.get('/drivers').expect(200, []);
+    await agent.get('/auth/invitations').expect(200, []);
+    await agent.get('/company').expect(403, {
+      message: 'No active workspace',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
+    await agent
+      .post('/drivers')
+      .send({ firstName: 'Jan', lastName: 'Kowalski' })
+      .expect(403);
+
+    const created = await agent
+      .post('/companies')
+      .send({ name: ' New workspace ' })
+      .expect(201);
+    expect(created.body).toMatchObject({ name: 'New workspace' });
+
+    await agent
+      .get('/auth/me')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.companyId).toBe(created.body.id);
+        expect(body.role).toBe(MembershipRole.ADMIN);
+      });
+    await agent.get('/auth/companies').expect(200, [
+      {
+        id: created.body.id,
+        name: 'New workspace',
+        role: MembershipRole.ADMIN,
+      },
+    ]);
   });
 
   it('lists active companies and switches the active workspace', async () => {

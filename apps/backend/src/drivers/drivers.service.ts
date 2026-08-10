@@ -26,8 +26,9 @@ export class DriversService {
   ) {}
 
   list(actor: SessionPrincipal): Promise<Driver[]> {
+    if (!actor.companyId) return Promise.resolve([]);
     return this.drivers.find({
-      where: { companyId: requireCompanyId(actor) },
+      where: { companyId: actor.companyId },
       order: { lastName: 'ASC', firstName: 'ASC', id: 'ASC' },
     });
   }

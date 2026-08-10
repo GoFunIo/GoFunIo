@@ -57,10 +57,19 @@ export class VehiclesService {
   ) {}
 
   async list(actor: SessionPrincipal, query: ListVehiclesQueryDto) {
+    if (!actor.companyId) {
+      return {
+        items: [],
+        page: query.page,
+        pageSize: query.pageSize,
+        total: 0,
+        totalPages: 0,
+      };
+    }
     const qb = this.vehicles
       .createQueryBuilder('vehicle')
       .where('vehicle.companyId = :companyId', {
-        companyId: requireCompanyId(actor),
+        companyId: actor.companyId,
       })
       .andWhere('vehicle.deletedAt IS NULL');
     if (actor.role === MembershipRole.MANAGER) {
@@ -144,10 +153,7 @@ export class VehiclesService {
         const companyId = requireCompanyId(actor);
         await this.lockActor(manager, actor.id);
         const { managerIds, driverIds, ...vehicleFields } = body;
-        if (
-          actor.role === MembershipRole.MANAGER &&
-          managerIds !== undefined
-        ) {
+        if (actor.role === MembershipRole.MANAGER && managerIds !== undefined) {
           throw new ForbiddenException();
         }
 
@@ -226,10 +232,7 @@ export class VehiclesService {
         const companyId = requireCompanyId(actor);
         await this.lockActor(manager, actor.id);
         const { managerIds, ...vehicleFields } = body;
-        if (
-          actor.role === MembershipRole.MANAGER &&
-          managerIds !== undefined
-        ) {
+        if (actor.role === MembershipRole.MANAGER && managerIds !== undefined) {
           throw new ForbiddenException();
         }
         const vehicle = await this.findAccessibleVehicle(
