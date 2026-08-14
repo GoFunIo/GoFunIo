@@ -1,6 +1,6 @@
 # Database schema
 
-> **Migration convention:** Update this document in every migration that changes a table, column, type, nullability, default, primary/unique/check/foreign-key constraint, index, enum, soft-delete rule, or persisted lifecycle. The schema below is the final state after migration `1758000000000-DropUserCompanyRole` (CONTRACT); migrations are the source of truth.
+> **Migration convention:** Update this document in every migration that changes a table, column, type, nullability, default, primary/unique/check/foreign-key constraint, index, enum, soft-delete rule, or persisted lifecycle. The schema below is the final state after migration `1762000000000-CreateServices`; migrations are the source of truth.
 
 PostgreSQL identifiers are quoted and therefore case-sensitive. `varchar` without a length means PostgreSQL `character varying` with no declared limit.
 
@@ -8,7 +8,7 @@ PostgreSQL identifiers are quoted and therefore case-sensitive. `varchar` withou
 
 `memberships` is the central and only source of an account's workspace (`company`) role and membership state. A user can have one membership per company and memberships in multiple companies. After the CONTRACT migration, `users` has neither `companyId` nor `role`; authorization must not infer workspace access from `users`.
 
-The PostgreSQL enum `user_role` contains `ADMIN` and `MANAGER`. It is used by `memberships.role`.
+The PostgreSQL enum `user_role` contains `OWNER`, `ADMIN`, and `MANAGER`. It is used by `memberships.role`.
 
 ### Invitation lifecycle
 
@@ -92,7 +92,7 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 - Unique constraint: `UQ_memberships_user_company (userId, companyId)`. This pair is also the referenced key for manager assignments.
 - Check: `CHK_memberships_status`: `status IN ('pending', 'active', 'declined', 'removed')`.
 - Foreign keys: `FK_memberships_user (userId) -> users(id) ON DELETE RESTRICT`; `FK_memberships_company (companyId) -> companies(id) ON DELETE RESTRICT`.
-- Indexes: `IDX_memberships_user (userId)`; `IDX_memberships_company (companyId)`; `IDX_memberships_user_status (userId, status)`; unique partial `IDX_memberships_token (tokenHash) WHERE tokenHash IS NOT NULL`.
+- Indexes: `IDX_memberships_user (userId)`; `IDX_memberships_company (companyId)`; `IDX_memberships_user_status (userId, status)`; unique partial `IDX_memberships_token (tokenHash) WHERE tokenHash IS NOT NULL`; unique partial `IDX_memberships_active_owner (companyId) WHERE role = 'OWNER' AND status = 'active'`.
 - Memberships are lifecycle rows and are not soft-deleted; `status = 'removed'` preserves removal history.
 
 ### `vehicles`
@@ -148,6 +148,7 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 | ----------- | -------------- | ---- | ------------------- |
 | `id`        | `uuid`         | no   | `gen_random_uuid()` |
 | `companyId` | `uuid`         | no   | none                |
+| `userId`    | `uuid`         | yes  | none                |
 | `firstName` | `varchar(100)` | no   | none                |
 | `lastName`  | `varchar(100)` | no   | none                |
 | `email`     | `varchar(254)` | yes  | none                |
@@ -159,9 +160,9 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 
 - Primary key: `PK_drivers (id)`.
 - Unique constraint: `UQ_drivers_id_company (id, companyId)`, used by the tenant-safe composite assignment FK.
-- Foreign key: `FK_drivers_company (companyId) -> companies(id) ON DELETE RESTRICT`.
+- Foreign keys: `FK_drivers_company (companyId) -> companies(id) ON DELETE RESTRICT`; `FK_drivers_membership (userId, companyId) -> memberships(userId, companyId) ON DELETE RESTRICT`.
 - Checks: `CHK_drivers_first_name: btrim(firstName) <> ''`; `CHK_drivers_last_name: btrim(lastName) <> ''`; `CHK_drivers_notes: notes IS NULL OR char_length(notes) <= 5000`.
-- Indexes: `IDX_drivers_company (companyId)`; partial `IDX_drivers_company_active (companyId, lastName, firstName, id) WHERE deletedAt IS NULL`.
+- Indexes: `IDX_drivers_company (companyId)`; partial `IDX_drivers_company_active (companyId, lastName, firstName, id) WHERE deletedAt IS NULL`; unique partial `UQ_drivers_active_membership (companyId, userId) WHERE userId IS NOT NULL AND deletedAt IS NULL`.
 - Soft delete: `deletedAt IS NULL` denotes a live driver.
 
 ### `driver_vehicle_assignments`
@@ -179,5 +180,30 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 - Primary key: `PK_driver_vehicle_assignments (id)`.
 - Foreign keys, all `ON DELETE RESTRICT`: `FK_driver_assignments_company (companyId) -> companies(id)`; `FK_driver_assignments_driver (driverId, companyId) -> drivers(id, companyId)`; `FK_driver_assignments_vehicle (vehicleId, companyId) -> vehicles(id, companyId)`. Composite FKs prevent cross-workspace assignments.
 - Check: `CHK_driver_assignments_dates: assignedTo IS NULL OR assignedTo >= assignedFrom`.
-- Indexes: unique partial `IDX_driver_assignments_active_pair (driverId, vehicleId) WHERE assignedTo IS NULL`; `IDX_driver_assignments_company_driver (companyId, driverId, assignedTo)`; `IDX_driver_assignments_company_vehicle (companyId, vehicleId, assignedTo)`.
-- Lifecycle: `assignedTo IS NULL` means active. Unassignment or relevant driver/vehicle removal closes the row with `assignedTo = clock_timestamp()` rather than deleting it. A driver can have only one active row per driver-vehicle pair; multiple active drivers may share a vehicle, and history may contain repeated closed assignments.
+- Indexes: unique partial `IDX_driver_assignments_active_vehicle (vehicleId) WHERE assignedTo IS NULL`; `IDX_driver_assignments_company_driver (companyId, driverId, assignedTo)`; `IDX_driver_assignments_company_vehicle (companyId, vehicleId, assignedTo)`.
+- Lifecycle: `assignedTo IS NULL` means active. Unassignment or relevant driver/vehicle removal closes the row with `assignedTo = clock_timestamp()` rather than deleting it. A vehicle can have only one active driver; history may contain repeated closed assignments.
+
+### `services`
+
+| Column           | Type            | Null | Default             |
+| ---------------- | --------------- | ---- | ------------------- |
+| `id`             | `uuid`          | no   | `gen_random_uuid()` |
+| `companyId`      | `uuid`          | no   | none                |
+| `vehicleId`      | `uuid`          | no   | none                |
+| `serviceDate`    | `date`          | no   | none                |
+| `type`           | `varchar`       | no   | none                |
+| `cost`           | `numeric(12,2)` | no   | none                |
+| `providerName`   | `varchar(255)`  | no   | none                |
+| `notes`          | `text`          | yes  | none                |
+| `attachmentKey`  | `varchar`       | yes  | none                |
+| `attachmentName` | `varchar`       | yes  | none                |
+| `attachmentMime` | `varchar`       | yes  | none                |
+| `createdAt`      | `timestamptz`   | no   | `now()`             |
+| `updatedAt`      | `timestamptz`   | no   | `now()`             |
+| `deletedAt`      | `timestamptz`   | yes  | none                |
+
+- Primary key: `PK_services (id)`.
+- Foreign keys, both `ON DELETE RESTRICT`: `FK_services_company (companyId) -> companies(id)`; `FK_services_vehicle (vehicleId, companyId) -> vehicles(id, companyId)`. The composite Vehicle foreign key prevents cross-workspace references.
+- Checks: `CHK_services_cost: cost > 0`; `CHK_services_type: type IN ('FULL', 'OIL_CHANGE', 'TECHNICAL_INSPECTION', 'OC', 'AC', 'OTHER')`; `CHK_services_notes: notes IS NULL OR char_length(notes) <= 5000`.
+- Partial indexes: `IDX_services_company_date_active (companyId, serviceDate DESC, id DESC)`; `IDX_services_company_vehicle_date_active (companyId, vehicleId, serviceDate DESC)`; `IDX_services_company_type_active (companyId, type)`, each `WHERE deletedAt IS NULL`.
+- Soft delete: `deletedAt IS NULL` denotes a live service. Direct deletion sets `deletedAt`; Vehicle deletion must soft-delete related Services in the same transaction before Service creation is exposed.
