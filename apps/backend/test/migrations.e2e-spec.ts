@@ -14,6 +14,7 @@ import { DropUserCompanyRole1758000000000 } from '../src/migrations/175800000000
 import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-AddWorkspaceOwner';
 import { LinkDriverMembership1760000000000 } from '../src/migrations/1760000000000-LinkDriverMembership';
 import { EnforceSingleActiveDriver1761000000000 } from '../src/migrations/1761000000000-EnforceSingleActiveDriver';
+import { CreateServices1762000000000 } from '../src/migrations/1762000000000-CreateServices';
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
@@ -43,6 +44,7 @@ describe('database migrations', () => {
         AddWorkspaceOwner1759000000000,
         LinkDriverMembership1760000000000,
         EnforceSingleActiveDriver1761000000000,
+        CreateServices1762000000000,
       ],
     });
 
@@ -57,7 +59,7 @@ describe('database migrations', () => {
         `
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships')
+        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships', 'services')
         ORDER BY table_name
       `,
         [schema],
@@ -68,6 +70,7 @@ describe('database migrations', () => {
         'drivers',
         'manager_vehicle_assignments',
         'memberships',
+        'services',
         'users',
         'vehicles',
       ]);
@@ -155,6 +158,7 @@ describe('database migrations', () => {
       );
 
       await database.undoLastMigration();
+      await database.undoLastMigration();
       const [{ id: allocationVehicleId }] = await database.query<
         { id: string }[]
       >(
@@ -195,6 +199,7 @@ describe('database migrations', () => {
         ),
       ).rejects.toMatchObject({ code: '23505' });
 
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await expect(
         database.query<{ indexname: string }[]>(
@@ -266,6 +271,92 @@ describe('database migrations', () => {
          VALUES ($1, 'BMW', 'X5', 'CROSS1') RETURNING "id"`,
         [companyId],
       );
+
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes", "attachmentKey", "attachmentName", "attachmentMime")
+           VALUES ($1, $2, '2026-01-15', 'FULL', '1234.56', 'Migration Workshop', 'Complete service', 'services/report.pdf', 'report.pdf', 'application/pdf')`,
+          [companyId, vehicleId],
+        ),
+      ).resolves.toBeDefined();
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+           VALUES ($1, $2, '2026-01-15', 'OTHER', '10.00', 'Cross-workspace')`,
+          [otherCompanyId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      for (const cost of ['0', '-0.01']) {
+        await expect(
+          database.query(
+            `INSERT INTO "services"
+             ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+             VALUES ($1, $2, '2026-01-15', 'OIL_CHANGE', $3, 'Invalid cost')`,
+            [companyId, vehicleId, cost],
+          ),
+        ).rejects.toMatchObject({ code: '23514' });
+      }
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+           VALUES ($1, $2, '2026-01-15', 'UNKNOWN', '10.00', 'Invalid type')`,
+          [companyId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes")
+           VALUES ($1, $2, '2026-01-15', 'OC', '10.00', 'Long notes', $3)`,
+          [companyId, vehicleId, 'x'.repeat(5001)],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+
+      const serviceIndexes = await database.query<
+        { indexname: string; indexdef: string }[]
+      >(
+        `SELECT indexname, indexdef FROM pg_indexes
+         WHERE schemaname = $1 AND indexname LIKE 'IDX_services_%'
+         ORDER BY indexname`,
+        [schema],
+      );
+      expect(serviceIndexes).toEqual([
+        {
+          indexname: 'IDX_services_company_date_active',
+          indexdef: expect.stringContaining(
+            '("companyId", "serviceDate" DESC, id DESC) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+        {
+          indexname: 'IDX_services_company_type_active',
+          indexdef: expect.stringContaining(
+            '("companyId", type) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+        {
+          indexname: 'IDX_services_company_vehicle_date_active',
+          indexdef: expect.stringContaining(
+            '("companyId", "vehicleId", "serviceDate" DESC) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+      ]);
+
+      await database.undoLastMigration();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.services`,
+        ]),
+      ).resolves.toEqual([{ regclass: null }]);
+      await database.runMigrations();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.services`,
+        ]),
+      ).resolves.toEqual([{ regclass: 'services' }]);
+
       await expect(
         database.query(
           `INSERT INTO "manager_vehicle_assignments"
@@ -395,6 +486,7 @@ describe('database migrations', () => {
       >(
         `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
       );
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();
