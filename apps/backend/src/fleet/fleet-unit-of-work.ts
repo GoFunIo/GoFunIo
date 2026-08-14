@@ -15,6 +15,7 @@ import type {
   FleetManagerProjection,
 } from './vehicle-access';
 import type { DriverAllocationStore } from './driver-allocation';
+import type { ServiceType } from '../services/services.entity';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -77,6 +78,23 @@ export interface FleetDriverAssignment {
   createdAt: Date;
 }
 
+export interface FleetServiceInput {
+  companyId: string;
+  vehicleId: string;
+  serviceDate: string;
+  type: ServiceType;
+  cost: string;
+  providerName: string;
+  notes: string | null;
+}
+
+export interface FleetService extends FleetServiceInput {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 export interface FleetVehicleAccessStore {
   requireActor(
     companyId: string,
@@ -129,6 +147,15 @@ export interface FleetTransaction {
     requireOne(companyId: string, driverId: string): Promise<void>;
   };
   driverAllocations: DriverAllocationStore;
+  services: {
+    create(input: FleetServiceInput): Promise<FleetService>;
+    find(companyId: string, serviceId: string): Promise<FleetService>;
+    update(
+      serviceId: string,
+      fields: Partial<Omit<FleetServiceInput, 'companyId'>>,
+    ): Promise<FleetService>;
+    softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
+  };
 }
 
 export interface FleetUnitOfWork {
@@ -142,6 +169,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
   readonly vehicles: FleetVehicle[] = [];
   readonly managerAssignments: FleetManagerAssignment[] = [];
   readonly driverAssignments: FleetDriverAssignment[] = [];
+  readonly services: FleetService[] = [];
   private pendingTransaction: Promise<void> = Promise.resolve();
 
   transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -185,6 +213,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
     const driverAssignments = this.driverAssignments.map((assignment) => ({
       ...assignment,
     }));
+    const services = this.services.map((service) => ({ ...service }));
     try {
       return await work({
         vehicles: {
@@ -534,6 +563,52 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             }
           },
         },
+        services: {
+          create: (input) => {
+            const now = new Date();
+            const service = {
+              ...input,
+              id: `service-${this.services.length + 1}`,
+              createdAt: now,
+              updatedAt: now,
+              deletedAt: null,
+            };
+            this.services.push(service);
+            return Promise.resolve(service);
+          },
+          find: (companyId, serviceId) => {
+            const service = this.services.find(
+              ({ id, companyId: ownerId, deletedAt }) =>
+                id === serviceId && ownerId === companyId && !deletedAt,
+            );
+            return service
+              ? Promise.resolve(service)
+              : Promise.reject(new NotFoundException('Service not found'));
+          },
+          update: (serviceId, fields) => {
+            const service = this.services.find(({ id }) => id === serviceId);
+            if (!service) {
+              return Promise.reject(
+                new NotFoundException('Service not found'),
+              );
+            }
+            Object.assign(service, fields, { updatedAt: new Date() });
+            return Promise.resolve(service);
+          },
+          softDeleteVehicle: (companyId, vehicleId) => {
+            const now = new Date();
+            for (const service of this.services) {
+              if (
+                service.companyId === companyId &&
+                service.vehicleId === vehicleId &&
+                !service.deletedAt
+              ) {
+                service.deletedAt = now;
+              }
+            }
+            return Promise.resolve();
+          },
+        },
       });
     } catch (error) {
       this.vehicles.splice(0, this.vehicles.length, ...vehicles);
@@ -548,6 +623,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         this.driverAssignments.length,
         ...driverAssignments,
       );
+      this.services.splice(0, this.services.length, ...services);
       throw error;
     }
   }

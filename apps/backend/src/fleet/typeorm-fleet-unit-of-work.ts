@@ -7,6 +7,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
+import { Service } from '../services/services.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import {
   type FleetTransaction,
@@ -111,6 +112,25 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         },
       },
       driverAllocations: this.driverAllocation.transactionStore(manager),
+      services: {
+        create: (input) => manager.save(manager.create(Service, input)),
+        find: async (companyId, serviceId) => {
+          const service = await manager.findOne(Service, {
+            where: { id: serviceId, companyId },
+          });
+          if (!service) throw new NotFoundException('Service not found');
+          return service;
+        },
+        update: async (serviceId, fields) => {
+          await manager.update(Service, serviceId, fields);
+          const service = await manager.findOneBy(Service, { id: serviceId });
+          if (!service) throw new NotFoundException('Service not found');
+          return service;
+        },
+        softDeleteVehicle: async (companyId, vehicleId) => {
+          await manager.softDelete(Service, { companyId, vehicleId });
+        },
+      },
     };
   }
 }

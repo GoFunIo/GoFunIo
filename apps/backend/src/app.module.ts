@@ -12,6 +12,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { DriversModule } from './drivers/drivers.module';
 import { FrontendOriginsModule } from './common/frontend-origins.module';
+import { ServicesModule } from './services/services.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
@@ -45,6 +46,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     CompaniesModule,
     VehiclesModule,
     DriversModule,
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [

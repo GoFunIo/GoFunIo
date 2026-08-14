@@ -30,6 +30,7 @@ export interface FleetVehiclePage {
 }
 
 export interface VehicleAccess {
+  visible(actor: SessionPrincipal): Promise<FleetVehicle[]>;
   list(
     actor: SessionPrincipal,
     query: ListVehiclesQueryDto,

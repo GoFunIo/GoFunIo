@@ -50,6 +50,11 @@ const expiryColumns: Record<VehicleExpiryType, string> = {
 export class TypeOrmVehicleAccess implements VehicleAccess {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
+  visible(actor: SessionPrincipal): Promise<Vehicle[]> {
+    if (!actor.companyId) return Promise.resolve([]);
+    return this.visibleVehicles(this.dataSource.manager, actor).getMany();
+  }
+
   async list(
     actor: SessionPrincipal,
     query: ListVehiclesQueryDto,

@@ -9,6 +9,7 @@ import { ManagerVehicleAssignment } from '../../src/vehicles/manager-vehicle-ass
 import { Driver } from '../../src/drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../../src/drivers/driver-vehicle-assignment.entity';
 import { Membership } from '../../src/users/membership.entity';
+import { Service } from '../../src/services/services.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -37,6 +38,7 @@ function testDataSource(schema: string): DataSource {
       Driver,
       DriverVehicleAssignment,
       Membership,
+      Service,
     ],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
