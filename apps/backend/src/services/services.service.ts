@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   FLEET_UNIT_OF_WORK,
   type FleetService,
@@ -17,10 +17,11 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import { CreateServiceDto } from './dtos/create-service.dto';
 import { ListServicesQueryDto } from './dtos/list-services-query.dto';
 import { UpdateServiceDto } from './dtos/update-service.dto';
-import type { ServiceView } from './service-view';
+import type { ServicePage, ServiceView } from './service-view';
 import { Service } from './services.entity';
 
 @Injectable()
@@ -34,23 +35,88 @@ export class ServicesService {
   async list(
     actor: SessionPrincipal,
     query: ListServicesQueryDto,
-  ): Promise<ServiceView[]> {
-    if (!actor.companyId) return [];
-    const vehicles = await this.vehicleAccess.visible(actor);
-    const visible = new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]));
-    const vehicleIds = query.vehicleId
-      ? visible.has(query.vehicleId)
-        ? [query.vehicleId]
-        : []
-      : [...visible.keys()];
-    if (!vehicleIds.length) return [];
-    const services = await this.services.find({
-      where: { companyId: actor.companyId, vehicleId: In(vehicleIds) },
-      order: { serviceDate: 'DESC', id: 'DESC' },
-    });
-    return services.map((service) =>
-      this.view(service, visible.get(service.vehicleId)!),
-    );
+  ): Promise<ServicePage> {
+    const companyId = requireCompanyId(actor);
+    if (query.from && query.to && query.from > query.to) {
+      throw new BadRequestException('from cannot be after to');
+    }
+    if (
+      !actor.role ||
+      (!isWorkspaceAdmin(actor.role) && actor.role !== MembershipRole.MANAGER)
+    ) {
+      throw new ForbiddenException();
+    }
+    if (query.vehicleId) await this.vehicleAccess.find(actor, query.vehicleId);
+
+    const filtered = this.services
+      .createQueryBuilder('service')
+      .innerJoinAndSelect('service.vehicle', 'vehicle')
+      .where('service.companyId = :companyId', { companyId })
+      .andWhere(
+        `EXISTS (
+          SELECT 1 FROM "memberships" actor_membership
+          WHERE actor_membership."userId" = :actorId
+            AND actor_membership."companyId" = service."companyId"
+            AND actor_membership.role = :actorRole
+            AND actor_membership.status = 'active'
+        )`,
+        { actorId: actor.id, actorRole: actor.role },
+      );
+    if (actor.role === MembershipRole.MANAGER) {
+      filtered.andWhere(
+        `EXISTS (
+          SELECT 1 FROM "manager_vehicle_assignments" assignment
+          WHERE assignment."vehicleId" = service."vehicleId"
+            AND assignment."companyId" = service."companyId"
+            AND assignment."managerId" = :managerId
+            AND assignment."assignedTo" IS NULL
+        )`,
+        { managerId: actor.id },
+      );
+    }
+    if (query.vehicleId) {
+      filtered.andWhere('service.vehicleId = :vehicleId', {
+        vehicleId: query.vehicleId,
+      });
+    }
+    if (query.type) {
+      filtered.andWhere('service.type = :type', { type: query.type });
+    }
+    if (query.providerName) {
+      filtered.andWhere("service.providerName ILIKE :providerName ESCAPE '!'", {
+        providerName: `%${query.providerName.replace(/[!%_]/g, '!$&')}%`,
+      });
+    }
+    if (query.from) {
+      filtered.andWhere('service.serviceDate >= :from', { from: query.from });
+    }
+    if (query.to) {
+      filtered.andWhere('service.serviceDate <= :to', { to: query.to });
+    }
+
+    const aggregate = await filtered
+      .clone()
+      .select('COUNT(*)', 'total')
+      .addSelect('COALESCE(SUM(service.cost), 0)', 'totalCost')
+      .getRawOne<{ total: string; totalCost: string }>();
+    const total = Number(aggregate?.total ?? 0);
+    const services = await filtered
+      .orderBy('service.serviceDate', 'DESC')
+      .addOrderBy('service.id', 'DESC')
+      .skip((query.page - 1) * query.pageSize)
+      .take(query.pageSize)
+      .getMany();
+    return {
+      items: services.map((service) => ({
+        ...this.view(service, service.vehicle),
+        hasAttachment: service.attachmentKey !== null,
+      })),
+      total,
+      totalCost: this.money(aggregate?.totalCost ?? '0'),
+      page: query.page,
+      pageSize: query.pageSize,
+      totalPages: Math.ceil(total / query.pageSize),
+    };
   }
 
   findOne(actor: SessionPrincipal, id: string): Promise<ServiceView> {
@@ -122,5 +188,10 @@ export class ServicesService {
 
   private view(service: FleetService, vehicle: FleetVehicle): ServiceView {
     return { ...service, vehicle };
+  }
+
+  private money(value: string): string {
+    const [whole, fraction = ''] = value.split('.');
+    return `${whole}.${fraction.padEnd(2, '0')}`;
   }
 }
