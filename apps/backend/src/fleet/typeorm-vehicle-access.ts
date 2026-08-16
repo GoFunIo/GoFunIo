@@ -28,6 +28,7 @@ import type {
   FleetVehiclePage,
   VehicleAccess,
 } from './vehicle-access';
+import type { TransactionalVehicleAccess } from './transactional-vehicle-access';
 
 const sortColumns: Record<VehicleSortBy, string> = {
   [VehicleSortBy.CREATED_AT]: 'vehicle.createdAt',
@@ -47,8 +48,15 @@ const expiryColumns: Record<VehicleExpiryType, string> = {
 };
 
 @Injectable()
-export class TypeOrmVehicleAccess implements VehicleAccess {
+export class TypeOrmVehicleAccess
+  implements VehicleAccess, TransactionalVehicleAccess
+{
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+
+  visible(actor: SessionPrincipal): Promise<Vehicle[]> {
+    if (!actor.companyId) return Promise.resolve([]);
+    return this.visibleVehicles(this.dataSource.manager, actor).getMany();
+  }
 
   async list(
     actor: SessionPrincipal,
@@ -142,13 +150,12 @@ export class TypeOrmVehicleAccess implements VehicleAccess {
     );
   }
 
-  async closeManager(companyId: string, managerId: string): Promise<void> {
-    await this.close(
-      this.dataSource.manager,
-      companyId,
-      'managerId',
-      managerId,
-    );
+  closeManager(
+    manager: EntityManager,
+    companyId: string,
+    managerId: string,
+  ): Promise<void> {
+    return this.close(manager, companyId, 'managerId', managerId);
   }
 
   transactionStore(manager: EntityManager): FleetVehicleAccessStore {

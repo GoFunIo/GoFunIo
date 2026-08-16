@@ -30,6 +30,7 @@ export interface FleetVehiclePage {
 }
 
 export interface VehicleAccess {
+  visible(actor: SessionPrincipal): Promise<FleetVehicle[]>;
   list(
     actor: SessionPrincipal,
     query: ListVehiclesQueryDto,
@@ -43,5 +44,4 @@ export interface VehicleAccess {
     companyId: string,
     vehicleIds: string[],
   ): Promise<Map<string, FleetManagerProjection[]>>;
-  closeManager(companyId: string, managerId: string): Promise<void>;
 }

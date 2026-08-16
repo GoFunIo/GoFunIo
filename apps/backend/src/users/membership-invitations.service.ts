@@ -10,7 +10,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MembershipRole } from './membership-role';
 import { Company } from '../companies/companies.entity';
-import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
+import {
+  TRANSACTIONAL_VEHICLE_ACCESS,
+  type TransactionalVehicleAccess,
+} from '../fleet/transactional-vehicle-access';
 import { Membership } from './membership.entity';
 import { User } from './users.entity';
 import { generateToken, hashToken } from './token.util';
@@ -38,7 +41,8 @@ export class MembershipInvitationsService {
     private readonly memberships: Repository<Membership>,
     private readonly events: EventEmitter2,
     private readonly passwordRecovery: PasswordRecoveryService,
-    @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
+    @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
+    private readonly vehicleAccess: TransactionalVehicleAccess,
   ) {}
 
   async invite(
@@ -196,25 +200,28 @@ export class MembershipInvitationsService {
     membership: Membership,
     fail: () => never,
   ): Promise<void> {
-    await this.vehicleAccess.closeManager(
-      membership.companyId,
-      membership.userId,
-    );
-    const result = await this.memberships
-      .createQueryBuilder()
-      .update(Membership)
-      .set({ status: 'active', tokenHash: null, tokenExpiresAt: null })
-      .where('id = :id', { id: membership.id })
-      .andWhere('status = :status', { status: 'pending' })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "companies" company
-          WHERE company.id = :companyId
-            AND company."deletedAt" IS NULL
-        )`,
-        { companyId: membership.companyId },
-      )
-      .execute();
-    if (result.affected !== 1) fail();
+    await this.memberships.manager.transaction(async (manager) => {
+      await this.vehicleAccess.closeManager(
+        manager,
+        membership.companyId,
+        membership.userId,
+      );
+      const result = await manager
+        .createQueryBuilder()
+        .update(Membership)
+        .set({ status: 'active', tokenHash: null, tokenExpiresAt: null })
+        .where('id = :id', { id: membership.id })
+        .andWhere('status = :status', { status: 'pending' })
+        .andWhere(
+          `EXISTS (
+            SELECT 1 FROM "companies" company
+            WHERE company.id = :companyId
+              AND company."deletedAt" IS NULL
+          )`,
+          { companyId: membership.companyId },
+        )
+        .execute();
+      if (result.affected !== 1) fail();
+    });
   }
 }

@@ -212,6 +212,56 @@ describe('Company users (e2e)', () => {
       .expect(409);
   });
 
+  it('rolls back Vehicle Access when a manager promotion fails', async () => {
+    const owner = await signedIn('rollback-owner@example.com');
+    const { user: manager, token } = await invite(
+      owner,
+      'rollback-manager@example.com',
+    );
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token, password: 'manager-password' })
+      .expect(204);
+    const vehicle = await owner
+      .post('/vehicles')
+      .send({ brand: 'Volvo', model: 'XC60', registrationNumber: 'ROLL1' })
+      .expect(201);
+    await owner
+      .post(`/vehicles/${vehicle.body.id}/managers`)
+      .send({ managerId: manager.id })
+      .expect(201);
+    await dataSource.query(
+      `ALTER TABLE "users" ADD CONSTRAINT "CK_e2e_user_profile_failure"
+       CHECK ("firstName" IS DISTINCT FROM 'ROLLBACK')`,
+    );
+
+    try {
+      await owner
+        .patch(`/users/${manager.id}`)
+        .send({ role: MembershipRole.ADMIN, firstName: 'ROLLBACK' })
+        .expect(500);
+
+      await expect(
+        dataSource.query<Array<{ role: string }>>(
+          `SELECT role FROM "memberships"
+           WHERE "userId" = $1 AND status = 'active'`,
+          [manager.id],
+        ),
+      ).resolves.toEqual([{ role: MembershipRole.MANAGER }]);
+      await expect(
+        dataSource.query<Array<{ assignedTo: Date | null }>>(
+          `SELECT "assignedTo" FROM "manager_vehicle_assignments"
+           WHERE "managerId" = $1`,
+          [manager.id],
+        ),
+      ).resolves.toEqual([{ assignedTo: null }]);
+    } finally {
+      await dataSource.query(
+        `ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "CK_e2e_user_profile_failure"`,
+      );
+    }
+  });
+
   it('transfers ownership to an active admin and protects the new owner', async () => {
     const owner = await signedIn('owner-transfer@example.com');
     const { user: admin } = await invite(

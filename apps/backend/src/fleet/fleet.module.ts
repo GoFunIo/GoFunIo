@@ -10,6 +10,7 @@ import { Vehicle } from '../vehicles/vehicles.entity';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import { Driver } from '../drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
 
 @Module({
   imports: [
@@ -31,12 +32,21 @@ import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.en
       provide: VEHICLE_ACCESS,
       useExisting: TypeOrmVehicleAccess,
     },
+    {
+      provide: TRANSACTIONAL_VEHICLE_ACCESS,
+      useExisting: TypeOrmVehicleAccess,
+    },
     TypeOrmFleetUnitOfWork,
     {
       provide: FLEET_UNIT_OF_WORK,
       useExisting: TypeOrmFleetUnitOfWork,
     },
   ],
-  exports: [DRIVER_ALLOCATION, FLEET_UNIT_OF_WORK, VEHICLE_ACCESS],
+  exports: [
+    DRIVER_ALLOCATION,
+    FLEET_UNIT_OF_WORK,
+    TRANSACTIONAL_VEHICLE_ACCESS,
+    VEHICLE_ACCESS,
+  ],
 })
 export class FleetModule {}

@@ -52,6 +52,14 @@ Uwierzytelnienie Usera przez zweryfikowaną tożsamość Google. Może zalogowa�
 
 Pojazd należący do jednego Workspace.
 
+## Service
+
+Zdarzenie serwisowe, przegląd techniczny lub ubezpieczeniowe dotyczące jednego Vehicle w jednym Workspace. Rejestruje datę, typ, koszt i Service Provider.
+
+## Service Provider
+
+Warsztat, ubezpieczyciel lub inny podmiot realizujący Service.
+
 ## Driver
 
 Kierowca należący do jednego Workspace. Driver może opcjonalnie reprezentować tę samą osobę co jedna Membership w tym Workspace, zachowując niezależne dane profilu. Membership może mieć najwyżej jednego Drivera w danym Workspace; odebranie dostępu nie usuwa tej relacji. Driver może być jednocześnie odpowiedzialny za wiele Vehicle. ADMIN widzi wszystkich Driverów w Workspace. MANAGER widzi Driverów przypisanych do Vehicle objętych jego Vehicle Access oraz Driverów bez żadnego aktywnego Driver Allocation.

@@ -262,6 +262,88 @@ describe('Membership invitations (e2e)', () => {
       );
   });
 
+  it('rolls back Vehicle Access when invitation activation fails', async () => {
+    await createVerifiedUser(
+      app,
+      'rollback-invite-admin@example.com',
+      'password123',
+    );
+    await createVerifiedUser(
+      app,
+      'rollback-invite-target@example.com',
+      'password123',
+    );
+    const admin = request.agent(app.getHttpServer());
+    const target = request.agent(app.getHttpServer());
+    const adminSignin = await admin
+      .post('/auth/signin')
+      .send({
+        email: 'rollback-invite-admin@example.com',
+        password: 'password123',
+      })
+      .expect(201);
+    const targetSignin = await target
+      .post('/auth/signin')
+      .send({
+        email: 'rollback-invite-target@example.com',
+        password: 'password123',
+      })
+      .expect(201);
+    const events = captureEmittedEvents(app);
+    try {
+      await admin
+        .post('/users/invitations')
+        .send({
+          email: 'rollback-invite-target@example.com',
+          role: MembershipRole.MANAGER,
+        })
+        .expect(201);
+    } finally {
+      events.restore();
+    }
+    const [invitation] = (await target.get('/auth/invitations').expect(200))
+      .body;
+    const vehicle = await admin
+      .post('/vehicles')
+      .send({ brand: 'Volvo', model: 'XC60', registrationNumber: 'ROLL2' })
+      .expect(201);
+    const database = app.get(DataSource);
+    await database.query(
+      `INSERT INTO "manager_vehicle_assignments"
+       ("companyId", "vehicleId", "managerId") VALUES ($1, $2, $3)`,
+      [adminSignin.body.companyId, vehicle.body.id, targetSignin.body.id],
+    );
+    await database.query(
+      `ALTER TABLE "memberships"
+       ADD CONSTRAINT "CK_e2e_membership_activation_failure"
+       CHECK (id <> '${invitation.id}' OR status <> 'active')`,
+    );
+
+    try {
+      await target
+        .post(`/auth/invitations/${invitation.id}/accept`)
+        .expect(500);
+      await expect(
+        database.query<Array<{ status: string }>>(
+          `SELECT status FROM "memberships" WHERE id = $1`,
+          [invitation.id],
+        ),
+      ).resolves.toEqual([{ status: 'pending' }]);
+      await expect(
+        database.query<Array<{ assignedTo: Date | null }>>(
+          `SELECT "assignedTo" FROM "manager_vehicle_assignments"
+           WHERE "managerId" = $1 AND "companyId" = $2`,
+          [targetSignin.body.id, adminSignin.body.companyId],
+        ),
+      ).resolves.toEqual([{ assignedTo: null }]);
+    } finally {
+      await database.query(
+        `ALTER TABLE "memberships"
+         DROP CONSTRAINT IF EXISTS "CK_e2e_membership_activation_failure"`,
+      );
+    }
+  });
+
   it('declines in-app and permits a fresh invitation', async () => {
     await createVerifiedUser(app, 'decline-admin@example.com', 'password123');
     await createVerifiedUser(app, 'decline-target@example.com', 'password123');
