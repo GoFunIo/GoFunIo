@@ -90,6 +90,9 @@ export interface FleetServiceInput {
 
 export interface FleetService extends FleetServiceInput {
   id: string;
+  attachmentKey: string | null;
+  attachmentName: string | null;
+  attachmentMime: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -149,11 +152,17 @@ export interface FleetTransaction {
   driverAllocations: DriverAllocationStore;
   services: {
     create(input: FleetServiceInput): Promise<FleetService>;
-    find(companyId: string, serviceId: string): Promise<FleetService>;
+    find(
+      companyId: string,
+      serviceId: string,
+      lock?: boolean,
+      vehicleId?: string,
+    ): Promise<FleetService>;
     update(
       serviceId: string,
       fields: Partial<Omit<FleetServiceInput, 'companyId'>>,
     ): Promise<FleetService>;
+    softDelete(serviceId: string): Promise<void>;
     softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
   };
 }
@@ -569,6 +578,9 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const service = {
               ...input,
               id: `service-${this.services.length + 1}`,
+              attachmentKey: null,
+              attachmentName: null,
+              attachmentMime: null,
               createdAt: now,
               updatedAt: now,
               deletedAt: null,
@@ -576,10 +588,18 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             this.services.push(service);
             return Promise.resolve(service);
           },
-          find: (companyId, serviceId) => {
+          find: (companyId, serviceId, _lock, vehicleId) => {
             const service = this.services.find(
-              ({ id, companyId: ownerId, deletedAt }) =>
-                id === serviceId && ownerId === companyId && !deletedAt,
+              ({
+                id,
+                companyId: ownerId,
+                vehicleId: ownerVehicleId,
+                deletedAt,
+              }) =>
+                id === serviceId &&
+                ownerId === companyId &&
+                (!vehicleId || ownerVehicleId === vehicleId) &&
+                !deletedAt,
             );
             return service
               ? Promise.resolve(service)
@@ -594,6 +614,21 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             }
             Object.assign(service, fields, { updatedAt: new Date() });
             return Promise.resolve(service);
+          },
+          softDelete: (serviceId) => {
+            const service = this.services.find(
+              ({ id, deletedAt }) => id === serviceId && !deletedAt,
+            );
+            if (!service) {
+              return Promise.reject(new NotFoundException('Service not found'));
+            }
+            Object.assign(service, {
+              attachmentKey: null,
+              attachmentName: null,
+              attachmentMime: null,
+              deletedAt: new Date(),
+            });
+            return Promise.resolve();
           },
           softDeleteVehicle: (companyId, vehicleId) => {
             const now = new Date();

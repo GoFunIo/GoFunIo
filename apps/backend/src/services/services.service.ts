@@ -180,6 +180,18 @@ export class ServicesService {
     });
   }
 
+  async remove(actor: SessionPrincipal, id: string): Promise<void> {
+    await this.fleet.transact(async (fleet) => {
+      const companyId = requireCompanyId(actor);
+      if (!actor.role) throw new ForbiddenException();
+      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      const service = await fleet.services.find(companyId, id);
+      await fleet.vehicleAccess.find(actor, service.vehicleId, true);
+      await fleet.services.find(companyId, id, true, service.vehicleId);
+      await fleet.services.softDelete(id);
+    });
+  }
+
   private validateDate(value?: string): void {
     if (value && value > new Date().toISOString().slice(0, 10)) {
       throw new BadRequestException('Service date cannot be in the future');
