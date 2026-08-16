@@ -114,9 +114,14 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       driverAllocations: this.driverAllocation.transactionStore(manager),
       services: {
         create: (input) => manager.save(manager.create(Service, input)),
-        find: async (companyId, serviceId) => {
+        find: async (companyId, serviceId, lock, vehicleId) => {
           const service = await manager.findOne(Service, {
-            where: { id: serviceId, companyId },
+            where: {
+              id: serviceId,
+              companyId,
+              ...(vehicleId && { vehicleId }),
+            },
+            ...(lock ? { lock: { mode: 'pessimistic_write' } } : {}),
           });
           if (!service) throw new NotFoundException('Service not found');
           return service;
@@ -126,6 +131,14 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           const service = await manager.findOneBy(Service, { id: serviceId });
           if (!service) throw new NotFoundException('Service not found');
           return service;
+        },
+        softDelete: async (serviceId) => {
+          await manager.update(Service, serviceId, {
+            attachmentKey: null,
+            attachmentName: null,
+            attachmentMime: null,
+          });
+          await manager.softDelete(Service, serviceId);
         },
         softDeleteVehicle: async (companyId, vehicleId) => {
           await manager.softDelete(Service, { companyId, vehicleId });

@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -15,6 +17,7 @@ import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -108,5 +111,21 @@ export class ServicesController {
     @Body() body: UpdateServiceDto,
   ): Promise<ServiceView> {
     return this.services.update(principal, id, body);
+  }
+
+  @ApiOperation({
+    summary: 'Delete an accessible active Service',
+    description:
+      "Soft-deletes the Service and clears its attachment metadata. Returns 404 when the Service or Vehicle is deleted, belongs to another Workspace, or is outside the caller's Vehicle Access.",
+  })
+  @ApiNoContentResponse()
+  @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
+  @Delete(':id')
+  @HttpCode(204)
+  remove(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.services.remove(principal, id);
   }
 }

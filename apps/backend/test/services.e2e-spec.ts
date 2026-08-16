@@ -216,6 +216,50 @@ describe('Services (e2e)', () => {
       .expect(400);
   });
 
+  it('soft-deletes a Service, clears attachment metadata, and updates totals', async () => {
+    const agent = await signedIn('service-delete@example.com');
+    const vehicle = await agent
+      .post('/vehicles')
+      .send(vehicleBody('DELETE1'))
+      .expect(201);
+    const deleted = await agent
+      .post('/services')
+      .send(service(vehicle.body.id))
+      .expect(201);
+    await agent
+      .post('/services')
+      .send(service(vehicle.body.id, { cost: 100 }))
+      .expect(201);
+    const repository = app.get(DataSource).getRepository(Service);
+    await repository.update(deleted.body.id, {
+      attachmentKey: 'services/report.pdf',
+      attachmentName: 'report.pdf',
+      attachmentMime: 'application/pdf',
+    });
+
+    await agent.delete(`/services/${deleted.body.id}`).expect(204);
+    await agent.get(`/services/${deleted.body.id}`).expect(404);
+    await agent
+      .get('/services')
+      .query({ vehicleId: vehicle.body.id })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ total: 1, totalCost: '100.00' }),
+      );
+    expect(
+      await repository.findOne({
+        where: { id: deleted.body.id },
+        withDeleted: true,
+      }),
+    ).toMatchObject({
+      attachmentKey: null,
+      attachmentName: null,
+      attachmentMime: null,
+      deletedAt: expect.any(Date),
+    });
+    await agent.delete(`/services/${deleted.body.id}`).expect(404);
+  });
+
   it('reads, partially updates, moves, and hides Services with deleted Vehicles', async () => {
     const agent = await signedIn('service-update@example.com');
     const first = await agent
@@ -362,6 +406,7 @@ describe('Services (e2e)', () => {
       .patch(`/services/${visibleService.body.id}`)
       .send({ vehicleId: hidden.body.id })
       .expect(404);
+    await manager.delete(`/services/${hiddenService.body.id}`).expect(404);
   });
 
   it('hides Services from other Workspaces', async () => {
@@ -381,6 +426,7 @@ describe('Services (e2e)', () => {
       .patch(`/services/${created.body.id}`)
       .send({ providerName: 'Foreign Garage' })
       .expect(404);
+    await second.delete(`/services/${created.body.id}`).expect(404);
     await second
       .get('/services')
       .expect(200)
