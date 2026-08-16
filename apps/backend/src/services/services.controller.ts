@@ -28,8 +28,9 @@ import type { SessionPrincipal } from '../users/session-principal';
 import { CreateServiceDto } from './dtos/create-service.dto';
 import { ListServicesQueryDto } from './dtos/list-services-query.dto';
 import { ServiceDto } from './dtos/service.dto';
+import { ServiceListDto } from './dtos/service-list.dto';
 import { UpdateServiceDto } from './dtos/update-service.dto';
-import type { ServiceView } from './service-view';
+import type { ServicePage, ServiceView } from './service-view';
 import { ServicesService } from './services.service';
 
 @ApiTags('Services')
@@ -37,7 +38,6 @@ import { ServicesService } from './services.service';
 @ApiUnauthorizedResponse({ description: 'Not authenticated' })
 @ApiForbiddenResponse({ description: 'Origin or Workspace access denied' })
 @Controller('services')
-@Serialize(ServiceDto)
 @UseGuards(SessionAuthGuard, AllowedOriginGuard)
 export class ServicesController {
   constructor(private readonly services: ServicesService) {}
@@ -45,15 +45,17 @@ export class ServicesController {
   @ApiOperation({
     summary: 'List Services for accessible active Vehicles',
     description:
-      'OWNER and ADMIN see Services for every active Vehicle in the Active Workspace. MANAGER sees only Services for Vehicles granted through Vehicle Access. An optional vehicleId limits the list to that accessible Vehicle.',
+      'OWNER and ADMIN see Services for every active Vehicle in the Active Workspace. MANAGER sees only Services for Vehicles granted through Vehicle Access. Filters combine with AND; date boundaries are inclusive. Totals cover the complete filtered result, not only the requested page.',
   })
-  @ApiOkResponse({ type: ServiceDto, isArray: true })
-  @ApiBadRequestResponse({ description: 'Invalid Vehicle filter' })
+  @ApiOkResponse({ type: ServiceListDto })
+  @ApiBadRequestResponse({ description: 'Invalid filters or pagination' })
+  @ApiNotFoundResponse({ description: 'Filtered Vehicle not found' })
   @Get()
+  @Serialize(ServiceListDto)
   list(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Query() query: ListServicesQueryDto,
-  ): Promise<ServiceView[]> {
+  ): Promise<ServicePage> {
     return this.services.list(principal, query);
   }
 
@@ -65,6 +67,7 @@ export class ServicesController {
   @ApiOkResponse({ type: ServiceDto })
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
   @Get(':id')
+  @Serialize(ServiceDto)
   findOne(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
@@ -81,6 +84,7 @@ export class ServicesController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Post()
+  @Serialize(ServiceDto)
   create(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateServiceDto,
@@ -97,6 +101,7 @@ export class ServicesController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
   @Patch(':id')
+  @Serialize(ServiceDto)
   update(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,

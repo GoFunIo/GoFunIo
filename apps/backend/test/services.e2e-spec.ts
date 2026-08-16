@@ -1,7 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ServiceType } from '../src/services/services.entity';
+import { DataSource } from 'typeorm';
+import { Service, ServiceType } from '../src/services/services.entity';
 import { MembershipRole } from '../src/users/membership-role';
 import {
   captureEmittedEvents,
@@ -81,6 +82,10 @@ describe('Services (e2e)', () => {
       .post('/services')
       .send(service(vehicle.body.id))
       .expect(201);
+    await app
+      .get(DataSource)
+      .getRepository(Service)
+      .update(created.body.id, { attachmentKey: 'services/report.pdf' });
 
     expect(created.body).toMatchObject({
       vehicleId: vehicle.body.id,
@@ -102,20 +107,113 @@ describe('Services (e2e)', () => {
     await agent
       .get('/services')
       .expect(200)
-      .expect(({ body }) =>
-        expect(body.map(({ id }: { id: string }) => id)).toContain(
-          created.body.id,
-        ),
-      );
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          total: 1,
+          totalCost: '499.99',
+          page: 1,
+          pageSize: 20,
+          totalPages: 1,
+        });
+        expect(body.items).toEqual([
+          expect.objectContaining({
+            id: created.body.id,
+            vehicleId: vehicle.body.id,
+            hasAttachment: true,
+          }),
+        ]);
+      });
     await agent
       .get('/services')
       .query({ vehicleId: vehicle.body.id })
       .expect(200)
       .expect(({ body }) =>
-        expect(body.map(({ id }: { id: string }) => id)).toEqual([
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
           created.body.id,
         ]),
       );
+  });
+
+  it('filters and paginates Services with totals for the complete result', async () => {
+    const agent = await signedIn('service-list@example.com');
+    const vehicle = await agent
+      .post('/vehicles')
+      .send(vehicleBody('LIST1'))
+      .expect(201);
+    await agent
+      .post('/services')
+      .send(
+        service(vehicle.body.id, {
+          serviceDate: '2026-07-01',
+          cost: 100,
+          providerName: 'First Garage',
+        }),
+      )
+      .expect(201);
+    const latest = await agent
+      .post('/services')
+      .send(
+        service(vehicle.body.id, {
+          serviceDate: '2026-07-31',
+          cost: 250.5,
+          providerName: 'Second Garage',
+        }),
+      )
+      .expect(201);
+    await agent
+      .post('/services')
+      .send(
+        service(vehicle.body.id, {
+          serviceDate: '2026-08-01',
+          type: ServiceType.OTHER,
+          cost: 999,
+          providerName: 'Second Garage',
+        }),
+      )
+      .expect(201);
+
+    await agent
+      .get('/services')
+      .query({
+        vehicleId: vehicle.body.id,
+        type: ServiceType.OIL_CHANGE,
+        providerName: ' SECOND ',
+        from: '2026-07-01',
+        to: '2026-07-31',
+        page: 1,
+        pageSize: 1,
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          total: 1,
+          totalCost: '250.50',
+          page: 1,
+          pageSize: 1,
+          totalPages: 1,
+        });
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
+          latest.body.id,
+        ]);
+      });
+    await agent
+      .get('/services')
+      .query({ page: 4, pageSize: 1 })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toEqual({
+          items: [],
+          total: 3,
+          totalCost: '1349.50',
+          page: 4,
+          pageSize: 1,
+          totalPages: 3,
+        }),
+      );
+    await agent
+      .get('/services')
+      .query({ from: '2026-08-02', to: '2026-08-01' })
+      .expect(400);
   });
 
   it('reads, partially updates, moves, and hides Services with deleted Vehicles', async () => {
@@ -162,7 +260,16 @@ describe('Services (e2e)', () => {
     await agent
       .get('/services')
       .expect(200)
-      .expect(({ body }) => expect(body).toEqual([]));
+      .expect(({ body }) =>
+        expect(body).toEqual({
+          items: [],
+          total: 0,
+          totalCost: '0.00',
+          page: 1,
+          pageSize: 20,
+          totalPages: 0,
+        }),
+      );
   });
 
   it('validates Service writes', async () => {
@@ -238,10 +345,14 @@ describe('Services (e2e)', () => {
       .get('/services')
       .expect(200)
       .expect(({ body }) =>
-        expect(body.map(({ id }: { id: string }) => id)).toEqual([
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
           visibleService.body.id,
         ]),
       );
+    await manager
+      .get('/services')
+      .query({ vehicleId: hidden.body.id })
+      .expect(404);
     await manager
       .post('/services')
       .send(service(granted.body.id, { providerName: 'Manager Garage' }))
@@ -273,7 +384,11 @@ describe('Services (e2e)', () => {
     await second
       .get('/services')
       .expect(200)
-      .expect(({ body }) => expect(body).toEqual([]));
+      .expect(({ body }) => expect(body.items).toEqual([]));
+    await second
+      .get('/services')
+      .query({ vehicleId: vehicleResponse.body.id })
+      .expect(404);
   });
 
   it('requires authentication', async () => {
