@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
 import { InviteMembershipDto } from './dtos/invite-membership.dto';
 import { AcceptMembershipInvitationDto } from './dtos/accept-membership-invitation.dto';
@@ -43,6 +44,7 @@ export class MembershipInvitationsController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiConflictResponse({
     description: 'User is already a member or account unavailable',
+    type: ConflictResponseDto,
   })
   @Post('users/invitations')
   @UseGuards(SessionAuthGuard, AdminGuard, AllowedOriginGuard)

@@ -25,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CompanyUsersService, type CompanyUser } from './company-users.service';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
@@ -56,7 +57,10 @@ export class CompanyUsersController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  @ApiConflictResponse({ description: 'Email already in use' })
+  @ApiConflictResponse({
+    description: 'Email already in use',
+    type: ConflictResponseDto,
+  })
   @Post()
   @UseGuards(AdminGuard, AllowedOriginGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -76,6 +80,7 @@ export class CompanyUsersController {
   @ApiNotFoundResponse({ description: 'User not found' })
   @ApiConflictResponse({
     description: 'Cannot demote yourself or remove the last admin',
+    type: ConflictResponseDto,
   })
   @Patch(':id')
   @UseGuards(AdminGuard, AllowedOriginGuard)
@@ -94,6 +99,7 @@ export class CompanyUsersController {
   @ApiNotFoundResponse({ description: 'User not found' })
   @ApiConflictResponse({
     description: 'Cannot delete yourself or the last admin',
+    type: ConflictResponseDto,
   })
   @Delete(':id')
   @HttpCode(204)
@@ -108,7 +114,10 @@ export class CompanyUsersController {
   @ApiOperation({ summary: 'Transfer workspace ownership to an active admin' })
   @ApiNoContentResponse()
   @ApiForbiddenResponse({ description: 'Owner role required' })
-  @ApiConflictResponse({ description: 'Target must be an active admin' })
+  @ApiConflictResponse({
+    description: 'Target must be an active admin',
+    type: ConflictResponseDto,
+  })
   @Post(':id/transfer-ownership')
   @HttpCode(204)
   @UseGuards(AdminGuard, AllowedOriginGuard)

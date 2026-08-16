@@ -1,11 +1,11 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
 } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
+import { ConflictCode, conflictException } from '../common/conflict';
 import {
   DRIVER_ALLOCATION,
   type DriverAllocation,
@@ -228,10 +228,18 @@ export class VehiclesService {
         error.driverError as { constraint?: string } | undefined
       )?.constraint;
       if (constraint === 'IDX_vehicles_company_registration_active') {
-        throw new ConflictException('Registration number already in use');
+        throw conflictException(
+          'Registration number already in use',
+          ConflictCode.VEHICLE_REGISTRATION_IN_USE,
+          'registrationNumber',
+        );
       }
       if (constraint === 'IDX_vehicles_company_vin_active') {
-        throw new ConflictException('VIN already in use');
+        throw conflictException(
+          'VIN already in use',
+          ConflictCode.VEHICLE_VIN_IN_USE,
+          'vin',
+        );
       }
     }
     throw error;

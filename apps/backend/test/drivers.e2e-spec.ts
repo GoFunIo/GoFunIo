@@ -389,7 +389,10 @@ describe('Drivers (e2e)', () => {
     await admin
       .post('/drivers')
       .send({ firstName: 'Duplicate', lastName: 'Driver', userId: user.id })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'MEMBERSHIP_ALREADY_LINKED' }),
+      );
     await admin
       .post('/drivers')
       .send({ firstName: 'Ghost', lastName: 'Driver', userId: randomUUID() })

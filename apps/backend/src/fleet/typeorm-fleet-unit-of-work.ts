@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,6 +8,7 @@ import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
 import { Service } from '../services/services.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
+import { ConflictCode, conflictException } from '../common/conflict';
 import {
   type FleetTransaction,
   type FleetUnitOfWork,
@@ -27,7 +27,10 @@ function throwMembershipLinkError(error: unknown): never {
     throw new BadRequestException('Invalid membership');
   }
   if (constraint === 'UQ_drivers_active_membership') {
-    throw new ConflictException('Membership already linked');
+    throw conflictException(
+      'Membership already linked',
+      ConflictCode.MEMBERSHIP_ALREADY_LINKED,
+    );
   }
   throw error;
 }

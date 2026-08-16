@@ -1,5 +1,5 @@
 export class EmailChangeEmailInUseError extends Error {
-  constructor() {
+  constructor(readonly field?: 'email') {
     super('Email already in use');
     this.name = 'EmailChangeEmailInUseError';
   }
