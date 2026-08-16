@@ -202,14 +202,20 @@ describe('Company users (e2e)', () => {
     await admin
       .patch(`/users/${me.body.id}`)
       .send({ role: MembershipRole.MANAGER })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'CANNOT_DEMOTE_SELF' }),
+      );
     await admin
       .post('/users')
       .send({
         email: 'UPDATE-MEMBER@example.com',
         role: MembershipRole.MANAGER,
       })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'EMAIL_IN_USE', field: 'email' }),
+      );
   });
 
   it('rolls back Vehicle Access when a manager promotion fails', async () => {
@@ -274,7 +280,12 @@ describe('Company users (e2e)', () => {
       'owner-transfer-manager@example.com',
     );
 
-    await owner.post(`/users/${manager.id}/transfer-ownership`).expect(409);
+    await owner
+      .post(`/users/${manager.id}/transfer-ownership`)
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'OWNERSHIP_REQUIRES_ADMIN' }),
+      );
 
     await owner.post(`/users/${admin.id}/transfer-ownership`).expect(204);
     await owner
@@ -413,7 +424,12 @@ describe('Company users (e2e)', () => {
       })
       .expect(201);
 
-    await admin.delete('/users/me').expect(409);
+    await admin
+      .delete('/users/me')
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'TRANSFER_OWNERSHIP_FIRST' }),
+      );
     await manager.delete('/users/me').expect(204);
     await manager
       .get('/auth/me')

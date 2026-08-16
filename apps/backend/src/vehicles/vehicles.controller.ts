@@ -23,6 +23,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
@@ -88,6 +89,7 @@ export class VehiclesController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiConflictResponse({
     description: 'Registration number or VIN already in use',
+    type: ConflictResponseDto,
   })
   @Post()
   @Serialize(VehicleDto)
@@ -137,6 +139,7 @@ export class VehiclesController {
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @ApiConflictResponse({
     description: 'Registration number or VIN already in use',
+    type: ConflictResponseDto,
   })
   @Patch(':id')
   @Serialize(VehicleDto)

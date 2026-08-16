@@ -514,6 +514,7 @@ describe('Auth (e2e)', () => {
       .expect(409)
       .expect((res) => {
         expect(res.body.message).toBe('Verify email before linking Google');
+        expect(res.body.code).toBe('VERIFY_EMAIL_BEFORE_GOOGLE_LINK');
       });
   });
 

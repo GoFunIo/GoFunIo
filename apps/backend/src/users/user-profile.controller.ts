@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
 import { CurrentPrincipal } from './decorators/current-principal.decorator';
@@ -52,6 +53,7 @@ export class UserProfileController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiConflictResponse({
     description: 'Last admin cannot leave the company',
+    type: ConflictResponseDto,
   })
   @Delete()
   @HttpCode(204)
@@ -86,6 +88,7 @@ export class UserProfileController {
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiConflictResponse({
     description: 'Email already in use or password required',
+    type: ConflictResponseDto,
   })
   @Patch('email')
   @HttpCode(204)
@@ -110,7 +113,10 @@ export class UserProfileController {
     description: 'Not authenticated or invalid current password',
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  @ApiConflictResponse({ description: 'Password required for this account' })
+  @ApiConflictResponse({
+    description: 'Password required for this account',
+    type: ConflictResponseDto,
+  })
   @Patch('password')
   @HttpCode(204)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)

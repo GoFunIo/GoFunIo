@@ -389,7 +389,10 @@ describe('Membership invitations (e2e)', () => {
     await admin
       .post('/users/invitations')
       .send({ email: 'decline-target@example.com', role: 'MANAGER' })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'ALREADY_WORKSPACE_MEMBER' }),
+      );
   });
 
   it('invalidates the previous token when resending', async () => {

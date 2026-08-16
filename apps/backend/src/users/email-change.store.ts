@@ -39,7 +39,7 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
         await assertEmailClaimable(
           manager,
           email,
-          () => new EmailChangeEmailInUseError(),
+          () => new EmailChangeEmailInUseError('email'),
           userId,
         );
         const result = await manager
@@ -59,7 +59,10 @@ export class TypeOrmEmailChangeStore implements EmailChangeStore {
         return (result.affected ?? 0) > 0;
       });
     } catch (error) {
-      rethrowEmailClaimError(error, () => new EmailChangeEmailInUseError());
+      rethrowEmailClaimError(
+        error,
+        () => new EmailChangeEmailInUseError('email'),
+      );
     }
   }
 
@@ -145,7 +148,7 @@ export class InMemoryEmailChangeStore implements EmailChangeStore {
     const claimed = [...this.claims.values()].some(
       (claim) => claim.userId !== userId && claim.email === email,
     );
-    if (occupied || claimed) throw new EmailChangeEmailInUseError();
+    if (occupied || claimed) throw new EmailChangeEmailInUseError('email');
     this.claims.set(tokenHash, { userId, email, expiresAt });
     return Promise.resolve(true);
   }

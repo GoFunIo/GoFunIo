@@ -1,6 +1,5 @@
 import {
   Body,
-  ConflictException,
   Controller,
   Get,
   Headers,
@@ -50,6 +49,11 @@ import type { UserAccount } from './user-account';
 import { GoogleAuthenticationService } from './google-authentication.service';
 import { SwitchCompanyDto } from './dtos/switch-company.dto';
 import { USER_PROFILES, type UserProfiles } from './user-profiles';
+import {
+  ConflictCode,
+  ConflictResponseDto,
+  conflictException,
+} from '../common/conflict';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -68,7 +72,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Sign up with email and password' })
   @ApiCreatedResponse({ type: UserDto })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  @ApiConflictResponse({ description: 'Email already in use' })
   @Post('signup')
   @Serialize(UserDto)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -114,6 +117,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid Google identity' })
   @ApiConflictResponse({
     description: 'Google account conflict or explicit link required',
+    type: ConflictResponseDto,
   })
   @Post('google')
   @Serialize(UserDto)
@@ -137,7 +141,10 @@ export class AuthController {
     description: 'Not authenticated or invalid credentials',
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  @ApiConflictResponse({ description: 'Google account already linked' })
+  @ApiConflictResponse({
+    description: 'Google account already linked',
+    type: ConflictResponseDto,
+  })
   @Post('google/link')
   @Serialize(UserDto)
   @UseGuards(SessionAuthGuard, AllowedOriginGuard)
@@ -210,7 +217,10 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Validation failed or invalid/expired token',
   })
-  @ApiConflictResponse({ description: 'Sign out before verifying email' })
+  @ApiConflictResponse({
+    description: 'Sign out before verifying email',
+    type: ConflictResponseDto,
+  })
   @Get('verify-email')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyEmail(
@@ -218,7 +228,10 @@ export class AuthController {
     @Session() session: SessionData,
   ): Promise<{ verified: true }> {
     if (session.userId) {
-      throw new ConflictException('Sign out before verifying email');
+      throw conflictException(
+        'Sign out before verifying email',
+        ConflictCode.SIGN_OUT_BEFORE_VERIFY,
+      );
     }
     const userId = await this.emailVerification.verify(query.token);
     await this.sessions.establish(session, userId);
@@ -229,6 +242,10 @@ export class AuthController {
   @ApiOkResponse({ description: 'Email change confirmed' })
   @ApiBadRequestResponse({
     description: 'Validation failed or invalid/expired token',
+  })
+  @ApiConflictResponse({
+    description: 'Email already in use',
+    type: ConflictResponseDto,
   })
   @Post('verify-email-change')
   @HttpCode(200)

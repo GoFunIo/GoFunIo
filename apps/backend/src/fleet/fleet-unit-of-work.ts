@@ -1,9 +1,9 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConflictCode, conflictException } from '../common/conflict';
 import {
   isWorkspaceAdmin,
   type MembershipRole,
@@ -208,7 +208,12 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         driver.userId === userId &&
         !driver.deletedAt,
     );
-    if (linked) throw new ConflictException('Membership already linked');
+    if (linked) {
+      throw conflictException(
+        'Membership already linked',
+        ConflictCode.MEMBERSHIP_ALREADY_LINKED,
+      );
+    }
   }
 
   private async run<T>(
@@ -608,9 +613,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
           update: (serviceId, fields) => {
             const service = this.services.find(({ id }) => id === serviceId);
             if (!service) {
-              return Promise.reject(
-                new NotFoundException('Service not found'),
-              );
+              return Promise.reject(new NotFoundException('Service not found'));
             }
             Object.assign(service, fields, { updatedAt: new Date() });
             return Promise.resolve(service);

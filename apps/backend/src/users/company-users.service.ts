@@ -1,11 +1,11 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConflictCode, conflictException } from '../common/conflict';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Company } from '../companies/companies.entity';
@@ -97,10 +97,12 @@ export class CompanyUsersService {
           companyId,
         );
         this.requireAdmin(memberships, actor.id);
-        await assertEmailClaimable(
-          manager,
-          email,
-          () => new ConflictException('Email already in use'),
+        await assertEmailClaimable(manager, email, () =>
+          conflictException(
+            'Email already in use',
+            ConflictCode.EMAIL_IN_USE,
+            'email',
+          ),
         );
         const created = await manager.save(
           manager.create(User, {
@@ -121,9 +123,12 @@ export class CompanyUsersService {
         return this.contextualUser(created, companyId, body.role);
       });
     } catch (error) {
-      rethrowEmailClaimError(
-        error,
-        () => new ConflictException('Email already in use'),
+      rethrowEmailClaimError(error, () =>
+        conflictException(
+          'Email already in use',
+          ConflictCode.EMAIL_IN_USE,
+          'email',
+        ),
       );
     }
 
@@ -141,7 +146,10 @@ export class CompanyUsersService {
       throw new BadRequestException('No changes provided');
     }
     if (id === actor.id && body.role && body.role !== actor.role) {
-      throw new ConflictException('Cannot demote yourself');
+      throw conflictException(
+        'Cannot demote yourself',
+        ConflictCode.CANNOT_DEMOTE_SELF,
+      );
     }
     const companyId = requireCompanyId(actor);
     const result = await this.users.manager.transaction(async (manager) => {
@@ -155,7 +163,10 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.OWNER) {
         if (actor.id !== id) throw new ForbiddenException();
         if (body.role && body.role !== MembershipRole.OWNER) {
-          throw new ConflictException('Transfer ownership first');
+          throw conflictException(
+            'Transfer ownership first',
+            ConflictCode.TRANSFER_OWNERSHIP_FIRST,
+          );
         }
       }
 
@@ -179,7 +190,10 @@ export class CompanyUsersService {
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
     if (id === actor.id) {
-      throw new ConflictException('Cannot delete yourself');
+      throw conflictException(
+        'Cannot delete yourself',
+        ConflictCode.CANNOT_DELETE_SELF,
+      );
     }
     const companyId = requireCompanyId(actor);
     await this.users.manager.transaction(async (manager) => {
@@ -210,8 +224,9 @@ export class CompanyUsersService {
         actor.id,
       );
       if (membership.role === MembershipRole.OWNER) {
-        throw new ConflictException(
+        throw conflictException(
           'Transfer ownership or delete the company before leaving',
+          ConflictCode.TRANSFER_OWNERSHIP_FIRST,
         );
       }
       await this.deactivateMembership(manager, membership);
@@ -233,7 +248,10 @@ export class CompanyUsersService {
       if (owner?.role !== MembershipRole.OWNER) throw new ForbiddenException();
       const target = memberships.find(({ userId }) => userId === targetId);
       if (target?.role !== MembershipRole.ADMIN) {
-        throw new ConflictException('Ownership requires an active admin');
+        throw conflictException(
+          'Ownership requires an active admin',
+          ConflictCode.OWNERSHIP_REQUIRES_ADMIN,
+        );
       }
 
       owner.role = MembershipRole.ADMIN;

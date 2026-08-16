@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   CanActivate,
-  ConflictException,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConflictCode, conflictException } from '../common/conflict';
 import { AuthController } from './auth.controller';
 import { EmailRegistrationService } from './email-registration.service';
 import { User } from './users.entity';
@@ -323,7 +323,10 @@ describe('AuthController', () => {
       await expect(
         controller.verifyEmail({ token: 'abc' }, session),
       ).rejects.toEqual(
-        new ConflictException('Sign out before verifying email'),
+        conflictException(
+          'Sign out before verifying email',
+          ConflictCode.SIGN_OUT_BEFORE_VERIFY,
+        ),
       );
       expect(emailVerification.verify).not.toHaveBeenCalled();
       expect(sessions.establish).not.toHaveBeenCalled();

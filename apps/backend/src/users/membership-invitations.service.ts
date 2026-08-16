@@ -1,10 +1,10 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConflictCode, conflictException } from '../common/conflict';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -66,7 +66,10 @@ export class MembershipInvitationsService {
           .setLock('pessimistic_write')
           .getOne();
         if (user?.deletedAt) {
-          throw new ConflictException('Account is unavailable');
+          throw conflictException(
+            'Account is unavailable',
+            ConflictCode.ACCOUNT_UNAVAILABLE,
+          );
         }
         const firstPassword = user
           ? user.password === null &&
@@ -89,7 +92,10 @@ export class MembershipInvitationsService {
           lock: { mode: 'pessimistic_write' },
         });
         if (membership?.status === 'active') {
-          throw new ConflictException('User is already a workspace member');
+          throw conflictException(
+            'User is already a workspace member',
+            ConflictCode.ALREADY_WORKSPACE_MEMBER,
+          );
         }
         membership ??= manager.create(Membership, {
           userId: user.id,

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
@@ -22,6 +23,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { AdminGuard } from '../users/guards/admin.guard';
@@ -65,6 +67,10 @@ export class DriversController {
   @ApiCreatedResponse({ type: DriverDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'Membership already linked',
+    type: ConflictResponseDto,
+  })
   @Post()
   @UseGuards(AllowedOriginGuard)
   create(
@@ -78,6 +84,10 @@ export class DriversController {
   @ApiOkResponse({ type: DriverDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'Membership already linked',
+    type: ConflictResponseDto,
+  })
   @ApiNotFoundResponse({ description: 'Driver not found' })
   @Patch(':id')
   @UseGuards(AllowedOriginGuard)

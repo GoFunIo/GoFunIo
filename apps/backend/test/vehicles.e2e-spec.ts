@@ -563,7 +563,13 @@ describe('Vehicles (e2e)', () => {
           registrationNumber: 'wa-123 45',
         }),
       )
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'VEHICLE_REGISTRATION_IN_USE',
+          field: 'registrationNumber',
+        }),
+      );
     await admin
       .post('/vehicles')
       .send(
@@ -572,7 +578,13 @@ describe('Vehicles (e2e)', () => {
           registrationNumber: 'OTHER1',
         }),
       )
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'VEHICLE_VIN_IN_USE',
+          field: 'vin',
+        }),
+      );
 
     const concurrent = await Promise.all([
       admin.post('/vehicles').send(
@@ -713,11 +725,23 @@ describe('Vehicles (e2e)', () => {
     await admin
       .patch(`/vehicles/${second.body.id}`)
       .send({ registrationNumber: first.body.registrationNumber })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'VEHICLE_REGISTRATION_IN_USE',
+          field: 'registrationNumber',
+        }),
+      );
     await admin
       .patch(`/vehicles/${second.body.id}`)
       .send({ vin: first.body.vin })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'VEHICLE_VIN_IN_USE',
+          field: 'vin',
+        }),
+      );
     await admin
       .patch(`/vehicles/${second.body.id}`)
       .send({
