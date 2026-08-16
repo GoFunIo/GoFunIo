@@ -102,11 +102,15 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     const seed = await seedFleet();
     const vehicleId = await createVehicle(seed);
 
-    await vehicleAccess.closeManager(seed.companyId, seed.managerId);
+    await dataSource.transaction((manager) =>
+      vehicleAccess.closeManager(manager, seed.companyId, seed.managerId),
+    );
     const [closed] = await dataSource
       .getRepository(ManagerVehicleAssignment)
       .findBy({ vehicleId });
-    await vehicleAccess.closeManager(seed.companyId, seed.managerId);
+    await dataSource.transaction((manager) =>
+      vehicleAccess.closeManager(manager, seed.companyId, seed.managerId),
+    );
     const [stillClosed] = await dataSource
       .getRepository(ManagerVehicleAssignment)
       .findBy({ vehicleId });

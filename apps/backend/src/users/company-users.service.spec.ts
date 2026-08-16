@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import type { VehicleAccess } from '../fleet/vehicle-access';
+import type { TransactionalVehicleAccess } from '../fleet/transactional-vehicle-access';
 import { CompanyUsersService } from './company-users.service';
 import { Membership } from './membership.entity';
 import { MembershipRole } from './membership-role';
@@ -37,6 +37,7 @@ describe('CompanyUsersService membership rules', () => {
       companyId,
     );
     expect(vehicleAccess.closeManager).toHaveBeenCalledWith(
+      manager,
       companyId,
       managerId,
     );
@@ -161,11 +162,12 @@ describe('CompanyUsersService membership rules', () => {
         ),
       },
     };
-    const vehicleAccess = { closeManager: jest.fn() };
+    const closeManager = jest.fn();
+    const vehicleAccess = { closeManager };
     const service = new CompanyUsersService(
       repository as unknown as Repository<User>,
       { issueFirstPassword: jest.fn() } as unknown as PasswordRecoveryService,
-      vehicleAccess as unknown as VehicleAccess,
+      vehicleAccess as unknown as TransactionalVehicleAccess,
     );
     return { manager, service, vehicleAccess };
   }

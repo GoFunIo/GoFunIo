@@ -44,5 +44,4 @@ export interface VehicleAccess {
     companyId: string,
     vehicleIds: string[],
   ): Promise<Map<string, FleetManagerProjection[]>>;
-  closeManager(companyId: string, managerId: string): Promise<void>;
 }

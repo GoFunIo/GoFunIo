@@ -9,7 +9,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
+import {
+  TRANSACTIONAL_VEHICLE_ACCESS,
+  type TransactionalVehicleAccess,
+} from '../fleet/transactional-vehicle-access';
 import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import {
@@ -38,7 +41,8 @@ export class CompanyUsersService {
     @InjectRepository(User)
     private readonly users: Repository<User>,
     private readonly passwordRecovery: PasswordRecoveryService,
-    @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
+    @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
+    private readonly vehicleAccess: TransactionalVehicleAccess,
   ) {}
 
   async list(
@@ -165,7 +169,7 @@ export class CompanyUsersService {
         await manager.save(membership);
       }
       if (cleanupManager) {
-        await this.vehicleAccess.closeManager(companyId, id);
+        await this.vehicleAccess.closeManager(manager, companyId, id);
       }
       const saved = await manager.save(user);
       return this.contextualUser(saved, companyId, membership.role);
@@ -190,7 +194,7 @@ export class CompanyUsersService {
         throw new ForbiddenException();
       await this.deactivateMembership(manager, membership);
       if (membership.role === MembershipRole.MANAGER) {
-        await this.vehicleAccess.closeManager(companyId, id);
+        await this.vehicleAccess.closeManager(manager, companyId, id);
       }
       await this.softDeleteIfEmpty(manager, companyId);
     });
@@ -212,7 +216,7 @@ export class CompanyUsersService {
       }
       await this.deactivateMembership(manager, membership);
       if (membership.role === MembershipRole.MANAGER) {
-        await this.vehicleAccess.closeManager(companyId, actor.id);
+        await this.vehicleAccess.closeManager(manager, companyId, actor.id);
       }
       await this.softDeleteIfEmpty(manager, companyId);
     });
