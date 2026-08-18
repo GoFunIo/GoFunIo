@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { SubmitHandler, useForm, Controller, Resolver } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import classNames from 'classnames';
+
 import { AddVehicleFormData, AddVehicleSchema } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
@@ -22,7 +23,6 @@ type FormProps = {
   initialData?: VehicleData;
   isRenewalMode?: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
 };
 
 const FUEL_OPTIONS = [
@@ -52,7 +52,6 @@ export const AddVehicleForm = ({
   onClose,
   initialData,
   isRenewalMode = false,
-  onSuccess,
 }: FormProps) => {
   const isEditMode = !!initialData?.id;
 
@@ -86,11 +85,13 @@ export const AddVehicleForm = ({
 
     try {
       if (isEditMode && initialData?.id) {
-        await updateVehicleMutation.mutateAsync({ id: String(initialData.id), form: data });
+        await updateVehicleMutation.mutateAsync({
+          id: String(initialData.id),
+          form: data,
+        });
       } else {
         await createVehicleMutation.mutateAsync(data);
       }
-      onSuccess?.();
 
       if (!isEditMode) {
         reset();

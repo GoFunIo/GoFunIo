@@ -59,11 +59,7 @@ function RouteComponent() {
   const navigate = useNavigate();
   const { data: user } = useUser();
   const { canInviteUsers } = usePermissions();
-  const {
-    data: vehiclesResponse,
-    isPending: isVehiclesPending,
-    refetch: refetchVehicles,
-  } = useVehicles();
+  const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
   const { data: team, isPending: isTeamPending } = useTeam();
 
   const isTeamLoading = isTeamPending && user?.role === 'ADMIN';
@@ -377,7 +373,7 @@ function RouteComponent() {
         title="Dodaj pojazd"
         subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
       >
-        <AddVehicleForm onClose={() => setIsModalOpen(false)} onSuccess={() => refetchVehicles()} />
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
       </Modal>
 
       {/* MODAL 1a: EDYCJA DANYCH SAMOCHODU */}

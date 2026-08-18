@@ -2,7 +2,10 @@ import { DriverFormData } from '../types/DriverTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-// get all users
+// =========================================================================
+// POBIERANIE LISTY KIEROWCÓW
+// GET /drivers
+// =========================================================================
 
 export const getDrivers = async () => {
   const res = await fetch(`${API_URL}/drivers`, {
@@ -22,7 +25,10 @@ export const getDrivers = async () => {
   return JSON.parse(text);
 };
 
-// invite driver to your team
+// =========================================================================
+// DODANIE KIEROWCY
+// POST /drivers
+// =========================================================================
 
 export const addDriver = async (form: DriverFormData) => {
   try {
@@ -63,7 +69,10 @@ export const addDriver = async (form: DriverFormData) => {
   }
 };
 
-// change driver settings
+// =========================================================================
+// AKTUALIZACJA DANYCH KIEROWCY
+// PATCH /drivers/{id}
+// =========================================================================
 
 export const changeDriver = async (form: DriverFormData) => {
   try {
@@ -104,7 +113,10 @@ export const changeDriver = async (form: DriverFormData) => {
   }
 };
 
-// delete driver
+// =========================================================================
+// USUNIĘCIE KIEROWCY
+// DELETE /drivers/{id}
+// =========================================================================
 
 export const deleteDriver = async (id: string) => {
   try {
