@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { signIn } from '../auth.api';
@@ -13,11 +13,11 @@ import { FormError } from '../ui/FormError';
 
 type FormProps = {
   className?: string;
+  invitationToken?: string;
 };
 
-export const LoginForm = ({ className }: FormProps) => {
+export const LoginForm = ({ className, invitationToken }: FormProps) => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { loading, setLoading } = useLoading();
 
   const {
@@ -43,7 +43,11 @@ export const LoginForm = ({ className }: FormProps) => {
     try {
       const user = await signIn(data);
       queryClient.setQueryData(['me'], user);
-      navigate({ to: '/dashboard' });
+      window.location.assign(
+        invitationToken
+          ? `/accept-invitation?token=${encodeURIComponent(invitationToken)}`
+          : '/dashboard',
+      );
     } catch (error) {
       const err = error as { status?: number; message?: string };
       const status = err.status;

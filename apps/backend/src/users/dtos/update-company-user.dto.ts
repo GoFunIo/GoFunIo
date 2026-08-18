@@ -1,15 +1,13 @@
 import { Transform } from 'class-transformer';
 import {
-  IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { UserRole } from '../users.entity';
-
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
+import { optionalText } from '../../common/dto-transforms';
+import { MembershipRole } from '../membership-role';
 
 export class UpdateCompanyUserDto {
   @Transform(optionalText)
@@ -25,6 +23,6 @@ export class UpdateCompanyUserDto {
   lastName?: string | null;
 
   @ValidateIf((_, value) => value !== undefined)
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsIn([MembershipRole.ADMIN, MembershipRole.MANAGER])
+  role?: MembershipRole;
 }

@@ -5,6 +5,7 @@ declare global {
     interface CookieSessionObject {
       userId?: string | null;
       passwordVersion?: number | null;
+      currentCompanyId?: string | null;
     }
   }
 }

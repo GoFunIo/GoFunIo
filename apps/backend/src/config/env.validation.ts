@@ -8,6 +8,7 @@ import {
   IsString,
   IsUrl,
   Max,
+  Matches,
   MinLength,
   Min,
   validateSync,
@@ -19,9 +20,33 @@ export enum NodeEnv {
   Test = 'test',
 }
 
-export class EnvVars {
+export class DatabaseEnv {
+  @IsString()
+  @IsNotEmpty()
+  DATABASE_URL!: string;
+
+  @IsOptional()
+  @Matches(/^[A-Za-z_][A-Za-z0-9_]*$/)
+  DATABASE_SCHEMA?: string;
+
+  @IsIn(['true', 'false'])
+  DATABASE_SSL: 'true' | 'false' = 'false';
+
+  @IsIn(['true', 'false'])
+  DATABASE_SSL_REJECT_UNAUTHORIZED: 'true' | 'false' = 'true';
+
+  @IsIn(['true', 'false'])
+  RUN_MIGRATIONS: 'true' | 'false' = 'false';
+}
+
+export class EnvVars extends DatabaseEnv {
   @IsEnum(NodeEnv)
   NODE_ENV!: NodeEnv;
+
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  PORT: number = 3000;
 
   @IsString()
   @IsNotEmpty()
@@ -51,15 +76,10 @@ export class EnvVars {
   @Max(24 * 30)
   PASSWORD_RESET_TOKEN_TTL_HOURS: number = 24;
 
-  /** PostgreSQL connection string. */
-  @IsString()
-  @IsNotEmpty()
-  DATABASE_URL!: string;
-
-  /** Comma-separated origins; defaults to FRONTEND_URL when omitted. */
+  /** Exact origins used by CORS and mutation protection. */
   @IsOptional()
   @IsString()
-  CORS_ORIGINS?: string;
+  CORS_ORIGINS!: string[];
 
   /**
    * Comma-separated regex patterns matched against the request `Origin` header
@@ -71,20 +91,18 @@ export class EnvVars {
    */
   @IsOptional()
   @IsString()
-  FRONTEND_URL_PATTERNS?: string;
-
-  /** Run pending TypeORM migrations on app startup (staging/production). */
-  @IsOptional()
-  @IsIn(['true', 'false'])
-  RUN_MIGRATIONS?: string;
+  FRONTEND_URL_PATTERNS!: RegExp[];
 
   @IsString()
   @IsNotEmpty()
   GOOGLE_CLIENT_ID!: string;
 }
 
-export function validateEnv(config: Record<string, unknown>): EnvVars {
-  const validated = plainToInstance(EnvVars, config, {
+function validate<T extends object>(
+  type: new () => T,
+  config: Record<string, unknown>,
+): T {
+  const validated = plainToInstance(type, config, {
     enableImplicitConversion: true,
   });
   const errors = validateSync(validated, { skipMissingProperties: false });
@@ -95,14 +113,43 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     );
   }
 
-  for (const origin of validated.CORS_ORIGINS?.split(',') ?? []) {
-    const value = origin.trim();
-    if (!value) continue;
+  return validated;
+}
+
+export function validateDatabaseEnv(
+  config: Record<string, unknown>,
+): DatabaseEnv {
+  return validate(DatabaseEnv, config);
+}
+
+export function validateEnv(config: Record<string, unknown>): EnvVars {
+  const validated = validate(EnvVars, config);
+  const corsOrigins = String(config.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of corsOrigins) {
     try {
-      if (new URL(value).origin !== value) throw new Error();
+      if (new URL(origin).origin !== origin) throw new Error();
     } catch {
-      throw new Error(`Invalid CORS origin: ${value}`);
+      throw new Error(`Invalid CORS origin: ${origin}`);
     }
   }
+  validated.CORS_ORIGINS = corsOrigins;
+  validated.FRONTEND_URL_PATTERNS = String(config.FRONTEND_URL_PATTERNS ?? '')
+    .split(',')
+    .map((pattern) => pattern.trim())
+    .filter(Boolean)
+    .map((pattern) => {
+      try {
+        return new RegExp(pattern);
+      } catch (error) {
+        throw new Error(
+          `Invalid FRONTEND_URL_PATTERNS entry "${pattern}": ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    });
   return validated;
 }

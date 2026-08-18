@@ -11,13 +11,17 @@ services:
     healthCheckPath: /status
     envVars:
       - key: NODE_VERSION
-        value: '22'
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: RUN_MIGRATIONS
-        value: 'true'
+        value: "true"
       - key: DATABASE_URL
         sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DATABASE_SSL_REJECT_UNAUTHORIZED
+        value: "true"
       - key: COOKIE_KEY
         sync: false
       - key: FRONTEND_URL

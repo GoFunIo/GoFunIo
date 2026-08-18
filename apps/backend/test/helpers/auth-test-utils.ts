@@ -7,18 +7,23 @@ import {
   PasswordResetRequestedEvent,
 } from '../../src/users/events/password-reset-requested.event';
 import {
-  USER_REGISTERED_EVENT,
-  UserRegisteredEvent,
-} from '../../src/users/events/user-registered.event';
+  EMAIL_VERIFICATION_REQUESTED_EVENT,
+  EmailVerificationRequestedEvent,
+} from '../../src/users/events/email-verification-requested.event';
 import {
   USER_EMAIL_CHANGE_REQUESTED_EVENT,
   UserEmailChangeRequestedEvent,
 } from '../../src/users/events/user-email-change-requested.event';
+import {
+  MEMBERSHIP_INVITATION_REQUESTED_EVENT,
+  MembershipInvitationRequestedEvent,
+} from '../../src/users/events/membership-invitation-requested.event';
 
 export interface CapturedEvents {
   verificationToken: string | null;
   passwordResetToken: string | null;
   emailChangeToken: string | null;
+  membershipInvitationToken: string | null;
   restore: () => void;
 }
 
@@ -29,27 +34,34 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
   let verificationToken: string | null = null;
   let passwordResetToken: string | null = null;
   let emailChangeToken: string | null = null;
+  let membershipInvitationToken: string | null = null;
 
   const emitSpy = jest
     .spyOn(eventEmitter, 'emit')
     .mockImplementation((event, ...args) => {
       if (
-        event === USER_REGISTERED_EVENT &&
-        args[0] instanceof UserRegisteredEvent
+        event === EMAIL_VERIFICATION_REQUESTED_EVENT &&
+        args[0] instanceof EmailVerificationRequestedEvent
       ) {
-        verificationToken = args[0].token;
+        verificationToken = args[0].delivery.token;
       }
       if (
         event === PASSWORD_RESET_REQUESTED_EVENT &&
         args[0] instanceof PasswordResetRequestedEvent
       ) {
-        passwordResetToken = args[0].token;
+        passwordResetToken = args[0].delivery.token;
       }
       if (
         event === USER_EMAIL_CHANGE_REQUESTED_EVENT &&
         args[0] instanceof UserEmailChangeRequestedEvent
       ) {
-        emailChangeToken = args[0].token;
+        emailChangeToken = args[0].delivery.token;
+      }
+      if (
+        event === MEMBERSHIP_INVITATION_REQUESTED_EVENT &&
+        args[0] instanceof MembershipInvitationRequestedEvent
+      ) {
+        membershipInvitationToken = args[0].delivery.token;
       }
       return originalEmit(event, ...args);
     });
@@ -63,6 +75,9 @@ export function captureEmittedEvents(app: INestApplication): CapturedEvents {
     },
     get emailChangeToken() {
       return emailChangeToken;
+    },
+    get membershipInvitationToken() {
+      return membershipInvitationToken;
     },
     restore() {
       emitSpy.mockRestore();

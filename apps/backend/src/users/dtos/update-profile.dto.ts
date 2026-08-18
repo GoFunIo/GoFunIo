@@ -1,8 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
-
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
+import { optionalText } from '../../common/dto-transforms';
 
 export class UpdateProfileDto {
   @Transform(optionalText)

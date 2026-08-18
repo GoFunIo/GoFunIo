@@ -1,216 +1,345 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConflictCode, conflictException } from '../common/conflict';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Company } from '../companies/companies.entity';
+import {
+  TRANSACTIONAL_VEHICLE_ACCESS,
+  type TransactionalVehicleAccess,
+} from '../fleet/transactional-vehicle-access';
 import { CreateCompanyUserDto } from './dtos/create-company-user.dto';
 import { UpdateCompanyUserDto } from './dtos/update-company-user.dto';
 import {
-  PASSWORD_RESET_REQUESTED_EVENT,
-  PasswordResetRequestedEvent,
-} from './events/password-reset-requested.event';
-import { generateVerificationToken } from './verification-token.util';
-import { User, UserRole } from './users.entity';
-import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
-import {
-  clearExpiredEmailClaims,
-  emailClaimInUse,
-  lockEmailClaim,
+  assertEmailClaimable,
+  rethrowEmailClaimError,
 } from './email-claim.util';
+import { Membership } from './membership.entity';
+import { isWorkspaceAdmin, MembershipRole } from './membership-role';
+import { PasswordRecoveryService } from './password-recovery.service';
+import { requireCompanyId, type SessionPrincipal } from './session-principal';
+import { User } from './users.entity';
+
+export type CompanyUser = User & {
+  companyId: string;
+  role: MembershipRole;
+};
+
+type CompanyUserCatalogEntry = Pick<
+  CompanyUser,
+  'id' | 'firstName' | 'lastName' | 'email' | 'role'
+>;
 
 @Injectable()
 export class CompanyUsersService {
   constructor(
     @InjectRepository(User)
     private readonly users: Repository<User>,
-    private readonly config: ConfigService,
-    private readonly events: EventEmitter2,
+    private readonly passwordRecovery: PasswordRecoveryService,
+    @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
+    private readonly vehicleAccess: TransactionalVehicleAccess,
   ) {}
 
-  list(companyId: string): Promise<User[]> {
-    return this.users.find({
-      where: { companyId },
-      order: { createdAt: 'ASC' },
-    });
+  async list(
+    actor: SessionPrincipal,
+  ): Promise<Array<CompanyUser | CompanyUserCatalogEntry>> {
+    const companyId = requireCompanyId(actor);
+    const { entities, raw } = await this.users
+      .createQueryBuilder('user')
+      .innerJoin(
+        Membership,
+        'membership',
+        'membership."userId" = user.id AND membership."companyId" = :companyId AND membership.status = :status',
+        { companyId, status: 'active' },
+      )
+      .addSelect('membership.role', 'contextRole')
+      .orderBy('membership.createdAt', 'ASC')
+      .addOrderBy('user.id', 'ASC')
+      .getRawAndEntities();
+    const users = entities.map((user, index) =>
+      this.contextualUser(
+        user,
+        companyId,
+        raw[index].contextRole as MembershipRole,
+      ),
+    );
+    if (!users.some(({ id, role }) => id === actor.id && role === actor.role)) {
+      throw new ForbiddenException();
+    }
+    if (isWorkspaceAdmin(actor.role)) return users;
+    if (actor.role !== MembershipRole.MANAGER) throw new ForbiddenException();
+    return users.map(({ id, firstName, lastName, email, role }) => ({
+      id,
+      firstName,
+      lastName,
+      email,
+      role,
+    }));
   }
 
   async create(
-    actor: User,
+    actor: SessionPrincipal,
     body: CreateCompanyUserDto,
     origin?: string,
-  ): Promise<User> {
+  ): Promise<CompanyUser> {
     const email = body.email.trim().toLowerCase();
-    const ttlHours = this.config.get<number>(
-      'PASSWORD_RESET_TOKEN_TTL_HOURS',
-      24,
-    );
-    const { token, tokenHash, expiresAt } = generateVerificationToken(ttlHours);
-
-    let user: User;
+    const companyId = requireCompanyId(actor);
+    let user: CompanyUser;
     try {
       user = await this.users.manager.transaction(async (manager) => {
-        const admins = await this.lockAdmins(manager, actor.companyId);
-        this.requireAdmin(admins, actor.id);
-        await lockEmailClaim(manager, email);
-        await clearExpiredEmailClaims(manager, email);
-        if (await emailClaimInUse(manager, email)) {
-          throw new ConflictException('Email already in use');
-        }
-        return manager.save(
+        const memberships = await this.lockActiveMemberships(
+          manager,
+          companyId,
+        );
+        this.requireAdmin(memberships, actor.id);
+        await assertEmailClaimable(manager, email, () =>
+          conflictException(
+            'Email already in use',
+            ConflictCode.EMAIL_IN_USE,
+            'email',
+          ),
+        );
+        const created = await manager.save(
           manager.create(User, {
-            companyId: actor.companyId,
             email,
             firstName: body.firstName ?? null,
             lastName: body.lastName ?? null,
-            role: body.role,
             password: null,
             emailVerifiedAt: null,
-            passwordResetTokenHash: tokenHash,
-            passwordResetTokenExpiresAt: expiresAt,
           }),
         );
+        await manager.save(
+          manager.create(Membership, {
+            userId: created.id,
+            companyId,
+            role: body.role,
+          }),
+        );
+        return this.contextualUser(created, companyId, body.role);
       });
     } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('Email already in use');
-      }
-      throw error;
+      rethrowEmailClaimError(error, () =>
+        conflictException(
+          'Email already in use',
+          ConflictCode.EMAIL_IN_USE,
+          'email',
+        ),
+      );
     }
 
-    this.events.emit(
-      PASSWORD_RESET_REQUESTED_EVENT,
-      new PasswordResetRequestedEvent(
-        user.id,
-        user.email,
-        token,
-        ttlHours,
-        origin,
-        true,
-      ),
-    );
+    // ponytail: use an outbox if guaranteed first-password delivery becomes required.
+    await this.passwordRecovery.issueFirstPassword(user.id, origin);
     return user;
   }
 
   async update(
-    actor: User,
+    actor: SessionPrincipal,
     id: string,
     body: UpdateCompanyUserDto,
-  ): Promise<User> {
+  ): Promise<CompanyUser> {
     if (Object.keys(body).length === 0) {
       throw new BadRequestException('No changes provided');
     }
-    if (id === actor.id && body.role && body.role !== UserRole.ADMIN) {
-      throw new ConflictException('Cannot demote yourself');
+    if (id === actor.id && body.role && body.role !== actor.role) {
+      throw conflictException(
+        'Cannot demote yourself',
+        ConflictCode.CANNOT_DEMOTE_SELF,
+      );
     }
-
-    return this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, actor.companyId);
-      this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, actor.companyId, id);
-      if (
-        target.role === UserRole.ADMIN &&
-        body.role === UserRole.MANAGER &&
-        admins.length <= 1
-      ) {
-        throw new ConflictException('Company must have an admin');
+    const companyId = requireCompanyId(actor);
+    const result = await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      this.requireAdmin(memberships, actor.id);
+      const { membership, user } = await this.findCompanyUser(
+        manager,
+        memberships,
+        id,
+      );
+      if (membership.role === MembershipRole.OWNER) {
+        if (actor.id !== id) throw new ForbiddenException();
+        if (body.role && body.role !== MembershipRole.OWNER) {
+          throw conflictException(
+            'Transfer ownership first',
+            ConflictCode.TRANSFER_OWNERSHIP_FIRST,
+          );
+        }
       }
 
-      if (target.role === UserRole.MANAGER && body.role === UserRole.ADMIN) {
-        await this.closeManagerAssignments(manager, actor.companyId, target.id);
+      const cleanupManager =
+        membership.role === MembershipRole.MANAGER &&
+        body.role === MembershipRole.ADMIN;
+      const { role, ...profile } = body;
+      Object.assign(user, profile);
+      if (role) {
+        membership.role = role;
+        await manager.save(membership);
       }
+      if (cleanupManager) {
+        await this.vehicleAccess.closeManager(manager, companyId, id);
+      }
+      const saved = await manager.save(user);
+      return this.contextualUser(saved, companyId, membership.role);
+    });
+    return result;
+  }
 
-      Object.assign(target, body);
-      return manager.save(target);
+  async remove(actor: SessionPrincipal, id: string): Promise<void> {
+    if (id === actor.id) {
+      throw conflictException(
+        'Cannot delete yourself',
+        ConflictCode.CANNOT_DELETE_SELF,
+      );
+    }
+    const companyId = requireCompanyId(actor);
+    await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      this.requireAdmin(memberships, actor.id);
+      const { membership } = await this.findCompanyUser(
+        manager,
+        memberships,
+        id,
+      );
+      if (membership.role === MembershipRole.OWNER)
+        throw new ForbiddenException();
+      await this.deactivateMembership(manager, membership);
+      if (membership.role === MembershipRole.MANAGER) {
+        await this.vehicleAccess.closeManager(manager, companyId, id);
+      }
+      await this.softDeleteIfEmpty(manager, companyId);
     });
   }
 
-  async remove(actor: User, id: string): Promise<void> {
-    if (id === actor.id) {
-      throw new ConflictException('Cannot delete yourself');
-    }
-
+  async leave(actor: SessionPrincipal): Promise<void> {
+    const companyId = requireCompanyId(actor);
     await this.users.manager.transaction(async (manager) => {
-      const admins = await this.lockAdmins(manager, actor.companyId);
-      this.requireAdmin(admins, actor.id);
-      const target = await this.findCompanyUser(manager, actor.companyId, id);
-      if (target.role === UserRole.ADMIN && admins.length <= 1) {
-        throw new ConflictException('Company must have an admin');
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      const { membership } = await this.findCompanyUser(
+        manager,
+        memberships,
+        actor.id,
+      );
+      if (membership.role === MembershipRole.OWNER) {
+        throw conflictException(
+          'Transfer ownership or delete the company before leaving',
+          ConflictCode.TRANSFER_OWNERSHIP_FIRST,
+        );
       }
-      if (target.role === UserRole.MANAGER) {
-        await this.closeManagerAssignments(manager, actor.companyId, target.id);
+      await this.deactivateMembership(manager, membership);
+      if (membership.role === MembershipRole.MANAGER) {
+        await this.vehicleAccess.closeManager(manager, companyId, actor.id);
       }
-      await manager.update(User, target.id, {
-        pendingEmail: null,
-        emailChangeTokenHash: null,
-        emailChangeTokenExpiresAt: null,
-        verificationTokenHash: null,
-        verificationTokenExpiresAt: null,
-        passwordResetTokenHash: null,
-        passwordResetTokenExpiresAt: null,
-      });
-      await manager.softDelete(User, target.id);
+      await this.softDeleteIfEmpty(manager, companyId);
+    });
+  }
+
+  async transferOwnership(
+    actor: SessionPrincipal,
+    targetId: string,
+  ): Promise<void> {
+    const companyId = requireCompanyId(actor);
+    await this.users.manager.transaction(async (manager) => {
+      const memberships = await this.lockActiveMemberships(manager, companyId);
+      const owner = memberships.find(({ userId }) => userId === actor.id);
+      if (owner?.role !== MembershipRole.OWNER) throw new ForbiddenException();
+      const target = memberships.find(({ userId }) => userId === targetId);
+      if (target?.role !== MembershipRole.ADMIN) {
+        throw conflictException(
+          'Ownership requires an active admin',
+          ConflictCode.OWNERSHIP_REQUIRES_ADMIN,
+        );
+      }
+
+      owner.role = MembershipRole.ADMIN;
+      await manager.save(owner);
+      target.role = MembershipRole.OWNER;
+      await manager.save(target);
     });
   }
 
   private async findCompanyUser(
     manager: EntityManager,
-    companyId: string,
+    memberships: Membership[],
     id: string,
-  ): Promise<User> {
+  ): Promise<{ membership: Membership; user: User }> {
+    const membership = memberships.find(({ userId }) => userId === id);
+    if (!membership) throw new NotFoundException('User not found');
     const user = await manager.findOne(User, {
-      where: { id, companyId },
+      where: { id },
       lock: { mode: 'pessimistic_write' },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    return { membership, user };
   }
 
-  private async closeManagerAssignments(
+  private lockActiveMemberships(
     manager: EntityManager,
     companyId: string,
-    managerId: string,
-  ): Promise<void> {
-    await manager
-      .createQueryBuilder()
-      .update(ManagerVehicleAssignment)
-      .set({ assignedTo: () => 'clock_timestamp()' })
-      .where('"companyId" = :companyId', { companyId })
-      .andWhere('"managerId" = :managerId', { managerId })
-      .andWhere('"assignedTo" IS NULL')
-      .execute();
-  }
-
-  private lockAdmins(
-    manager: EntityManager,
-    companyId: string,
-  ): Promise<User[]> {
+  ): Promise<Membership[]> {
     return manager
-      .createQueryBuilder(User, 'user')
-      .innerJoin('user.company', 'company')
-      .where('user.companyId = :companyId', { companyId })
-      .andWhere('user.role = :role', { role: UserRole.ADMIN })
-      .andWhere('company."deletedAt" IS NULL')
-      .orderBy('user.id', 'ASC')
+      .createQueryBuilder(Membership, 'membership')
+      .innerJoin(
+        Company,
+        'company',
+        'company.id = membership."companyId" AND company."deletedAt" IS NULL',
+      )
+      .where('membership."companyId" = :companyId', { companyId })
+      .andWhere('membership.status = :status', { status: 'active' })
+      .orderBy('membership.id', 'ASC')
       .setLock('pessimistic_write')
       .getMany();
   }
 
-  private requireAdmin(admins: User[], actorId: string): void {
-    if (!admins.some(({ id }) => id === actorId)) {
+  private requireAdmin(memberships: Membership[], actorId: string): void {
+    if (
+      !memberships.some(
+        ({ userId, role }) => userId === actorId && isWorkspaceAdmin(role),
+      )
+    ) {
       throw new ForbiddenException();
     }
   }
 
-  private isUniqueViolation(error: unknown): boolean {
-    if (!(error instanceof QueryFailedError)) return false;
-    return (
-      (error.driverError as { code?: string } | undefined)?.code === '23505'
+  private async deactivateMembership(
+    manager: EntityManager,
+    membership: Membership,
+  ): Promise<void> {
+    Object.assign(membership, {
+      status: 'removed',
+      tokenHash: null,
+      tokenExpiresAt: null,
+    });
+    await manager.save(membership);
+  }
+
+  private async softDeleteIfEmpty(
+    manager: EntityManager,
+    companyId: string,
+  ): Promise<void> {
+    if (
+      await manager.exists(Membership, {
+        where: { companyId, status: 'active' },
+      })
+    ) {
+      return;
+    }
+    await manager.softDelete(Company, companyId);
+    await manager.update(
+      Membership,
+      { companyId },
+      { status: 'removed', tokenHash: null, tokenExpiresAt: null },
     );
+  }
+
+  private contextualUser(
+    user: User,
+    companyId: string,
+    role: MembershipRole,
+  ): CompanyUser {
+    return Object.assign(user, { companyId, role });
   }
 }

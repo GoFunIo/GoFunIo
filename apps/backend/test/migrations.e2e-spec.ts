@@ -5,6 +5,17 @@ import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000
 import { AddProfileFields1750000000000 } from '../src/migrations/1750000000000-AddProfileFields';
 import { CreateVehicles1751000000000 } from '../src/migrations/1751000000000-CreateVehicles';
 import { CreateDrivers1752000000000 } from '../src/migrations/1752000000000-CreateDrivers';
+import { CreateMemberships1753000000000 } from '../src/migrations/1753000000000-CreateMemberships';
+import { AddMembershipInvitations1754000000000 } from '../src/migrations/1754000000000-AddMembershipInvitations';
+import { AllowUsersWithoutCompany1755000000000 } from '../src/migrations/1755000000000-AllowUsersWithoutCompany';
+import { ReferenceManagerMembership1756000000000 } from '../src/migrations/1756000000000-ReferenceManagerMembership';
+import { AllowRemovedMemberships1757000000000 } from '../src/migrations/1757000000000-AllowRemovedMemberships';
+import { DropUserCompanyRole1758000000000 } from '../src/migrations/1758000000000-DropUserCompanyRole';
+import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-AddWorkspaceOwner';
+import { LinkDriverMembership1760000000000 } from '../src/migrations/1760000000000-LinkDriverMembership';
+import { EnforceSingleActiveDriver1761000000000 } from '../src/migrations/1761000000000-EnforceSingleActiveDriver';
+import { CreateServices1762000000000 } from '../src/migrations/1762000000000-CreateServices';
+import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
   it('supports fresh migration, rollback, and rerun', async () => {
@@ -24,6 +35,16 @@ describe('database migrations', () => {
         AddProfileFields1750000000000,
         CreateVehicles1751000000000,
         CreateDrivers1752000000000,
+        CreateMemberships1753000000000,
+        AddMembershipInvitations1754000000000,
+        AllowUsersWithoutCompany1755000000000,
+        ReferenceManagerMembership1756000000000,
+        AllowRemovedMemberships1757000000000,
+        DropUserCompanyRole1758000000000,
+        AddWorkspaceOwner1759000000000,
+        LinkDriverMembership1760000000000,
+        EnforceSingleActiveDriver1761000000000,
+        CreateServices1762000000000,
       ],
     });
 
@@ -38,7 +59,7 @@ describe('database migrations', () => {
         `
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments')
+        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships', 'services')
         ORDER BY table_name
       `,
         [schema],
@@ -48,6 +69,8 @@ describe('database migrations', () => {
         'driver_vehicle_assignments',
         'drivers',
         'manager_vehicle_assignments',
+        'memberships',
+        'services',
         'users',
         'vehicles',
       ]);
@@ -62,18 +85,155 @@ describe('database migrations', () => {
         [schema],
       );
       expect(indexes.map(({ indexname }) => indexname)).toEqual([
-        'IDX_users_company',
         'IDX_users_email',
         'IDX_users_googleId',
         'IDX_users_pendingEmail',
       ]);
 
+      const contractedColumns = await database.query<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = 'users'
+           AND column_name IN ('companyId', 'role')`,
+        [schema],
+      );
+      expect(contractedColumns).toEqual([]);
+
+      const [{ id: backfillCompanyId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "companies" (name) VALUES ('Owner backfill') RETURNING id`,
+      );
+      const backfillUsers = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" (email)
+         VALUES ('owner-backfill-first@example.com'), ('owner-backfill-second@example.com')
+         RETURNING id`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", role, "createdAt")
+         VALUES ($1, $3, 'ADMIN', '2026-01-01T00:00:00Z'),
+                ($2, $3, 'ADMIN', '2026-01-02T00:00:00Z')`,
+        [backfillUsers[0].id, backfillUsers[1].id, backfillCompanyId],
+      );
+
+      const [{ id: linkCompanyId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "companies" (name) VALUES ('Driver link') RETURNING id`,
+      );
+      const [{ id: linkUserId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" (email) VALUES ('driver-link@example.com') RETURNING id`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", role)
+         VALUES ($1, $2, 'MANAGER')`,
+        [linkUserId, linkCompanyId],
+      );
+      const [{ id: linkedDriverId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+         VALUES ($1, 'Linked', 'Driver', $2) RETURNING "id"`,
+        [linkCompanyId, linkUserId],
+      );
       await expect(
-        database.query(`
-          INSERT INTO "users" ("companyId", "email", "role")
-          VALUES ('00000000-0000-0000-0000-000000000000', 'test@example.com', 'ADMIN')
-        `),
+        database.query(
+          `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+           VALUES ($1, 'Duplicate', 'Driver', $2)`,
+          [linkCompanyId, linkUserId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+      await expect(
+        database.query(
+          `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+           VALUES ($1, 'Cross', 'Driver', $2)`,
+          [linkCompanyId, backfillUsers[0].id],
+        ),
       ).rejects.toMatchObject({ code: '23503' });
+      await database.query(
+        `UPDATE "drivers" SET "deletedAt" = now() WHERE "id" = $1`,
+        [linkedDriverId],
+      );
+      const [{ id: replacementDriverId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName", "userId")
+         VALUES ($1, 'Replacement', 'Driver', $2) RETURNING "id"`,
+        [linkCompanyId, linkUserId],
+      );
+
+      await database.undoLastMigration();
+      await database.undoLastMigration();
+      const [{ id: allocationVehicleId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "vehicles" ("companyId", brand, model, "registrationNumber")
+         VALUES ($1, 'Migration', 'Allocation', 'MIG100') RETURNING id`,
+        [linkCompanyId],
+      );
+      const [{ id: newerDriverId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName")
+         VALUES ($1, 'Newer', 'Driver') RETURNING id`,
+        [linkCompanyId],
+      );
+      await database.query(
+        `INSERT INTO "driver_vehicle_assignments"
+         ("companyId", "vehicleId", "driverId", "assignedFrom", "createdAt")
+         VALUES ($1, $2, $3, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+                ($1, $2, $4, '2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z')`,
+        [
+          linkCompanyId,
+          allocationVehicleId,
+          replacementDriverId,
+          newerDriverId,
+        ],
+      );
+      await database.runMigrations();
+      await expect(
+        database.query<{ driverId: string }[]>(
+          `SELECT "driverId" FROM "driver_vehicle_assignments"
+           WHERE "vehicleId" = $1 AND "assignedTo" IS NULL`,
+          [allocationVehicleId],
+        ),
+      ).resolves.toEqual([{ driverId: newerDriverId }]);
+      await expect(
+        database.query(
+          `INSERT INTO "driver_vehicle_assignments"
+           ("companyId", "vehicleId", "driverId") VALUES ($1, $2, $3)`,
+          [linkCompanyId, allocationVehicleId, replacementDriverId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+
+      await database.undoLastMigration();
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes
+           WHERE schemaname = $1 AND indexname = 'IDX_driver_assignments_active_pair'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ column_name: string }[]>(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = 'drivers' AND column_name = 'userId'`,
+          [schema],
+        ),
+      ).resolves.toEqual([]);
+      await database.undoLastMigration();
+      await database.runMigrations();
+      await expect(
+        database.query<{ userId: string; role: string }[]>(
+          `SELECT "userId", role FROM "memberships" WHERE "companyId" = $1 ORDER BY "createdAt"`,
+          [backfillCompanyId],
+        ),
+      ).resolves.toEqual([
+        { userId: backfillUsers[0].id, role: MembershipRole.OWNER },
+        { userId: backfillUsers[1].id, role: MembershipRole.ADMIN },
+      ]);
+
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_memberships_active_owner'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
 
       await expect(
         database.query(`
@@ -98,15 +258,105 @@ describe('database migrations', () => {
         INSERT INTO "companies" ("name") VALUES ('Other company') RETURNING "id"
       `);
       const [{ id: otherManagerId }] = await database.query<{ id: string }[]>(
-        `INSERT INTO "users" ("companyId", "email", "role")
-         VALUES ($1, 'other-manager@example.com', 'MANAGER') RETURNING "id"`,
-        [otherCompanyId],
+        `INSERT INTO "users" ("email")
+         VALUES ('other-manager@example.com') RETURNING "id"`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role")
+         VALUES ($1, $2, 'MANAGER')`,
+        [otherManagerId, otherCompanyId],
       );
       const [{ id: vehicleId }] = await database.query<{ id: string }[]>(
         `INSERT INTO "vehicles" ("companyId", "brand", "model", "registrationNumber")
          VALUES ($1, 'BMW', 'X5', 'CROSS1') RETURNING "id"`,
         [companyId],
       );
+
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes", "attachmentKey", "attachmentName", "attachmentMime")
+           VALUES ($1, $2, '2026-01-15', 'FULL', '1234.56', 'Migration Workshop', 'Complete service', 'services/report.pdf', 'report.pdf', 'application/pdf')`,
+          [companyId, vehicleId],
+        ),
+      ).resolves.toBeDefined();
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+           VALUES ($1, $2, '2026-01-15', 'OTHER', '10.00', 'Cross-workspace')`,
+          [otherCompanyId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      for (const cost of ['0', '-0.01']) {
+        await expect(
+          database.query(
+            `INSERT INTO "services"
+             ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+             VALUES ($1, $2, '2026-01-15', 'OIL_CHANGE', $3, 'Invalid cost')`,
+            [companyId, vehicleId, cost],
+          ),
+        ).rejects.toMatchObject({ code: '23514' });
+      }
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName")
+           VALUES ($1, $2, '2026-01-15', 'UNKNOWN', '10.00', 'Invalid type')`,
+          [companyId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+      await expect(
+        database.query(
+          `INSERT INTO "services"
+           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes")
+           VALUES ($1, $2, '2026-01-15', 'OC', '10.00', 'Long notes', $3)`,
+          [companyId, vehicleId, 'x'.repeat(5001)],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+
+      const serviceIndexes = await database.query<
+        { indexname: string; indexdef: string }[]
+      >(
+        `SELECT indexname, indexdef FROM pg_indexes
+         WHERE schemaname = $1 AND indexname LIKE 'IDX_services_%'
+         ORDER BY indexname`,
+        [schema],
+      );
+      expect(serviceIndexes).toEqual([
+        {
+          indexname: 'IDX_services_company_date_active',
+          indexdef: expect.stringContaining(
+            '("companyId", "serviceDate" DESC, id DESC) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+        {
+          indexname: 'IDX_services_company_type_active',
+          indexdef: expect.stringContaining(
+            '("companyId", type) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+        {
+          indexname: 'IDX_services_company_vehicle_date_active',
+          indexdef: expect.stringContaining(
+            '("companyId", "vehicleId", "serviceDate" DESC) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+      ]);
+
+      await database.undoLastMigration();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.services`,
+        ]),
+      ).resolves.toEqual([{ regclass: null }]);
+      await database.runMigrations();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.services`,
+        ]),
+      ).resolves.toEqual([{ regclass: 'services' }]);
+
       await expect(
         database.query(
           `INSERT INTO "manager_vehicle_assignments"
@@ -117,9 +367,35 @@ describe('database migrations', () => {
       ).rejects.toMatchObject({ code: '23503' });
 
       const [{ id: managerId }] = await database.query<{ id: string }[]>(
-        `INSERT INTO "users" ("companyId", "email", "role")
-         VALUES ($1, 'local-manager@example.com', 'MANAGER') RETURNING "id"`,
-        [companyId],
+        `INSERT INTO "users" ("email")
+         VALUES ('local-manager@example.com') RETURNING "id"`,
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "manager_vehicle_assignments" ("companyId", "managerId", "vehicleId")
+           VALUES ($1, $2, $3)`,
+          [companyId, managerId, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role")
+         VALUES ($1, $2, 'MANAGER')`,
+        [managerId, companyId],
+      );
+      await database.query(
+        `UPDATE "memberships" SET role = 'OWNER' WHERE "userId" = $1 AND "companyId" = $2`,
+        [managerId, companyId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "memberships" ("userId", "companyId", role)
+           VALUES ($1, $2, 'OWNER')`,
+          [otherManagerId, companyId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+      await database.query(
+        `UPDATE "memberships" SET role = 'MANAGER' WHERE "userId" = $1 AND "companyId" = $2`,
+        [managerId, companyId],
       );
       await expect(
         database.query(
@@ -179,6 +455,141 @@ describe('database migrations', () => {
           [companyId, driverId, vehicleId],
         ),
       ).rejects.toMatchObject({ code: '23505' });
+
+      const [{ id: invitedUserId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "users" ("email")
+          VALUES ('migration-invitee@example.com') RETURNING "id"`,
+      );
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role", "status")
+         VALUES ($1, $2, 'MANAGER', 'pending')`,
+        [invitedUserId, companyId],
+      );
+      await database.query(
+        `INSERT INTO "manager_vehicle_assignments" ("companyId", "managerId", "vehicleId")
+         VALUES ($1, $2, $3)`,
+        [companyId, invitedUserId, vehicleId],
+      );
+      await database.query(
+        `UPDATE "memberships" SET "status" = 'removed' WHERE "userId" = $1`,
+        [invitedUserId],
+      );
+      await expect(
+        database.query(
+          `UPDATE "memberships" SET "status" = 'unknown' WHERE "userId" = $1`,
+          [invitedUserId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+
+      const [{ id: membershiplessUserId }] = await database.query<
+        { id: string }[]
+      >(
+        `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
+      );
+      await database.undoLastMigration();
+      await database.undoLastMigration();
+      await database.undoLastMigration();
+      await database.undoLastMigration();
+      await expect(database.undoLastMigration()).rejects.toThrow(
+        'users without memberships exist',
+      );
+      await database.query(`DELETE FROM "users" WHERE id = $1`, [
+        membershiplessUserId,
+      ]);
+
+      await database.query(
+        `INSERT INTO "memberships" ("userId", "companyId", "role", "status", "createdAt")
+         VALUES ($1, $2, 'ADMIN', 'active', now() + interval '1 day')`,
+        [invitedUserId, otherCompanyId],
+      );
+      await database.undoLastMigration();
+      await expect(
+        database.query<Array<{ companyId: string; role: string }>>(
+          `SELECT "companyId", role FROM "users" WHERE id = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual([
+        { companyId: otherCompanyId, role: MembershipRole.ADMIN },
+      ]);
+      const restoredDependencies = await database.query<
+        Array<{ constraint_name: string }>
+      >(
+        `SELECT constraint_name FROM information_schema.table_constraints
+         WHERE table_schema = $1 AND table_name = 'users'
+           AND constraint_name IN ('FK_users_company', 'UQ_users_id_company')
+         ORDER BY constraint_name`,
+        [schema],
+      );
+      expect(
+        restoredDependencies.map(({ constraint_name }) => constraint_name),
+      ).toEqual(['FK_users_company', 'UQ_users_id_company']);
+      await expect(
+        database.query<{ indexname: string }[]>(
+          `SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_users_company'`,
+          [schema],
+        ),
+      ).resolves.toHaveLength(1);
+
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ status: string }[]>(
+          `SELECT "status" FROM "memberships" WHERE "userId" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual(
+        expect.arrayContaining([{ status: 'active' }, { status: 'declined' }]),
+      );
+      await database.undoLastMigration();
+      await expect(
+        database.query<{ id: string }[]>(
+          `SELECT "id" FROM "manager_vehicle_assignments" WHERE "managerId" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toHaveLength(1);
+      await database.undoLastMigration();
+      const [restoredCompanyIdColumn] = await database.query<
+        Array<{ is_nullable: string }>
+      >(
+        `SELECT is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'users' AND column_name = 'companyId'`,
+        [schema],
+      );
+      expect(restoredCompanyIdColumn.is_nullable).toBe('NO');
+      await expect(
+        database.query<Array<{ companyId: string }>>(
+          `SELECT "companyId" FROM "users" WHERE "id" = $1`,
+          [invitedUserId],
+        ),
+      ).resolves.toEqual([{ companyId }]);
+
+      await database.undoLastMigration();
+      const invitationColumns = await database.query<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'memberships' AND column_name IN ('tokenHash', 'tokenExpiresAt')`,
+        [schema],
+      );
+      expect(invitationColumns).toEqual([]);
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.memberships`,
+          ])
+        )[0].regclass,
+      ).not.toBeNull();
+
+      await database.undoLastMigration();
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.memberships`,
+          ])
+        )[0].regclass,
+      ).toBeNull();
+      expect(
+        (
+          await database.query(`SELECT to_regclass($1) AS regclass`, [
+            `${schema}.drivers`,
+          ])
+        )[0].regclass,
+      ).not.toBeNull();
 
       await database.undoLastMigration();
       expect(

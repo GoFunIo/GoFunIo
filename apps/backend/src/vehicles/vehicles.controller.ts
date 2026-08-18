@@ -11,77 +11,158 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
-import { CurrentUser } from '../users/decorators/current-user.decorator';
+import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
-import { User } from '../users/users.entity';
+import { AdminGuard } from '../users/guards/admin.guard';
+import type { SessionPrincipal } from '../users/session-principal';
 import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
 import { VehicleDto } from './dtos/vehicle.dto';
 import { VehicleListDto } from './dtos/vehicle-list.dto';
-import { Vehicle } from './vehicles.entity';
+import type { VehicleView } from './vehicle-view';
 import { VehiclesService } from './vehicles.service';
 import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
+import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto';
 
+@ApiTags('Vehicles')
 @Controller('vehicles')
 @UseGuards(SessionAuthGuard)
 export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
 
+  @ApiOperation({ summary: 'List vehicles' })
+  @ApiOkResponse({ type: VehicleListDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get()
   @Serialize(VehicleListDto)
-  list(@CurrentUser() user: User, @Query() query: ListVehiclesQueryDto) {
-    return this.vehicles.list(user, query);
+  list(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Query() query: ListVehiclesQueryDto,
+  ) {
+    return this.vehicles.list(principal, query);
   }
 
+  @ApiOperation({ summary: 'Get vehicle by id' })
+  @ApiOkResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Get(':id')
   @Serialize(VehicleDto)
   findOne(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<Vehicle> {
-    return this.vehicles.findOne(user, id);
+  ): Promise<VehicleView> {
+    return this.vehicles.findOne(principal, id);
   }
 
+  @ApiOperation({ summary: 'List manager assignment history for vehicle' })
+  @ApiOkResponse({ type: ManagerAssignmentDto, isArray: true })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Get(':id/manager-assignments')
   @Serialize(ManagerAssignmentDto)
   managerHistory(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.vehicles.managerHistory(user, id);
+    return this.vehicles.managerHistory(principal, id);
   }
 
+  @ApiOperation({ summary: 'Create vehicle' })
+  @ApiCreatedResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiConflictResponse({
+    description: 'Registration number or VIN already in use',
+    type: ConflictResponseDto,
+  })
   @Post()
   @Serialize(VehicleDto)
-  @UseGuards(AllowedOriginGuard)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
   create(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateVehicleDto,
-  ): Promise<Vehicle> {
-    return this.vehicles.create(user, body);
+  ): Promise<VehicleView> {
+    return this.vehicles.create(principal, body);
   }
 
+  @ApiOperation({ summary: 'Assign manager to vehicle' })
+  @ApiCreatedResponse({ type: ManagerAssignmentDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @Post(':id/managers')
+  @Serialize(ManagerAssignmentDto)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
+  assignManager(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateManagerAssignmentDto,
+  ) {
+    return this.vehicles.assignManager(principal, id, body);
+  }
+
+  @ApiOperation({ summary: 'Unassign manager from vehicle' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle or assignment not found' })
+  @Delete(':id/managers/:managerId')
+  @HttpCode(204)
+  @UseGuards(AllowedOriginGuard, AdminGuard)
+  unassignManager(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('managerId', ParseUUIDPipe) managerId: string,
+  ): Promise<void> {
+    return this.vehicles.unassignManager(principal, id, managerId);
+  }
+
+  @ApiOperation({ summary: 'Update vehicle' })
+  @ApiOkResponse({ type: VehicleDto })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @ApiConflictResponse({
+    description: 'Registration number or VIN already in use',
+    type: ConflictResponseDto,
+  })
   @Patch(':id')
   @Serialize(VehicleDto)
   @UseGuards(AllowedOriginGuard)
   update(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateVehicleDto,
-  ): Promise<Vehicle> {
-    return this.vehicles.update(user, id, body);
+  ): Promise<VehicleView> {
+    return this.vehicles.update(principal, id, body);
   }
 
+  @ApiOperation({ summary: 'Delete vehicle' })
+  @ApiNoContentResponse()
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AllowedOriginGuard)
   remove(
-    @CurrentUser() user: User,
+    @CurrentPrincipal() principal: SessionPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
-    return this.vehicles.remove(user, id);
+    return this.vehicles.remove(principal, id);
   }
 }

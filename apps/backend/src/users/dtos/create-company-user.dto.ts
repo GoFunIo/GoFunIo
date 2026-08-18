@@ -1,20 +1,16 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
-  IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
-import { UserRole } from '../users.entity';
-
-const optionalText = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() || null : value;
+import { lowercaseEmail, optionalText } from '../../common/dto-transforms';
+import { MembershipRole } from '../membership-role';
 
 export class CreateCompanyUserDto {
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(lowercaseEmail)
   @IsEmail()
   @MaxLength(254)
   email!: string;
@@ -31,6 +27,6 @@ export class CreateCompanyUserDto {
   @MaxLength(100)
   lastName?: string | null;
 
-  @IsEnum(UserRole)
-  role!: UserRole;
+  @IsIn([MembershipRole.ADMIN, MembershipRole.MANAGER])
+  role!: MembershipRole;
 }

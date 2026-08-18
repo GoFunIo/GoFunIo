@@ -12,10 +12,6 @@ export class UserEmailChangeRequestedListener {
 
   @OnEvent(USER_EMAIL_CHANGE_REQUESTED_EVENT, { async: true })
   async handle(event: UserEmailChangeRequestedEvent): Promise<void> {
-    await this.mailService.sendEmailChangeVerification(
-      event.email,
-      event.token,
-      event.origin,
-    );
+    await this.mailService.sendEmailChangeVerification(event.delivery);
   }
 }

@@ -1,0 +1,97 @@
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import type { SessionData } from '../types/session.types';
+import {
+  SESSION_USER_READER,
+  type SessionUserReader,
+} from './session-user-reader';
+import type { SessionPrincipal } from './session-principal';
+import { SessionVersionChangedError } from './session.errors';
+
+@Injectable()
+export class SessionsService {
+  constructor(
+    @Inject(SESSION_USER_READER) private readonly users: SessionUserReader,
+  ) {}
+
+  async establish(
+    session: SessionData,
+    userId: string,
+    expectedPasswordVersion?: number,
+  ): Promise<SessionPrincipal> {
+    const user = await this.users.findActiveById(userId);
+    if (!user) {
+      this.clear(session);
+      throw new Error('Cannot establish session for inactive user');
+    }
+    if (
+      expectedPasswordVersion !== undefined &&
+      user.passwordVersion !== expectedPasswordVersion
+    ) {
+      this.clear(session);
+      throw new SessionVersionChangedError();
+    }
+
+    const membership = user.memberships[0] ?? null;
+    session.userId = user.id;
+    session.passwordVersion = user.passwordVersion;
+    session.currentCompanyId = membership?.companyId ?? null;
+    return {
+      id: user.id,
+      companyId: membership?.companyId ?? null,
+      role: membership?.role ?? null,
+    };
+  }
+
+  async authenticate(session: SessionData): Promise<SessionPrincipal | null> {
+    const user = session.userId
+      ? await this.users.findActiveById(session.userId)
+      : null;
+    if (!user || session.passwordVersion !== user.passwordVersion) {
+      this.clear(session);
+      return null;
+    }
+
+    if (!session.currentCompanyId) {
+      return { id: user.id, companyId: null, role: null };
+    }
+
+    const membership =
+      user.memberships.find(
+        (entry) => entry.companyId === session.currentCompanyId,
+      ) ?? null;
+    session.currentCompanyId = membership?.companyId ?? null;
+
+    return {
+      id: user.id,
+      companyId: membership?.companyId ?? null,
+      role: membership?.role ?? null,
+    };
+  }
+
+  async listCompanies(userId: string) {
+    const user = await this.users.findActiveById(userId);
+    return (user?.memberships ?? []).map((membership) => ({
+      id: membership.companyId,
+      name: membership.companyName,
+      role: membership.role,
+    }));
+  }
+
+  async switchCompany(
+    session: SessionData,
+    userId: string,
+    companyId: string,
+  ): Promise<void> {
+    const user = await this.users.findActiveById(userId);
+    if (!user?.memberships.some((entry) => entry.companyId === companyId)) {
+      throw new ForbiddenException();
+    }
+    session.currentCompanyId = companyId;
+  }
+
+  clear(session: SessionData): void {
+    session.userId = null;
+    session.passwordVersion = null;
+    session.currentCompanyId = null;
+  }
+}

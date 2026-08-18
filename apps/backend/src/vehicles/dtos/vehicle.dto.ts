@@ -1,15 +1,42 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { VehicleFuelType } from '../vehicles.entity';
+
+export class VehicleManagerDto {
+  @Expose()
+  id!: string;
+
+  @Expose()
+  firstName!: string | null;
+
+  @Expose()
+  lastName!: string | null;
+
+  @Expose()
+  email!: string;
+}
+
+export class VehicleDriverDto {
+  @Expose()
+  id!: string;
+
+  @Expose()
+  firstName!: string;
+
+  @Expose()
+  lastName!: string;
+}
 
 export class VehicleDto {
   @Expose()
   id!: string;
 
   @Expose()
-  managerIds!: string[];
+  @Type(() => VehicleManagerDto)
+  managers!: VehicleManagerDto[];
 
   @Expose()
-  driverIds!: string[];
+  @Type(() => VehicleDriverDto)
+  drivers!: VehicleDriverDto[];
 
   @Expose()
   brand!: string;

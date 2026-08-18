@@ -93,6 +93,20 @@ export const signInWithGoogle = async (credential: string) => {
   return data;
 };
 
+export const acceptMembershipInvitation = async (token: string) => {
+  const res = await fetch(`${API_URL}/auth/invitations/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ token }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw { status: res.status, message: data?.message ?? 'Request failed' };
+  }
+};
+
 /**
  * Zgłasza prośbę o ponowne wygenerowanie i wysłanie linku weryfikacyjnego na podany e-mail.
  */

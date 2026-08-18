@@ -6,32 +6,25 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { SessionData } from '../../types/session.types';
-import { User } from '../users.entity';
-import { UsersService } from '../users.service';
+import type { SessionPrincipal } from '../session-principal';
+import { SessionsService } from '../sessions.service';
 
 type AuthenticatedRequest = Request & {
   session: SessionData;
-  user?: User;
+  principal?: SessionPrincipal;
 };
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  constructor(private usersService: UsersService) {}
+  constructor(private readonly sessions: SessionsService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const { session } = request;
-    const user = session.userId
-      ? await this.usersService.findActiveById(session.userId)
-      : null;
+    const principal = await this.sessions.authenticate(request.session);
 
-    if (!user || session.passwordVersion !== user.passwordVersion) {
-      session.userId = null;
-      session.passwordVersion = null;
-      throw new UnauthorizedException();
-    }
+    if (!principal) throw new UnauthorizedException();
 
-    request.user = user;
+    request.principal = principal;
     return true;
   }
 }

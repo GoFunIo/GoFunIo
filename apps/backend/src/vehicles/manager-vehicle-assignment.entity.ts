@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
-import { User } from '../users/users.entity';
+import { Membership } from '../users/membership.entity';
 import { Vehicle } from './vehicles.entity';
 
 @Entity('manager_vehicle_assignments')
@@ -25,17 +25,17 @@ export class ManagerVehicleAssignment {
   @Column({ type: 'uuid' })
   managerId!: string;
 
-  @ManyToOne(() => User, { nullable: false, onDelete: 'RESTRICT' })
+  @ManyToOne(() => Membership, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn([
-    { name: 'managerId', referencedColumnName: 'id' },
+    { name: 'managerId', referencedColumnName: 'userId' },
     { name: 'companyId', referencedColumnName: 'companyId' },
   ])
-  manager!: User;
+  managerMembership!: Membership;
 
   @Column({ type: 'uuid' })
   vehicleId!: string;
 
-  @ManyToOne(() => Vehicle, (vehicle) => vehicle.managerAssignments, {
+  @ManyToOne(() => Vehicle, {
     nullable: false,
     onDelete: 'RESTRICT',
   })

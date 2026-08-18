@@ -1,44 +1,23 @@
 import { join } from 'path';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { Company } from '../companies/companies.entity';
-import { User } from '../users/users.entity';
-import { Vehicle } from '../vehicles/vehicles.entity';
-import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
-import { Driver } from '../drivers/drivers.entity';
-import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
+import type { DataSourceOptions } from 'typeorm';
+import type { DatabaseEnv } from './env.validation';
 
-function postgresSsl(): { rejectUnauthorized: false } | undefined {
-  const url = process.env.DATABASE_URL ?? '';
-  if (
-    url.includes('neon.tech') ||
-    url.includes('sslmode=require') ||
-    url.includes('render.com')
-  ) {
-    return { rejectUnauthorized: false };
-  }
-  return undefined;
-}
+type PostgresOptions = Extract<DataSourceOptions, { type: 'postgres' }>;
 
-export function buildTypeOrmOptions(): TypeOrmModuleOptions {
-  const schema =
-    process.env.NODE_ENV === 'test'
-      ? process.env.DATABASE_SCHEMA?.trim()
-      : undefined;
+export function buildTypeOrmOptions(env: DatabaseEnv): PostgresOptions {
+  const schema = env.DATABASE_SCHEMA?.trim();
   return {
     type: 'postgres',
-    url: process.env.DATABASE_URL,
-    entities: [
-      User,
-      Company,
-      Vehicle,
-      ManagerVehicleAssignment,
-      Driver,
-      DriverVehicleAssignment,
-    ],
+    url: env.DATABASE_URL,
     synchronize: false,
-    ssl: postgresSsl(),
+    ssl:
+      env.DATABASE_SSL === 'true'
+        ? {
+            rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
+          }
+        : false,
     migrations: [join(__dirname, '..', 'migrations', '*.{js,ts}')],
-    migrationsRun: process.env.RUN_MIGRATIONS === 'true',
+    migrationsRun: env.RUN_MIGRATIONS === 'true',
     ...(schema
       ? {
           schema,

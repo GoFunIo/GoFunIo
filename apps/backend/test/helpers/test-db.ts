@@ -8,6 +8,8 @@ import { Vehicle } from '../../src/vehicles/vehicles.entity';
 import { ManagerVehicleAssignment } from '../../src/vehicles/manager-vehicle-assignment.entity';
 import { Driver } from '../../src/drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../../src/drivers/driver-vehicle-assignment.entity';
+import { Membership } from '../../src/users/membership.entity';
+import { Service } from '../../src/services/services.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -35,6 +37,8 @@ function testDataSource(schema: string): DataSource {
       ManagerVehicleAssignment,
       Driver,
       DriverVehicleAssignment,
+      Membership,
+      Service,
     ],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
@@ -99,7 +103,7 @@ export async function truncateTestTables(): Promise<void> {
   // ponytail: hardcoded tables — extend list or switch to dynamic truncate when new FK tables appear
   await withAdminDataSource(async (admin) => {
     await admin.query(
-      `TRUNCATE TABLE "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
     );
   });
 }

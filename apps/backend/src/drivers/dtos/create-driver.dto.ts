@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { vehicleTransforms } from '../../vehicles/dtos/vehicle-transforms';
@@ -41,4 +42,8 @@ export class CreateDriverDto {
   @IsString()
   @MaxLength(5000)
   notes?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string | null;
 }

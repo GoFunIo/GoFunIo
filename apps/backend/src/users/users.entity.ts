@@ -3,37 +3,27 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
+  VirtualColumn,
 } from 'typeorm';
-import { Company } from '../companies/companies.entity';
-
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-}
 
 @Entity('users')
-@Unique('UQ_users_id_company', ['id', 'companyId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  companyId!: string;
-
-  @ManyToOne(() => Company, { nullable: false })
-  @JoinColumn({ name: 'companyId' })
-  company!: Company;
-
   @Column()
   email!: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, select: false })
   password!: string | null;
+
+  @VirtualColumn({
+    type: 'boolean',
+    query: (alias) => `${alias}."password" IS NOT NULL`,
+  })
+  hasPassword?: boolean;
 
   @Column({ type: 'varchar', nullable: true })
   googleId!: string | null;
@@ -64,9 +54,6 @@ export class User {
 
   @Column({ type: 'timestamptz', nullable: true, select: false })
   emailChangeTokenExpiresAt!: Date | null;
-
-  @Column({ type: 'enum', enum: UserRole, enumName: 'user_role' })
-  role!: UserRole;
 
   @Column({ type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null;

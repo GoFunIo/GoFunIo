@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailChangeRouteImport } from './routes/verify-email-change'
+import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
@@ -36,6 +37,11 @@ import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-
 const VerifyEmailChangeRoute = VerifyEmailChangeRouteImport.update({
   id: '/verify-email-change',
   path: '/verify-email-change',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
+  id: '/accept-invitation',
+  path: '/accept-invitation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -154,6 +160,7 @@ const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/accept-invitation': typeof AcceptInvitationRoute
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
 }
 export interface FileRoutesByTo {
+  '/accept-invitation': typeof AcceptInvitationRoute
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
   '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren
   '/(public)': typeof publicRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/accept-invitation': typeof AcceptInvitationRoute
   '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/dashboard'
+    | '/accept-invitation'
     | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/dashboard/timeline/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/accept-invitation'
     | '/verify-email-change'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/drivers'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/(public)'
     | '/dashboard'
+    | '/accept-invitation'
     | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
@@ -298,6 +310,7 @@ export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   publicRouteRoute: typeof publicRouteRouteWithChildren
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  AcceptInvitationRoute: typeof AcceptInvitationRoute
   VerifyEmailChangeRoute: typeof VerifyEmailChangeRoute
 }
 
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email-change'
       fullPath: '/verify-email-change'
       preLoaderRoute: typeof VerifyEmailChangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accept-invitation': {
+      id: '/accept-invitation'
+      path: '/accept-invitation'
+      fullPath: '/accept-invitation'
+      preLoaderRoute: typeof AcceptInvitationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -551,6 +571,7 @@ const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  AcceptInvitationRoute: AcceptInvitationRoute,
   VerifyEmailChangeRoute: VerifyEmailChangeRoute,
 }
 export const routeTree = rootRouteImport

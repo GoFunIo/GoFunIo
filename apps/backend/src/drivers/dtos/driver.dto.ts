@@ -1,4 +1,18 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+
+export class DriverActiveVehicleDto {
+  @Expose()
+  id!: string;
+
+  @Expose()
+  brand!: string;
+
+  @Expose()
+  model!: string;
+
+  @Expose()
+  registrationNumber!: string;
+}
 
 export class DriverDto {
   @Expose()
@@ -18,4 +32,11 @@ export class DriverDto {
 
   @Expose()
   notes!: string | null;
+
+  @Expose()
+  userId!: string | null;
+
+  @Expose()
+  @Type(() => DriverActiveVehicleDto)
+  activeVehicles!: DriverActiveVehicleDto[];
 }

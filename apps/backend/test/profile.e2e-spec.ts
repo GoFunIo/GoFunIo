@@ -39,6 +39,27 @@ describe('Profile and company (e2e)', () => {
         });
       });
     await agent.patch('/users/me').send({ role: 'ADMIN' }).expect(400);
+    await agent.patch('/users/me').send({}).expect(400);
+
+    await agent
+      .patch('/users/me')
+      .send({ firstName: null })
+      .expect(200)
+      .expect((res) => expect(res.body.firstName).toBeNull());
+
+    for (const field of [
+      'email',
+      'companyId',
+      'password',
+      'googleId',
+      'verificationTokenHash',
+      'passwordResetTokenHash',
+    ]) {
+      await agent
+        .patch('/users/me')
+        .send({ [field]: 'owned' })
+        .expect(400);
+    }
   });
 
   it('changes password and keeps current session valid', async () => {
@@ -132,11 +153,11 @@ describe('Profile and company (e2e)', () => {
       .expect(200)
       .expect((res) => expect(res.body.taxId).toBe('1234567890'));
     await agent.patch('/company').send({ name: null }).expect(400);
-    await app
-      .get(DataSource)
-      .query(`UPDATE "users" SET "role" = 'MANAGER' WHERE "email" = $1`, [
-        email,
-      ]);
+    await app.get(DataSource).query(
+      `UPDATE "memberships" SET "role" = 'MANAGER'
+       WHERE "userId" = (SELECT "id" FROM "users" WHERE "email" = $1)`,
+      [email],
+    );
     await agent.patch('/company').send({ name: 'Nope' }).expect(403);
     await agent.get('/company').expect(200);
   });
