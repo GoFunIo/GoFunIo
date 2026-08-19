@@ -1,4 +1,4 @@
-import { DriverFormData } from '../types/DriverTypes';
+import { DriverFormData, DriverType } from '../types/DriverTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -20,9 +20,9 @@ export const getDrivers = async () => {
 
   const text = await res.text();
 
-  if (!text) return null;
+  if (!text) return [];
 
-  return JSON.parse(text);
+  return JSON.parse(text) as DriverType[];
 };
 
 // =========================================================================

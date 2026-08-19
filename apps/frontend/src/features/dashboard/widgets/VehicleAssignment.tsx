@@ -13,14 +13,7 @@ import { useError } from '@/hooks/useError';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { SelectWithAction } from '@/features/dashboard/ui/SelectWithAction';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import { VehicleData } from '@/features/dashboard/types';
-
-type NamedPerson = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  role?: string;
-};
+import { TeamMember, VehicleData } from '@/features/dashboard/types';
 
 type Props = {
   vehicle: VehicleData;
@@ -44,16 +37,9 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
   const assignedDrivers = vehicle.drivers;
   const assignedManagers = vehicle.managers;
 
-  const teamManagers: NamedPerson[] = (team ?? []).filter(
-    (person: NamedPerson) => person.role === 'MANAGER',
-  );
-
-  const availableDrivers: NamedPerson[] = (drivers ?? []).filter(
-    (d: NamedPerson) => !currentDriverIds.includes(d.id),
-  );
+  const teamManagers: TeamMember[] = (team ?? []).filter((person) => person.role === 'MANAGER');
+  const availableDrivers = (drivers ?? []).filter((d) => !currentDriverIds.includes(d.id));
   const availableManagers = teamManagers.filter((m) => !currentManagerIds.includes(m.id));
-
-  // --- HANDLERY ---
 
   const handleAddDriver = async (driverId: string | number) => {
     setError(null);

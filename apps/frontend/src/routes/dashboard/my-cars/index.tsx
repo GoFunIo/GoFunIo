@@ -59,6 +59,8 @@ function RouteComponent() {
   });
   const vehicles = data?.items ?? [];
 
+  const hasActiveFilters = Boolean(search || managerId);
+
   return (
     <>
       <DashboardHeader
@@ -71,7 +73,7 @@ function RouteComponent() {
       />
 
       <GridWrapper layout="3-equal">
-        <div className="relative  ">
+        <div className="relative">
           <Search
             size={18}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-content-secondary pointer-events-none"
@@ -115,7 +117,11 @@ function RouteComponent() {
       ) : vehicles.length === 0 ? (
         <EmptyPlaceholder
           className="bg-bg-card min-h-[250px]"
-          title="Nie ma tu żadnych pojazdów. Dodaj pierwszy "
+          title={
+            hasActiveFilters
+              ? 'Nie znaleziono pojazdów pasujących do wybranych filtrów.'
+              : 'Nie ma tu żadnych pojazdów. Dodaj pierwszy'
+          }
           icon={<CarFront size={48} className="text-primary" />}
         />
       ) : (

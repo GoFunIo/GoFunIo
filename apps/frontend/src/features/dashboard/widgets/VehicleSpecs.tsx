@@ -1,25 +1,16 @@
 import { CreditCard, Gauge } from 'lucide-react';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+import { VehicleData } from '@/features/dashboard/types';
+import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
 
 interface VehicleSpecsProps {
   car: VehicleData;
   totalExpenses: number;
 }
 
-const FUEL_OPTIONS = [
-  { id: 1, value: 'DIESEL', label: 'Diesel' },
-  { id: 2, value: 'PETROL', label: 'Benzyna' },
-  { id: 3, value: 'LPG', label: 'LPG' },
-  { id: 4, value: 'HYBRID', label: 'Hybryda' },
-  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
-];
-
-const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
+const getFuelLabel = (fuelValue?: VehicleData['fuelType']) => {
   if (!fuelValue) return 'Nieokreślone';
-
-  const found = FUEL_OPTIONS.find((item) => item.value.toLowerCase() === fuelValue.toLowerCase());
-  return found ? found.label : fuelValue;
+  return fuelTypeLabels[fuelValue] ?? fuelValue;
 };
 
 export const VehicleSpecs = ({ car, totalExpenses }: VehicleSpecsProps) => {
@@ -29,27 +20,27 @@ export const VehicleSpecs = ({ car, totalExpenses }: VehicleSpecsProps) => {
         <h4 className="text-content-primary font-bold text-[18px] mb-4">Specyfikacja</h4>
 
         <ul className="text-[14px] text-content-secondary flex flex-col gap-2.5 mb-6">
-          <li className="flex justify-between  first:pt-0">
+          <li className="flex justify-between first:pt-0">
             <span>Marka</span>
             <span className="text-content-primary font-medium">{car.brand}</span>
           </li>
-          <li className="flex justify-between ">
+          <li className="flex justify-between">
             <span>Model</span>
             <span className="text-content-primary font-medium">{car.model}</span>
           </li>
-          <li className="flex justify-between ">
+          <li className="flex justify-between">
             <span>Rejestracja</span>
             <span className="text-content-primary font-mono font-medium">
               {car.registrationNumber}
             </span>
           </li>
-          <li className="flex justify-between ">
+          <li className="flex justify-between">
             <span>Rok</span>
             <span className="text-content-primary font-medium">{car.productionYear}</span>
           </li>
-          <li className="flex justify-between ">
+          <li className="flex justify-between">
             <span>VIN</span>
-            <span className="text-content-primary font-mono font-medium text-[12px]">
+            <span className="text-content-primary font-mono font-medium text-[12px] md:text-[14px]">
               {car.vin}
             </span>
           </li>
@@ -83,7 +74,7 @@ export const VehicleSpecs = ({ car, totalExpenses }: VehicleSpecsProps) => {
             </p>
           </div>
 
-          <div className="flex justify-between items-center ">
+          <div className="flex justify-between items-center">
             <div className="flex items-center text-content-secondary">
               <CreditCard size={18} strokeWidth={2} className="text-primary mr-4" />
               <span className="text-[14px] text-content-primary">Łączne wydatki</span>

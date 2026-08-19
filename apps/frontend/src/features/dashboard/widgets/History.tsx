@@ -18,6 +18,7 @@ import { IconWrapper } from '../ui/IconWrapper';
 import { Pagination } from '../ui/Pagination';
 
 import { ServiceData, ServiceType } from '../types';
+import { serviceTypeLabels } from '../constants/serviceOptions';
 
 type LinkProps = {
   label: string;
@@ -53,15 +54,6 @@ const activityIcons: Record<ServiceType, typeof SquareCheckBig> = {
   OC: ShieldAlert,
   AC: ShieldCheck,
   OTHER: Cog,
-};
-
-export const serviceTypeLabels: Record<ServiceType, string> = {
-  FULL: 'Pełny serwis',
-  OIL_CHANGE: 'Wymiana oleju',
-  TECHNICAL_INSPECTION: 'Przegląd techniczny',
-  OC: 'Ubezpieczenie OC',
-  AC: 'Ubezpieczenie AC',
-  OTHER: 'Inne',
 };
 
 export const History = ({

@@ -5,16 +5,9 @@ import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+import { VehicleData } from '@/features/dashboard/types';
+import { fuelTypeLabels } from '../constants/fuelOptions';
 import { usePermissions } from '../hooks/usePermissions';
-
-const FUEL_TYPE_LABELS: Record<VehicleFuelType, string> = {
-  DIESEL: 'Diesel',
-  PETROL: 'Benzyna',
-  LPG: 'LPG',
-  HYBRID: 'Hybryda',
-  ELECTRIC: 'Elektryk',
-};
 
 type PersonWithName = {
   firstName: string;
@@ -109,7 +102,7 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Fuel size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
               <p className="text-[14px] text-content-secondary uppercase">
-                {vehicle.fuelType ? FUEL_TYPE_LABELS[vehicle.fuelType] : 'Nieokreślone'}
+                {vehicle.fuelType ? fuelTypeLabels[vehicle.fuelType] : 'Nieokreślone'}
               </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">

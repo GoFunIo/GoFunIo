@@ -18,12 +18,17 @@ export const DashboardCard = ({
   icon,
   isAlert = false,
 }: DashboardCardProps) => {
+  const isEmpty = value === '' || value == null;
+
   let displayValue = value;
   let displayTitle = title;
   let variant: 'neutral' | 'warning' | 'alert' = 'neutral';
   let showAlertIcon = false;
 
-  if (isDateString(value)) {
+  if (isEmpty) {
+    displayValue = 'Brak danych';
+    displayTitle = title;
+  } else if (isDateString(value)) {
     const { days, isPast, text } = calculateDaysToDate(String(value));
     displayValue = text;
 
@@ -52,14 +57,12 @@ export const DashboardCard = ({
       if (days <= 7) {
         variant = 'alert';
         showAlertIcon = true;
-      } else if (days >= 8 && days <= 30) {
+      } else if (days <= 30) {
         variant = 'warning';
-        showAlertIcon = false;
       }
     }
   } else if (isAlert) {
     variant = 'alert';
-    showAlertIcon = false;
   }
 
   return (

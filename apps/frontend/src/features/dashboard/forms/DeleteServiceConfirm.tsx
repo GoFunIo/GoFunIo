@@ -1,5 +1,6 @@
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { ServiceData, serviceTypeLabels } from '../types';
+import { ServiceData } from '../types';
+import { serviceTypeLabels } from '../constants/serviceOptions';
 import { useDeleteService } from '@/features/dashboard/hooks/services.hooks';
 import { useError } from '@/hooks/useError';
 import { getErrorMessage } from '@/utils/getErrorMessage';
@@ -12,7 +13,7 @@ export type ServiceEntryType = Pick<
 type Props = {
   service: ServiceEntryType;
   onClose: () => void;
-  onDeleted?: () => Promise<void> | void;
+  onDeleted?: () => void;
 };
 
 export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => {

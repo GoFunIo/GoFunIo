@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { ChevronUp } from 'lucide-react';
 import { DayPicker } from '@daypicker/react';
@@ -44,14 +45,37 @@ export const DatePicker = ({
   className,
   isRenewalMode = false,
 }: Props) => {
+  const OFFSET = 6;
+
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
   const selectRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const currentYear = new Date().getFullYear();
 
+  const updatePosition = () => {
+    if (!selectRef.current) return;
+
+    const rect = selectRef.current.getBoundingClientRect();
+    const menuHeight = menuRef.current?.getBoundingClientRect().height ?? 340;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < menuHeight + OFFSET;
+
+    setPosition({
+      top: openUp ? rect.top - menuHeight - OFFSET : rect.bottom + OFFSET,
+      left: rect.left,
+      width: rect.width,
+    });
+  };
+
   useEffect(() => {
     const close = (e: MouseEvent) => {
-      if (selectRef.current && selectRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+
+      if (selectRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
       }
 
@@ -64,6 +88,26 @@ export const DatePicker = ({
       document.removeEventListener('mousedown', close, true);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updatePosition();
+
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updatePosition();
+    }
+  }, [isOpen]);
 
   return (
     <div className={classNames('relative w-full h-[45px]', className)} ref={selectRef}>
@@ -91,57 +135,66 @@ export const DatePicker = ({
           />
         )}
       </div>
-      {!isRenewalMode && isOpen && (
-        <div className="z-99 flex flex-col gap-[4px] absolute top-[50px] bg-bg-card border border-icon rounded-[5px] p-[8px] w-full h-auto shadow-md">
-          <DayPicker
-            mode="single"
-            locale={pl}
-            selected={value}
-            onSelect={(date) => {
-              onChange(date);
-              setIsOpen(false);
+
+      {!isRenewalMode &&
+        isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: position.top,
+              left: position.left,
+              width: position.width,
+              zIndex: 9999,
             }}
-            captionLayout="dropdown"
-            navLayout="after"
-            startMonth={new Date(currentYear - 20, 0)}
-            endMonth={new Date(currentYear + 10, 11)}
-            defaultMonth={value || new Date()}
-            components={{
-              Dropdown: SelectDatePicker,
-            }}
-            formatters={{
-              formatWeekdayName,
-              formatMonthDropdown,
-            }}
-            classNames={{
-              month: 'w-full',
-              month_grid: 'w-full',
-
-              month_caption: 'flex items-center justify-between gap-2 mb-3',
-              dropdowns: 'flex items-center gap-2',
-
-              nav: 'absolute top-4 right-4 flex items-center gap-1 ml-auto ',
-              button_previous:
-                'flex h-5 w-5 items-center justify-center rounded-md  hover:bg-bg-section',
-              button_next:
-                'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
-
-              weekdays: 'flex w-full',
-              weekday:
-                'flex h-8 w-full items-center justify-center text-[12px] font-medium uppercase text-content-secondary',
-              week: 'flex',
-
-              day: 'h-8 w-full',
-              day_button:
-                'flex h-8 w-full items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
-
-              selected: '!bg-info-bg-icon !text-content-primary font-semibold',
-              today: 'bg-bg-section rounded-md',
-              disabled: 'opacity-30 cursor-not-allowed',
-            }}
-          />
-        </div>
-      )}
+            className="flex flex-col gap-[4px] bg-bg-card border border-icon rounded-[5px] p-[8px] h-auto shadow-md"
+          >
+            <DayPicker
+              mode="single"
+              locale={pl}
+              selected={value}
+              onSelect={(date) => {
+                onChange(date);
+                setIsOpen(false);
+              }}
+              captionLayout="dropdown"
+              navLayout="after"
+              startMonth={new Date(currentYear - 20, 0)}
+              endMonth={new Date(currentYear + 10, 11)}
+              defaultMonth={value || new Date()}
+              components={{
+                Dropdown: SelectDatePicker,
+              }}
+              formatters={{
+                formatWeekdayName,
+                formatMonthDropdown,
+              }}
+              classNames={{
+                month: 'w-full',
+                month_grid: 'w-full',
+                month_caption: 'flex items-center justify-between gap-2 mb-3',
+                dropdowns: 'flex items-center gap-2',
+                nav: 'absolute top-4 right-4 flex items-center gap-1 ml-auto ',
+                button_previous:
+                  'flex h-5 w-5 items-center justify-center rounded-md  hover:bg-bg-section',
+                button_next:
+                  'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
+                weekdays: 'flex w-full',
+                weekday:
+                  'flex h-8 w-full items-center justify-center text-[12px] font-medium uppercase text-content-secondary',
+                week: 'flex',
+                day: 'h-8 w-full',
+                day_button:
+                  'flex h-8 w-full items-center justify-center rounded-md text-sm text-content-secondary hover:bg-bg-section hover:text-content-primary',
+                selected: '!bg-info-bg-icon !text-content-primary font-semibold',
+                today: 'bg-bg-section rounded-md',
+                disabled: 'opacity-30 cursor-not-allowed',
+              }}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

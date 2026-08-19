@@ -16,6 +16,7 @@ import {
   capitalizeWords,
 } from '@/utils/formFieldTransforms';
 import { FormDatePicker } from '../ui/FormDatePicker';
+import { FUEL_OPTIONS } from '../constants/fuelOptions';
 
 type FormProps = {
   className?: string;
@@ -23,14 +24,6 @@ type FormProps = {
   isRenewalMode?: boolean;
   onClose: () => void;
 };
-
-const FUEL_OPTIONS = [
-  { id: 1, value: 'DIESEL', label: 'Diesel' },
-  { id: 2, value: 'PETROL', label: 'Benzyna' },
-  { id: 3, value: 'LPG', label: 'LPG' },
-  { id: 4, value: 'HYBRID', label: 'Hybryda' },
-  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
-];
 
 const mapInitialDataToForm = (data?: Partial<VehicleData>): AddVehicleFormData => {
   return {
@@ -121,7 +114,7 @@ export const AddVehicleForm = ({
           className={inputStyles}
           {...withTransform(register('brand'), capitalizeWords)}
           onFocus={() => clearErrors('brand')}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
         <Input
           label="Model *"
@@ -130,7 +123,7 @@ export const AddVehicleForm = ({
           className={inputStyles}
           {...withTransform(register('model'), capitalizeWords)}
           onFocus={() => clearErrors('model')}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
 
         {/* Rok Produkcji */}
@@ -168,6 +161,7 @@ export const AddVehicleForm = ({
                 clearOption={false}
                 className="!w-full h-[40px]"
                 error={errors.fuelType?.message}
+                disabled={isRenewalMode || loading}
               />
             )}
           />
@@ -179,7 +173,7 @@ export const AddVehicleForm = ({
           error={errors.vin?.message}
           className={inputStyles}
           {...withTransform(register('vin'), toUpperCase)}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
         <Input
           label="Nr Rejestracyjny *"
@@ -188,7 +182,7 @@ export const AddVehicleForm = ({
           className={inputStyles}
           {...withTransform(register('registrationNumber'), toUpperCaseNoSpaces)}
           onFocus={() => clearErrors('registrationNumber')}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
         <Input
           label="Aktualny przebieg (km)"
@@ -197,7 +191,7 @@ export const AddVehicleForm = ({
           error={errors.currentMileage?.message}
           className={inputStyles}
           {...register('currentMileage', { valueAsNumber: true })}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
 
         {/* Data zakupu */}
@@ -206,7 +200,7 @@ export const AddVehicleForm = ({
           name="purchaseDate"
           label="Data zakupu"
           error={errors.purchaseDate?.message}
-          disabled={isRenewalMode}
+          disabled={isRenewalMode || loading}
         />
       </div>
 

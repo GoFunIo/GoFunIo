@@ -20,15 +20,10 @@ function RouteComponent() {
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<AlertFilterType>('all');
 
-  // Stany dla modala edycji / odnowienia pojazdu
   const [renewCarId, setRenewCarId] = useState<string | null>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState<boolean>(false);
 
-  const {
-    data: vehiclesResponse,
-    isLoading: isVehiclesLoading,
-    refetch: refetchVehicles,
-  } = useVehicles();
+  const { data: vehiclesResponse, isLoading: isVehiclesLoading } = useVehicles();
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
   const selectedRenewCar = vehicles.find((c) => c.id === renewCarId);
@@ -38,7 +33,6 @@ function RouteComponent() {
     setIsRenewModalOpen(true);
   };
 
-  //selector otions
   const carOptions = useMemo(() => {
     return vehicles.map((car, index) => ({
       id: index + 1,
@@ -126,7 +120,6 @@ function RouteComponent() {
         <AddVehicleForm
           initialData={selectedRenewCar}
           onClose={() => setIsRenewModalOpen(false)}
-          onSuccess={() => refetchVehicles()}
           isRenewalMode={true}
         />
       </Modal>

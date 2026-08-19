@@ -1,8 +1,15 @@
 import classNames from 'classnames';
+import {
+  LucideIcon,
+  TriangleAlert,
+  CalendarCog,
+  ShieldAlert,
+  ShieldCheck,
+  BellRing,
+} from 'lucide-react';
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { TriangleAlert, CalendarCog, ShieldAlert, ShieldCheck, BellRing } from 'lucide-react';
 import { VehicleData } from '../types';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
@@ -14,7 +21,7 @@ type Props = {
   maxDays?: number;
 };
 
-const activityIcons = {
+const activityIcons: Record<'inspection' | 'insurance_ac' | 'insurance_oc', LucideIcon> = {
   inspection: CalendarCog,
   insurance_ac: ShieldCheck,
   insurance_oc: ShieldAlert,
@@ -34,21 +41,21 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
           typeKey: 'inspection' as const,
           typeLabel: 'Przegląd techniczny',
           expiryDate: car.technicalInspectionExpiry,
-          days: inspection?.days ?? Infinity,
+          days: inspection?.days ?? 0,
           isPast: inspection?.isPast ?? false,
         },
         {
           typeKey: 'insurance_oc' as const,
           typeLabel: 'Ubezpieczenie OC',
           expiryDate: car.ocExpiry,
-          days: oc?.days ?? Infinity,
+          days: oc?.days ?? 0,
           isPast: oc?.isPast ?? false,
         },
         {
           typeKey: 'insurance_ac' as const,
           typeLabel: 'Ubezpieczenie AC',
           expiryDate: car.acExpiry,
-          days: ac?.days ?? Infinity,
+          days: ac?.days ?? 0,
           isPast: ac?.isPast ?? false,
         },
       ];
@@ -79,7 +86,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
   if (activeReminders.length === 0) {
     return (
       <EmptyPlaceholder
-        title="Brak pilnych alertow"
+        title="Brak pilnych alertów"
         className="bg-bg-card min-h-[250px]"
         icon={<BellRing size={24} className="text-primary" />}
       />
@@ -91,9 +98,9 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
       {activeReminders.map((item) => {
         const Icon = activityIcons[item.typeKey];
 
-        const isExpired = item.isPast || item.days < 0;
+        const isExpired = item.isPast;
         const isCritical = item.days <= 7 || isExpired;
-        const isWarning = item.days > 7 && item.days <= 30;
+        const isWarning = !isCritical && item.days <= 30;
         const isInfo = !isCritical && !isWarning;
 
         let badgeText = 'Nadchodzące < 60d';
@@ -108,14 +115,13 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
           <div
             key={item.id}
             className={classNames(
-              'flex flex-col  sm:flex-row sm:items-center sm:justify-between gap-6 p-5 border-l-[5px] rounded-[7px] transition-colors  shadow-sm',
+              'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 p-5 border-l-[5px] rounded-[7px] transition-colors shadow-sm',
               {
                 'border-l-alert': isCritical,
                 'border-l-warning': isWarning,
                 'border-l-info': isInfo,
               },
-
-              isExpired ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card  ',
+              isExpired ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card',
             )}
           >
             <div className="flex items-center gap-4">
@@ -153,7 +159,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
 
               <span
                 className={classNames(
-                  'text-[12px] font-semibold text-white rounded-[3px] h-[35px] min-w-30 px-3 flex items-center justify-center shrink-0 tracking-wide ',
+                  'text-[12px] font-semibold text-white rounded-[3px] h-[35px] min-w-30 px-3 flex items-center justify-center shrink-0 tracking-wide',
                   {
                     'bg-alert': isCritical,
                     'bg-warning': isWarning,

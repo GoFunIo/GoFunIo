@@ -21,20 +21,11 @@ import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesSer
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
 import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
-
-const FUEL_OPTIONS = [
-  { id: 1, value: 'DIESEL', label: 'Diesel' },
-  { id: 2, value: 'PETROL', label: 'Benzyna' },
-  { id: 3, value: 'LPG', label: 'LPG' },
-  { id: 4, value: 'HYBRID', label: 'Hybryda' },
-  { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
-];
+import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
 
 const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
   if (!fuelValue) return 'Nieokreślone';
-
-  const found = FUEL_OPTIONS.find((item) => item.value.toLowerCase() === fuelValue.toLowerCase());
-  return found ? found.label : fuelValue;
+  return fuelTypeLabels[fuelValue] ?? fuelValue;
 };
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({

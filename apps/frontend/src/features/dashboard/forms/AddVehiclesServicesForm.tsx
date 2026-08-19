@@ -11,7 +11,8 @@ import { BoardButton } from '../ui/BoardButton';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 
-import { ServiceData, serviceTypeOptions } from '../types';
+import { ServiceData } from '../types';
+import { serviceTypeOptions } from '../constants/serviceOptions';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useCreateService, useUpdateService } from '../hooks/services.hooks';
 import { getErrorMessage } from '@/utils/getErrorMessage';
@@ -147,6 +148,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
                 placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
                 className="w-full !h-[45px] "
                 error={errors.vehicleId?.message}
+                disabled={isLoading}
               />
             )}
           />
@@ -209,6 +211,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
                   placeholder="Podaj rodzaj serwisu"
                   className="w-full !h-[45px]"
                   error={errors.serviceType?.message}
+                  disabled={isLoading}
                 />
               )}
             />
@@ -225,6 +228,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
             error={errors.cost?.message}
             className={inputStyles}
             {...register('cost', { valueAsNumber: true })}
+            disabled={isLoading}
           />
           <Input
             label="Warsztat *"
@@ -232,6 +236,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
             error={errors.servicePlace?.message}
             className={inputStyles}
             {...register('servicePlace')}
+            disabled={isLoading}
           />
         </div>
 
@@ -268,7 +273,6 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
           />
 
           {!currentAttachment ? (
-            /* Widok, gdy nie ma jeszcze wgranego pliku */
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -278,7 +282,6 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
               Załącz dokumenty z dysku
             </button>
           ) : (
-            /* Widok paska z wgranym już plikiem i opcją usunięcia */
             <div className="w-full h-[45px] border border-icon rounded-[7px] bg-bg-section flex items-center justify-between px-4 text-[14px]">
               <div className="flex items-center gap-2 text-content-primary truncate">
                 <Paperclip size={16} className="text-info shrink-0" />
