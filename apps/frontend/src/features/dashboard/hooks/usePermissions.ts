@@ -3,7 +3,8 @@ import { useUser } from './user.hooks';
 export const usePermissions = () => {
   const { data: user } = useUser();
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isOwner = user?.role === 'OWNER';
+  const isAdmin = user?.role === 'ADMIN' || isOwner;
   const isManager = user?.role === 'MANAGER';
 
   return {

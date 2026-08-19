@@ -306,5 +306,5 @@ export const getVehicleDriverAssignments = async (vehicleId: string) => {
     };
   }
 
-  return data as VehicleDriverAssignment;
+  return data as VehicleDriverAssignment[];
 };

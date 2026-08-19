@@ -1,9 +1,6 @@
 import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
 
-import { useDrivers } from '@/features/dashboard/hooks/drivers.hooks';
-import { useTeam } from '@/features/dashboard/hooks/team.hooks';
-
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
@@ -19,23 +16,19 @@ const FUEL_TYPE_LABELS: Record<VehicleFuelType, string> = {
   ELECTRIC: 'Elektryk',
 };
 
-type NamedPerson = {
-  id: string;
+type PersonWithName = {
   firstName: string;
   lastName: string;
 };
 
-const formatNames = (names: string[]): string => {
-  if (names.length === 0) return 'Brak';
-  if (names.length === 1) return names[0];
-  return `${names[0]} +${names.length - 1}`;
-};
+const formatNames = (people?: PersonWithName[]): string => {
+  if (!people || people.length === 0) return 'Brak';
 
-const resolveNames = (ids: string[], list?: NamedPerson[] | null): string[] =>
-  ids
-    .map((id) => list?.find((person) => person.id === id))
-    .filter((person): person is NamedPerson => !!person)
-    .map((person) => `${person.firstName} ${person.lastName}`);
+  const firstPerson = `${people[0].firstName} ${people[0].lastName}`;
+  if (people.length === 1) return firstPerson;
+
+  return `${firstPerson} +${people.length - 1}`;
+};
 
 export interface VehicleCardProps {
   vehicle: VehicleData;
@@ -43,12 +36,10 @@ export interface VehicleCardProps {
 }
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
-  const { data: drivers } = useDrivers();
-  const { data: team } = useTeam();
   const { canManageVehicleManagers } = usePermissions();
 
-  const driverNames = resolveNames(vehicle.driverIds, drivers);
-  const managerNames = resolveNames(vehicle.managerIds, team);
+  const driverNames = formatNames(vehicle.drivers);
+  const managerNames = formatNames(vehicle.managers);
 
   const inspectionDays = vehicle.technicalInspectionExpiry
     ? calculateDaysToDate(vehicle.technicalInspectionExpiry).days
@@ -131,16 +122,12 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Users size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <span className="text-[14px] text-content-secondary">
-                KIEROWCA: {formatNames(driverNames)}
-              </span>
+              <span className="text-[14px] text-content-secondary">KIEROWCA: {driverNames}</span>
             </div>
             {canManageVehicleManagers && (
               <div className="flex gap-[10px] items-center text-content-secondary">
                 <User size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-                <span className="text-[14px] text-content-secondary">
-                  MANAGER: {formatNames(managerNames)}
-                </span>
+                <span className="text-[14px] text-content-secondary">MANAGER: {managerNames}</span>
               </div>
             )}
           </div>

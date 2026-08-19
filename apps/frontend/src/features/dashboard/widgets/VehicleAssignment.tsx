@@ -2,7 +2,8 @@ import { Users, User as UserIcon, X } from 'lucide-react';
 import {
   useAddDriverToVehicle,
   useRemoveDriverFromVehicle,
-  useUpdateVehicleManagers,
+  useAssignManagerToVehicle,
+  useRemoveManagerFromVehicle,
 } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useDrivers } from '@/features/dashboard/hooks/drivers.hooks';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
@@ -34,27 +35,25 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
 
   const addDriver = useAddDriverToVehicle(vehicle.id);
   const removeDriver = useRemoveDriverFromVehicle(vehicle.id);
-  const updateManagers = useUpdateVehicleManagers(vehicle.id);
+  const assignManager = useAssignManagerToVehicle(vehicle.id);
+  const removeManager = useRemoveManagerFromVehicle(vehicle.id);
 
-  // Zabezpieczenie przed undefined w tablicach
-  const currentDriverIds = vehicle.driverIds ?? [];
-  const currentManagerIds = vehicle.managerIds ?? [];
+  const currentDriverIds = vehicle.drivers.map((d) => d.id);
+  const currentManagerIds = vehicle.managers.map((m) => m.id);
 
-  const managers: NamedPerson[] = (team ?? []).filter(
+  const assignedDrivers = vehicle.drivers;
+  const assignedManagers = vehicle.managers;
+
+  const teamManagers: NamedPerson[] = (team ?? []).filter(
     (person: NamedPerson) => person.role === 'MANAGER',
   );
-
-  const assignedDrivers: NamedPerson[] = (drivers ?? []).filter((d: NamedPerson) =>
-    currentDriverIds.includes(d.id),
-  );
-  const assignedManagers = managers.filter((m) => vehicle.managerIds.includes(m.id));
 
   const availableDrivers: NamedPerson[] = (drivers ?? []).filter(
     (d: NamedPerson) => !currentDriverIds.includes(d.id),
   );
-  const availableManagers = managers.filter((m) => !currentManagerIds.includes(m.id));
+  const availableManagers = teamManagers.filter((m) => !currentManagerIds.includes(m.id));
 
-  // --- HANDLERY Z PEŁNYM PAYLOADEM ---
+  // --- HANDLERY ---
 
   const handleAddDriver = async (driverId: string | number) => {
     setError(null);
@@ -77,7 +76,7 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
   const handleAddManager = async (managerId: string | number) => {
     setError(null);
     try {
-      await updateManagers.mutateAsync([...currentManagerIds, String(managerId)]);
+      await assignManager.mutateAsync(String(managerId));
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -86,7 +85,7 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
   const handleRemoveManager = async (managerId: string) => {
     setError(null);
     try {
-      await updateManagers.mutateAsync(currentManagerIds.filter((id) => id !== managerId));
+      await removeManager.mutateAsync(managerId);
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -135,7 +134,13 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
             }))}
             value=""
             onChange={handleAddDriver}
-            placeholder="-- Dodaj kierowcę --"
+            placeholder={
+              availableDrivers.length === 0
+                ? 'Brak dostępnych kierowców'
+                : assignedDrivers.length > 0
+                  ? '-- Zmień kierowcę --'
+                  : '-- Przypisz kierowcę --'
+            }
           />
         )}
       </div>
@@ -164,7 +169,7 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
                   <button
                     type="button"
                     onClick={() => handleRemoveManager(manager.id)}
-                    disabled={updateManagers.isPending}
+                    disabled={assignManager.isPending || removeManager.isPending}
                     className="text-content-secondary hover:text-alert custom-transition"
                   >
                     <X size={12} />
@@ -181,7 +186,9 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
             }))}
             value=""
             onChange={handleAddManager}
-            placeholder="-- Dodaj managera --"
+            placeholder={
+              availableManagers.length === 0 ? 'Brak dostępnych managerów' : '-- Dodaj managera --'
+            }
           />
         </div>
       )}

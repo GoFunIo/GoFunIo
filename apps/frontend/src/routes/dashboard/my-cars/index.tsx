@@ -76,7 +76,7 @@ function RouteComponent() {
         title="Dodaj pojazd"
         subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
       >
-        <AddVehicleForm onClose={() => setIsModalOpen(false)} onSuccess={() => refetch()} />
+        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
       </Modal>
     </>
   );

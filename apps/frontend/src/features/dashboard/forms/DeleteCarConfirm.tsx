@@ -2,14 +2,10 @@ import { useDeleteVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useError } from '@/hooks/useError';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { VehicleData } from '@/features/dashboard/types';
 
 type Props = {
-  car: {
-    id: string;
-    brand: string;
-    model: string;
-    registrationNumber?: string;
-  };
+  car: Pick<VehicleData, 'id' | 'brand' | 'model' | 'registrationNumber'>;
   onClose: () => void;
   onDeleted?: () => void;
 };

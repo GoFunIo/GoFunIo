@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, ToOptions, useNavigate } from '@tanstack/react-router';
-import { CarFront, LucideIcon, ShieldAlert, TriangleAlert, Users, Wrench } from 'lucide-react';
+import {
+  CarFront,
+  LucideIcon,
+  Plus,
+  ShieldAlert,
+  TriangleAlert,
+  Users,
+  Wrench,
+  Activity,
+} from 'lucide-react';
 
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
@@ -18,28 +27,52 @@ import { Reminders } from '@/features/dashboard/widgets/Reminders';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { Banner } from '@/features/dashboard/widgets/Banner';
-import { History, HistoryDataItem, serviceTypeLabels } from '@/features/dashboard/widgets/History';
+import { History } from '@/features/dashboard/widgets/History';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
-import {
-  DeleteServiceConfirm,
-  ServiceEntryType,
-} from '@/features/dashboard/forms/DeleteServiceConfirm';
+import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { VehicleData } from '@/features/dashboard/types';
+import { ServiceData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { actionsArray, activityArray } from '@/store/cars';
+import { useServices } from '@/features/dashboard/hooks/services.hooks';
 
-type QuickAction = {
+export type DashboardAction = {
   id: number;
   title: string;
   icon: LucideIcon;
   actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link';
-  href?: ToOptions['to'];
+  href?: string;
 };
 
-const typedActions = actionsArray as unknown as QuickAction[];
+export const dashboardActions: DashboardAction[] = [
+  {
+    id: 1,
+    title: 'Dodaj pojazd',
+    icon: Plus,
+    actionType: 'modal_car',
+  },
+  {
+    id: 2,
+    title: 'Dodaj wpis serwisowy',
+    icon: Wrench,
+    actionType: 'modal_service',
+  },
+  {
+    id: 3,
+    title: 'Dodaj użytkownika',
+    icon: Users,
+    actionType: 'modal_user',
+  },
+  {
+    id: 4,
+    title: 'Oś czasu serwisu',
+    icon: Activity,
+    actionType: 'link',
+    href: '/dashboard/timeline',
+  },
+];
 
 type DayBucketKey = 'days7' | 'days30' | 'days60';
 type DayBuckets = Record<DayBucketKey, number>;
@@ -57,26 +90,30 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
+
   const { data: user } = useUser();
   const { canInviteUsers } = usePermissions();
+
   const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
+  const { data: servicesResponse } = useServices();
   const { data: team, isPending: isTeamPending } = useTeam();
 
   const isTeamLoading = isTeamPending && user?.role === 'ADMIN';
   const activeUsersCount = user?.role === 'ADMIN' ? (team?.length ?? 0) : 1;
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
+  const services: ServiceData[] = servicesResponse?.items ?? [];
 
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
-  const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
-  const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
+  const [modalState, setModalState] = useState<ServiceData | null>(null);
+  const [deleteModalState, setDeleteModalState] = useState<ServiceData | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEditCarModalOpen, setIsEditCarModalOpen] = useState<boolean>(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState<boolean>(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
 
-  const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
+  const isServiceEditMode = modalState !== null;
 
   const selectedCar = vehicles.find((c) => c.id === selectedCarId);
 
@@ -89,7 +126,9 @@ function RouteComponent() {
     setIsEditCarModalOpen(true);
   };
 
-  // LOGIKA PRZEGLĄDÓW
+  // ============================================================
+  // PRZEGLĄDY TECHNICZNE
+  // ============================================================
   const inspectionStats = useMemo(
     () =>
       vehicles.reduce<DayBuckets>(
@@ -104,7 +143,9 @@ function RouteComponent() {
     [vehicles],
   );
 
-  // LOGIKA OC / AC
+  // ============================================================
+  // OC / AC
+  // ============================================================
   const insuranceStats = useMemo(
     () =>
       vehicles.reduce<DayBuckets>(
@@ -133,20 +174,19 @@ function RouteComponent() {
     urgentReminders: totalUrgentReminders,
   };
 
-  // widoczność dodaj usera tylko dla admin
+  // ============================================================
+  // QUICK ACTIONS
+  // ============================================================
   const visibleActions = useMemo(
     () =>
-      typedActions.filter((action) => {
+      dashboardActions.filter((action) => {
         if (action.actionType === 'modal_user') return canInviteUsers;
         return true;
       }),
     [canInviteUsers],
   );
 
-  const handleActionClick = (
-    actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link',
-    href?: ToOptions['to'],
-  ) => {
+  const handleActionClick = (actionType: DashboardAction['actionType'], href?: ToOptions['to']) => {
     if (actionType === 'link' && href) {
       navigate({ to: href });
       return;
@@ -166,16 +206,20 @@ function RouteComponent() {
     }
   };
 
-  // Podsumowanie wydatków — nadal na mocku, brak endpointu historii serwisowej w przesłanych hookach
+  // ============================================================
+  // PODSUMOWANIE WYDATKÓW
+  // ============================================================
   const expensesSummary = useMemo(() => {
     let servicesAndRepairs = 0;
     let insurance = 0;
 
-    (activityArray as HistoryDataItem[]).forEach((item) => {
-      if (item.serviceType === 'insurance_oc' || item.serviceType === 'insurance_ac') {
-        insurance += item.cost;
+    services.forEach((service) => {
+      const cost = Number(service.cost) || 0;
+
+      if (service.type === 'OC' || service.type === 'AC') {
+        insurance += cost;
       } else {
-        servicesAndRepairs += item.cost;
+        servicesAndRepairs += cost;
       }
     });
 
@@ -184,27 +228,14 @@ function RouteComponent() {
       insurance,
       total: servicesAndRepairs + insurance,
     };
-  }, []);
+  }, [services]);
 
-  const serviceInitialData = useMemo(() => {
-    if (isServiceEditMode) {
-      const editItem = modalState as HistoryDataItem;
-      return {
-        vehicleId: editItem.vehicleId,
-        servicePlace: editItem.servicePlace,
-        cost: editItem.cost,
-        serviceType: editItem.serviceType,
-        serviceDate: editItem.serviceDate,
-        notes: editItem.notes,
-        attachment: undefined,
-      };
-    }
-    return undefined;
-  }, [modalState, isServiceEditMode]);
-
-  const limitedActivityHistory = useMemo(() => {
-    return (activityArray as HistoryDataItem[]).slice(0, 5);
-  }, []);
+  // ============================================================
+  // OSTATNIA HISTORIA
+  // ============================================================
+  const limitedServices = useMemo(() => {
+    return services.slice(0, 5);
+  }, [services]);
 
   if (!user) return null;
 
@@ -227,7 +258,9 @@ function RouteComponent() {
         </div>
       </div>
 
-      {/* KARTY STATYSTYK */}
+      {/* ========================================================
+          KARTY STATYSTYK
+          ======================================================== */}
       <GridWrapper layout={'3-equal'}>
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
@@ -258,7 +291,9 @@ function RouteComponent() {
         </Link>
       </GridWrapper>
 
-      {/* NADCHODZĄCE TERMINY */}
+      {/* ========================================================
+          NADCHODZĄCE TERMINY
+          ======================================================== */}
       <BlockWrapper>
         <div className="mb-6">
           <p className="text-[18px] text-content-primary font-semibold mb-2">Nadchodzące terminy</p>
@@ -302,10 +337,13 @@ function RouteComponent() {
         )}
       </BlockWrapper>
 
+      {/* ========================================================
+          HISTORIA + QUICK ACTIONS
+          ======================================================== */}
+
       <GridWrapper layout="2-unequal">
-        {/* HISTORIA SERWISOWA — nadal mock, brak endpointu w przesłanych plikach */}
         <History
-          data={limitedActivityHistory}
+          data={limitedServices}
           link={{
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
@@ -326,7 +364,9 @@ function RouteComponent() {
                   key={item.id}
                   title={item.title}
                   icon={item.icon}
-                  onClick={() => handleActionClick(item.actionType, item.href)}
+                  onClick={() =>
+                    handleActionClick(item.actionType, item.href as ToOptions['to'] | undefined)
+                  }
                 />
               ))}
             </div>
@@ -366,7 +406,9 @@ function RouteComponent() {
         </div>
       </GridWrapper>
 
-      {/* MODAL 1: DODANIE SAMOCHODU */}
+      {/* ========================================================
+          DODAJ POJAZD
+          ======================================================== */}
       <Modal
         isOpen={isModalOpen}
         setIsOpen={setIsModalOpen}
@@ -376,7 +418,9 @@ function RouteComponent() {
         <AddVehicleForm onClose={() => setIsModalOpen(false)} />
       </Modal>
 
-      {/* MODAL 1a: EDYCJA DANYCH SAMOCHODU */}
+      {/* ========================================================
+          EDYCJA POJAZDU
+          ======================================================== */}
       <Modal
         isOpen={isEditCarModalOpen}
         setIsOpen={setIsEditCarModalOpen}
@@ -390,7 +434,9 @@ function RouteComponent() {
         />
       </Modal>
 
-      {/* MODAL 2: DODAJ WPIS SERWISOWY */}
+      {/* ========================================================
+          DODAJ SERWIS
+          ======================================================== */}
       <Modal
         isOpen={isServiceModalOpen}
         setIsOpen={setIsServiceModalOpen}
@@ -402,7 +448,9 @@ function RouteComponent() {
         </div>
       </Modal>
 
-      {/* MODAL 3: DODAJ UŻYTKOWNIKA */}
+      {/* ========================================================
+          DODAJ UŻYTKOWNIKA
+          ======================================================== */}
       <Modal
         isOpen={isUserModalOpen}
         setIsOpen={setIsUserModalOpen}
@@ -412,7 +460,9 @@ function RouteComponent() {
         <AddEditUserForm onClose={() => setIsUserModalOpen(false)} />
       </Modal>
 
-      {/* MODAL 4: EDYCJA WPISU SERWISOWEGO */}
+      {/* ========================================================
+          EDYCJA SERWISU
+          ======================================================== */}
       <Modal
         isOpen={isServiceEditMode}
         setIsOpen={(open) => !open && setModalState(null)}
@@ -420,13 +470,15 @@ function RouteComponent() {
         subtitle="Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi."
       >
         <AddVehicleServiceForm
-          key={isServiceEditMode ? (modalState as HistoryDataItem).id : 'edit-none'}
-          initialData={serviceInitialData}
+          key={modalState?.id ?? 'edit-none'}
+          initialData={modalState}
           onClose={() => setModalState(null)}
         />
       </Modal>
 
-      {/* MODAL 5: USUNIĘCIE WPISU SERWISOWEGO */}
+      {/* ========================================================
+          USUWANIE SERWISU
+          ======================================================== */}
       <Modal
         isOpen={!!deleteModalState}
         setIsOpen={(open) => !open && setDeleteModalState(null)}
@@ -435,29 +487,8 @@ function RouteComponent() {
       >
         {deleteModalState && (
           <DeleteServiceConfirm
-            service={
-              {
-                id: deleteModalState.id,
-                vehicleId: deleteModalState.vehicleId,
-                serviceType:
-                  serviceTypeLabels[deleteModalState.serviceType] || 'Czynność serwisowa',
-                servicePlace: deleteModalState.servicePlace,
-                serviceDate: deleteModalState.serviceDate,
-                cost: deleteModalState.cost,
-                carBrand: deleteModalState.car.split(' ')[0] || '',
-                carModel: deleteModalState.car.split(' ').slice(1).join(' ') || '',
-                registrationNumber: '',
-              } as ServiceEntryType
-            }
+            service={deleteModalState}
             onClose={() => setDeleteModalState(null)}
-            onConfirm={async () => {
-              try {
-                console.log('Usuwanie wpisu o ID:', deleteModalState.id);
-                setDeleteModalState(null);
-              } catch (error) {
-                console.error('Błąd podczas usuwania wpisu:', error);
-              }
-            }}
           />
         )}
       </Modal>

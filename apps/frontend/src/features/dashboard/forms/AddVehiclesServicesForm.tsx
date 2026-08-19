@@ -1,42 +1,66 @@
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Input } from '@/components/ui/Input';
-import { BoardButton } from '../ui/BoardButton';
-import classNames from 'classnames';
-import { useLoading } from '@/hooks/useLoading';
 import { Resolver } from 'react-hook-form';
+import { useMemo, useRef } from 'react';
+import classNames from 'classnames';
+import { Paperclip, Upload, X } from 'lucide-react';
 
 import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
-import { carsArr } from '@/store/cars';
+import { Input } from '@/components/ui/Input';
+import { BoardButton } from '../ui/BoardButton';
 import { Select } from '../ui/Select';
-import { useEffect, useRef } from 'react';
 import { DatePicker } from '../ui/DatePicker';
-import { Paperclip, Upload, X } from 'lucide-react';
+
+import { ServiceData, serviceTypeOptions } from '../types';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useCreateService, useUpdateService } from '../hooks/services.hooks';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+
+type InitialDataProps = (Partial<ServiceData> & { id?: string | number }) | null | undefined;
 
 type FormProps = {
   className?: string;
   onClose: () => void;
-  initialData?: Partial<AddServiceFormData> & { id?: string | number };
+  initialData?: InitialDataProps;
 };
 
-const serviceTypeOptions = [
-  { id: 1, value: 'Pełny serwis', label: 'Pełny serwis' },
-  { id: 2, value: 'Wymiana oleju', label: 'Wymiana oleju' },
-  { id: 3, value: 'Przegląd techniczny', label: 'Przegląd techniczny' },
-  { id: 4, value: 'Ubezpieczenie OC', label: 'Ubezpieczenie OC' },
-  { id: 5, value: 'Ubezpieczenia AC', label: 'Ubezpieczenia AC' },
-  { id: 6, value: 'Inne', label: 'Inne' },
-];
-
 export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormProps) => {
-  const { loading, setLoading } = useLoading();
   const isEditMode = !!initialData?.id;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { mutateAsync: createService, isPending: isCreating } = useCreateService();
+  const { mutateAsync: updateService, isPending: isUpdating } = useUpdateService();
+  const { data: vehiclesData, isLoading: isVehiclesLoading } = useVehicles();
+
+  const isLoading = isCreating || isUpdating;
+
+  const carOptions = useMemo(() => {
+    if (!vehiclesData) return [];
+
+    const vehiclesList = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData.items ?? []);
+
+    return vehiclesList.map((car) => ({
+      id: car.id,
+      value: String(car.id),
+      label: `${car.brand} ${car.model} (${car.registrationNumber})`,
+    }));
+  }, [vehiclesData]);
+
+  const mapInitialDataToForm = (data?: InitialDataProps): AddServiceFormData => {
+    return {
+      vehicleId: data?.vehicleId ?? data?.vehicle?.id ?? '',
+      serviceDate: data?.serviceDate ?? '',
+      serviceType: data?.type ?? '',
+      servicePlace: data?.providerName ?? '',
+      cost: data?.cost !== undefined && data.cost !== '' ? Number(data.cost) : 0,
+      notes: data?.notes ?? '',
+      attachment: undefined,
+    };
+  };
 
   const {
     register,
     control,
-    reset,
     setError,
     clearErrors,
     watch,
@@ -48,59 +72,31 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
     reValidateMode: 'onChange',
     mode: 'onTouched',
     shouldFocusError: false,
-    defaultValues: initialData || {},
+    values: mapInitialDataToForm(initialData),
   });
 
   const currentAttachment = watch('attachment');
 
-  useEffect(() => {
-    if (initialData) {
-      const { attachment, ...rest } = initialData;
-      reset({
-        ...rest,
-        attachment: attachment === null ? undefined : attachment,
-      } as AddServiceFormData);
-    } else {
-      reset({
-        vehicleId: undefined,
-        serviceType: undefined,
-        cost: undefined,
-        attachment: undefined,
-      });
-    }
-  }, [initialData, reset]);
-
-  const onSubmit: SubmitHandler<AddServiceFormData> = async (data) => {
-    setLoading(true);
-    setError('root', { type: 'server', message: '' });
-
+  const onSubmit: SubmitHandler<AddServiceFormData> = async (formData) => {
     try {
-      if (isEditMode) {
-        console.log(`Aktualizacja wpisu serwisowego o ID ${initialData?.id}:`, data);
-        // Miejsce na API: await axios.put(`/api/services/${initialData.id}`, data)
+      if (isEditMode && initialData?.id) {
+        await updateService({ id: String(initialData.id), form: formData });
       } else {
-        console.log('Dodawanie nowego wpisu serwisowego:', data);
-        // Miejsce na API: await axios.post('/api/services', data)
+        await createService(formData);
       }
       onClose();
-    } catch {
+    } catch (err) {
       setError('root', {
         type: 'server',
-        message: 'Wystąpił błąd podczas zapisywania wpisu. Spróbuj ponownie.',
+        message: getErrorMessage(err, {
+          409: 'Wystąpił konflikt danych — sprawdź wprowadzone informacje.',
+        }),
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const inputStyles =
     '!text-[14px] !placeholder:text-[12px] !placeholder:text-icon w-full !font-normal';
-
-  const carOptions = carsArr.map((car) => ({
-    id: car.id,
-    value: String(car.id),
-    label: `${car.brand} ${car.model} (${car.registrationNumber})`,
-  }));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -142,13 +138,13 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
             render={({ field }) => (
               <Select
                 options={carOptions}
-                value={field.value ?? null}
+                value={field.value ?? ''}
                 clearOption={false}
                 onChange={(val) => {
                   field.onChange(val);
                   clearErrors('vehicleId');
                 }}
-                placeholder="Wybierz z listy"
+                placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
                 className="w-full !h-[45px] "
                 error={errors.vehicleId?.message}
               />
@@ -228,7 +224,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
             step="0.01"
             error={errors.cost?.message}
             className={inputStyles}
-            {...register('cost')}
+            {...register('cost', { valueAsNumber: true })}
           />
           <Input
             label="Warsztat *"
@@ -309,7 +305,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
           size="medium"
           className="!w-[120px] sm:!w-[140px]"
           onClick={onClose}
-          disabled={loading}
+          disabled={isLoading}
         >
           Anuluj
         </BoardButton>
@@ -318,9 +314,9 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
           variant="default"
           size="medium"
           className="!w-[120px] sm:!w-[140px]"
-          disabled={loading}
+          disabled={isLoading}
         >
-          {isEditMode ? 'Zapisz' : 'Dodaj'}
+          {isLoading ? 'Zapisywanie...' : isEditMode ? 'Zapisz' : 'Dodaj'}
         </BoardButton>
       </div>
     </form>

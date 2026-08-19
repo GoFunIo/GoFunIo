@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { SubmitHandler, useForm, Controller, Resolver } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import classNames from 'classnames';
@@ -33,17 +32,20 @@ const FUEL_OPTIONS = [
   { id: 5, value: 'ELECTRIC', label: 'Elektryk' },
 ];
 
-const mapInitialDataToForm = (data?: Partial<VehicleData>): Partial<AddVehicleFormData> => {
-  if (!data) return {};
+const mapInitialDataToForm = (data?: Partial<VehicleData>): AddVehicleFormData => {
   return {
-    ...data,
-    brand: data.brand ?? '',
-    model: data.model ?? '',
-    registrationNumber: data.registrationNumber ?? '',
-    productionYear: data.productionYear != null ? String(data.productionYear) : undefined,
-    currentMileage: data.currentMileage ?? undefined,
-    vin: data.vin ?? undefined,
-    notes: data.notes ?? undefined,
+    brand: data?.brand ?? '',
+    model: data?.model ?? '',
+    registrationNumber: data?.registrationNumber ?? '',
+    productionYear: data?.productionYear != null ? String(data.productionYear) : undefined,
+    fuelType: data?.fuelType ?? undefined,
+    vin: data?.vin ?? undefined,
+    currentMileage: data?.currentMileage ?? undefined,
+    purchaseDate: data?.purchaseDate ?? undefined,
+    ocExpiry: data?.ocExpiry ?? undefined,
+    acExpiry: data?.acExpiry ?? undefined,
+    technicalInspectionExpiry: data?.technicalInspectionExpiry ?? undefined,
+    notes: data?.notes ?? undefined,
   };
 };
 
@@ -73,12 +75,8 @@ export const AddVehicleForm = ({
     reValidateMode: 'onChange',
     mode: 'onTouched',
     shouldFocusError: false,
-    defaultValues: mapInitialDataToForm(initialData),
+    values: mapInitialDataToForm(initialData),
   });
-
-  useEffect(() => {
-    reset(mapInitialDataToForm(initialData));
-  }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<AddVehicleFormData> = async (data) => {
     clearErrors('root');
@@ -198,7 +196,7 @@ export const AddVehicleForm = ({
           type="number"
           error={errors.currentMileage?.message}
           className={inputStyles}
-          {...register('currentMileage')}
+          {...register('currentMileage', { valueAsNumber: true })}
           disabled={isRenewalMode}
         />
 
