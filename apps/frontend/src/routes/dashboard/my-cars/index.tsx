@@ -9,6 +9,9 @@ import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleCard } from '@/features/dashboard/widgets/VehicleCard';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { Pagination } from '@/features/dashboard/ui/Pagination';
+
+const VEHICLES_PAGE_SIZE = 9;
 
 export const Route = createFileRoute('/dashboard/my-cars/')({
   component: RouteComponent,
@@ -17,8 +20,12 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 function RouteComponent() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError, error, refetch } = useVehicles();
+  const { data, isLoading, isError, error, refetch } = useVehicles({
+    page,
+    pageSize: VEHICLES_PAGE_SIZE,
+  });
   const vehicles = data?.items ?? [];
 
   return (
@@ -54,20 +61,29 @@ function RouteComponent() {
           icon={<CarFront size={48} className="text-primary" />}
         />
       ) : (
-        <GridWrapper layout="3-equal">
-          {vehicles.map((item) => (
-            <VehicleCard
-              key={item.id}
-              vehicle={item}
-              onDetailsClick={(id) =>
-                navigate({
-                  to: '/dashboard/my-cars/$carId',
-                  params: { carId: String(id) },
-                })
-              }
-            />
-          ))}
-        </GridWrapper>
+        <div className="flex flex-col flex-1">
+          <GridWrapper layout="3-equal">
+            {vehicles.map((item) => (
+              <VehicleCard
+                key={item.id}
+                vehicle={item}
+                onDetailsClick={(id) =>
+                  navigate({
+                    to: '/dashboard/my-cars/$carId',
+                    params: { carId: String(id) },
+                  })
+                }
+              />
+            ))}
+          </GridWrapper>
+
+          <Pagination
+            className="mt-auto pt-6"
+            currentPage={data?.page ?? page}
+            totalPages={data?.totalPages ?? 1}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       <Modal

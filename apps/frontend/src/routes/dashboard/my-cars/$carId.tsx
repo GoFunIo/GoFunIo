@@ -64,6 +64,9 @@ function RouteComponent() {
   const [modalState, setModalState] = useState<boolean | ServiceData | null>(null);
   const [deleteModalState, setDeleteModalState] = useState<ServiceData | null>(null);
 
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 5;
+
   const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
 
   const singleCarHistory = useMemo(() => {
@@ -78,6 +81,13 @@ function RouteComponent() {
     () => singleCarHistory.reduce((sum, item) => sum + (Number(item.cost) || 0), 0),
     [singleCarHistory],
   );
+
+  const paginatedHistory = useMemo(() => {
+    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+    return singleCarHistory.slice(start, start + HISTORY_PAGE_SIZE);
+  }, [singleCarHistory, historyPage]);
+
+  const totalHistoryPages = Math.max(1, Math.ceil(singleCarHistory.length / HISTORY_PAGE_SIZE));
 
   const serviceInitialData = useMemo(() => {
     if (!currentCar) return undefined;
@@ -187,7 +197,8 @@ function RouteComponent() {
       {/* 4. HISTORIA SERWISÓW POJEDYŃCZEGO AUTA   + SPECYFIKACJA  */}
       <GridWrapper layout="2-unequal">
         <History
-          data={singleCarHistory}
+          title="Historia serwisowa"
+          data={paginatedHistory}
           link={{
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
@@ -198,7 +209,11 @@ function RouteComponent() {
           }}
           onEditClick={(item) => setModalState(item)}
           onDeleteClick={(item) => setDeleteModalState(item)}
-          title="Historia serwisowa"
+          pagination={{
+            currentPage: historyPage,
+            totalPages: totalHistoryPages,
+            onPageChange: setHistoryPage,
+          }}
         />
 
         <GridWrapper>

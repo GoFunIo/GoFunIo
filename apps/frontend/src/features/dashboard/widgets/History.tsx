@@ -29,6 +29,12 @@ type ButtonProps = {
   onClick: () => void;
 };
 
+type PaginationProps = {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+};
+
 type Props = {
   title: string;
   link?: LinkProps;
@@ -37,6 +43,7 @@ type Props = {
   className?: string;
   onEditClick?: (item: ServiceData) => void;
   onDeleteClick?: (item: ServiceData) => void;
+  pagination?: PaginationProps;
 };
 
 const activityIcons: Record<ServiceType, typeof SquareCheckBig> = {
@@ -65,6 +72,7 @@ export const History = ({
   onEditClick,
   onDeleteClick,
   className,
+  pagination,
 }: Props) => {
   const navigate = useNavigate();
 
@@ -176,7 +184,14 @@ export const History = ({
             })}
           </div>
 
-          <Pagination className="mt-4" />
+          {pagination && (
+            <Pagination
+              className="mt-4"
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.onPageChange}
+            />
+          )}
         </div>
       )}
     </BlockWrapper>

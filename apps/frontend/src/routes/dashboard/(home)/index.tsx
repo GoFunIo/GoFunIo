@@ -233,9 +233,12 @@ function RouteComponent() {
   // ============================================================
   // OSTATNIA HISTORIA
   // ============================================================
-  const limitedServices = useMemo(() => {
-    return services.slice(0, 5);
-  }, [services]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 5;
+  const { data: historyServicesResponse } = useServices({
+    page: historyPage,
+    pageSize: HISTORY_PAGE_SIZE,
+  });
 
   if (!user) return null;
 
@@ -343,14 +346,19 @@ function RouteComponent() {
 
       <GridWrapper layout="2-unequal">
         <History
-          data={limitedServices}
+          title="Ostatnia aktywność"
+          data={historyServicesResponse?.items ?? []}
           link={{
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
           }}
           onEditClick={(item) => setModalState(item)}
           onDeleteClick={(item) => setDeleteModalState(item)}
-          title="Ostatnia aktywność"
+          pagination={{
+            currentPage: historyServicesResponse?.page ?? historyPage,
+            totalPages: historyServicesResponse?.totalPages ?? 1,
+            onPageChange: setHistoryPage,
+          }}
         />
 
         {/* SZYBKIE AKCJE PRAWA STRONA */}
