@@ -105,8 +105,8 @@ export const History = ({
           className="min-h-[240px] mt-[16px]"
         />
       ) : (
-        <div className="flex flex-col gap-[16px]">
-          <div className="flex flex-col gap-4 mb-4">
+        <div className="flex flex-col gap-[16px] lg:min-h-[420px]">
+          <div className="flex flex-col gap-4 mb-4 flex-1">
             {data.map((item) => {
               const IconComponent = activityIcons[item.type];
               const baseLabel = serviceTypeLabels[item.type] || 'Inna aktywność';

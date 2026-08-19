@@ -148,12 +148,12 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 justify-start sm:justify-end">
+            <div className="flex flex-col min-[425px]:flex-row min-[425px]:items-center gap-3 shrink-0 justify-start sm:justify-end">
               {isExpired && <TriangleAlert className="text-alert shrink-0" size={25} />}
 
               <span
                 className={classNames(
-                  'text-[12px] font-semibold text-white rounded-[3px] h-[35px] min-w-30 px-3 flex items-center justify-center shrink-0 tracking-wide',
+                  'text-[12px] font-semibold text-white rounded-[3px] h-[35px] min-w-30 px-3 flex items-center justify-center shrink-0 tracking-wide ',
                   {
                     'bg-alert': isCritical,
                     'bg-warning': isWarning,
