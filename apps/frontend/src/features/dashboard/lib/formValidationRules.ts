@@ -201,7 +201,9 @@ export const DriverManagementSchema = yup.object({
 
 // Eksport typów TypeScript dla inferencji danych
 export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
-export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
+export type AddServiceFormData = Omit<yup.InferType<typeof AddServiceSchema>, 'cost'> & {
+  cost: number | undefined;
+};
 export type PersonalDataFormData = yup.InferType<typeof PersonalDataSchema>;
 export type CompanyDataFormData = yup.InferType<typeof CompanyDataSchema>;
 export type ChangeEmailFormData = yup.InferType<typeof ChangeEmailSchema>;

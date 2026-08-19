@@ -52,7 +52,7 @@ export const AddVehicleServiceForm = ({ className, onClose, initialData }: FormP
       serviceDate: data?.serviceDate ?? '',
       serviceType: data?.type ?? '',
       servicePlace: data?.providerName ?? '',
-      cost: data?.cost !== undefined && data.cost !== '' ? Number(data.cost) : 0,
+      cost: data?.cost !== undefined && data.cost !== '' ? Number(data.cost) : undefined,
       notes: data?.notes ?? '',
       attachment: undefined,
     };

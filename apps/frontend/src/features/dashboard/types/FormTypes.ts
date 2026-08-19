@@ -19,7 +19,7 @@ export type AddServiceInputs = {
   vehicleId: string;
   serviceDate: string;
   serviceType: string;
-  cost: number;
+  cost: number | undefined;
   servicePlace: string;
   notes?: string | null;
   attachment?: File | null;

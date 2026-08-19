@@ -71,7 +71,7 @@ function RouteComponent() {
       />
 
       <GridWrapper layout="3-equal">
-        <div className="relative max-w-[400px] ">
+        <div className="relative  ">
           <Search
             size={18}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-content-secondary pointer-events-none"
