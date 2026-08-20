@@ -140,7 +140,10 @@ export class ServicesService {
       const vehicle = await fleet.vehicleAccess.find(actor, service.vehicleId);
       return this.view(service, vehicle);
     });
-    return { ...serviceView, attachments: [] };
+    return {
+      ...serviceView,
+      attachments: await this.attachments.listActive(companyId, id),
+    };
   }
 
   create(
@@ -194,7 +197,10 @@ export class ServicesService {
       });
       return this.view(service, vehicle);
     });
-    return { ...serviceView, attachments: [] };
+    return {
+      ...serviceView,
+      attachments: await this.attachments.listActive(companyId, id),
+    };
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {

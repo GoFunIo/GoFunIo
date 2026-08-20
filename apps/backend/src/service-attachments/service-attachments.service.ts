@@ -19,7 +19,11 @@ import {
   type AttachmentFileInput,
   validateAttachmentFile,
 } from './attachment-file';
-import type { ServiceAttachmentView } from './service-attachment-query';
+import {
+  SERVICE_ATTACHMENT_QUERY,
+  type ServiceAttachmentQuery,
+  type ServiceAttachmentView,
+} from './service-attachment-query';
 
 const PUBLISH_GUARD_MS = 60 * 60 * 1000;
 const ATTACHMENT_LIMIT = 5;
@@ -30,7 +34,21 @@ export class ServiceAttachmentsService {
     @Inject(FLEET_UNIT_OF_WORK) private readonly fleet: FleetUnitOfWork,
     @Inject(ATTACHMENT_OBJECT_STORE)
     private readonly objects: AttachmentObjectStore,
+    @Inject(SERVICE_ATTACHMENT_QUERY)
+    private readonly query: ServiceAttachmentQuery,
   ) {}
+
+  async list(
+    actor: SessionPrincipal,
+    serviceId: string,
+  ): Promise<ServiceAttachmentView[]> {
+    const companyId = requireCompanyId(actor);
+    await this.fleet.transact(async (fleet) => {
+      const service = await fleet.services.find(companyId, serviceId);
+      await fleet.vehicleAccess.find(actor, service.vehicleId);
+    });
+    return this.query.listActive(companyId, serviceId);
+  }
 
   async create(
     actor: SessionPrincipal,

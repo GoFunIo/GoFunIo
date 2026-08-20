@@ -120,7 +120,19 @@ describe('Services (e2e)', () => {
     await agent
       .get(`/services/${created.body.id}`)
       .expect(200)
-      .expect(({ body }) => expect(body.attachments).toEqual([]));
+      .expect(({ body }) => {
+        expect(body.attachments).toEqual([
+          {
+            id: expect.any(String),
+            name: 'report.pdf',
+            mimeType: ServiceAttachmentMimeType.PDF,
+            size: 1234,
+            createdAt: expect.any(String),
+          },
+        ]);
+        expect(body.attachments[0]).not.toHaveProperty('objectKey');
+        expect(body.attachments[0]).not.toHaveProperty('companyId');
+      });
 
     await agent
       .get('/services')

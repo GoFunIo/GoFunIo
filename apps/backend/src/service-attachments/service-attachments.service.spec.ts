@@ -20,6 +20,7 @@ const userId = 'admin-one';
 const vehicleId = 'vehicle-one';
 const serviceId = 'service-one';
 const actor = { id: userId, companyId, role: MembershipRole.ADMIN };
+const attachmentQuery = {} as ServiceAttachmentQuery;
 const pdf = {
   originalName: 'invoice.pdf',
   mimeType: 'application/pdf',
@@ -37,7 +38,11 @@ describe('ServiceAttachmentsService', () => {
       expect(fleet.transactionActive).toBe(false);
       await InMemoryAttachmentObjectStore.prototype.put.call(storage, input);
     });
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     const created = await attachments.create(actor, serviceId, pdf);
 
@@ -62,7 +67,11 @@ describe('ServiceAttachmentsService', () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
     storage.failNext('put', new AttachmentStorageUnavailableError());
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     await expect(
       attachments.create(actor, serviceId, pdf),
@@ -72,7 +81,7 @@ describe('ServiceAttachmentsService', () => {
     expect(fleet.attachmentCleanups).toHaveLength(1);
     expect(fleet.attachmentCleanups[0]).toMatchObject({ completedAt: null });
     expect(fleet.attachmentCleanups[0].objectKey).toMatch(
-      `^service-attachments/${companyId}/${serviceId}/`,
+      new RegExp(`^service-attachments/${companyId}/${serviceId}/`),
     );
   });
 
@@ -91,7 +100,11 @@ describe('ServiceAttachmentsService', () => {
     }
     const fleet = setupFleet(new CommitFailingFleet());
     const storage = new InMemoryAttachmentObjectStore();
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     await expect(attachments.create(actor, serviceId, pdf)).rejects.toThrow(
       'commit failed',
@@ -113,7 +126,11 @@ describe('ServiceAttachmentsService', () => {
       fleet.attachmentCleanups[0].lockedAt = new Date();
       await InMemoryAttachmentObjectStore.prototype.put.call(storage, input);
     });
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     await expect(
       attachments.create(actor, serviceId, pdf),
@@ -130,7 +147,11 @@ describe('ServiceAttachmentsService', () => {
       fleet.services[0].vehicleId = 'vehicle-two';
       await InMemoryAttachmentObjectStore.prototype.put.call(storage, input);
     });
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     await expect(
       attachments.create(actor, serviceId, pdf),
@@ -143,7 +164,11 @@ describe('ServiceAttachmentsService', () => {
   it('replaces content under a fresh key and queues the previous object', async () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
     const created = await attachments.create(actor, serviceId, pdf);
     const original = { ...fleet.serviceAttachments[0] };
 
@@ -172,7 +197,11 @@ describe('ServiceAttachmentsService', () => {
   it('leaves every object recoverable after concurrent replace and delete', async () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
     const created = await attachments.create(actor, serviceId, pdf);
 
     await Promise.allSettled([
@@ -196,7 +225,11 @@ describe('ServiceAttachmentsService', () => {
   it('soft-deletes idempotently and queues physical cleanup', async () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
     const created = await attachments.create(actor, serviceId, pdf);
     const objectKey = fleet.serviceAttachments[0].objectKey;
 
@@ -217,6 +250,7 @@ describe('ServiceAttachmentsService', () => {
     const serviceAttachments = new ServiceAttachmentsService(
       serviceFleet,
       new InMemoryAttachmentObjectStore(),
+      attachmentQuery,
     );
     await serviceAttachments.create(actor, serviceId, pdf);
     const serviceObjectKey = serviceFleet.serviceAttachments[0].objectKey;
@@ -238,6 +272,7 @@ describe('ServiceAttachmentsService', () => {
     const vehicleAttachments = new ServiceAttachmentsService(
       vehicleFleet,
       new InMemoryAttachmentObjectStore(),
+      attachmentQuery,
     );
     await vehicleAttachments.create(actor, serviceId, pdf);
     const vehicleObjectKey = vehicleFleet.serviceAttachments[0].objectKey;
@@ -258,7 +293,11 @@ describe('ServiceAttachmentsService', () => {
   it('serializes concurrent creates and leaves the sixth object guarded', async () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
-    const attachments = new ServiceAttachmentsService(fleet, storage);
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
 
     const results = await Promise.allSettled(
       Array.from({ length: 6 }, () =>

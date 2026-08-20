@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttachmentStorageModule } from '../attachment-storage/attachment-storage.module';
 import { FleetModule } from '../fleet/fleet.module';
+import { UsersModule } from '../users/users.module';
 import { AttachmentObjectCleanup } from './attachment-object-cleanup.entity';
+import { AttachmentHttpErrorInterceptor } from './attachment-http-error.interceptor';
 import {
   SERVICE_ATTACHMENT_QUERY,
   TypeOrmServiceAttachmentQuery,
@@ -13,6 +15,7 @@ import {
   AttachmentCleanupWorker,
   TypeOrmAttachmentCleanupStore,
 } from './attachment-cleanup-worker';
+import { ServiceAttachmentsController } from './service-attachments.controller';
 import { ServiceAttachmentsService } from './service-attachments.service';
 
 @Module({
@@ -20,8 +23,11 @@ import { ServiceAttachmentsService } from './service-attachments.service';
     TypeOrmModule.forFeature([ServiceAttachment, AttachmentObjectCleanup]),
     AttachmentStorageModule,
     FleetModule,
+    UsersModule,
   ],
+  controllers: [ServiceAttachmentsController],
   providers: [
+    AttachmentHttpErrorInterceptor,
     TypeOrmServiceAttachmentQuery,
     TypeOrmAttachmentCleanupStore,
     AttachmentCleanupWorker,
