@@ -14,6 +14,10 @@ import {
 } from '../fleet/fleet-unit-of-work';
 import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
 import {
+  SERVICE_ATTACHMENT_QUERY,
+  type ServiceAttachmentQuery,
+} from '../service-attachments/service-attachment-query';
+import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
@@ -21,7 +25,7 @@ import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import { CreateServiceDto } from './dtos/create-service.dto';
 import { ListServicesQueryDto } from './dtos/list-services-query.dto';
 import { UpdateServiceDto } from './dtos/update-service.dto';
-import type { ServicePage, ServiceView } from './service-view';
+import type { ServiceBaseView, ServicePage, ServiceView } from './service-view';
 import { Service } from './services.entity';
 
 @Injectable()
@@ -30,6 +34,8 @@ export class ServicesService {
     @Inject(FLEET_UNIT_OF_WORK) private readonly fleet: FleetUnitOfWork,
     @Inject(VEHICLE_ACCESS) private readonly vehicleAccess: VehicleAccess,
     @InjectRepository(Service) private readonly services: Repository<Service>,
+    @Inject(SERVICE_ATTACHMENT_QUERY)
+    private readonly attachments: ServiceAttachmentQuery,
   ) {}
 
   async list(
@@ -106,11 +112,19 @@ export class ServicesService {
       .skip((query.page - 1) * query.pageSize)
       .take(query.pageSize)
       .getMany();
+    const attachmentCounts = await this.attachments.countActiveByServiceIds(
+      companyId,
+      services.map(({ id }) => id),
+    );
     return {
-      items: services.map((service) => ({
-        ...this.view(service, service.vehicle),
-        hasAttachment: service.attachmentKey !== null,
-      })),
+      items: services.map((service) => {
+        const attachmentCount = attachmentCounts.get(service.id) ?? 0;
+        return {
+          ...this.view(service, service.vehicle),
+          attachmentCount,
+          hasAttachment: attachmentCount > 0,
+        };
+      }),
       total,
       totalCost: this.money(aggregate?.totalCost ?? '0'),
       page: query.page,
@@ -119,12 +133,14 @@ export class ServicesService {
     };
   }
 
-  findOne(actor: SessionPrincipal, id: string): Promise<ServiceView> {
-    return this.fleet.transact(async (fleet) => {
-      const service = await fleet.services.find(requireCompanyId(actor), id);
+  async findOne(actor: SessionPrincipal, id: string): Promise<ServiceView> {
+    const companyId = requireCompanyId(actor);
+    const serviceView = await this.fleet.transact(async (fleet) => {
+      const service = await fleet.services.find(companyId, id);
       const vehicle = await fleet.vehicleAccess.find(actor, service.vehicleId);
       return this.view(service, vehicle);
     });
+    return { ...serviceView, attachments: [] };
   }
 
   create(
@@ -147,11 +163,11 @@ export class ServicesService {
         cost: body.cost.toFixed(2),
         notes: body.notes ?? null,
       });
-      return this.view(service, vehicle);
+      return { ...this.view(service, vehicle), attachments: [] };
     });
   }
 
-  update(
+  async update(
     actor: SessionPrincipal,
     id: string,
     body: UpdateServiceDto,
@@ -160,8 +176,8 @@ export class ServicesService {
       throw new BadRequestException('No changes provided');
     }
     this.validateDate(body.serviceDate);
-    return this.fleet.transact(async (fleet) => {
-      const companyId = requireCompanyId(actor);
+    const companyId = requireCompanyId(actor);
+    const serviceView = await this.fleet.transact(async (fleet) => {
       if (!actor.role) throw new ForbiddenException();
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       const existing = await fleet.services.find(companyId, id);
@@ -178,6 +194,7 @@ export class ServicesService {
       });
       return this.view(service, vehicle);
     });
+    return { ...serviceView, attachments: [] };
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
@@ -198,7 +215,7 @@ export class ServicesService {
     }
   }
 
-  private view(service: FleetService, vehicle: FleetVehicle): ServiceView {
+  private view(service: FleetService, vehicle: FleetVehicle): ServiceBaseView {
     return { ...service, vehicle };
   }
 

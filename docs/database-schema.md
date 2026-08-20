@@ -1,6 +1,6 @@
 # Database schema
 
-> **Migration convention:** Update this document in every migration that changes a table, column, type, nullability, default, primary/unique/check/foreign-key constraint, index, enum, soft-delete rule, or persisted lifecycle. The schema below is the final state after migration `1762000000000-CreateServices`; migrations are the source of truth.
+> **Migration convention:** Update this document in every migration that changes a table, column, type, nullability, default, primary/unique/check/foreign-key constraint, index, enum, soft-delete rule, or persisted lifecycle. The schema below is the final state after migration `1763000000000-NormalizeServiceAttachments`; migrations are the source of truth.
 
 PostgreSQL identifiers are quoted and therefore case-sensitive. `varchar` without a length means PostgreSQL `character varying` with no declared limit.
 
@@ -185,25 +185,66 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 
 ### `services`
 
-| Column           | Type            | Null | Default             |
-| ---------------- | --------------- | ---- | ------------------- |
-| `id`             | `uuid`          | no   | `gen_random_uuid()` |
-| `companyId`      | `uuid`          | no   | none                |
-| `vehicleId`      | `uuid`          | no   | none                |
-| `serviceDate`    | `date`          | no   | none                |
-| `type`           | `varchar`       | no   | none                |
-| `cost`           | `numeric(12,2)` | no   | none                |
-| `providerName`   | `varchar(255)`  | no   | none                |
-| `notes`          | `text`          | yes  | none                |
-| `attachmentKey`  | `varchar`       | yes  | none                |
-| `attachmentName` | `varchar`       | yes  | none                |
-| `attachmentMime` | `varchar`       | yes  | none                |
-| `createdAt`      | `timestamptz`   | no   | `now()`             |
-| `updatedAt`      | `timestamptz`   | no   | `now()`             |
-| `deletedAt`      | `timestamptz`   | yes  | none                |
+| Column         | Type            | Null | Default             |
+| -------------- | --------------- | ---- | ------------------- |
+| `id`           | `uuid`          | no   | `gen_random_uuid()` |
+| `companyId`    | `uuid`          | no   | none                |
+| `vehicleId`    | `uuid`          | no   | none                |
+| `serviceDate`  | `date`          | no   | none                |
+| `type`         | `varchar`       | no   | none                |
+| `cost`         | `numeric(12,2)` | no   | none                |
+| `providerName` | `varchar(255)`  | no   | none                |
+| `notes`        | `text`          | yes  | none                |
+| `createdAt`    | `timestamptz`   | no   | `now()`             |
+| `updatedAt`    | `timestamptz`   | no   | `now()`             |
+| `deletedAt`    | `timestamptz`   | yes  | none                |
 
 - Primary key: `PK_services (id)`.
+- Unique constraint: `UQ_services_id_company (id, companyId)`, used by the tenant-safe Service Attachment foreign key.
 - Foreign keys, both `ON DELETE RESTRICT`: `FK_services_company (companyId) -> companies(id)`; `FK_services_vehicle (vehicleId, companyId) -> vehicles(id, companyId)`. The composite Vehicle foreign key prevents cross-workspace references.
 - Checks: `CHK_services_cost: cost > 0`; `CHK_services_type: type IN ('FULL', 'OIL_CHANGE', 'TECHNICAL_INSPECTION', 'OC', 'AC', 'OTHER')`; `CHK_services_notes: notes IS NULL OR char_length(notes) <= 5000`.
 - Partial indexes: `IDX_services_company_date_active (companyId, serviceDate DESC, id DESC)`; `IDX_services_company_vehicle_date_active (companyId, vehicleId, serviceDate DESC)`; `IDX_services_company_type_active (companyId, type)`, each `WHERE deletedAt IS NULL`.
 - Soft delete: `deletedAt IS NULL` denotes a live service. Direct deletion sets `deletedAt`; Vehicle deletion must soft-delete related Services in the same transaction before Service creation is exposed.
+
+### `service_attachments`
+
+| Column      | Type           | Null | Default             |
+| ----------- | -------------- | ---- | ------------------- |
+| `id`        | `uuid`         | no   | `gen_random_uuid()` |
+| `companyId` | `uuid`         | no   | none                |
+| `serviceId` | `uuid`         | no   | none                |
+| `objectKey` | `varchar`      | no   | none                |
+| `name`      | `varchar(255)` | no   | none                |
+| `mimeType`  | `varchar`      | no   | none                |
+| `size`      | `integer`      | no   | none                |
+| `createdAt` | `timestamptz`  | no   | `now()`             |
+| `updatedAt` | `timestamptz`  | no   | `now()`             |
+| `deletedAt` | `timestamptz`  | yes  | none                |
+
+- Primary key: `PK_service_attachments (id)`.
+- Unique constraint: `UQ_service_attachments_object_key (objectKey)`; object keys are immutable and never reused.
+- Foreign key: `FK_service_attachments_service (serviceId, companyId) -> services(id, companyId) ON DELETE RESTRICT`. The composite key prevents cross-workspace attachment ownership and avoids a physical cascade that could bypass object cleanup.
+- Checks: `CHK_service_attachments_size: size BETWEEN 1 AND 10485760`; `CHK_service_attachments_mime: mimeType IN ('application/pdf', 'image/jpeg', 'image/png')`.
+- Partial index: `IDX_service_attachments_company_service_active (companyId, serviceId, createdAt DESC, id DESC) WHERE deletedAt IS NULL` supports active attachment projections in stable newest-first order.
+- Soft delete: `deletedAt IS NULL` denotes an active Service Attachment.
+
+### `attachment_object_cleanup`
+
+| Column          | Type          | Null | Default             |
+| --------------- | ------------- | ---- | ------------------- |
+| `id`            | `uuid`        | no   | `gen_random_uuid()` |
+| `objectKey`     | `varchar`     | no   | none                |
+| `deleteAfter`   | `timestamptz` | no   | none                |
+| `attempts`      | `integer`     | no   | `0`                 |
+| `nextAttemptAt` | `timestamptz` | no   | none                |
+| `lockedAt`      | `timestamptz` | yes  | none                |
+| `lastError`     | `text`        | yes  | none                |
+| `completedAt`   | `timestamptz` | yes  | none                |
+| `createdAt`     | `timestamptz` | no   | `now()`             |
+| `updatedAt`     | `timestamptz` | no   | `now()`             |
+
+- Primary key: `PK_attachment_object_cleanup (id)`.
+- Unique constraint: `UQ_attachment_object_cleanup_object_key (objectKey)` prevents duplicate cleanup jobs for one immutable object key.
+- Check: `CHK_attachment_object_cleanup_attempts: attempts >= 0`.
+- Partial index: `IDX_attachment_object_cleanup_due (nextAttemptAt, lockedAt) WHERE completedAt IS NULL` supports due-job claiming and recoverable leases.
+- Lifecycle: `completedAt IS NULL` denotes unfinished cleanup. `deleteAfter` guards newly uploaded objects until publication; `nextAttemptAt` and `lockedAt` control retries and worker leases.

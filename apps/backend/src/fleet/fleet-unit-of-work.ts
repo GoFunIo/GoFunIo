@@ -90,9 +90,6 @@ export interface FleetServiceInput {
 
 export interface FleetService extends FleetServiceInput {
   id: string;
-  attachmentKey: string | null;
-  attachmentName: string | null;
-  attachmentMime: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -583,9 +580,6 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const service = {
               ...input,
               id: `service-${this.services.length + 1}`,
-              attachmentKey: null,
-              attachmentName: null,
-              attachmentMime: null,
               createdAt: now,
               updatedAt: now,
               deletedAt: null,
@@ -625,12 +619,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             if (!service) {
               return Promise.reject(new NotFoundException('Service not found'));
             }
-            Object.assign(service, {
-              attachmentKey: null,
-              attachmentName: null,
-              attachmentMime: null,
-              deletedAt: new Date(),
-            });
+            Object.assign(service, { deletedAt: new Date() });
             return Promise.resolve();
           },
           softDeleteVehicle: (companyId, vehicleId) => {

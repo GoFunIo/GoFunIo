@@ -2,6 +2,10 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
+import {
+  ServiceAttachment,
+  ServiceAttachmentMimeType,
+} from '../src/service-attachments/service-attachment.entity';
 import { Service, ServiceType } from '../src/services/services.entity';
 import { MembershipRole } from '../src/users/membership-role';
 import {
@@ -82,11 +86,6 @@ describe('Services (e2e)', () => {
       .post('/services')
       .send(service(vehicle.body.id))
       .expect(201);
-    await app
-      .get(DataSource)
-      .getRepository(Service)
-      .update(created.body.id, { attachmentKey: 'services/report.pdf' });
-
     expect(created.body).toMatchObject({
       vehicleId: vehicle.body.id,
       serviceDate: '2026-08-01',
@@ -94,6 +93,7 @@ describe('Services (e2e)', () => {
       cost: '499.99',
       providerName: 'Local Garage',
       notes: 'Oil and filter',
+      attachments: [],
       vehicle: {
         id: vehicle.body.id,
         brand: 'Volvo',
@@ -103,6 +103,24 @@ describe('Services (e2e)', () => {
     });
     expect(created.body).not.toHaveProperty('companyId');
     expect(created.body).not.toHaveProperty('attachmentKey');
+
+    const dataSource = app.get(DataSource);
+    const persistedService = await dataSource
+      .getRepository(Service)
+      .findOneByOrFail({ id: created.body.id });
+    await dataSource.getRepository(ServiceAttachment).save({
+      companyId: persistedService.companyId,
+      serviceId: persistedService.id,
+      objectKey: `service-attachments/${persistedService.companyId}/${persistedService.id}/report.pdf`,
+      name: 'report.pdf',
+      mimeType: ServiceAttachmentMimeType.PDF,
+      size: 1234,
+    });
+
+    await agent
+      .get(`/services/${created.body.id}`)
+      .expect(200)
+      .expect(({ body }) => expect(body.attachments).toEqual([]));
 
     await agent
       .get('/services')
@@ -119,9 +137,11 @@ describe('Services (e2e)', () => {
           expect.objectContaining({
             id: created.body.id,
             vehicleId: vehicle.body.id,
+            attachmentCount: 1,
             hasAttachment: true,
           }),
         ]);
+        expect(body.items[0]).not.toHaveProperty('attachments');
       });
     await agent
       .get('/services')
@@ -192,9 +212,14 @@ describe('Services (e2e)', () => {
           pageSize: 1,
           totalPages: 1,
         });
-        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
-          latest.body.id,
+        expect(body.items).toEqual([
+          expect.objectContaining({
+            id: latest.body.id,
+            attachmentCount: 0,
+            hasAttachment: false,
+          }),
         ]);
+        expect(body.items[0]).not.toHaveProperty('attachments');
       });
     await agent
       .get('/services')
@@ -216,7 +241,7 @@ describe('Services (e2e)', () => {
       .expect(400);
   });
 
-  it('soft-deletes a Service, clears attachment metadata, and updates totals', async () => {
+  it('soft-deletes a Service and updates totals', async () => {
     const agent = await signedIn('service-delete@example.com');
     const vehicle = await agent
       .post('/vehicles')
@@ -231,11 +256,6 @@ describe('Services (e2e)', () => {
       .send(service(vehicle.body.id, { cost: 100 }))
       .expect(201);
     const repository = app.get(DataSource).getRepository(Service);
-    await repository.update(deleted.body.id, {
-      attachmentKey: 'services/report.pdf',
-      attachmentName: 'report.pdf',
-      attachmentMime: 'application/pdf',
-    });
 
     await agent.delete(`/services/${deleted.body.id}`).expect(204);
     await agent.get(`/services/${deleted.body.id}`).expect(404);
@@ -252,9 +272,6 @@ describe('Services (e2e)', () => {
         withDeleted: true,
       }),
     ).toMatchObject({
-      attachmentKey: null,
-      attachmentName: null,
-      attachmentMime: null,
       deletedAt: expect.any(Date),
     });
     await agent.delete(`/services/${deleted.body.id}`).expect(404);
@@ -284,6 +301,7 @@ describe('Services (e2e)', () => {
           vehicleId: first.body.id,
           cost: '499.99',
           providerName: 'New Garage',
+          attachments: [],
         });
       });
     await agent
@@ -294,11 +312,15 @@ describe('Services (e2e)', () => {
         expect(body.vehicleId).toBe(second.body.id);
         expect(body.vehicle.id).toBe(second.body.id);
         expect(body.notes).toBeNull();
+        expect(body.attachments).toEqual([]);
       });
     await agent
       .get(`/services/${created.body.id}`)
       .expect(200)
-      .expect(({ body }) => expect(body.providerName).toBe('New Garage'));
+      .expect(({ body }) => {
+        expect(body.providerName).toBe('New Garage');
+        expect(body.attachments).toEqual([]);
+      });
     await agent.delete(`/vehicles/${second.body.id}`).expect(204);
     await agent.get(`/services/${created.body.id}`).expect(404);
     await agent

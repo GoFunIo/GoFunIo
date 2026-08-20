@@ -136,11 +136,6 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           return service;
         },
         softDelete: async (serviceId) => {
-          await manager.update(Service, serviceId, {
-            attachmentKey: null,
-            attachmentName: null,
-            attachmentMime: null,
-          });
           await manager.softDelete(Service, serviceId);
         },
         softDeleteVehicle: async (companyId, vehicleId) => {

@@ -60,6 +60,10 @@ Zdarzenie serwisowe, przegląd techniczny lub ubezpieczeniowe dotyczące jednego
 
 Warsztat, ubezpieczyciel lub inny podmiot realizujący Service.
 
+## Service Attachment
+
+Dokument lub obraz powiązany z dokładnie jednym Service. Jeden Service może mieć od zera do pięciu Service Attachments.
+
 ## Driver
 
 Kierowca należący do jednego Workspace. Driver może opcjonalnie reprezentować tę samą osobę co jedna Membership w tym Workspace, zachowując niezależne dane profilu. Membership może mieć najwyżej jednego Drivera w danym Workspace; odebranie dostępu nie usuwa tej relacji. Driver może być jednocześnie odpowiedzialny za wiele Vehicle. ADMIN widzi wszystkich Driverów w Workspace. MANAGER widzi Driverów przypisanych do Vehicle objętych jego Vehicle Access oraz Driverów bez żadnego aktywnego Driver Allocation.
