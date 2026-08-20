@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   ATTACHMENT_OBJECT_STORE,
@@ -30,6 +30,8 @@ const ATTACHMENT_LIMIT = 5;
 
 @Injectable()
 export class ServiceAttachmentsService {
+  private readonly logger = new Logger(ServiceAttachmentsService.name);
+
   constructor(
     @Inject(FLEET_UNIT_OF_WORK) private readonly fleet: FleetUnitOfWork,
     @Inject(ATTACHMENT_OBJECT_STORE)
@@ -103,6 +105,37 @@ export class ServiceAttachmentsService {
     });
 
     return attachmentView(attachment);
+  }
+
+  async download(
+    actor: SessionPrincipal,
+    serviceId: string,
+    attachmentId: string,
+  ): Promise<URL> {
+    const companyId = requireCompanyId(actor);
+    const attachment = await this.fleet.transact(async (fleet) => {
+      const service = await fleet.services.find(companyId, serviceId);
+      await fleet.vehicleAccess.find(actor, service.vehicleId);
+      return fleet.attachments.find(companyId, serviceId, attachmentId);
+    });
+
+    try {
+      return await this.objects.createDownloadUrl({
+        key: attachment.objectKey,
+        fileName: attachment.name,
+        expiresInSeconds: 300,
+      });
+    } catch (error) {
+      if (error instanceof AttachmentStorageInconsistentError) {
+        this.logger.error('Referenced Attachment object is missing', {
+          companyId,
+          serviceId,
+          attachmentId,
+          objectKey: attachment.objectKey,
+        });
+      }
+      throw error;
+    }
   }
 
   async replace(

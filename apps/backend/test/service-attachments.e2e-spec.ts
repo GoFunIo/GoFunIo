@@ -1,9 +1,12 @@
 import { INestApplication } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { ATTACHMENT_OBJECT_STORE } from '../src/attachment-storage/attachment-object-store';
 import { InMemoryAttachmentObjectStore } from '../src/attachment-storage/in-memory-attachment-object-store';
+import { AttachmentObjectCleanup } from '../src/service-attachments/attachment-object-cleanup.entity';
 import { MAX_ATTACHMENT_SIZE } from '../src/service-attachments/attachment-file';
+import { ServiceAttachment } from '../src/service-attachments/service-attachment.entity';
 import { ServiceType } from '../src/services/services.entity';
 import { createVerifiedUser } from './helpers/auth-test-utils';
 import { createTestApp } from './helpers/create-test-app';
@@ -38,7 +41,11 @@ describe('Service Attachments (e2e)', () => {
         providerName: 'Local Garage',
       })
       .expect(201);
-    return { agent, serviceId: service.body.id as string };
+    return {
+      agent,
+      serviceId: service.body.id as string,
+      vehicleId: vehicle.body.id as string,
+    };
   }
 
   it('creates and lists safe Attachment metadata newest first', async () => {
@@ -230,6 +237,152 @@ describe('Service Attachments (e2e)', () => {
           body.every(({ name }: { name: string }) => name === 'receipt.pdf'),
         ).toBe(true);
       });
+  });
+
+  it('downloads, replaces, and idempotently deletes an Attachment', async () => {
+    const { agent, serviceId } = await serviceOwner(
+      'attachment-item@example.com',
+    );
+    const created = await agent
+      .post(`/services/${serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-original'), {
+        filename: 'original.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const item = `/services/${serviceId}/attachments/${created.body.id}`;
+
+    await agent
+      .get(item)
+      .expect(302)
+      .expect('Location', /^memory:\/\/attachment\//);
+
+    const replaced = await agent
+      .put(item)
+      .attach('attachment', Buffer.from([0xff, 0xd8, 0xff, 0x00]), {
+        filename: 'replacement.jpeg',
+        contentType: 'image/jpeg',
+      })
+      .expect(200);
+    expect(replaced.body).toMatchObject({
+      id: created.body.id,
+      name: 'replacement.jpg',
+      mimeType: 'image/jpeg',
+      size: 4,
+      createdAt: created.body.createdAt,
+    });
+
+    await agent.delete(item).expect(204);
+    await agent.delete(item).expect(204);
+    await agent.get(item).expect(404);
+  });
+
+  it('keeps the previous file usable after replacement storage failure', async () => {
+    const { agent, serviceId } = await serviceOwner(
+      'attachment-replace-failure@example.com',
+    );
+    const created = await agent
+      .post(`/services/${serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-original'), {
+        filename: 'original.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const item = `/services/${serviceId}/attachments/${created.body.id}`;
+    app
+      .get<InMemoryAttachmentObjectStore>(ATTACHMENT_OBJECT_STORE)
+      .failNext('put');
+
+    await agent
+      .put(item)
+      .attach('attachment', Buffer.from('%PDF-replacement'), {
+        filename: 'replacement.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(503)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'ATTACHMENT_STORAGE_UNAVAILABLE',
+          field: 'attachment',
+        }),
+      );
+    await agent.get(item).expect(302);
+  });
+
+  it('reports a referenced missing object as inconsistent storage', async () => {
+    const { agent, serviceId } = await serviceOwner(
+      'attachment-missing-object@example.com',
+    );
+    const created = await agent
+      .post(`/services/${serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-missing'), {
+        filename: 'missing.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const storage = app.get<InMemoryAttachmentObjectStore>(
+      ATTACHMENT_OBJECT_STORE,
+    );
+    const stored = await storage.list({
+      prefix: `service-attachments/`,
+    });
+    const object = stored.objects.find(({ key }) => key.includes(serviceId));
+    expect(object).toBeDefined();
+    await storage.delete(object!.key);
+
+    await agent
+      .get(`/services/${serviceId}/attachments/${created.body.id}`)
+      .expect(503)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          code: 'ATTACHMENT_STORAGE_INCONSISTENT',
+          field: 'attachment',
+        }),
+      );
+  });
+
+  it('queues every object before Service and Vehicle cascades hide metadata', async () => {
+    const database = app.get(DataSource);
+    const attachments = database.getRepository(ServiceAttachment);
+    const cleanups = database.getRepository(AttachmentObjectCleanup);
+
+    for (const parent of ['service', 'vehicle'] as const) {
+      const owner = await serviceOwner(
+        `attachment-${parent}-cascade@example.com`,
+      );
+      const created = await owner.agent
+        .post(`/services/${owner.serviceId}/attachments`)
+        .attach('attachment', Buffer.from(`%PDF-${parent}`), {
+          filename: `${parent}.pdf`,
+          contentType: 'application/pdf',
+        })
+        .expect(201);
+      const before = await attachments.findOneByOrFail({ id: created.body.id });
+
+      await owner.agent
+        .delete(
+          parent === 'service'
+            ? `/services/${owner.serviceId}`
+            : `/vehicles/${owner.vehicleId}`,
+        )
+        .expect(204);
+
+      await expect(
+        attachments.findOne({
+          where: { id: created.body.id },
+          withDeleted: true,
+        }),
+      ).resolves.toMatchObject({ deletedAt: expect.any(Date) });
+      await expect(
+        cleanups.findOneBy({ objectKey: before.objectKey }),
+      ).resolves.toMatchObject({
+        objectKey: before.objectKey,
+        completedAt: null,
+      });
+      await owner.agent
+        .get(`/services/${owner.serviceId}/attachments/${created.body.id}`)
+        .expect(404);
+    }
   });
 
   it('masks inaccessible and deleted parent Services', async () => {

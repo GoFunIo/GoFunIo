@@ -1,9 +1,14 @@
 import {
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
+  Redirect,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,7 +21,9 @@ import {
   ApiConsumes,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiFoundResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -114,5 +121,92 @@ export class ServiceAttachmentsController {
         body: file.buffer,
       },
     );
+  }
+
+  @ApiOperation({
+    summary: 'Download a Service Attachment',
+    description:
+      'Verifies the private object and redirects to a five-minute presigned download URL.',
+  })
+  @ApiFoundResponse({ description: 'Redirect to the private download URL' })
+  @ApiServiceUnavailableResponse({
+    description: 'Attachment storage unavailable or inconsistent',
+  })
+  @Get(':attachmentId')
+  @Redirect(undefined, HttpStatus.FOUND)
+  async download(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<{ url: string }> {
+    const url = await this.attachments.download(
+      principal,
+      serviceId,
+      attachmentId,
+    );
+    return { url: url.toString() };
+  }
+
+  @ApiOperation({
+    summary: 'Replace a Service Attachment',
+    description:
+      'Replaces the file under a fresh immutable object key while preserving Attachment identity and creation time.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['attachment'],
+      properties: { attachment: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: AttachmentDto })
+  @ApiBadRequestResponse({
+    description: 'Attachment missing or content invalid',
+  })
+  @ApiPayloadTooLargeResponse({ description: 'Attachment exceeds 10 MiB' })
+  @ApiUnsupportedMediaTypeResponse({
+    description: 'Attachment type not allowed',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Attachment storage unavailable or inconsistent',
+  })
+  @Put(':attachmentId')
+  @UseInterceptors(
+    FileInterceptor('attachment', {
+      limits: { files: 1, fileSize: MAX_ATTACHMENT_SIZE },
+    }),
+  )
+  @Serialize(AttachmentDto)
+  replace(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+    @UploadedFile() file?: UploadedAttachment,
+  ): Promise<ServiceAttachmentView> {
+    return this.attachments.replace(
+      principal,
+      serviceId,
+      attachmentId,
+      file && {
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        body: file.buffer,
+      },
+    );
+  }
+
+  @ApiOperation({ summary: 'Delete a Service Attachment' })
+  @ApiNoContentResponse({
+    description: 'Attachment deleted or was already deleted',
+  })
+  @Delete(':attachmentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  delete(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<void> {
+    return this.attachments.delete(principal, serviceId, attachmentId);
   }
 }

@@ -161,6 +161,32 @@ describe('ServiceAttachmentsService', () => {
     expect(fleet.attachmentCleanups).toHaveLength(1);
   });
 
+  it('authorizes download before verifying and signing outside the transaction', async () => {
+    const fleet = setupFleet();
+    const storage = new InMemoryAttachmentObjectStore();
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
+    const created = await attachments.create(actor, serviceId, pdf);
+    const createDownloadUrl = jest
+      .spyOn(storage, 'createDownloadUrl')
+      .mockImplementation(async (input) => {
+        expect(fleet.transactionActive).toBe(false);
+        expect(input).toMatchObject({
+          fileName: 'invoice.pdf',
+          expiresInSeconds: 300,
+        });
+        return new URL('https://download.example/file');
+      });
+
+    await expect(
+      attachments.download(actor, serviceId, created.id),
+    ).resolves.toEqual(new URL('https://download.example/file'));
+    expect(createDownloadUrl).toHaveBeenCalledTimes(1);
+  });
+
   it('replaces content under a fresh key and queues the previous object', async () => {
     const fleet = setupFleet();
     const storage = new InMemoryAttachmentObjectStore();
