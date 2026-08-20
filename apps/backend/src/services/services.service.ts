@@ -205,6 +205,7 @@ export class ServicesService {
       const service = await fleet.services.find(companyId, id);
       await fleet.vehicleAccess.find(actor, service.vehicleId, true);
       await fleet.services.find(companyId, id, true, service.vehicleId);
+      await fleet.attachments.softDeleteService(companyId, id);
       await fleet.services.softDelete(id);
     });
   }

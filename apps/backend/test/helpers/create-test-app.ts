@@ -13,6 +13,8 @@ import cookieSession from 'cookie-session';
 import { AppModule } from '../../src/app.module';
 import { MailService } from '../../src/mail/mail.service';
 import { toMilliseconds } from '../../src/common/duration.util';
+import { ATTACHMENT_OBJECT_STORE } from '../../src/attachment-storage/attachment-object-store';
+import { InMemoryAttachmentObjectStore } from '../../src/attachment-storage/in-memory-attachment-object-store';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -42,6 +44,8 @@ export async function createTestApp(
       .useClass(MockThrottlerGuard);
   }
   const moduleFixture: TestingModule = await builder
+    .overrideProvider(ATTACHMENT_OBJECT_STORE)
+    .useValue(new InMemoryAttachmentObjectStore())
     .overrideProvider(MailService)
     .useValue(noopMailService)
     .compile();
