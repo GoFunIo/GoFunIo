@@ -20,6 +20,11 @@ export enum NodeEnv {
   Test = 'test',
 }
 
+export enum AttachmentStorageDriver {
+  S3 = 's3',
+  Memory = 'memory',
+}
+
 export class DatabaseEnv {
   @IsString()
   @IsNotEmpty()
@@ -96,6 +101,41 @@ export class EnvVars extends DatabaseEnv {
   @IsString()
   @IsNotEmpty()
   GOOGLE_CLIENT_ID!: string;
+
+  @IsEnum(AttachmentStorageDriver)
+  ATTACHMENT_STORAGE_DRIVER!: AttachmentStorageDriver;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  ATTACHMENT_STORAGE_ENDPOINT?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  ATTACHMENT_STORAGE_PUBLIC_ENDPOINT?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ATTACHMENT_STORAGE_REGION?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ATTACHMENT_STORAGE_BUCKET?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ATTACHMENT_STORAGE_ACCESS_KEY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ATTACHMENT_STORAGE_SECRET_ACCESS_KEY?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  ATTACHMENT_STORAGE_FORCE_PATH_STYLE?: 'true' | 'false';
 }
 
 function validate<T extends object>(
@@ -108,8 +148,8 @@ function validate<T extends object>(
   const errors = validateSync(validated, { skipMissingProperties: false });
   if (errors.length > 0) {
     throw new Error(
-      'Invalid environment configuration:\n' +
-        errors.map((e) => e.toString()).join('\n'),
+      'Invalid environment configuration: ' +
+        errors.map((error) => error.property).join(', '),
     );
   }
 
@@ -124,7 +164,46 @@ export function validateDatabaseEnv(
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {
   const validated = validate(EnvVars, config);
-  const corsOrigins = String(config.CORS_ORIGINS ?? '')
+  if (
+    validated.ATTACHMENT_STORAGE_DRIVER === AttachmentStorageDriver.Memory &&
+    validated.NODE_ENV !== NodeEnv.Test
+  ) {
+    throw new Error(
+      'Invalid environment configuration: ATTACHMENT_STORAGE_DRIVER',
+    );
+  }
+  if (validated.ATTACHMENT_STORAGE_DRIVER === AttachmentStorageDriver.S3) {
+    const required: Array<keyof EnvVars> = [
+      'ATTACHMENT_STORAGE_ENDPOINT',
+      'ATTACHMENT_STORAGE_PUBLIC_ENDPOINT',
+      'ATTACHMENT_STORAGE_REGION',
+      'ATTACHMENT_STORAGE_BUCKET',
+      'ATTACHMENT_STORAGE_ACCESS_KEY_ID',
+      'ATTACHMENT_STORAGE_SECRET_ACCESS_KEY',
+      'ATTACHMENT_STORAGE_FORCE_PATH_STYLE',
+    ];
+    const missing = required.filter((key) => validated[key] === undefined);
+    if (missing.length) {
+      throw new Error(
+        `Invalid environment configuration: ${missing.join(', ')}`,
+      );
+    }
+    for (const key of [
+      'ATTACHMENT_STORAGE_ENDPOINT',
+      'ATTACHMENT_STORAGE_PUBLIC_ENDPOINT',
+    ] as const) {
+      try {
+        const url = new URL(validated[key]!);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+      } catch {
+        throw new Error(`Invalid environment configuration: ${key}`);
+      }
+    }
+  }
+
+  const corsOrigins = (
+    typeof config.CORS_ORIGINS === 'string' ? config.CORS_ORIGINS : ''
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -136,7 +215,11 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     }
   }
   validated.CORS_ORIGINS = corsOrigins;
-  validated.FRONTEND_URL_PATTERNS = String(config.FRONTEND_URL_PATTERNS ?? '')
+  validated.FRONTEND_URL_PATTERNS = (
+    typeof config.FRONTEND_URL_PATTERNS === 'string'
+      ? config.FRONTEND_URL_PATTERNS
+      : ''
+  )
     .split(',')
     .map((pattern) => pattern.trim())
     .filter(Boolean)
