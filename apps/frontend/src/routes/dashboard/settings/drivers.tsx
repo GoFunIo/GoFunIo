@@ -52,17 +52,17 @@ function RouteComponent() {
     });
   }, [drivers, searchQuery]);
 
-  const handleAddUserClick = () => {
+  const handleAddDriverClick = () => {
     setSelectedDriver(null);
     setActiveModal('add');
   };
 
-  const handleEditUserClick = (driver: DriverType) => {
+  const handleEditDriverClick = (driver: DriverType) => {
     setSelectedDriver(driver);
     setActiveModal('edit');
   };
 
-  const handleDeleteUserClick = (driver: DriverType) => {
+  const handleDeleteDriverClick = (driver: DriverType) => {
     if (!canDeleteDrivers) return;
 
     setSelectedDriver(driver);
@@ -95,8 +95,8 @@ function RouteComponent() {
     switch (activeModal) {
       case 'add':
         return {
-          title: 'Dodaj użytkownika',
-          subtitle: 'Utwórz nowe konto i opcjonalnie wyślij zaproszenie e-mail.',
+          title: 'Dodaj kierowcę',
+          subtitle: 'Utwórz nowego kierowcę.',
           content: <AddDriverForm onClose={() => setActiveModal(null)} />,
         };
 
@@ -104,8 +104,8 @@ function RouteComponent() {
         if (!selectedDriver) return { title: '', subtitle: '', content: null };
 
         return {
-          title: 'Edytuj użytkownika',
-          subtitle: 'Zaktualizuj dane użytkownika i jego rolę.',
+          title: 'Edytuj kierowcę.',
+          subtitle: 'Zaktualizuj dane kierowcy.',
           content: (
             <EditDriverForm
               initialData={selectedDriver}
@@ -122,9 +122,9 @@ function RouteComponent() {
         }
 
         return {
-          title: 'Usuń użytkownika',
+          title: 'Usuń kierowcę',
           subtitle:
-            'Czy na pewno chcesz usunąć tego użytkownika z systemu? Ta operacja jest nieodwracalna.',
+            'Czy na pewno chcesz usunąć tego kierowcę z systemu? Ta operacja jest nieodwracalna.',
           content: (
             <DeleteDriverConfirm
               driver={selectedDriver}
@@ -160,7 +160,7 @@ function RouteComponent() {
           variant="default"
           size="big"
           icon="add"
-          onClick={handleAddUserClick}
+          onClick={handleAddDriverClick}
           className="w-full sm:w-auto sm:min-w-[180px]"
         >
           Dodaj kierowcę
@@ -176,8 +176,8 @@ function RouteComponent() {
           <DataTable
             columns={columns}
             data={filteredDrivers}
-            onEdit={handleEditUserClick}
-            onDelete={canDeleteDrivers ? handleDeleteUserClick : undefined}
+            onEdit={handleEditDriverClick}
+            onDelete={canDeleteDrivers ? handleDeleteDriverClick : undefined}
             footer={false}
           />
         )}
