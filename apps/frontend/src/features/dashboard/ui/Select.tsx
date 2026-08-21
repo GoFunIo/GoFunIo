@@ -9,6 +9,7 @@ type Option = {
   id: number;
   value: Value;
   label: string;
+  disabled?: boolean;
 };
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
   clearOption?: boolean;
   className?: string;
   error?: string;
+  disabled?: boolean;
 };
 
 export const Select = ({
@@ -29,6 +31,7 @@ export const Select = ({
   clearOption = true,
   className,
   error,
+  disabled = false,
 }: Props) => {
   const OFFSET = 6;
 
@@ -105,7 +108,12 @@ export const Select = ({
   }, [isOpen, options.length]);
 
   return (
-    <div ref={selectRef} className={classNames('relative w-full', className)}>
+    <div
+      ref={selectRef}
+      className={classNames('relative w-full', className, {
+        ['opacity-50 cursor-none pointer-events-none']: disabled,
+      })}
+    >
       <button
         type="button"
         className={classNames(
@@ -158,20 +166,22 @@ export const Select = ({
               </span>
             )}
 
-            {options.map((item) => (
-              <span
-                key={item.id}
-                onMouseDown={() => handleSelect(item.value)}
-                className={classNames(
-                  'cursor-pointer rounded-[5px] p-[8px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
-                  {
-                    'bg-bg-section text-content-primary': item.value === value,
-                  },
-                )}
-              >
-                {item.label}
-              </span>
-            ))}
+            {options
+              .filter((item) => !item.disabled)
+              .map((item) => (
+                <span
+                  key={item.id}
+                  onMouseDown={() => handleSelect(item.value)}
+                  className={classNames(
+                    'cursor-pointer rounded-[5px] p-[8px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
+                    {
+                      'bg-bg-section text-content-primary': item.value === value,
+                    },
+                  )}
+                >
+                  {item.label}
+                </span>
+              ))}
           </div>,
           document.body,
         )}

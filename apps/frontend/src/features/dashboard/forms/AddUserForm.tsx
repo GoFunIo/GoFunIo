@@ -34,7 +34,6 @@ export const AddUserForm = ({ onClose }: Props) => {
       lastName: '',
       email: '',
       role: '',
-      sendInvite: false,
     },
   });
 
@@ -45,6 +44,7 @@ export const AddUserForm = ({ onClose }: Props) => {
     } catch (error) {
       setError('root', {
         message: getErrorMessage(error, {
+          403: 'Brak uprawnień.',
           409: 'Użytkownik z takim email adresem już istnieje.',
         }),
       });
@@ -83,7 +83,9 @@ export const AddUserForm = ({ onClose }: Props) => {
 
         <div className="flex flex-col gap-1 relative pb-2">
           <div className="flex justify-between items-center">
-            <label className="text-[14px] text-content-secondary mb-[4px]">Rola *</label>
+            <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
+              Rola *
+            </label>
             {errors.role?.message && (
               <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
                 {errors.role.message}
@@ -105,21 +107,6 @@ export const AddUserForm = ({ onClose }: Props) => {
               />
             )}
           />
-        </div>
-
-        <div className="flex items-center gap-[10px] p-[14px] border border-icon rounded-[7px] bg-background-secondary mt-2">
-          <input
-            type="checkbox"
-            id="sendInvite"
-            className="w-[18px] h-[18px] accent-primary cursor-pointer rounded"
-            {...register('sendInvite')}
-          />
-          <label
-            htmlFor="sendInvite"
-            className="text-[14px] text-content-primary font-medium cursor-pointer select-none"
-          >
-            Wyślij zaproszenie e-mail
-          </label>
         </div>
       </div>
 
