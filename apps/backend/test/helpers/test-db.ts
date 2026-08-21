@@ -10,6 +10,8 @@ import { Driver } from '../../src/drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../../src/drivers/driver-vehicle-assignment.entity';
 import { Membership } from '../../src/users/membership.entity';
 import { Service } from '../../src/services/services.entity';
+import { ServiceAttachment } from '../../src/service-attachments/service-attachment.entity';
+import { AttachmentObjectCleanup } from '../../src/service-attachments/attachment-object-cleanup.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -39,6 +41,8 @@ function testDataSource(schema: string): DataSource {
       DriverVehicleAssignment,
       Membership,
       Service,
+      ServiceAttachment,
+      AttachmentObjectCleanup,
     ],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
@@ -103,7 +107,7 @@ export async function truncateTestTables(): Promise<void> {
   // ponytail: hardcoded tables — extend list or switch to dynamic truncate when new FK tables appear
   await withAdminDataSource(async (admin) => {
     await admin.query(
-      `TRUNCATE TABLE "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."attachment_object_cleanup", "${schema}"."service_attachments", "${schema}"."services", "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
     );
   });
 }

@@ -116,7 +116,7 @@ export class ServicesController {
   @ApiOperation({
     summary: 'Delete an accessible active Service',
     description:
-      "Soft-deletes the Service and clears its attachment metadata. Returns 404 when the Service or Vehicle is deleted, belongs to another Workspace, or is outside the caller's Vehicle Access.",
+      "Soft-deletes the Service. Returns 404 when the Service or Vehicle is deleted, belongs to another Workspace, or is outside the caller's Vehicle Access.",
   })
   @ApiNoContentResponse()
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })

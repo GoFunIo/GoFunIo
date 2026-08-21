@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Company } from '../companies/companies.entity';
@@ -21,6 +22,7 @@ export enum ServiceType {
 }
 
 @Entity('services')
+@Unique('UQ_services_id_company', ['id', 'companyId'])
 export class Service {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -56,15 +58,6 @@ export class Service {
 
   @Column({ type: 'text', nullable: true })
   notes!: string | null;
-
-  @Column({ type: 'varchar', nullable: true })
-  attachmentKey!: string | null;
-
-  @Column({ type: 'varchar', nullable: true })
-  attachmentName!: string | null;
-
-  @Column({ type: 'varchar', nullable: true })
-  attachmentMime!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

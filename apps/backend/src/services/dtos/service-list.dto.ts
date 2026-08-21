@@ -1,7 +1,10 @@
 import { Expose, Type } from 'class-transformer';
-import { ServiceDto } from './service.dto';
+import { ServiceBaseDto } from './service.dto';
 
-export class ServiceListItemDto extends ServiceDto {
+export class ServiceListItemDto extends ServiceBaseDto {
+  @Expose()
+  attachmentCount!: number;
+
   @Expose()
   hasAttachment!: boolean;
 }

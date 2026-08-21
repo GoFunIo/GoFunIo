@@ -4,7 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  In,
+  IsNull,
+  MoreThan,
+  QueryFailedError,
+} from 'typeorm';
 import { Driver } from '../drivers/drivers.entity';
 import { Service } from '../services/services.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
@@ -17,6 +24,8 @@ import {
 } from './fleet-unit-of-work';
 import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
 import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
+import { ServiceAttachment } from '../service-attachments/service-attachment.entity';
+import { AttachmentObjectCleanup } from '../service-attachments/attachment-object-cleanup.entity';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -50,6 +59,32 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
   }
 
   private transactionStores(manager: EntityManager): FleetTransaction {
+    const enqueueCleanup = async (objectKey: string, now: Date) => {
+      await manager.upsert(
+        AttachmentObjectCleanup,
+        {
+          objectKey,
+          deleteAfter: now,
+          nextAttemptAt: now,
+          attempts: 0,
+          lockedAt: null,
+          lastError: null,
+          completedAt: null,
+        },
+        ['objectKey'],
+      );
+    };
+    const softDeleteAttachments = async (attachments: ServiceAttachment[]) => {
+      if (!attachments.length) return;
+      const now = new Date();
+      for (const attachment of attachments) {
+        await enqueueCleanup(attachment.objectKey, now);
+      }
+      await manager.softDelete(ServiceAttachment, {
+        id: In(attachments.map(({ id }) => id)),
+      });
+    };
+
     return {
       vehicles: {
         create: async (input: FleetVehicleInput): Promise<FleetVehicle> => {
@@ -136,16 +171,86 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           return service;
         },
         softDelete: async (serviceId) => {
-          await manager.update(Service, serviceId, {
-            attachmentKey: null,
-            attachmentName: null,
-            attachmentMime: null,
-          });
           await manager.softDelete(Service, serviceId);
         },
         softDeleteVehicle: async (companyId, vehicleId) => {
           await manager.softDelete(Service, { companyId, vehicleId });
         },
+      },
+      attachments: {
+        countActive: (companyId, serviceId) =>
+          manager.count(ServiceAttachment, {
+            where: { companyId, serviceId, deletedAt: IsNull() },
+          }),
+        create: (input) =>
+          manager.save(manager.create(ServiceAttachment, input)),
+        find: async (companyId, serviceId, attachmentId, lock, withDeleted) => {
+          const attachment = await manager.findOne(ServiceAttachment, {
+            where: {
+              id: attachmentId,
+              companyId,
+              serviceId,
+              ...(withDeleted ? {} : { deletedAt: IsNull() }),
+            },
+            withDeleted,
+            ...(lock ? { lock: { mode: 'pessimistic_write' } } : {}),
+          });
+          if (!attachment) throw new NotFoundException('Attachment not found');
+          return attachment;
+        },
+        update: async (attachmentId, fields) => {
+          await manager.update(ServiceAttachment, attachmentId, fields);
+          const attachment = await manager.findOne(ServiceAttachment, {
+            where: { id: attachmentId },
+            withDeleted: true,
+          });
+          if (!attachment) throw new NotFoundException('Attachment not found');
+          return attachment;
+        },
+        softDelete: async (attachmentId) => {
+          await manager.softDelete(ServiceAttachment, attachmentId);
+        },
+        softDeleteService: async (companyId, serviceId) => {
+          const attachments = await manager.find(ServiceAttachment, {
+            where: { companyId, serviceId, deletedAt: IsNull() },
+            lock: { mode: 'pessimistic_write' },
+          });
+          await softDeleteAttachments(attachments);
+        },
+        softDeleteVehicle: async (companyId, vehicleId) => {
+          const attachments = await manager
+            .createQueryBuilder(ServiceAttachment, 'attachment')
+            .innerJoin(
+              Service,
+              'service',
+              'service.id = attachment.serviceId AND service.companyId = attachment.companyId',
+            )
+            .where('attachment.companyId = :companyId', { companyId })
+            .andWhere('service.vehicleId = :vehicleId', { vehicleId })
+            .andWhere('attachment.deletedAt IS NULL')
+            .setLock('pessimistic_write')
+            .getMany();
+          await softDeleteAttachments(attachments);
+        },
+      },
+      attachmentCleanups: {
+        guard: async (objectKey, deleteAfter) => {
+          await manager.insert(AttachmentObjectCleanup, {
+            objectKey,
+            deleteAfter,
+            nextAttemptAt: deleteAfter,
+          });
+        },
+        cancel: async (objectKey, now) => {
+          const result = await manager.delete(AttachmentObjectCleanup, {
+            objectKey,
+            completedAt: IsNull(),
+            lockedAt: IsNull(),
+            deleteAfter: MoreThan(now),
+          });
+          return result.affected === 1;
+        },
+        enqueue: enqueueCleanup,
       },
     };
   }

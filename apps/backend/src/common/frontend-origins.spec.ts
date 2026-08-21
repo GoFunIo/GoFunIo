@@ -1,5 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import { EnvVars, NodeEnv } from '../config/env.validation';
+import {
+  AttachmentStorageDriver,
+  EnvVars,
+  NodeEnv,
+} from '../config/env.validation';
 import { ConfiguredFrontendOrigins } from './frontend-origins';
 
 function origins(overrides: Partial<EnvVars> = {}) {
@@ -17,6 +21,7 @@ function origins(overrides: Partial<EnvVars> = {}) {
     CORS_ORIGINS: [],
     FRONTEND_URL_PATTERNS: [],
     GOOGLE_CLIENT_ID: 'google',
+    ATTACHMENT_STORAGE_DRIVER: AttachmentStorageDriver.S3,
     VERIFICATION_TOKEN_TTL_HOURS: 24,
     PASSWORD_RESET_TOKEN_TTL_HOURS: 24,
   };
