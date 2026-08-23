@@ -1,34 +1,29 @@
-import { useState } from 'react';
-import { useLoading } from '@/hooks/useLoading';
+import { useDeleteVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useError } from '@/hooks/useError';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { VehicleData } from '@/features/dashboard/types';
 
 type Props = {
-  car: {
-    id: string;
-    brand: string;
-    model: string;
-    registrationNumber?: string;
-  };
+  car: Pick<VehicleData, 'id' | 'brand' | 'model' | 'registrationNumber'>;
   onClose: () => void;
-  onConfirm: () => Promise<void> | void;
+  onDeleted?: () => void;
 };
 
-export const DeleteCarConfirm = ({ car, onClose, onConfirm }: Props) => {
-  const { loading, setLoading } = useLoading();
-  const [error, setError] = useState<string | null>(null);
+export const DeleteCarConfirm = ({ car, onClose, onDeleted }: Props) => {
+  const deleteVehicleMutation = useDeleteVehicle();
+  const { error, setError } = useError();
 
   const displayTitle = `${car.brand} ${car.model}`;
 
   const handleDelete = async () => {
-    setLoading(true);
     setError(null);
     try {
-      await onConfirm();
+      await deleteVehicleMutation.mutateAsync(car.id);
+      onDeleted?.();
+      onClose();
     } catch (err) {
-      const apiError = err as { message?: string };
-      setError(apiError?.message || 'Nie udało się usunąć pojazdu. Spróbuj ponownie.');
-    } finally {
-      setLoading(false);
+      setError(getErrorMessage(err, { 404: 'Ten pojazd nie istnieje lub został już usunięty.' }));
     }
   };
 
@@ -39,7 +34,7 @@ export const DeleteCarConfirm = ({ car, onClose, onConfirm }: Props) => {
       <div className="mb-[24px] p-[16px] rounded-[7px] border border-icon/50 bg-background-secondary">
         <p className="text-[14px] font-bold text-content-primary">{displayTitle}</p>
         {car.registrationNumber && (
-          <p className="text-[12px] text-content-secondary mt-1">
+          <p className="text-[14px] text-content-secondary mt-1">
             Nr rej.: {car.registrationNumber}
           </p>
         )}
@@ -51,7 +46,7 @@ export const DeleteCarConfirm = ({ car, onClose, onConfirm }: Props) => {
           variant="outline"
           size="medium"
           onClick={onClose}
-          disabled={loading}
+          disabled={deleteVehicleMutation.isPending}
         >
           Anuluj
         </BoardButton>
@@ -60,9 +55,9 @@ export const DeleteCarConfirm = ({ car, onClose, onConfirm }: Props) => {
           variant="danger"
           size="medium"
           onClick={handleDelete}
-          disabled={loading}
+          disabled={deleteVehicleMutation.isPending}
         >
-          {loading ? 'Usuwanie...' : 'Usuń'}
+          {deleteVehicleMutation.isPending ? 'Usuwanie...' : 'Usuń'}
         </BoardButton>
       </div>
     </div>

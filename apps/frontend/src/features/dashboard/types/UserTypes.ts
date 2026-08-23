@@ -21,3 +21,11 @@ export interface UserFormData {
   sendInvite: boolean;
   id?: string;
 }
+
+export type TeamMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'ADMIN' | 'MANAGER' | 'OWNER';
+};

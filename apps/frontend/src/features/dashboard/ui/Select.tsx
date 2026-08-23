@@ -19,6 +19,7 @@ type Props = {
   clearOption?: boolean;
   className?: string;
   error?: string;
+  disabled?: boolean;
 };
 
 export const Select = ({
@@ -29,6 +30,7 @@ export const Select = ({
   clearOption = true,
   className,
   error,
+  disabled = false,
 }: Props) => {
   const OFFSET = 6;
 
@@ -108,9 +110,13 @@ export const Select = ({
     <div ref={selectRef} className={classNames('relative w-full', className)}>
       <button
         type="button"
+        disabled={disabled}
         className={classNames(
           'flex h-[45px] w-full cursor-pointer items-center justify-between rounded-[7px] border bg-bg-card px-[8px] outline-none',
           error ? 'border-alert' : 'border-icon',
+          {
+            'opacity-60 cursor-not-allowed pointer-events-none': disabled,
+          },
         )}
         onClick={() => setIsOpen((prev) => !prev)}
       >
@@ -132,6 +138,7 @@ export const Select = ({
       </button>
 
       {isOpen &&
+        !disabled &&
         createPortal(
           <div
             ref={menuRef}

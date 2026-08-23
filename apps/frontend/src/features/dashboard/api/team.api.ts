@@ -1,4 +1,4 @@
-import { UserFormData } from '../types/UserTypes';
+import { TeamMember, UserFormData } from '../types/UserTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -17,9 +17,9 @@ export const getTeam = async () => {
 
   const text = await res.text();
 
-  if (!text) return null;
+  if (!text) return;
 
-  return JSON.parse(text);
+  return JSON.parse(text) as TeamMember[];
 };
 
 // invite user to your team

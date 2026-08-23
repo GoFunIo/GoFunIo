@@ -1,13 +1,14 @@
+import { useMemo, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleData } from '@/features/dashboard/types';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { Select } from '@/features/dashboard/ui/Select';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { Reminders } from '@/features/dashboard/widgets/Reminders';
-import { useVehicles } from '@/hooks/useVehicles';
-import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { Select } from '@/features/dashboard/ui/Select';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
@@ -19,15 +20,10 @@ function RouteComponent() {
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<AlertFilterType>('all');
 
-  // Stany dla modala edycji / odnowienia pojazdu
   const [renewCarId, setRenewCarId] = useState<string | null>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState<boolean>(false);
 
-  const {
-    data: vehiclesResponse,
-    isLoading: isVehiclesLoading,
-    refetch: refetchVehicles,
-  } = useVehicles();
+  const { data: vehiclesResponse, isLoading: isVehiclesLoading } = useVehicles();
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
   const selectedRenewCar = vehicles.find((c) => c.id === renewCarId);
@@ -37,7 +33,6 @@ function RouteComponent() {
     setIsRenewModalOpen(true);
   };
 
-  //selector otions
   const carOptions = useMemo(() => {
     return vehicles.map((car, index) => ({
       id: index + 1,
@@ -100,7 +95,7 @@ function RouteComponent() {
       {/* WIDOK ALERTÓW */}
       <div>
         {isVehiclesLoading ? (
-          <p className="text-content-secondary text-[14px] mt-6">Ładowanie alertów…</p>
+          <LoadingIcon className="m-auto my-[24px]" />
         ) : (
           <Reminders
             data={filteredVehicles}
@@ -125,7 +120,6 @@ function RouteComponent() {
         <AddVehicleForm
           initialData={selectedRenewCar}
           onClose={() => setIsRenewModalOpen(false)}
-          onSuccess={() => refetchVehicles()}
           isRenewalMode={true}
         />
       </Modal>

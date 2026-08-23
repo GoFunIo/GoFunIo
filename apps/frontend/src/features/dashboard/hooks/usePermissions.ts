@@ -3,7 +3,8 @@ import { useUser } from './user.hooks';
 export const usePermissions = () => {
   const { data: user } = useUser();
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isOwner = user?.role === 'OWNER';
+  const isAdmin = user?.role === 'ADMIN' || isOwner;
   const isManager = user?.role === 'MANAGER';
 
   return {
@@ -21,5 +22,13 @@ export const usePermissions = () => {
 
     // uprawnienia dotyczące zarządzania kierowcami
     canDeleteDrivers: isAdmin,
+
+    // uprawnienia dotyczące zarządzania pojazdami
+    canAddVehicle: isAdmin || isManager,
+    canEditVehicle: isAdmin || isManager,
+    canDeleteVehicle: isAdmin || isManager,
+
+    // tylko admin zarządza listą managerów przypisanych do pojazdu
+    canManageVehicleManagers: isAdmin,
   };
 };

@@ -1,17 +1,26 @@
-import { CarFront, Fuel, Gauge, Users } from 'lucide-react';
+import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
+
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+import { VehicleData } from '@/features/dashboard/types';
+import { fuelTypeLabels } from '../constants/fuelOptions';
+import { usePermissions } from '../hooks/usePermissions';
 
-const FUEL_TYPE_LABELS: Record<VehicleFuelType, string> = {
-  DIESEL: 'Diesel',
-  PETROL: 'Benzyna',
-  LPG: 'LPG',
-  HYBRID: 'Hybryda',
-  ELECTRIC: 'Elektryk',
+type PersonWithName = {
+  firstName: string;
+  lastName: string;
+};
+
+const formatNames = (people?: PersonWithName[]): string => {
+  if (!people || people.length === 0) return 'Brak';
+
+  const firstPerson = `${people[0].firstName} ${people[0].lastName}`;
+  if (people.length === 1) return firstPerson;
+
+  return `${firstPerson} +${people.length - 1}`;
 };
 
 export interface VehicleCardProps {
@@ -20,6 +29,11 @@ export interface VehicleCardProps {
 }
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
+  const { canManageVehicleManagers } = usePermissions();
+
+  const driverNames = formatNames(vehicle.drivers);
+  const managerNames = formatNames(vehicle.managers);
+
   const inspectionDays = vehicle.technicalInspectionExpiry
     ? calculateDaysToDate(vehicle.technicalInspectionExpiry).days
     : Infinity;
@@ -88,7 +102,7 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Fuel size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
               <p className="text-[14px] text-content-secondary uppercase">
-                {vehicle.fuelType ? FUEL_TYPE_LABELS[vehicle.fuelType] : 'Nieokreślone'}
+                {vehicle.fuelType ? fuelTypeLabels[vehicle.fuelType] : 'Nieokreślone'}
               </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
@@ -101,11 +115,14 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
               <Users size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <div className="text-[14px] flex items-center gap-[6px]">
-                <span className="text-content-secondary">KIEROWCA:</span>
-                {vehicle.driverIds.length > 0 ? `Przypisano (${vehicle.driverIds.length})` : 'Brak'}
-              </div>
+              <span className="text-[14px] text-content-secondary">KIEROWCA: {driverNames}</span>
             </div>
+            {canManageVehicleManagers && (
+              <div className="flex gap-[10px] items-center text-content-secondary">
+                <User size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
+                <span className="text-[14px] text-content-secondary">MANAGER: {managerNames}</span>
+              </div>
+            )}
           </div>
           <BoardButton
             className="!w-10 !h-10 "

@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
-import { CalendarCog, ChevronRight, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useVehicles } from '@/hooks/useVehicles';
+import { CalendarCog, ChevronRight, LucideIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import classNames from 'classnames';
 
@@ -9,7 +9,7 @@ interface RemindersDropdownProps {
   onClose: () => void;
 }
 
-const activityIcons = {
+const activityIcons: Record<'inspection' | 'insurance_ac' | 'insurance_oc', LucideIcon> = {
   inspection: CalendarCog,
   insurance_ac: ShieldCheck,
   insurance_oc: ShieldAlert,
