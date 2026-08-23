@@ -5,12 +5,18 @@ import { AuthSwitch } from '@/features/auth/ui/AuthSwitch';
 import { GoogleSignInButton } from '@/features/auth/ui/GoogleSignInButton';
 
 export const Route = createFileRoute('/(auth)/login/')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    invitationToken:
-      typeof search.invitationToken === 'string' && /^[0-9a-f]{64}$/i.test(search.invitationToken)
-        ? search.invitationToken
-        : '',
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    if (
+      typeof search.invitationToken === 'string' &&
+      /^[0-9a-f]{64}$/i.test(search.invitationToken)
+    ) {
+      return {
+        invitationToken: search.invitationToken,
+      };
+    }
+
+    return {};
+  },
   component: Login,
 });
 

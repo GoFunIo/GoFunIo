@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/Button';
 import { acceptMembershipInvitation } from '@/features/auth/auth.api';
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/accept-invitation')({
+export const Route = createFileRoute('/(auth)/accept-invitation/')({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === 'string' ? search.token : '',
   }),

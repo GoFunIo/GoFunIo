@@ -13,7 +13,7 @@ import { useError } from '@/hooks/useError';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { SelectWithAction } from '@/features/dashboard/ui/SelectWithAction';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import { TeamMember, VehicleData } from '@/features/dashboard/types';
+import { UserType, VehicleData } from '@/features/dashboard/types';
 
 type Props = {
   vehicle: VehicleData;
@@ -37,7 +37,7 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
   const assignedDrivers = vehicle.drivers;
   const assignedManagers = vehicle.managers;
 
-  const teamManagers: TeamMember[] = (team ?? []).filter((person) => person.role === 'MANAGER');
+  const teamManagers: UserType[] = (team ?? []).filter((person) => person.role === 'MANAGER');
   const availableDrivers = (drivers ?? []).filter((d) => !currentDriverIds.includes(d.id));
   const availableManagers = teamManagers.filter((m) => !currentManagerIds.includes(m.id));
 

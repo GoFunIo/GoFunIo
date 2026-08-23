@@ -4,7 +4,7 @@ import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/verify-email-change')({
+export const Route = createFileRoute('/(auth)/verify-email-change/')({
   validateSearch: (search: Record<string, unknown>) => ({
     token: (search.token as string) || '',
   }),

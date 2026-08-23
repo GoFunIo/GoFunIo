@@ -38,7 +38,7 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) =
           transition={{ duration: 0.2 }}
         >
           <motion.div
-            className="relative max-h-[90vh] w-full max-w-[800px] overflow-y-auto rounded-[7px] border-icon bg-bg-page p-[25px] md:m-[32px] m-[15px]"
+            className="scrollbar-dashboard relative max-h-[90vh] w-full max-w-[800px] overflow-y-auto rounded-[7px] border-icon bg-bg-page p-[25px] md:m-[32px] m-[15px]"
             onMouseDown={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
