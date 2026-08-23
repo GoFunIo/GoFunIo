@@ -3,7 +3,7 @@ import React from 'react';
 
 type Props = {
   children: React.ReactNode;
-  layout: '5-equal' | '4-equal' | '3-equal' | '3-unequal' | '2-equal' | '2-unequal';
+  layout?: '5-equal' | '4-equal' | '3-equal' | '3-unequal' | '2-equal' | '2-unequal';
   className?: string;
 };
 

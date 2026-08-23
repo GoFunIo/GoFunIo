@@ -1,22 +1,32 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
+
+import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
+import { VehicleData, VehicleFuelType, ServiceData } from '@/features/dashboard/types';
+
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
-import { History, HistoryDataItem } from '@/features/dashboard/widgets/History';
-import { activityArray } from '@/store/cars';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
+import { History } from '@/features/dashboard/widgets/History';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
+import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
+import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
 import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
-import { useDeleteVehicle, useVehicle } from '@/hooks/useVehicles';
-import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { VehicleData } from '@/features/dashboard/types';
+import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
+import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
+
+const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
+  if (!fuelValue) return 'Nieokreślone';
+  return fuelTypeLabels[fuelValue] ?? fuelValue;
+};
 
 export const Route = createFileRoute('/dashboard/my-cars/$carId')({
   loader: async ({ params }) => {
@@ -34,17 +44,51 @@ function RouteComponent() {
   const { carId } = Route.useParams();
   const navigate = useNavigate();
 
-  const { data: car, isLoading, refetch } = useVehicle(carId);
+  const { data: car, isLoading } = useVehicle(carId);
   const currentCar = car ?? initialCarData;
 
-  const { mutateAsync: removeCar, isPending: isDeleting } = useDeleteVehicle();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { data: servicesResponse } = useServices();
+  const { canEditVehicle, canDeleteVehicle } = usePermissions();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [modalState, setModalState] = useState<boolean | ServiceData | null>(null);
+  const [deleteModalState, setDeleteModalState] = useState<ServiceData | null>(null);
 
-  const [modalState, setModalState] = useState<boolean | HistoryDataItem | null>(null);
-  const [deleteModalState, setDeleteModalState] = useState<HistoryDataItem | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 5;
+
+  const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
+
+  const singleCarHistory = useMemo(() => {
+    if (!currentCar) return [];
+    const allServices = servicesResponse?.items ?? [];
+    return allServices.filter(
+      (item) => item.vehicleId === currentCar.id || item.vehicle?.id === currentCar.id,
+    );
+  }, [servicesResponse, currentCar]);
+
+  const totalExpenses = useMemo(
+    () => singleCarHistory.reduce((sum, item) => sum + (Number(item.cost) || 0), 0),
+    [singleCarHistory],
+  );
+
+  const paginatedHistory = useMemo(() => {
+    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+    return singleCarHistory.slice(start, start + HISTORY_PAGE_SIZE);
+  }, [singleCarHistory, historyPage]);
+
+  const totalHistoryPages = Math.max(1, Math.ceil(singleCarHistory.length / HISTORY_PAGE_SIZE));
+
+  const serviceInitialData = useMemo(() => {
+    if (!currentCar) return undefined;
+
+    if (isServiceEditMode) {
+      return modalState as ServiceData;
+    }
+
+    return undefined;
+  }, [modalState, isServiceEditMode, currentCar]);
 
   if (isLoading && !currentCar) {
     return (
@@ -68,54 +112,11 @@ function RouteComponent() {
   }
 
   const isServiceModalOpen = !!modalState;
-  const isServiceEditMode = typeof modalState === 'object' && modalState !== null;
   const isServiceDeleteModalOpen = !!deleteModalState;
 
   const editModalTitle = `Edytuj pojazd ${currentCar.brand} ${currentCar.model}`;
   const editModalSubtitle =
     'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.';
-
-  const handleDelete = async () => {
-    setDeleteError(null);
-    try {
-      await removeCar(currentCar.id);
-      setIsDeleteModalOpen(false);
-      navigate({ to: '/dashboard/my-cars' });
-    } catch (error) {
-      const apiError = error as { message?: string };
-      setDeleteError(apiError?.message ?? 'Wystąpił błąd podczas usuwania pojazdu.');
-    }
-  };
-
-  const singleCarHistory = activityArray.filter((item) => item.vehicleId === String(currentCar.id));
-
-  const totalExpenses = singleCarHistory.reduce((sum, item) => {
-    return sum + item.cost;
-  }, 0);
-
-  const serviceInitialData = useMemo(() => {
-    if (isServiceEditMode) {
-      const editItem = modalState as HistoryDataItem;
-      return {
-        vehicleId: String(currentCar.id),
-        servicePlace: editItem.servicePlace,
-        cost: editItem.cost,
-        serviceType: editItem.serviceType,
-        serviceDate: editItem.serviceDate,
-        notes: editItem.notes,
-        attachment: undefined,
-      };
-    }
-    return {
-      vehicleId: String(currentCar.id),
-      serviceDate: new Date().toISOString().split('T')[0],
-      serviceType: '',
-      cost: undefined,
-      servicePlace: '',
-      notes: '',
-      attachment: undefined,
-    };
-  }, [modalState, isServiceEditMode, currentCar.id]);
 
   return (
     <>
@@ -138,25 +139,28 @@ function RouteComponent() {
             <h3 className="pb-[3px] capitalize">
               {currentCar.brand} {currentCar.model}
             </h3>
-            <p className="text-[14px] text-content-secondary">
+            <p className="text-[14px] text-content-secondary uppercase">
               {currentCar.productionYear ?? ''} · {currentCar.registrationNumber} ·{' '}
-              {currentCar.fuelType ?? 'Nieokreślone'}
+              {getFuelLabel(currentCar.fuelType)}
             </p>
           </div>
         </div>
         <div className="sm:ml-auto order-1 flex gap-[16px]">
-          <BoardButton onClick={() => setIsEditModalOpen(true)} icon="edit" size="small">
-            Edytuj
-          </BoardButton>
-          <BoardButton
-            onClick={() => setIsDeleteModalOpen(true)}
-            icon="delete"
-            variant="danger"
-            size="small"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Usuwanie...' : 'Usuń'}
-          </BoardButton>
+          {canEditVehicle && (
+            <BoardButton onClick={() => setIsEditModalOpen(true)} icon="edit" size="small">
+              Edytuj
+            </BoardButton>
+          )}
+          {canDeleteVehicle && (
+            <BoardButton
+              onClick={() => setIsDeleteModalOpen(true)}
+              icon="delete"
+              variant="danger"
+              size="small"
+            >
+              Usuń
+            </BoardButton>
+          )}
         </div>
       </div>
 
@@ -184,7 +188,8 @@ function RouteComponent() {
       {/* 4. HISTORIA SERWISÓW POJEDYŃCZEGO AUTA   + SPECYFIKACJA  */}
       <GridWrapper layout="2-unequal">
         <History
-          data={singleCarHistory}
+          title="Historia serwisowa"
+          data={paginatedHistory}
           link={{
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
@@ -195,54 +200,53 @@ function RouteComponent() {
           }}
           onEditClick={(item) => setModalState(item)}
           onDeleteClick={(item) => setDeleteModalState(item)}
-          title="Historia serwisowa"
+          pagination={{
+            currentPage: historyPage,
+            totalPages: totalHistoryPages,
+            onPageChange: setHistoryPage,
+          }}
         />
 
-        <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
+        <GridWrapper>
+          <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
+          <VehicleAssignments vehicle={currentCar} />
+        </GridWrapper>
       </GridWrapper>
 
       {/* =========================================================
           M O D A L E   Z A R Z Ą D Z A N I A   P O J A Z D E M
           ========================================================= */}
 
-      {/* MODAL EDYCJI */}
-      <Modal
-        isOpen={isEditModalOpen}
-        setIsOpen={setIsEditModalOpen}
-        title={editModalTitle}
-        subtitle={editModalSubtitle}
-      >
-        <AddVehicleForm
-          initialData={currentCar}
-          onClose={() => setIsEditModalOpen(false)}
-          onSuccess={() => refetch()}
-        />
-      </Modal>
+      {canEditVehicle && (
+        <Modal
+          isOpen={isEditModalOpen}
+          setIsOpen={setIsEditModalOpen}
+          title={editModalTitle}
+          subtitle={editModalSubtitle}
+        >
+          <AddVehicleForm initialData={currentCar} onClose={() => setIsEditModalOpen(false)} />
+        </Modal>
+      )}
 
-      {/* MODAL USUWANIA */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        setIsOpen={setIsDeleteModalOpen}
-        title="Usuń pojazd"
-        subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
-      >
-        <DeleteCarConfirm
-          car={currentCar}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleDelete}
-        />
-        {deleteError && (
-          <p className="text-alert text-[12px] font-medium text-center mt-3 bg-alert/10 p-2 rounded">
-            {deleteError}
-          </p>
-        )}
-      </Modal>
+      {canDeleteVehicle && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          setIsOpen={setIsDeleteModalOpen}
+          title="Usuń pojazd"
+          subtitle="Czy na pewno chcesz usunąć ten pojazd z systemu? Ta operacja jest nieodwracalna."
+        >
+          <DeleteCarConfirm
+            car={currentCar}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onDeleted={() => navigate({ to: '/dashboard/my-cars' })}
+          />
+        </Modal>
+      )}
 
       {/* =========================================================
           M O D A L E   Z A R Z Ą D Z A N I A   S E R W I S A M I
           ========================================================= */}
 
-      {/* MODAL 1: DODAWANIE / EDYCJA WPISU SERWISOWEGO */}
       <Modal
         isOpen={isServiceModalOpen}
         setIsOpen={() => setModalState(null)}
@@ -254,13 +258,12 @@ function RouteComponent() {
         }
       >
         <AddVehicleServiceForm
-          key={isServiceEditMode ? (modalState as HistoryDataItem).id : 'new'}
+          key={isServiceEditMode ? (modalState as ServiceData).id : 'new'}
           onClose={() => setModalState(null)}
           initialData={serviceInitialData}
         />
       </Modal>
 
-      {/* MODAL 2: POTWIERDZENIE USUWANIA WPISU SERWISOWEGO */}
       <Modal
         isOpen={isServiceDeleteModalOpen}
         setIsOpen={() => setDeleteModalState(null)}
@@ -269,26 +272,8 @@ function RouteComponent() {
       >
         {deleteModalState && (
           <DeleteServiceConfirm
-            service={{
-              id: deleteModalState.id,
-              vehicleId: String(currentCar.id),
-              serviceType: deleteModalState.notes || 'Czynność serwisowa',
-              servicePlace: deleteModalState.servicePlace,
-              serviceDate: deleteModalState.serviceDate,
-              cost: deleteModalState.cost,
-              carBrand: currentCar.brand,
-              carModel: currentCar.model,
-              registrationNumber: currentCar.registrationNumber,
-            }}
+            service={deleteModalState}
             onClose={() => setDeleteModalState(null)}
-            onConfirm={async () => {
-              try {
-                console.log('Usuwanie wpisu o ID:', deleteModalState.id);
-                setDeleteModalState(null);
-              } catch (error) {
-                console.error('Błąd podczas usuwania wpisu:', error);
-              }
-            }}
           />
         )}
       </Modal>
