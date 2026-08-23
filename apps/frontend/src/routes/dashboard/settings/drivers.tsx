@@ -11,17 +11,20 @@ import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
+import { VehicleCardCompact } from '@/features/dashboard/widgets/VehicleCardCompact';
 import { Column } from '@/types/table';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Car } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/settings/drivers')({
   component: RouteComponent,
 });
 
-type ModalType = 'add' | 'edit' | 'delete' | null;
+type ModalType = 'add' | 'edit' | 'delete' | 'showCars' | null;
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const { canDeleteDrivers } = usePermissions();
   const { data: drivers, isPending } = useDrivers();
 
@@ -69,6 +72,11 @@ function RouteComponent() {
     setActiveModal('delete');
   };
 
+  const handleShowDriverCars = (driver: DriverType) => {
+    setSelectedDriver(driver);
+    setActiveModal('showCars');
+  };
+
   const columns: Column<DriverType>[] = [
     {
       header: 'Kierowca',
@@ -87,6 +95,19 @@ function RouteComponent() {
       accessor: 'notes',
       render: (_, item) => {
         return item.notes ? item.notes : '-';
+      },
+    },
+    {
+      header: 'Pojazdy',
+      accessor: 'cars',
+      render: (_, item) => {
+        return item.activeVehicles.length > 0 ? (
+          <BoardButton onClick={() => handleShowDriverCars(item)} size="square">
+            <Car size="18" />
+          </BoardButton>
+        ) : (
+          '-'
+        );
       },
     },
   ];
@@ -133,6 +154,30 @@ function RouteComponent() {
                 setSelectedDriver(null);
               }}
             />
+          ),
+        };
+
+      case 'showCars':
+        return {
+          title: 'Pojazdu kierowcy.',
+          subtitle: `Wszystkie pojazdy przypisane do ${selectedDriver?.firstName} ${selectedDriver?.lastName}`,
+          content: (
+            <div className="flex flex-col gap-7">
+              {selectedDriver?.activeVehicles.map((item) => {
+                return (
+                  <VehicleCardCompact
+                    key={item.id}
+                    vehicle={item}
+                    onDetailsClick={(id) =>
+                      navigate({
+                        to: '/dashboard/my-cars/$carId',
+                        params: { carId: String(id) },
+                      })
+                    }
+                  />
+                );
+              })}
+            </div>
           ),
         };
       default:
