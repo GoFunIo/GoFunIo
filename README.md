@@ -2,8 +2,8 @@
 
 This is a fullstack monorepo project with:
 
-* **Frontend**: React + TypeScript (Vite)
-* **Backend**: NestJS (Node.js + TypeScript)
+- **Frontend**: React + TypeScript (Vite)
+- **Backend**: NestJS (Node.js + TypeScript)
 
 It uses **pnpm** as package manager and **monorepo structure**.
 
@@ -35,8 +35,11 @@ cp apps/frontend/.env.example apps/frontend/.env
 make dev
 ```
 
-The frontend is available at `http://localhost:5173` and the backend at
-`http://localhost:3000`. Source changes trigger hot reload in both services.
+The frontend is available at `http://localhost:5173`, the backend at
+`http://localhost:3000`, and the MinIO console at `http://localhost:9001`.
+Source changes trigger hot reload in both applications. Docker Compose creates
+the private `gofunio-attachments-local` bucket idempotently and persists its
+objects in the `minio_data` volume.
 
 ### Docker without Make
 
@@ -60,11 +63,11 @@ On Windows, run these commands from PowerShell with Docker Desktop running.
 
 Command reference:
 
-| Action | Make | Docker Compose |
-| --- | --- | --- |
-| Start all services, build the image, and run migrations | `make dev` | `docker compose up --build` |
-| Follow logs from running services | `make logs` | `docker compose logs --follow` |
-| Stop services but keep database data | `make down` | `docker compose down --remove-orphans` |
+| Action                                                         | Make         | Docker Compose                                   |
+| -------------------------------------------------------------- | ------------ | ------------------------------------------------ |
+| Start all services, build the image, and run migrations        | `make dev`   | `docker compose up --build`                      |
+| Follow logs from running services                              | `make logs`  | `docker compose logs --follow`                   |
+| Stop services but keep database data                           | `make down`  | `docker compose down --remove-orphans`           |
 | Stop services and delete local database and dependency volumes | `make reset` | `docker compose down --volumes --remove-orphans` |
 
 ### Development without Docker
@@ -112,6 +115,35 @@ with hot reload; use `pnpm dev:frontend` or `pnpm dev:backend` to run only one.
 The frontend does not access PostgreSQL directly. When running only the
 frontend, `VITE_API_URL` must point to an already running backend.
 
+For backend development outside Docker, run MinIO on port `9000` and add this
+local-only storage configuration to `apps/backend/.env`:
+
+```dotenv
+ATTACHMENT_STORAGE_DRIVER=s3
+ATTACHMENT_STORAGE_ENDPOINT=http://localhost:9000
+ATTACHMENT_STORAGE_PUBLIC_ENDPOINT=http://localhost:9000
+ATTACHMENT_STORAGE_REGION=us-east-1
+ATTACHMENT_STORAGE_BUCKET=gofunio-attachments-local
+ATTACHMENT_STORAGE_ACCESS_KEY_ID=gofunio
+ATTACHMENT_STORAGE_SECRET_ACCESS_KEY=gofunio-local-storage
+ATTACHMENT_STORAGE_FORCE_PATH_STYLE=true
+```
+
+`ATTACHMENT_STORAGE_PUBLIC_ENDPOINT` is the endpoint embedded in presigned
+URLs. It must already be reachable by the browser; signed URLs are never
+rewritten after signing. Production credentials belong in environment secrets,
+not committed files.
+
+To run the manual storage contract against local MinIO:
+
+```bash
+docker compose up -d minio minio-init
+pnpm --filter backend test:storage
+```
+
+Normal `test` and `test:e2e` runs use the in-memory adapter and require neither
+MinIO nor Cloudflare.
+
 ## Optional host tooling
 
 The commands below require Node.js and pnpm on the host. They are not needed
@@ -120,16 +152,21 @@ for the Docker development setup.
 ### Run Eslint
 
 Running frontend only
+
 ```
 pnpm lint:frontend
 ```
 
 ### Build Project
+
 From the root of project:
+
 ```
 pnpm run build
 ```
+
 After building the project, a dist folder is created in the root directory
+
 ```
 ├ dist/
 │  ├ frontend

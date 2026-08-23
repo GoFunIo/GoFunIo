@@ -15,6 +15,7 @@ import { FrontendOriginsModule } from './common/frontend-origins.module';
 import { ServicesModule } from './services/services.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AttachmentStorageModule } from './attachment-storage/attachment-storage.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       }),
     }),
     FrontendOriginsModule,
+    AttachmentStorageModule,
     UsersModule,
     MailModule,
     CompaniesModule,

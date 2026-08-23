@@ -15,9 +15,90 @@ import { AddWorkspaceOwner1759000000000 } from '../src/migrations/1759000000000-
 import { LinkDriverMembership1760000000000 } from '../src/migrations/1760000000000-LinkDriverMembership';
 import { EnforceSingleActiveDriver1761000000000 } from '../src/migrations/1761000000000-EnforceSingleActiveDriver';
 import { CreateServices1762000000000 } from '../src/migrations/1762000000000-CreateServices';
+import { NormalizeServiceAttachments1763000000000 } from '../src/migrations/1763000000000-NormalizeServiceAttachments';
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
+  it('rejects legacy Service attachment metadata before dropping its columns', async () => {
+    const schema = `migration_${randomBytes(4).toString('hex')}`;
+    const admin = new DataSource({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+    });
+    const options = {
+      type: 'postgres' as const,
+      url: process.env.DATABASE_URL,
+      schema,
+      extra: { options: `-c search_path=${schema},public` },
+    };
+    const database = new DataSource({
+      ...options,
+      migrations: [
+        CreateInitialSchema1748000000000,
+        NormalizeUserIdentity1749000000000,
+        AddProfileFields1750000000000,
+        CreateVehicles1751000000000,
+        CreateDrivers1752000000000,
+        CreateMemberships1753000000000,
+        AddMembershipInvitations1754000000000,
+        AllowUsersWithoutCompany1755000000000,
+        ReferenceManagerMembership1756000000000,
+        AllowRemovedMemberships1757000000000,
+        DropUserCompanyRole1758000000000,
+        AddWorkspaceOwner1759000000000,
+        LinkDriverMembership1760000000000,
+        EnforceSingleActiveDriver1761000000000,
+        CreateServices1762000000000,
+      ],
+    });
+    const attachmentMigration = new DataSource({
+      ...options,
+      migrations: [NormalizeServiceAttachments1763000000000],
+    });
+
+    await admin.initialize();
+    try {
+      await admin.query(`CREATE SCHEMA "${schema}"`);
+      await database.initialize();
+      await database.runMigrations();
+
+      const [{ id: companyId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "companies" (name) VALUES ('Legacy attachments') RETURNING id`,
+      );
+      const [{ id: vehicleId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "vehicles" ("companyId", brand, model, "registrationNumber")
+         VALUES ($1, 'Legacy', 'Attachment', 'LEGACY1') RETURNING id`,
+        [companyId],
+      );
+      await database.query(
+        `INSERT INTO "services"
+         ("companyId", "vehicleId", "serviceDate", type, cost, "providerName", "attachmentKey")
+         VALUES ($1, $2, '2026-01-15', 'OTHER', '10.00', 'Legacy provider', 'legacy/report.pdf')`,
+        [companyId, vehicleId],
+      );
+      await database.destroy();
+
+      await attachmentMigration.initialize();
+      await expect(attachmentMigration.runMigrations()).rejects.toThrow(
+        'legacy Service attachment metadata must be null',
+      );
+      await expect(
+        attachmentMigration.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.service_attachments`,
+        ]),
+      ).resolves.toEqual([{ regclass: null }]);
+    } finally {
+      if (attachmentMigration.isInitialized) {
+        await attachmentMigration.destroy();
+      }
+      if (database.isInitialized) {
+        await database.destroy();
+      }
+      await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await admin.destroy();
+    }
+  });
+
   it('supports fresh migration, rollback, and rerun', async () => {
     const schema = `migration_${randomBytes(4).toString('hex')}`;
     const admin = new DataSource({
@@ -45,6 +126,7 @@ describe('database migrations', () => {
         LinkDriverMembership1760000000000,
         EnforceSingleActiveDriver1761000000000,
         CreateServices1762000000000,
+        NormalizeServiceAttachments1763000000000,
       ],
     });
 
@@ -59,17 +141,19 @@ describe('database migrations', () => {
         `
         SELECT table_name
         FROM information_schema.tables
-        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships', 'services')
+        WHERE table_schema = $1 AND table_name IN ('companies', 'users', 'vehicles', 'manager_vehicle_assignments', 'drivers', 'driver_vehicle_assignments', 'memberships', 'services', 'service_attachments', 'attachment_object_cleanup')
         ORDER BY table_name
       `,
         [schema],
       );
       expect(tables.map(({ table_name }) => table_name)).toEqual([
+        'attachment_object_cleanup',
         'companies',
         'driver_vehicle_assignments',
         'drivers',
         'manager_vehicle_assignments',
         'memberships',
+        'service_attachments',
         'services',
         'users',
         'vehicles',
@@ -97,6 +181,16 @@ describe('database migrations', () => {
         [schema],
       );
       expect(contractedColumns).toEqual([]);
+
+      const legacyAttachmentColumns = await database.query<
+        { column_name: string }[]
+      >(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = 'services'
+           AND column_name IN ('attachmentKey', 'attachmentName', 'attachmentMime')`,
+        [schema],
+      );
+      expect(legacyAttachmentColumns).toEqual([]);
 
       const [{ id: backfillCompanyId }] = await database.query<
         { id: string }[]
@@ -159,6 +253,7 @@ describe('database migrations', () => {
 
       await database.undoLastMigration();
       await database.undoLastMigration();
+      await database.undoLastMigration();
       const [{ id: allocationVehicleId }] = await database.query<
         { id: string }[]
       >(
@@ -199,6 +294,7 @@ describe('database migrations', () => {
         ),
       ).rejects.toMatchObject({ code: '23505' });
 
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();
       await expect(
@@ -272,14 +368,13 @@ describe('database migrations', () => {
         [companyId],
       );
 
-      await expect(
-        database.query(
-          `INSERT INTO "services"
-           ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes", "attachmentKey", "attachmentName", "attachmentMime")
-           VALUES ($1, $2, '2026-01-15', 'FULL', '1234.56', 'Migration Workshop', 'Complete service', 'services/report.pdf', 'report.pdf', 'application/pdf')`,
-          [companyId, vehicleId],
-        ),
-      ).resolves.toBeDefined();
+      const [{ id: serviceId }] = await database.query<{ id: string }[]>(
+        `INSERT INTO "services"
+         ("companyId", "vehicleId", "serviceDate", "type", "cost", "providerName", "notes")
+         VALUES ($1, $2, '2026-01-15', 'FULL', '1234.56', 'Migration Workshop', 'Complete service')
+         RETURNING id`,
+        [companyId, vehicleId],
+      );
       await expect(
         database.query(
           `INSERT INTO "services"
@@ -315,6 +410,81 @@ describe('database migrations', () => {
         ),
       ).rejects.toMatchObject({ code: '23514' });
 
+      await database.query(
+        `INSERT INTO "service_attachments"
+         ("companyId", "serviceId", "objectKey", name, "mimeType", size)
+         VALUES ($1, $2, 'service-attachments/valid.pdf', 'valid.pdf', 'application/pdf', 1024)`,
+        [companyId, serviceId],
+      );
+      await expect(
+        database.query(
+          `INSERT INTO "service_attachments"
+           ("companyId", "serviceId", "objectKey", name, "mimeType", size)
+           VALUES ($1, $2, 'service-attachments/cross.pdf', 'cross.pdf', 'application/pdf', 1024)`,
+          [otherCompanyId, serviceId],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      for (const [objectKey, size] of [
+        ['service-attachments/empty.pdf', 0],
+        ['service-attachments/large.pdf', 10_485_761],
+      ] as const) {
+        await expect(
+          database.query(
+            `INSERT INTO "service_attachments"
+             ("companyId", "serviceId", "objectKey", name, "mimeType", size)
+             VALUES ($1, $2, $3, 'invalid.pdf', 'application/pdf', $4)`,
+            [companyId, serviceId, objectKey, size],
+          ),
+        ).rejects.toMatchObject({ code: '23514' });
+      }
+      await expect(
+        database.query(
+          `INSERT INTO "service_attachments"
+           ("companyId", "serviceId", "objectKey", name, "mimeType", size)
+           VALUES ($1, $2, 'service-attachments/text.txt', 'text.txt', 'text/plain', 10)`,
+          [companyId, serviceId],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+      await expect(
+        database.query(
+          `INSERT INTO "service_attachments"
+           ("companyId", "serviceId", "objectKey", name, "mimeType", size)
+           VALUES ($1, $2, 'service-attachments/valid.pdf', 'duplicate.pdf', 'application/pdf', 10)`,
+          [companyId, serviceId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+      await expect(
+        database.query(
+          `INSERT INTO "attachment_object_cleanup"
+           ("objectKey", "deleteAfter", attempts, "nextAttemptAt")
+           VALUES ('service-attachments/cleanup.pdf', now(), -1, now())`,
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+
+      const attachmentIndexes = await database.query<
+        { indexname: string; indexdef: string }[]
+      >(
+        `SELECT indexname, indexdef FROM pg_indexes
+         WHERE schemaname = $1
+           AND indexname IN ('IDX_service_attachments_company_service_active', 'IDX_attachment_object_cleanup_due')
+         ORDER BY indexname`,
+        [schema],
+      );
+      expect(attachmentIndexes).toEqual([
+        {
+          indexname: 'IDX_attachment_object_cleanup_due',
+          indexdef: expect.stringContaining(
+            '("nextAttemptAt", "lockedAt") WHERE ("completedAt" IS NULL)',
+          ),
+        },
+        {
+          indexname: 'IDX_service_attachments_company_service_active',
+          indexdef: expect.stringContaining(
+            '("companyId", "serviceId", "createdAt" DESC, id DESC) WHERE ("deletedAt" IS NULL)',
+          ),
+        },
+      ]);
+
       const serviceIndexes = await database.query<
         { indexname: string; indexdef: string }[]
       >(
@@ -344,6 +514,33 @@ describe('database migrations', () => {
         },
       ]);
 
+      await database.undoLastMigration();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.service_attachments`,
+        ]),
+      ).resolves.toEqual([{ regclass: null }]);
+      await expect(
+        database.query<{ column_name: string }[]>(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = 'services'
+             AND column_name IN ('attachmentKey', 'attachmentName', 'attachmentMime')
+           ORDER BY column_name`,
+          [schema],
+        ),
+      ).resolves.toEqual([
+        { column_name: 'attachmentKey' },
+        { column_name: 'attachmentMime' },
+        { column_name: 'attachmentName' },
+      ]);
+      await database.runMigrations();
+      await expect(
+        database.query(`SELECT to_regclass($1) AS regclass`, [
+          `${schema}.service_attachments`,
+        ]),
+      ).resolves.toEqual([{ regclass: 'service_attachments' }]);
+
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await expect(
         database.query(`SELECT to_regclass($1) AS regclass`, [
@@ -486,6 +683,7 @@ describe('database migrations', () => {
       >(
         `INSERT INTO "users" ("email") VALUES ('membershipless@example.com') RETURNING id`,
       );
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();
       await database.undoLastMigration();

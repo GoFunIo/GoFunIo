@@ -16,6 +16,7 @@ import type {
 } from './vehicle-access';
 import type { DriverAllocationStore } from './driver-allocation';
 import type { ServiceType } from '../services/services.entity';
+import type { ServiceAttachmentMimeType } from '../service-attachments/service-attachment.entity';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -90,12 +91,35 @@ export interface FleetServiceInput {
 
 export interface FleetService extends FleetServiceInput {
   id: string;
-  attachmentKey: string | null;
-  attachmentName: string | null;
-  attachmentMime: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+}
+
+export interface FleetServiceAttachment {
+  id: string;
+  companyId: string;
+  serviceId: string;
+  objectKey: string;
+  name: string;
+  mimeType: ServiceAttachmentMimeType;
+  size: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
+export interface FleetAttachmentCleanup {
+  id: string;
+  objectKey: string;
+  deleteAfter: Date;
+  attempts: number;
+  nextAttemptAt: Date;
+  lockedAt: Date | null;
+  lastError: string | null;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface FleetVehicleAccessStore {
@@ -165,6 +189,37 @@ export interface FleetTransaction {
     softDelete(serviceId: string): Promise<void>;
     softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
   };
+  attachments: {
+    countActive(companyId: string, serviceId: string): Promise<number>;
+    create(
+      input: Omit<
+        FleetServiceAttachment,
+        'id' | 'createdAt' | 'updatedAt' | 'deletedAt'
+      >,
+    ): Promise<FleetServiceAttachment>;
+    find(
+      companyId: string,
+      serviceId: string,
+      attachmentId: string,
+      lock?: boolean,
+      withDeleted?: boolean,
+    ): Promise<FleetServiceAttachment>;
+    update(
+      attachmentId: string,
+      fields: Pick<
+        FleetServiceAttachment,
+        'objectKey' | 'name' | 'mimeType' | 'size'
+      >,
+    ): Promise<FleetServiceAttachment>;
+    softDelete(attachmentId: string): Promise<void>;
+    softDeleteService(companyId: string, serviceId: string): Promise<void>;
+    softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
+  };
+  attachmentCleanups: {
+    guard(objectKey: string, deleteAfter: Date): Promise<void>;
+    cancel(objectKey: string, now: Date): Promise<boolean>;
+    enqueue(objectKey: string, now: Date): Promise<void>;
+  };
 }
 
 export interface FleetUnitOfWork {
@@ -179,6 +234,9 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
   readonly managerAssignments: FleetManagerAssignment[] = [];
   readonly driverAssignments: FleetDriverAssignment[] = [];
   readonly services: FleetService[] = [];
+  readonly serviceAttachments: FleetServiceAttachment[] = [];
+  readonly attachmentCleanups: FleetAttachmentCleanup[] = [];
+  transactionActive = false;
   private pendingTransaction: Promise<void> = Promise.resolve();
 
   transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -228,8 +286,43 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
       ...assignment,
     }));
     const services = this.services.map((service) => ({ ...service }));
+    const serviceAttachments = this.serviceAttachments.map((attachment) => ({
+      ...attachment,
+    }));
+    const attachmentCleanups = this.attachmentCleanups.map((cleanup) => ({
+      ...cleanup,
+    }));
+    const enqueueCleanup = (objectKey: string, now: Date): Promise<void> => {
+      const existing = this.attachmentCleanups.find(
+        (cleanup) => cleanup.objectKey === objectKey,
+      );
+      if (existing) {
+        Object.assign(existing, {
+          deleteAfter: now,
+          nextAttemptAt: now,
+          lockedAt: null,
+          completedAt: null,
+          updatedAt: now,
+        });
+        return Promise.resolve();
+      }
+      this.attachmentCleanups.push({
+        id: `cleanup-${this.attachmentCleanups.length + 1}`,
+        objectKey,
+        deleteAfter: now,
+        attempts: 0,
+        nextAttemptAt: now,
+        lockedAt: null,
+        lastError: null,
+        completedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return Promise.resolve();
+    };
+    this.transactionActive = true;
     try {
-      return await work({
+      const result = await work({
         vehicles: {
           create: async (input) => {
             const now = new Date();
@@ -583,9 +676,6 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const service = {
               ...input,
               id: `service-${this.services.length + 1}`,
-              attachmentKey: null,
-              attachmentName: null,
-              attachmentMime: null,
               createdAt: now,
               updatedAt: now,
               deletedAt: null,
@@ -625,12 +715,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             if (!service) {
               return Promise.reject(new NotFoundException('Service not found'));
             }
-            Object.assign(service, {
-              attachmentKey: null,
-              attachmentName: null,
-              attachmentMime: null,
-              deletedAt: new Date(),
-            });
+            Object.assign(service, { deletedAt: new Date() });
             return Promise.resolve();
           },
           softDeleteVehicle: (companyId, vehicleId) => {
@@ -647,7 +732,134 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             return Promise.resolve();
           },
         },
+        attachments: {
+          countActive: (companyId, serviceId) =>
+            Promise.resolve(
+              this.serviceAttachments.filter(
+                (attachment) =>
+                  attachment.companyId === companyId &&
+                  attachment.serviceId === serviceId &&
+                  !attachment.deletedAt,
+              ).length,
+            ),
+          create: (input) => {
+            const now = new Date();
+            const attachment: FleetServiceAttachment = {
+              ...input,
+              id: `attachment-${this.serviceAttachments.length + 1}`,
+              createdAt: now,
+              updatedAt: now,
+              deletedAt: null,
+            };
+            this.serviceAttachments.push(attachment);
+            return Promise.resolve(attachment);
+          },
+          find: (companyId, serviceId, attachmentId, _lock, withDeleted) => {
+            const attachment = this.serviceAttachments.find(
+              (entry) =>
+                entry.id === attachmentId &&
+                entry.companyId === companyId &&
+                entry.serviceId === serviceId &&
+                (withDeleted || !entry.deletedAt),
+            );
+            if (!attachment) {
+              return Promise.reject(
+                new NotFoundException('Attachment not found'),
+              );
+            }
+            return Promise.resolve(attachment);
+          },
+          update: (attachmentId, fields) => {
+            const attachment = this.serviceAttachments.find(
+              ({ id }) => id === attachmentId,
+            );
+            if (!attachment) {
+              return Promise.reject(
+                new NotFoundException('Attachment not found'),
+              );
+            }
+            Object.assign(attachment, fields, { updatedAt: new Date() });
+            return Promise.resolve(attachment);
+          },
+          softDelete: (attachmentId) => {
+            const attachment = this.serviceAttachments.find(
+              ({ id }) => id === attachmentId,
+            );
+            if (attachment && !attachment.deletedAt) {
+              attachment.deletedAt = new Date();
+            }
+            return Promise.resolve();
+          },
+          softDeleteService: async (companyId, serviceId) => {
+            const now = new Date();
+            for (const attachment of this.serviceAttachments) {
+              if (
+                attachment.companyId === companyId &&
+                attachment.serviceId === serviceId &&
+                !attachment.deletedAt
+              ) {
+                attachment.deletedAt = now;
+                await enqueueCleanup(attachment.objectKey, now);
+              }
+            }
+          },
+          softDeleteVehicle: async (companyId, vehicleId) => {
+            const serviceIds = new Set(
+              this.services
+                .filter(
+                  (service) =>
+                    service.companyId === companyId &&
+                    service.vehicleId === vehicleId,
+                )
+                .map(({ id }) => id),
+            );
+            const now = new Date();
+            for (const attachment of this.serviceAttachments) {
+              if (
+                attachment.companyId === companyId &&
+                serviceIds.has(attachment.serviceId) &&
+                !attachment.deletedAt
+              ) {
+                attachment.deletedAt = now;
+                await enqueueCleanup(attachment.objectKey, now);
+              }
+            }
+          },
+        },
+        attachmentCleanups: {
+          guard: (objectKey, deleteAfter) => {
+            const now = new Date();
+            this.attachmentCleanups.push({
+              id: `cleanup-${this.attachmentCleanups.length + 1}`,
+              objectKey,
+              deleteAfter,
+              attempts: 0,
+              nextAttemptAt: deleteAfter,
+              lockedAt: null,
+              lastError: null,
+              completedAt: null,
+              createdAt: now,
+              updatedAt: now,
+            });
+            return Promise.resolve();
+          },
+          cancel: (objectKey, now) => {
+            const index = this.attachmentCleanups.findIndex(
+              (cleanup) =>
+                cleanup.objectKey === objectKey &&
+                !cleanup.completedAt &&
+                !cleanup.lockedAt &&
+                cleanup.deleteAfter > now,
+            );
+            if (index < 0) return Promise.resolve(false);
+            this.attachmentCleanups.splice(index, 1);
+            return Promise.resolve(true);
+          },
+          enqueue: enqueueCleanup,
+        },
       });
+      this.transactionActive = false;
+      return result;
     } catch (error) {
       this.vehicles.splice(0, this.vehicles.length, ...vehicles);
       this.drivers.splice(0, this.drivers.length, ...drivers);
@@ -662,6 +874,17 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         ...driverAssignments,
       );
       this.services.splice(0, this.services.length, ...services);
+      this.serviceAttachments.splice(
+        0,
+        this.serviceAttachments.length,
+        ...serviceAttachments,
+      );
+      this.attachmentCleanups.splice(
+        0,
+        this.attachmentCleanups.length,
+        ...attachmentCleanups,
+      );
+      this.transactionActive = false;
       throw error;
     }
   }

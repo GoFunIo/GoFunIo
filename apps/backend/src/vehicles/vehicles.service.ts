@@ -149,6 +149,7 @@ export class VehiclesService {
       if (!actor.role) throw new ForbiddenException();
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       await fleet.vehicleAccess.find(actor, id, true);
+      await fleet.attachments.softDeleteVehicle(companyId, id);
       await fleet.services.softDeleteVehicle(companyId, id);
       await fleet.vehicleAccess.closeVehicle(companyId, id);
       await fleet.driverAllocations.closeVehicle(companyId, id);

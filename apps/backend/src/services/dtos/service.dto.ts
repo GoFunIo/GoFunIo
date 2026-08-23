@@ -1,4 +1,5 @@
 import { Expose, Type } from 'class-transformer';
+import { AttachmentDto } from '../../service-attachments/dtos/attachment.dto';
 import { ServiceType } from '../services.entity';
 
 export class ServiceVehicleDto {
@@ -15,7 +16,7 @@ export class ServiceVehicleDto {
   registrationNumber!: string;
 }
 
-export class ServiceDto {
+export class ServiceBaseDto {
   @Expose()
   id!: string;
 
@@ -40,4 +41,10 @@ export class ServiceDto {
   @Expose()
   @Type(() => ServiceVehicleDto)
   vehicle!: ServiceVehicleDto;
+}
+
+export class ServiceDto extends ServiceBaseDto {
+  @Expose()
+  @Type(() => AttachmentDto)
+  attachments!: AttachmentDto[];
 }
