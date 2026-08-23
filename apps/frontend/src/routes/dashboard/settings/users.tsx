@@ -3,7 +3,7 @@ import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { Column } from '@/types/table';
 import { Input } from '@/components/ui/Input';
@@ -15,14 +15,18 @@ import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
+import { Car } from 'lucide-react';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { AssignedVehiclesList } from '@/features/dashboard/widgets/AssignedVehiclesList';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
 });
 
-type ModalType = 'add' | 'edit' | 'delete' | null;
+type ModalType = 'add' | 'edit' | 'delete' | 'showCars' | null;
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const { data: user } = useUser();
   const { data: team, isPending } = useTeam();
   const { isOwner, canManageUsers } = usePermissions();
@@ -30,6 +34,12 @@ function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+
+  const { data } = useVehicles({
+    managerId: selectedUser?.id || undefined,
+  });
+  const vehicles = data?.items ?? [];
+  console.log(vehicles);
 
   // Dynamiczne filtrowanie użytkowników
   const filteredTeam = useMemo(() => {
@@ -69,6 +79,11 @@ function RouteComponent() {
     setActiveModal('delete');
   };
 
+  const handleShowManagerCars = (user: UserType) => {
+    setSelectedUser(user);
+    setActiveModal('showCars');
+  };
+
   const columns: Column<UserType>[] = [
     {
       header: 'Użytkownik',
@@ -82,6 +97,19 @@ function RouteComponent() {
     },
     { header: 'E-mail', accessor: 'email' },
     { header: 'Rola', accessor: 'role' },
+    {
+      header: 'Pojazdy',
+      accessor: 'cars',
+      render: (_, item) => {
+        return item.role === 'MANAGER' ? (
+          <BoardButton onClick={() => handleShowManagerCars(item)} size="square">
+            <Car size="18" />
+          </BoardButton>
+        ) : (
+          '-'
+        );
+      },
+    },
   ];
 
   const getModalConfig = () => {
@@ -123,6 +151,22 @@ function RouteComponent() {
                 setActiveModal(null);
                 setSelectedUser(null);
               }}
+            />
+          ),
+        };
+      case 'showCars':
+        return {
+          title: 'Pojazdy managera.',
+          subtitle: `Wszystkie pojazdy przypisane do ${selectedUser?.firstName} ${selectedUser?.lastName}`,
+          content: (
+            <AssignedVehiclesList
+              managerId={selectedUser?.id}
+              onDetailsClick={(id) =>
+                navigate({
+                  to: '/dashboard/my-cars/$carId',
+                  params: { carId: String(id) },
+                })
+              }
             />
           ),
         };
