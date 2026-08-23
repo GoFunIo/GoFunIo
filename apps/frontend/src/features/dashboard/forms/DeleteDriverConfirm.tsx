@@ -22,7 +22,12 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
       await removeDriver(id);
       onClose();
     } catch (error) {
-      setError(getErrorMessage(error));
+      setError(
+        getErrorMessage(error, {
+          403: 'Brak uprawnień.',
+          404: 'Kierowca nie istnieje.',
+        }),
+      );
     }
   };
 

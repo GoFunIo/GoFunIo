@@ -14,6 +14,7 @@ import { AddUserForm } from '@/features/dashboard/forms/AddUserForm';
 import { EditUserForm } from '@/features/dashboard/forms/EditUserForm';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
@@ -22,8 +23,9 @@ export const Route = createFileRoute('/dashboard/settings/users')({
 type ModalType = 'add' | 'edit' | 'delete' | null;
 
 function RouteComponent() {
-  const { canManageTeam } = usePermissions();
-  const { data: team, isPending } = useTeam(canManageTeam);
+  const { data: user } = useUser();
+  const { data: team, isPending } = useTeam();
+  const { isOwner, canManageUsers } = usePermissions();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -131,14 +133,6 @@ function RouteComponent() {
 
   const modalConfig = getModalConfig();
 
-  if (!canManageTeam) {
-    return (
-      <BlockWrapper>
-        <EmptyPlaceholder title="Nie masz uprawnień do zarządzanie zespołem" />
-      </BlockWrapper>
-    );
-  }
-
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full">
@@ -152,16 +146,18 @@ function RouteComponent() {
           />
         </div>
 
-        <BoardButton
-          type="button"
-          variant="default"
-          size="big"
-          icon="add"
-          onClick={handleAddUserClick}
-          className="w-full sm:w-auto sm:min-w-[180px]"
-        >
-          Dodaj użytkownika
-        </BoardButton>
+        {canManageUsers && (
+          <BoardButton
+            type="button"
+            variant="default"
+            size="big"
+            icon="add"
+            onClick={handleAddUserClick}
+            className="w-full sm:w-auto sm:min-w-[180px]"
+          >
+            Dodaj użytkownika
+          </BoardButton>
+        )}
       </div>
 
       <BlockWrapper>
@@ -173,21 +169,25 @@ function RouteComponent() {
           <DataTable
             columns={columns}
             data={filteredTeam}
-            onEdit={handleEditUserClick}
-            onDelete={handleDeleteUserClick}
+            onEdit={canManageUsers ? handleEditUserClick : undefined}
+            onDelete={canManageUsers ? handleDeleteUserClick : undefined}
             footer={false}
+            disabled={(item) => item.id === user?.id}
+            hide={(item) => !isOwner && item.role === 'OWNER'}
           />
         )}
       </BlockWrapper>
 
-      <Modal
-        isOpen={activeModal !== null}
-        setIsOpen={(isOpen) => !isOpen && setActiveModal(null)}
-        title={modalConfig.title}
-        subtitle={modalConfig.subtitle}
-      >
-        {modalConfig.content}
-      </Modal>
+      {canManageUsers && (
+        <Modal
+          isOpen={activeModal !== null}
+          setIsOpen={(isOpen) => !isOpen && setActiveModal(null)}
+          title={modalConfig.title}
+          subtitle={modalConfig.subtitle}
+        >
+          {modalConfig.content}
+        </Modal>
+      )}
     </>
   );
 }
