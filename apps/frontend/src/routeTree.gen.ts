@@ -9,8 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyEmailChangeRouteImport } from './routes/verify-email-change'
-import { Route as AcceptInvitationRouteImport } from './routes/accept-invitation'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
@@ -23,10 +21,12 @@ import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-
 import { Route as DashboardhomeIndexRouteImport } from './routes/dashboard/(home)/index'
 import { Route as publichomeIndexRouteImport } from './routes/(public)/(home)/index'
 import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify-email/index'
+import { Route as authVerifyEmailChangeIndexRouteImport } from './routes/(auth)/verify-email-change/index'
 import { Route as authSignupIndexRouteImport } from './routes/(auth)/signup/index'
 import { Route as authResetPasswordIndexRouteImport } from './routes/(auth)/reset-password/index'
 import { Route as authLoginIndexRouteImport } from './routes/(auth)/login/index'
 import { Route as authForgotPasswordIndexRouteImport } from './routes/(auth)/forgot-password/index'
+import { Route as authAcceptInvitationIndexRouteImport } from './routes/(auth)/accept-invitation/index'
 import { Route as DashboardSettingsUsersRouteImport } from './routes/dashboard/settings/users'
 import { Route as DashboardSettingsProfileRouteImport } from './routes/dashboard/settings/profile'
 import { Route as DashboardSettingsPaymentsRouteImport } from './routes/dashboard/settings/payments'
@@ -34,16 +34,6 @@ import { Route as DashboardSettingsNotificationRouteImport } from './routes/dash
 import { Route as DashboardSettingsDriversRouteImport } from './routes/dashboard/settings/drivers'
 import { Route as DashboardMyCarsCarIdRouteImport } from './routes/dashboard/my-cars/$carId'
 
-const VerifyEmailChangeRoute = VerifyEmailChangeRouteImport.update({
-  id: '/verify-email-change',
-  path: '/verify-email-change',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AcceptInvitationRoute = AcceptInvitationRouteImport.update({
-  id: '/accept-invitation',
-  path: '/accept-invitation',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -103,6 +93,12 @@ const authVerifyEmailIndexRoute = authVerifyEmailIndexRouteImport.update({
   path: '/verify-email/',
   getParentRoute: () => authRouteRoute,
 } as any)
+const authVerifyEmailChangeIndexRoute =
+  authVerifyEmailChangeIndexRouteImport.update({
+    id: '/verify-email-change/',
+    path: '/verify-email-change/',
+    getParentRoute: () => authRouteRoute,
+  } as any)
 const authSignupIndexRoute = authSignupIndexRouteImport.update({
   id: '/signup/',
   path: '/signup/',
@@ -123,6 +119,12 @@ const authForgotPasswordIndexRoute = authForgotPasswordIndexRouteImport.update({
   path: '/forgot-password/',
   getParentRoute: () => authRouteRoute,
 } as any)
+const authAcceptInvitationIndexRoute =
+  authAcceptInvitationIndexRouteImport.update({
+    id: '/accept-invitation/',
+    path: '/accept-invitation/',
+    getParentRoute: () => authRouteRoute,
+  } as any)
 const DashboardSettingsUsersRoute = DashboardSettingsUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -160,8 +162,6 @@ const DashboardMyCarsCarIdRoute = DashboardMyCarsCarIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/accept-invitation': typeof AcceptInvitationRoute
-  '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
   '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
@@ -169,10 +169,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
   '/dashboard/settings/users': typeof DashboardSettingsUsersRoute
+  '/accept-invitation/': typeof authAcceptInvitationIndexRoute
   '/forgot-password/': typeof authForgotPasswordIndexRoute
   '/login/': typeof authLoginIndexRoute
   '/reset-password/': typeof authResetPasswordIndexRoute
   '/signup/': typeof authSignupIndexRoute
+  '/verify-email-change/': typeof authVerifyEmailChangeIndexRoute
   '/verify-email/': typeof authVerifyEmailIndexRoute
   '/': typeof publichomeIndexRoute
   '/dashboard/': typeof DashboardhomeIndexRoute
@@ -183,18 +185,18 @@ export interface FileRoutesByFullPath {
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
 }
 export interface FileRoutesByTo {
-  '/accept-invitation': typeof AcceptInvitationRoute
-  '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
   '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
   '/dashboard/settings/notification': typeof DashboardSettingsNotificationRoute
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
   '/dashboard/settings/users': typeof DashboardSettingsUsersRoute
+  '/accept-invitation': typeof authAcceptInvitationIndexRoute
   '/forgot-password': typeof authForgotPasswordIndexRoute
   '/login': typeof authLoginIndexRoute
   '/reset-password': typeof authResetPasswordIndexRoute
   '/signup': typeof authSignupIndexRoute
+  '/verify-email-change': typeof authVerifyEmailChangeIndexRoute
   '/verify-email': typeof authVerifyEmailIndexRoute
   '/': typeof publichomeIndexRoute
   '/dashboard': typeof DashboardhomeIndexRoute
@@ -209,8 +211,6 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren
   '/(public)': typeof publicRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/accept-invitation': typeof AcceptInvitationRoute
-  '/verify-email-change': typeof VerifyEmailChangeRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
   '/dashboard/settings/drivers': typeof DashboardSettingsDriversRoute
@@ -218,10 +218,12 @@ export interface FileRoutesById {
   '/dashboard/settings/payments': typeof DashboardSettingsPaymentsRoute
   '/dashboard/settings/profile': typeof DashboardSettingsProfileRoute
   '/dashboard/settings/users': typeof DashboardSettingsUsersRoute
+  '/(auth)/accept-invitation/': typeof authAcceptInvitationIndexRoute
   '/(auth)/forgot-password/': typeof authForgotPasswordIndexRoute
   '/(auth)/login/': typeof authLoginIndexRoute
   '/(auth)/reset-password/': typeof authResetPasswordIndexRoute
   '/(auth)/signup/': typeof authSignupIndexRoute
+  '/(auth)/verify-email-change/': typeof authVerifyEmailChangeIndexRoute
   '/(auth)/verify-email/': typeof authVerifyEmailIndexRoute
   '/(public)/(home)/': typeof publichomeIndexRoute
   '/dashboard/(home)/': typeof DashboardhomeIndexRoute
@@ -235,8 +237,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/dashboard'
-    | '/accept-invitation'
-    | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/drivers'
@@ -244,10 +244,12 @@ export interface FileRouteTypes {
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
     | '/dashboard/settings/users'
+    | '/accept-invitation/'
     | '/forgot-password/'
     | '/login/'
     | '/reset-password/'
     | '/signup/'
+    | '/verify-email-change/'
     | '/verify-email/'
     | '/'
     | '/dashboard/'
@@ -258,18 +260,18 @@ export interface FileRouteTypes {
     | '/dashboard/timeline/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/accept-invitation'
-    | '/verify-email-change'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/drivers'
     | '/dashboard/settings/notification'
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
     | '/dashboard/settings/users'
+    | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/verify-email-change'
     | '/verify-email'
     | '/'
     | '/dashboard'
@@ -283,8 +285,6 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/(public)'
     | '/dashboard'
-    | '/accept-invitation'
-    | '/verify-email-change'
     | '/dashboard/settings'
     | '/dashboard/my-cars/$carId'
     | '/dashboard/settings/drivers'
@@ -292,10 +292,12 @@ export interface FileRouteTypes {
     | '/dashboard/settings/payments'
     | '/dashboard/settings/profile'
     | '/dashboard/settings/users'
+    | '/(auth)/accept-invitation/'
     | '/(auth)/forgot-password/'
     | '/(auth)/login/'
     | '/(auth)/reset-password/'
     | '/(auth)/signup/'
+    | '/(auth)/verify-email-change/'
     | '/(auth)/verify-email/'
     | '/(public)/(home)/'
     | '/dashboard/(home)/'
@@ -310,26 +312,10 @@ export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   publicRouteRoute: typeof publicRouteRouteWithChildren
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  AcceptInvitationRoute: typeof AcceptInvitationRoute
-  VerifyEmailChangeRoute: typeof VerifyEmailChangeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/verify-email-change': {
-      id: '/verify-email-change'
-      path: '/verify-email-change'
-      fullPath: '/verify-email-change'
-      preLoaderRoute: typeof VerifyEmailChangeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accept-invitation': {
-      id: '/accept-invitation'
-      path: '/accept-invitation'
-      fullPath: '/accept-invitation'
-      preLoaderRoute: typeof AcceptInvitationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -414,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authVerifyEmailIndexRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/(auth)/verify-email-change/': {
+      id: '/(auth)/verify-email-change/'
+      path: '/verify-email-change'
+      fullPath: '/verify-email-change/'
+      preLoaderRoute: typeof authVerifyEmailChangeIndexRouteImport
+      parentRoute: typeof authRouteRoute
+    }
     '/(auth)/signup/': {
       id: '/(auth)/signup/'
       path: '/signup'
@@ -440,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password/'
       preLoaderRoute: typeof authForgotPasswordIndexRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/accept-invitation/': {
+      id: '/(auth)/accept-invitation/'
+      path: '/accept-invitation'
+      fullPath: '/accept-invitation/'
+      preLoaderRoute: typeof authAcceptInvitationIndexRouteImport
       parentRoute: typeof authRouteRoute
     }
     '/dashboard/settings/users': {
@@ -488,18 +488,22 @@ declare module '@tanstack/react-router' {
 }
 
 interface authRouteRouteChildren {
+  authAcceptInvitationIndexRoute: typeof authAcceptInvitationIndexRoute
   authForgotPasswordIndexRoute: typeof authForgotPasswordIndexRoute
   authLoginIndexRoute: typeof authLoginIndexRoute
   authResetPasswordIndexRoute: typeof authResetPasswordIndexRoute
   authSignupIndexRoute: typeof authSignupIndexRoute
+  authVerifyEmailChangeIndexRoute: typeof authVerifyEmailChangeIndexRoute
   authVerifyEmailIndexRoute: typeof authVerifyEmailIndexRoute
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
+  authAcceptInvitationIndexRoute: authAcceptInvitationIndexRoute,
   authForgotPasswordIndexRoute: authForgotPasswordIndexRoute,
   authLoginIndexRoute: authLoginIndexRoute,
   authResetPasswordIndexRoute: authResetPasswordIndexRoute,
   authSignupIndexRoute: authSignupIndexRoute,
+  authVerifyEmailChangeIndexRoute: authVerifyEmailChangeIndexRoute,
   authVerifyEmailIndexRoute: authVerifyEmailIndexRoute,
 }
 
@@ -571,8 +575,6 @@ const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  AcceptInvitationRoute: AcceptInvitationRoute,
-  VerifyEmailChangeRoute: VerifyEmailChangeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
