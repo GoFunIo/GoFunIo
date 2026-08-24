@@ -29,6 +29,7 @@ import type {
   VehicleAccess,
 } from './vehicle-access';
 import type { TransactionalVehicleAccess } from './transactional-vehicle-access';
+import { constrainToVisibleVehicles } from './typeorm-vehicle-visibility';
 
 const sortColumns: Record<VehicleSortBy, string> = {
   [VehicleSortBy.CREATED_AT]: 'vehicle.createdAt',
@@ -187,42 +188,11 @@ export class TypeOrmVehicleAccess
     actor: SessionPrincipal,
     includeDeletedForAdmin = false,
   ): SelectQueryBuilder<Vehicle> {
-    const companyId = requireCompanyId(actor);
-    if (
-      !isWorkspaceAdmin(actor.role) &&
-      actor.role !== MembershipRole.MANAGER
-    ) {
-      throw new ForbiddenException();
-    }
-    const qb = manager
-      .createQueryBuilder(Vehicle, 'vehicle')
-      .where('vehicle.companyId = :companyId', { companyId })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "memberships" actor_membership
-          WHERE actor_membership."userId" = :actorId
-            AND actor_membership."companyId" = vehicle."companyId"
-            AND actor_membership.role = :actorRole
-            AND actor_membership.status = 'active'
-        )`,
-        { actorId: actor.id, actorRole: actor.role },
-      );
+    const qb = manager.createQueryBuilder(Vehicle, 'vehicle');
     if (includeDeletedForAdmin && isWorkspaceAdmin(actor.role)) {
       qb.withDeleted();
     }
-    if (actor.role === MembershipRole.MANAGER) {
-      qb.andWhere(
-        `EXISTS (
-          SELECT 1 FROM "manager_vehicle_assignments" assignment
-          WHERE assignment."vehicleId" = vehicle.id
-            AND assignment."companyId" = vehicle."companyId"
-            AND assignment."managerId" = :managerId
-            AND assignment."assignedTo" IS NULL
-        )`,
-        { managerId: actor.id },
-      );
-    }
-    return qb;
+    return constrainToVisibleVehicles(qb, actor);
   }
 
   private async findVisible(
