@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,6 +27,10 @@ import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
 import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
 import { ServiceAttachment } from '../service-attachments/service-attachment.entity';
 import { AttachmentObjectCleanup } from '../service-attachments/attachment-object-cleanup.entity';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -59,6 +64,8 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
   }
 
   private transactionStores(manager: EntityManager): FleetTransaction {
+    const vehicleAccess = this.vehicleAccess.transactionStore(manager);
+    const driverAllocations = this.driverAllocation.transactionStore(manager);
     const enqueueCleanup = async (objectKey: string, now: Date) => {
       await manager.upsert(
         AttachmentObjectCleanup,
@@ -83,6 +90,29 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       await manager.softDelete(ServiceAttachment, {
         id: In(attachments.map(({ id }) => id)),
       });
+    };
+    const findService = async (
+      companyId: string,
+      serviceId: string,
+      lock = false,
+      vehicleId?: string,
+    ) => {
+      const service = await manager.findOne(Service, {
+        where: {
+          id: serviceId,
+          companyId,
+          ...(vehicleId && { vehicleId }),
+        },
+        ...(lock ? { lock: { mode: 'pessimistic_write' as const } } : {}),
+      });
+      if (!service) throw new NotFoundException('Service not found');
+      return service;
+    };
+    const requireActor = async (actor: SessionPrincipal) => {
+      const companyId = requireCompanyId(actor);
+      if (!actor.role) throw new ForbiddenException();
+      await vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      return companyId;
     };
 
     return {
@@ -115,11 +145,29 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           if (!vehicle) throw new NotFoundException('Vehicle not found');
           return vehicle;
         },
-        softDelete: async (vehicleId) => {
+        remove: async (actor, vehicleId) => {
+          const companyId = await requireActor(actor);
+          await vehicleAccess.find(actor, vehicleId, true);
+          const attachments = await manager
+            .createQueryBuilder(ServiceAttachment, 'attachment')
+            .innerJoin(
+              Service,
+              'service',
+              'service.id = attachment.serviceId AND service.companyId = attachment.companyId',
+            )
+            .where('attachment.companyId = :companyId', { companyId })
+            .andWhere('service.vehicleId = :vehicleId', { vehicleId })
+            .andWhere('attachment.deletedAt IS NULL')
+            .setLock('pessimistic_write')
+            .getMany();
+          await softDeleteAttachments(attachments);
+          await manager.softDelete(Service, { companyId, vehicleId });
+          await vehicleAccess.closeVehicle(companyId, vehicleId);
+          await driverAllocations.closeVehicle(companyId, vehicleId);
           await manager.softDelete(Vehicle, vehicleId);
         },
       },
-      vehicleAccess: this.vehicleAccess.transactionStore(manager),
+      vehicleAccess,
       drivers: {
         create: async (input) => {
           try {
@@ -149,32 +197,27 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           if (!driver) throw new BadRequestException('Invalid driver');
         },
       },
-      driverAllocations: this.driverAllocation.transactionStore(manager),
+      driverAllocations,
       services: {
         create: (input) => manager.save(manager.create(Service, input)),
-        find: async (companyId, serviceId, lock, vehicleId) => {
-          const service = await manager.findOne(Service, {
-            where: {
-              id: serviceId,
-              companyId,
-              ...(vehicleId && { vehicleId }),
-            },
-            ...(lock ? { lock: { mode: 'pessimistic_write' } } : {}),
-          });
-          if (!service) throw new NotFoundException('Service not found');
-          return service;
-        },
+        find: findService,
         update: async (serviceId, fields) => {
           await manager.update(Service, serviceId, fields);
           const service = await manager.findOneBy(Service, { id: serviceId });
           if (!service) throw new NotFoundException('Service not found');
           return service;
         },
-        softDelete: async (serviceId) => {
+        remove: async (actor, serviceId) => {
+          const companyId = await requireActor(actor);
+          const service = await findService(companyId, serviceId);
+          await vehicleAccess.find(actor, service.vehicleId, true);
+          await findService(companyId, serviceId, true, service.vehicleId);
+          const attachments = await manager.find(ServiceAttachment, {
+            where: { companyId, serviceId, deletedAt: IsNull() },
+            lock: { mode: 'pessimistic_write' },
+          });
+          await softDeleteAttachments(attachments);
           await manager.softDelete(Service, serviceId);
-        },
-        softDeleteVehicle: async (companyId, vehicleId) => {
-          await manager.softDelete(Service, { companyId, vehicleId });
         },
       },
       attachments: {
@@ -209,28 +252,6 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         },
         softDelete: async (attachmentId) => {
           await manager.softDelete(ServiceAttachment, attachmentId);
-        },
-        softDeleteService: async (companyId, serviceId) => {
-          const attachments = await manager.find(ServiceAttachment, {
-            where: { companyId, serviceId, deletedAt: IsNull() },
-            lock: { mode: 'pessimistic_write' },
-          });
-          await softDeleteAttachments(attachments);
-        },
-        softDeleteVehicle: async (companyId, vehicleId) => {
-          const attachments = await manager
-            .createQueryBuilder(ServiceAttachment, 'attachment')
-            .innerJoin(
-              Service,
-              'service',
-              'service.id = attachment.serviceId AND service.companyId = attachment.companyId',
-            )
-            .where('attachment.companyId = :companyId', { companyId })
-            .andWhere('service.vehicleId = :vehicleId', { vehicleId })
-            .andWhere('attachment.deletedAt IS NULL')
-            .setLock('pessimistic_write')
-            .getMany();
-          await softDeleteAttachments(attachments);
         },
       },
       attachmentCleanups: {

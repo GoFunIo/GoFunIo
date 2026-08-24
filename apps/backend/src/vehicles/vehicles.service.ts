@@ -144,17 +144,7 @@ export class VehiclesService {
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
-    await this.fleet.transact(async (fleet) => {
-      const companyId = requireCompanyId(actor);
-      if (!actor.role) throw new ForbiddenException();
-      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
-      await fleet.vehicleAccess.find(actor, id, true);
-      await fleet.attachments.softDeleteVehicle(companyId, id);
-      await fleet.services.softDeleteVehicle(companyId, id);
-      await fleet.vehicleAccess.closeVehicle(companyId, id);
-      await fleet.driverAllocations.closeVehicle(companyId, id);
-      await fleet.vehicles.softDelete(id);
-    });
+    await this.fleet.transact((fleet) => fleet.vehicles.remove(actor, id));
   }
 
   async managerHistory(actor: SessionPrincipal, id: string) {
