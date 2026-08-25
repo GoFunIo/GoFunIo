@@ -21,11 +21,11 @@ describe('Service Attachments (e2e)', () => {
   afterAll(async () => app.close());
 
   async function serviceOwner(email: string) {
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
     const agent = request.agent(app.getHttpServer());
     await agent
       .post('/auth/signin')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
     const vehicle = await agent
       .post('/vehicles')

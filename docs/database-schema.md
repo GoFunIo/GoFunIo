@@ -180,8 +180,8 @@ The database check allows `pending`, `active`, `declined`, and `removed`, but do
 - Primary key: `PK_driver_vehicle_assignments (id)`.
 - Foreign keys, all `ON DELETE RESTRICT`: `FK_driver_assignments_company (companyId) -> companies(id)`; `FK_driver_assignments_driver (driverId, companyId) -> drivers(id, companyId)`; `FK_driver_assignments_vehicle (vehicleId, companyId) -> vehicles(id, companyId)`. Composite FKs prevent cross-workspace assignments.
 - Check: `CHK_driver_assignments_dates: assignedTo IS NULL OR assignedTo >= assignedFrom`.
-- Indexes: unique partial `IDX_driver_assignments_active_vehicle (vehicleId) WHERE assignedTo IS NULL`; `IDX_driver_assignments_company_driver (companyId, driverId, assignedTo)`; `IDX_driver_assignments_company_vehicle (companyId, vehicleId, assignedTo)`.
-- Lifecycle: `assignedTo IS NULL` means active. Unassignment or relevant driver/vehicle removal closes the row with `assignedTo = clock_timestamp()` rather than deleting it. A vehicle can have only one active driver; history may contain repeated closed assignments.
+- Indexes: unique partial `IDX_driver_assignments_active_pair (driverId, vehicleId) WHERE assignedTo IS NULL`; `IDX_driver_assignments_company_driver (companyId, driverId, assignedTo)`; `IDX_driver_assignments_company_vehicle (companyId, vehicleId, assignedTo)`.
+- Lifecycle: `assignedTo IS NULL` means active. Unassignment or relevant driver/vehicle removal closes the row with `assignedTo = clock_timestamp()` rather than deleting it. A vehicle and a driver may each have many active assignments, while the same driver-vehicle pair can be active only once; history may contain repeated closed assignments.
 
 ### `services`
 

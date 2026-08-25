@@ -17,7 +17,7 @@ describe('Profile and company (e2e)', () => {
 
   afterAll(async () => app.close());
 
-  async function signedIn(email: string, password = 'password123') {
+  async function signedIn(email: string, password = 'Password123!') {
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -73,23 +73,41 @@ describe('Profile and company (e2e)', () => {
         .expect(204);
       await agent
         .patch('/users/me/password')
-        .send({ currentPassword: 'password123', newPassword: 'new-password' })
+        .send({
+          currentPassword: 'Password123!',
+          newPassword: 'New-password1!',
+        })
         .expect(204);
       await agent.get('/auth/me').expect(200);
       await request(app.getHttpServer())
         .post('/auth/reset-password')
-        .send({ token: events.passwordResetToken, password: 'stolen-password' })
+        .send({
+          token: events.passwordResetToken,
+          password: 'Stolen-password1!',
+        })
         .expect(400);
       await request(app.getHttpServer())
         .post('/auth/signin')
         .send({
           email: 'password-change@example.com',
-          password: 'new-password',
+          password: 'New-password1!',
         })
         .expect(201);
     } finally {
       events.restore();
     }
+  });
+
+  it('applies the password policy when changing a password', async () => {
+    const agent = await signedIn('changed-password-policy@example.com');
+
+    await agent
+      .patch('/users/me/password')
+      .send({
+        currentPassword: 'Password123!',
+        newPassword: 'UPPERCASE1!',
+      })
+      .expect(400);
   });
 
   it('changes email only after verification', async () => {
@@ -101,7 +119,7 @@ describe('Profile and company (e2e)', () => {
         .patch('/users/me/email')
         .send({
           email: 'New-Email@Example.com',
-          currentPassword: 'password123',
+          currentPassword: 'Password123!',
         })
         .expect(204);
       await agent
@@ -117,7 +135,7 @@ describe('Profile and company (e2e)', () => {
         .expect(200);
       await request(app.getHttpServer())
         .post('/auth/signin')
-        .send({ email: 'new-email@example.com', password: 'password123' })
+        .send({ email: 'new-email@example.com', password: 'Password123!' })
         .expect(201);
     } finally {
       events.restore();
@@ -130,7 +148,7 @@ describe('Profile and company (e2e)', () => {
 
     await first
       .patch('/users/me/email')
-      .send({ email: 'claim@example.com', currentPassword: 'password123' })
+      .send({ email: 'claim@example.com', currentPassword: 'Password123!' })
       .expect(204);
     await app.get(DataSource).query(
       `UPDATE "users" SET "emailChangeTokenExpiresAt" = now() - interval '1 minute'
@@ -139,7 +157,7 @@ describe('Profile and company (e2e)', () => {
     );
     await second
       .patch('/users/me/email')
-      .send({ email: 'claim@example.com', currentPassword: 'password123' })
+      .send({ email: 'claim@example.com', currentPassword: 'Password123!' })
       .expect(204);
   });
 

@@ -25,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CompanyUsersService, type CompanyUser } from './company-users.service';
@@ -37,13 +38,18 @@ import { SessionAuthGuard } from './guards/session-auth.guard';
 import type { SessionPrincipal } from './session-principal';
 
 @ApiTags('Company Users')
+@ApiSessionAuth()
 @Controller('users')
 @Serialize(UserDto)
 @UseGuards(SessionAuthGuard)
 export class CompanyUsersController {
   constructor(private readonly companyUsers: CompanyUsersService) {}
 
-  @ApiOperation({ summary: 'List company users' })
+  @ApiOperation({
+    summary: 'List company users',
+    description:
+      'Requires an ADMIN session. Copy a returned id for update, removal, or ownership transfer.',
+  })
   @ApiOkResponse({ type: UserDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
@@ -52,7 +58,11 @@ export class CompanyUsersController {
     return this.companyUsers.list(principal);
   }
 
-  @ApiOperation({ summary: 'Create company user' })
+  @ApiOperation({
+    summary: 'Create company user',
+    description: 'Requires an ADMIN session.',
+  })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: UserDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
@@ -73,6 +83,7 @@ export class CompanyUsersController {
   }
 
   @ApiOperation({ summary: 'Update company user' })
+  @ApiAllowedOrigin()
   @ApiOkResponse({ type: UserDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
@@ -93,6 +104,7 @@ export class CompanyUsersController {
   }
 
   @ApiOperation({ summary: 'Remove company user' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
@@ -111,7 +123,12 @@ export class CompanyUsersController {
     return this.companyUsers.remove(principal, id);
   }
 
-  @ApiOperation({ summary: 'Transfer workspace ownership to an active admin' })
+  @ApiOperation({
+    summary: 'Transfer workspace ownership to an active admin',
+    description:
+      'Requires the current workspace OWNER and an active ADMIN target.',
+  })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiForbiddenResponse({ description: 'Owner role required' })
   @ApiConflictResponse({

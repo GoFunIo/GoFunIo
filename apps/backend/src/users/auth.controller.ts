@@ -48,6 +48,9 @@ import type { CurrentUserView } from './current-user-view';
 import type { UserAccount } from './user-account';
 import { GoogleAuthenticationService } from './google-authentication.service';
 import { SwitchCompanyDto } from './dtos/switch-company.dto';
+import { CompanyMembershipDto } from './dtos/company-membership.dto';
+import { VerificationResultDto } from './dtos/verification-result.dto';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { USER_PROFILES, type UserProfiles } from './user-profiles';
 import {
   ConflictCode,
@@ -69,7 +72,11 @@ export class AuthController {
     @Inject(USER_PROFILES) private readonly userProfiles: UserProfiles,
   ) {}
 
-  @ApiOperation({ summary: 'Sign up with email and password' })
+  @ApiOperation({
+    summary: 'Sign up with email and password',
+    description:
+      'Creates an account and sends a verification email. Verify the token before signing in.',
+  })
   @ApiCreatedResponse({ type: UserDto })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @Post('signup')
@@ -82,7 +89,11 @@ export class AuthController {
     return this.emailRegistration.register(body.email, body.password, origin);
   }
 
-  @ApiOperation({ summary: 'Sign in with email and password' })
+  @ApiOperation({
+    summary: 'Sign in with email and password',
+    description:
+      'Successful sign-in sets the HttpOnly `session` cookie used by protected operations below.',
+  })
   @ApiCreatedResponse({ type: UserDto })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiUnauthorizedResponse({
@@ -136,6 +147,8 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Link Google account to current user' })
+  @ApiSessionAuth()
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: UserDto })
   @ApiUnauthorizedResponse({
     description: 'Not authenticated or invalid credentials',
@@ -160,7 +173,11 @@ export class AuthController {
     );
   }
 
-  @ApiOperation({ summary: 'Sign out' })
+  @ApiOperation({
+    summary: 'Sign out',
+    description: 'Clears the browser session cookie if one exists.',
+  })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @Post('signout')
   @UseGuards(AllowedOriginGuard)
@@ -170,6 +187,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Get current user' })
+  @ApiSessionAuth()
   @ApiOkResponse({ type: UserDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get('me')
@@ -187,8 +205,17 @@ export class AuthController {
     };
   }
 
-  @ApiOperation({ summary: 'List companies of current user' })
-  @ApiOkResponse({ description: 'Companies of current user' })
+  @ApiOperation({
+    summary: 'List companies of current user',
+    description:
+      'Use a returned id with switch-company to select the active workspace.',
+  })
+  @ApiSessionAuth()
+  @ApiOkResponse({
+    description: 'Companies of current user',
+    type: CompanyMembershipDto,
+    isArray: true,
+  })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get('companies')
   @UseGuards(SessionAuthGuard)
@@ -196,7 +223,12 @@ export class AuthController {
     return this.sessions.listCompanies(principal.id);
   }
 
-  @ApiOperation({ summary: 'Switch active company' })
+  @ApiOperation({
+    summary: 'Switch active company',
+    description: 'Requires a session and updates its active company.',
+  })
+  @ApiSessionAuth()
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -212,8 +244,12 @@ export class AuthController {
     return this.sessions.switchCompany(session, principal.id, body.companyId);
   }
 
-  @ApiOperation({ summary: 'Verify email address' })
-  @ApiOkResponse({ description: 'Email verified' })
+  @ApiOperation({
+    summary: 'Verify email address',
+    description:
+      'Use the token from the verification email. Success also establishes a session.',
+  })
+  @ApiOkResponse({ description: 'Email verified', type: VerificationResultDto })
   @ApiBadRequestResponse({
     description: 'Validation failed or invalid/expired token',
   })
@@ -239,7 +275,10 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Confirm email change' })
-  @ApiOkResponse({ description: 'Email change confirmed' })
+  @ApiOkResponse({
+    description: 'Email change confirmed',
+    type: VerificationResultDto,
+  })
   @ApiBadRequestResponse({
     description: 'Validation failed or invalid/expired token',
   })
@@ -267,7 +306,7 @@ export class AuthController {
     @Body() body: ResendVerificationDto,
     @Headers('origin') origin?: string,
   ): Promise<void> {
-    await this.emailVerification.resend(body.email, origin);
+    await this.emailVerification.resend(body.token, origin);
   }
 
   @ApiOperation({ summary: 'Request password reset email' })

@@ -20,7 +20,7 @@ describe('Company users (e2e)', () => {
 
   afterAll(async () => app.close());
 
-  async function signedIn(email: string, password = 'password123') {
+  async function signedIn(email: string, password = 'Password123!') {
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -76,11 +76,11 @@ describe('Company users (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     await request(app.getHttpServer())
       .post('/auth/signin')
-      .send({ email: 'manager@example.com', password: 'manager-password' })
+      .send({ email: 'manager@example.com', password: 'Manager-password1!' })
       .expect(201);
   });
 
@@ -89,12 +89,12 @@ describe('Company users (e2e)', () => {
     const { token } = await invite(admin, 'role-manager@example.com');
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     const manager = request.agent(app.getHttpServer());
     await manager
       .post('/auth/signin')
-      .send({ email: 'role-manager@example.com', password: 'manager-password' })
+      .send({ email: 'role-manager@example.com', password: 'Manager-password1!' })
       .expect(201);
 
     const { body: context } = await admin.get('/auth/me').expect(200);
@@ -226,7 +226,7 @@ describe('Company users (e2e)', () => {
     );
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     const vehicle = await owner
       .post('/vehicles')
@@ -322,14 +322,14 @@ describe('Company users (e2e)', () => {
     const { token } = await invite(admin, 'claim-manager@example.com');
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     const manager = request.agent(app.getHttpServer());
     await manager
       .post('/auth/signin')
       .send({
         email: 'claim-manager@example.com',
-        password: 'manager-password',
+        password: 'Manager-password1!',
       })
       .expect(201);
 
@@ -339,7 +339,7 @@ describe('Company users (e2e)', () => {
         .send({ email: 'claimed@example.com', role: MembershipRole.MANAGER }),
       manager.patch('/users/me/email').send({
         email: 'claimed@example.com',
-        currentPassword: 'manager-password',
+        currentPassword: 'Manager-password1!',
       }),
     ]);
     expect([inviteResponse.status, changeResponse.status].sort()).toEqual([
@@ -352,21 +352,21 @@ describe('Company users (e2e)', () => {
     const { user, token } = await invite(admin, 'deleted-member@example.com');
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     const member = request.agent(app.getHttpServer());
     await member
       .post('/auth/signin')
       .send({
         email: 'deleted-member@example.com',
-        password: 'manager-password',
+        password: 'Manager-password1!',
       })
       .expect(201);
     await member
       .patch('/users/me/email')
       .send({
         email: 'released-pending@example.com',
-        currentPassword: 'manager-password',
+        currentPassword: 'Manager-password1!',
       })
       .expect(204);
 
@@ -413,14 +413,14 @@ describe('Company users (e2e)', () => {
     const { token } = await invite(admin, 'leave-manager@example.com');
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token, password: 'manager-password' })
+      .send({ token, password: 'Manager-password1!' })
       .expect(204);
     const manager = request.agent(app.getHttpServer());
     await manager
       .post('/auth/signin')
       .send({
         email: 'leave-manager@example.com',
-        password: 'manager-password',
+        password: 'Manager-password1!',
       })
       .expect(201);
 

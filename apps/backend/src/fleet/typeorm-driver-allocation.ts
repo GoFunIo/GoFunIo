@@ -175,20 +175,10 @@ export class TypeOrmDriverAllocation implements DriverAllocation {
       lock: { mode: 'pessimistic_write' },
     });
     const active = await manager.findOne(DriverVehicleAssignment, {
-      where: { companyId, vehicleId, assignedTo: IsNull() },
+      where: { companyId, vehicleId, driverId, assignedTo: IsNull() },
       lock: { mode: 'pessimistic_write' },
     });
-    if (active?.driverId === driverId) return active;
-    if (active) {
-      await manager
-        .createQueryBuilder()
-        .update(DriverVehicleAssignment)
-        .set({
-          assignedTo: () => 'GREATEST("assignedFrom", clock_timestamp())',
-        })
-        .where('id = :id', { id: active.id })
-        .execute();
-    }
+    if (active) return active;
     return manager.save(
       manager.create(DriverVehicleAssignment, {
         companyId,

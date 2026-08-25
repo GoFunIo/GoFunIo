@@ -19,7 +19,7 @@ describe('Vehicles (e2e)', () => {
 
   afterAll(async () => app.close());
 
-  async function signedIn(email: string, password = 'password123') {
+  async function signedIn(email: string, password = 'Password123!') {
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -66,13 +66,13 @@ describe('Vehicles (e2e)', () => {
         .post('/auth/reset-password')
         .send({
           token: events.passwordResetToken,
-          password: 'manager-password',
+          password: 'Manager-password1!',
         })
         .expect(204);
       const manager = request.agent(app.getHttpServer());
       await manager
         .post('/auth/signin')
-        .send({ email, password: 'manager-password' })
+        .send({ email, password: 'Manager-password1!' })
         .expect(201);
       return { manager, user: response.body };
     } finally {

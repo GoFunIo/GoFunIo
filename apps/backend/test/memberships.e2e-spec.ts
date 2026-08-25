@@ -47,7 +47,7 @@ describe('Memberships dual-write (e2e)', () => {
 
   it('email signup writes an OWNER membership', async () => {
     const email = 'member-signup@example.com';
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
 
     const [user] = await dataSource.query<{ id: string }[]>(
       `SELECT "id" FROM "users" WHERE "email" = $1`,
@@ -89,11 +89,11 @@ describe('Memberships dual-write (e2e)', () => {
   });
 
   it('admin-created user writes a membership with the given role', async () => {
-    await createVerifiedUser(app, 'member-admin@example.com', 'password123');
+    await createVerifiedUser(app, 'member-admin@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     await admin
       .post('/auth/signin')
-      .send({ email: 'member-admin@example.com', password: 'password123' })
+      .send({ email: 'member-admin@example.com', password: 'Password123!' })
       .expect(201);
 
     const events = captureEmittedEvents(app);
@@ -120,7 +120,7 @@ describe('Memberships dual-write (e2e)', () => {
 
   it('signin picks the oldest active membership as the current company', async () => {
     const email = 'member-oldest@example.com';
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
     const [user] = await dataSource.query<{ id: string }[]>(
       `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
@@ -139,7 +139,7 @@ describe('Memberships dual-write (e2e)', () => {
     const agent = request.agent(app.getHttpServer());
     await agent
       .post('/auth/signin')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
     const me = await agent.get('/auth/me').expect(200);
 
@@ -149,7 +149,7 @@ describe('Memberships dual-write (e2e)', () => {
 
   it('user without memberships signs in with a company-less session', async () => {
     const email = 'member-less@example.com';
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
     const [user] = await dataSource.query<{ id: string }[]>(
       `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
@@ -161,7 +161,7 @@ describe('Memberships dual-write (e2e)', () => {
     const agent = request.agent(app.getHttpServer());
     await agent
       .post('/auth/signin')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
     const me = await agent.get('/auth/me').expect(200);
 
@@ -209,7 +209,7 @@ describe('Memberships dual-write (e2e)', () => {
 
   it('lists active companies and switches the active workspace', async () => {
     const email = 'member-switch@example.com';
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
     const [user] = await dataSource.query<{ id: string }[]>(
       `SELECT "id" FROM "users" WHERE "email" = $1`,
       [email],
@@ -237,7 +237,7 @@ describe('Memberships dual-write (e2e)', () => {
     const agent = request.agent(app.getHttpServer());
     await agent
       .post('/auth/signin')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
 
     await agent

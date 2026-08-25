@@ -77,7 +77,7 @@ Mail is sent via the [Resend HTTP API](https://resend.com/docs/api-reference/ema
    ```bash
    curl -X POST 'https://gofunio.onrender.com/auth/resend-verification' \
      -H 'Content-Type: application/json' \
-     -d '{"email":"you@example.com"}'
+     -d '{"token":"TOKEN_FROM_THE_LAST_VERIFICATION_LINK"}'
    ```
 5. Confirm `204` response, then check Resend dashboard and inbox (including spam).
 

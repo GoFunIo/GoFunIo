@@ -124,7 +124,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     ).resolves.toBe(2);
   });
 
-  it('keeps one active driver per vehicle and restores closed history', async () => {
+  it('keeps multiple active drivers per vehicle', async () => {
     const seed = await seedFleet();
     const firstVehicleId = await createVehicle(seed);
     const secondDriver = await dataSource.getRepository(Driver).save({
@@ -166,22 +166,24 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(assignments).toHaveLength(3);
     expect(
       assignments.filter(({ assignedTo }) => assignedTo === null),
-    ).toHaveLength(2);
-    expect(assignments[0].assignedTo!.getTime()).toBeGreaterThanOrEqual(
-      assignments[0].assignedFrom.getTime(),
+    ).toHaveLength(3);
+    expect(assignments.every(({ assignedTo }) => assignedTo === null)).toBe(
+      true,
     );
     expect(
       assignments.some(({ vehicleId }) => vehicleId === secondVehicleId),
     ).toBe(true);
     expect(
-      assignments.find(
-        ({ vehicleId, assignedTo }) =>
-          vehicleId === firstVehicleId && assignedTo === null,
-      )?.driverId,
-    ).toBe(secondDriver.id);
+      assignments
+        .filter(
+          ({ vehicleId, assignedTo }) =>
+            vehicleId === firstVehicleId && assignedTo === null,
+        )
+        .map(({ driverId }) => driverId),
+    ).toEqual(expect.arrayContaining([seed.driverId, secondDriver.id]));
   });
 
-  it('serializes concurrent driver replacements', async () => {
+  it('keeps concurrent assignments of different drivers', async () => {
     const seed = await seedFleet();
     const vehicleId = await createVehicle(seed);
     const drivers = await dataSource.getRepository(Driver).save([
@@ -211,9 +213,9 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(assignments).toHaveLength(3);
     expect(
       assignments.filter(({ assignedTo }) => assignedTo === null),
-    ).toHaveLength(1);
-    expect(drivers.map(({ id }) => id)).toContain(
-      assignments.find(({ assignedTo }) => assignedTo === null)?.driverId,
+    ).toHaveLength(3);
+    expect(assignments.map(({ driverId }) => driverId)).toEqual(
+      expect.arrayContaining([seed.driverId, ...drivers.map(({ id }) => id)]),
     );
   });
 

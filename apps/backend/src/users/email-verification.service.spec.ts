@@ -71,10 +71,20 @@ describe('EmailVerificationService', () => {
   });
 
   describe('resend', () => {
-    it('assigns a fresh token and emits the mail event for an unverified user', async () => {
+    async function pendingToken(
+      email = 'a@example.com',
+      expiresAt = new Date(Date.now() + 60_000),
+    ): Promise<string> {
       store.seed({ id: 'user-1', email: 'a@example.com', verified: false });
+      const generated = generateToken(TTL_HOURS);
+      await store.assign(email, generated.tokenHash, expiresAt);
+      return generated.token;
+    }
 
-      await service.resend(' A@Example.com ', 'http://localhost:5173');
+    it('rotates the current token and emits the mail event for an unverified user', async () => {
+      const currentToken = await pendingToken();
+
+      await service.resend(currentToken, 'http://localhost:5173');
 
       expect(events.emit).toHaveBeenCalledTimes(1);
       const [name, event] = events.emit.mock.calls[0] as [
@@ -91,42 +101,58 @@ describe('EmailVerificationService', () => {
       await expect(service.verify(event.delivery.token)).resolves.toBe(
         'user-1',
       );
+      await expect(service.verify(currentToken)).rejects.toThrow(
+        InvalidOrExpiredVerificationTokenError,
+      );
     });
 
     it('reads TTL from validated config via getOrThrow', async () => {
-      store.seed({ id: 'user-1', email: 'a@example.com', verified: false });
+      const currentToken = await pendingToken();
 
-      await service.resend('a@example.com');
+      await service.resend(currentToken);
 
       expect(config.getOrThrow).toHaveBeenCalledWith(
         'VERIFICATION_TOKEN_TTL_HOURS',
       );
     });
 
-    it('is a silent no-op for an unknown email', async () => {
-      await service.resend('missing@example.com');
+    it('rotates an expired current token', async () => {
+      const expiredToken = await pendingToken(
+        'a@example.com',
+        new Date(Date.now() - 1_000),
+      );
+
+      await service.resend(expiredToken);
+
+      expect(events.emit).toHaveBeenCalledTimes(1);
+    });
+
+    it('is a silent no-op for an unknown token', async () => {
+      await service.resend('a'.repeat(64));
 
       expect(events.emit).not.toHaveBeenCalled();
     });
 
-    it('is a silent no-op for an already verified user', async () => {
-      store.seed({ id: 'user-1', email: 'a@example.com', verified: true });
+    it('allows only one concurrent rotation of the same token', async () => {
+      const currentToken = await pendingToken();
 
-      await service.resend('a@example.com');
+      await Promise.all([
+        service.resend(currentToken),
+        service.resend(currentToken),
+      ]);
 
-      expect(events.emit).not.toHaveBeenCalled();
+      expect(events.emit).toHaveBeenCalledTimes(1);
     });
 
     it('invalidates the previous token', async () => {
-      store.seed({ id: 'user-1', email: 'a@example.com', verified: false });
-
-      await service.resend('a@example.com');
+      const initialToken = await pendingToken();
+      await service.resend(initialToken);
       const [, firstEvent] = events.emit.mock.calls[0] as [
         string,
         EmailVerificationRequestedEvent,
       ];
       const firstToken = firstEvent.delivery.token;
-      await service.resend('a@example.com');
+      await service.resend(firstToken);
 
       await expect(service.verify(firstToken)).rejects.toThrow(
         InvalidOrExpiredVerificationTokenError,

@@ -16,6 +16,11 @@ export interface EmailVerificationStore {
     tokenHash: string,
     expiresAt: Date,
   ): Promise<PendingVerification | null>;
+  rotate(
+    currentTokenHash: string,
+    nextTokenHash: string,
+    expiresAt: Date,
+  ): Promise<PendingVerification | null>;
   consume(tokenHash: string, now: Date): Promise<string | null>;
 }
 
@@ -65,6 +70,30 @@ export class TypeOrmEmailVerificationStore implements EmailVerificationStore {
 
     return (result.raw as Array<{ id: string }>)[0]?.id ?? null;
   }
+
+  async rotate(
+    currentTokenHash: string,
+    nextTokenHash: string,
+    expiresAt: Date,
+  ): Promise<PendingVerification | null> {
+    const result = await this.users
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        verificationTokenHash: nextTokenHash,
+        verificationTokenExpiresAt: expiresAt,
+      })
+      .where('"verificationTokenHash" = :currentTokenHash', {
+        currentTokenHash,
+      })
+      .andWhere('"emailVerifiedAt" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .returning(['id', 'email'])
+      .execute();
+
+    const row = (result.raw as Array<{ id: string; email: string }>)[0];
+    return row ? { userId: row.id, email: row.email } : null;
+  }
 }
 
 export class InMemoryEmailVerificationStore implements EmailVerificationStore {
@@ -111,5 +140,22 @@ export class InMemoryEmailVerificationStore implements EmailVerificationStore {
     this.tokens.delete(tokenHash);
     user.verified = true;
     return Promise.resolve(token.userId);
+  }
+
+  rotate(
+    currentTokenHash: string,
+    nextTokenHash: string,
+    expiresAt: Date,
+  ): Promise<PendingVerification | null> {
+    const currentToken = this.tokens.get(currentTokenHash);
+    if (!currentToken) return Promise.resolve(null);
+    const user = [...this.users.values()].find(
+      ({ id }) => id === currentToken.userId,
+    );
+    if (!user || user.verified) return Promise.resolve(null);
+
+    this.tokens.delete(currentTokenHash);
+    this.tokens.set(nextTokenHash, { userId: user.id, expiresAt });
+    return Promise.resolve({ userId: user.id, email: user.email });
   }
 }

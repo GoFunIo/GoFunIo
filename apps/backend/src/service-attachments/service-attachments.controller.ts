@@ -34,6 +34,7 @@ import {
   ApiUnsupportedMediaTypeResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin } from '../common/swagger';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
@@ -80,6 +81,7 @@ export class ServiceAttachmentsController {
     description:
       'Accepts exactly one PDF, JPEG, or PNG up to 10 MiB. Creation is at-least-once; after an ambiguous network error, refresh the collection before retrying.',
   })
+  @ApiAllowedOrigin()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -152,6 +154,7 @@ export class ServiceAttachmentsController {
     description:
       'Replaces the file under a fresh immutable object key while preserving Attachment identity and creation time.',
   })
+  @ApiAllowedOrigin()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -197,6 +200,7 @@ export class ServiceAttachmentsController {
   }
 
   @ApiOperation({ summary: 'Delete a Service Attachment' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse({
     description: 'Attachment deleted or was already deleted',
   })

@@ -18,6 +18,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -34,6 +35,7 @@ import { CompanyDto } from './dtos/company.dto';
 import { UpdateCompanyDto } from './dtos/update-company.dto';
 
 @ApiTags('Companies')
+@ApiSessionAuth()
 @Controller()
 @Serialize(CompanyDto)
 export class CompaniesController {
@@ -42,7 +44,11 @@ export class CompaniesController {
     private readonly sessions: SessionsService,
   ) {}
 
-  @ApiOperation({ summary: 'Get active company' })
+  @ApiOperation({
+    summary: 'Get active company',
+    description:
+      'Sign in first; the session cookie selects the active company.',
+  })
   @ApiOkResponse({ type: CompanyDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Company not found' })
@@ -52,7 +58,11 @@ export class CompaniesController {
     return this.companies.findActive(requireCompanyId(principal));
   }
 
-  @ApiOperation({ summary: 'Update active company' })
+  @ApiOperation({
+    summary: 'Update active company',
+    description: 'Requires an ADMIN in the active company.',
+  })
+  @ApiAllowedOrigin()
   @ApiOkResponse({ type: CompanyDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })
@@ -67,7 +77,12 @@ export class CompaniesController {
     return this.companies.update(requireCompanyId(principal), body);
   }
 
-  @ApiOperation({ summary: 'Create company and switch to it' })
+  @ApiOperation({
+    summary: 'Create company and switch to it',
+    description:
+      'Creates a company and makes it active for the current session.',
+  })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: CompanyDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })

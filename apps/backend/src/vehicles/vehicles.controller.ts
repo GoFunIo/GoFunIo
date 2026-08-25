@@ -23,6 +23,11 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import {
+  ApiAllowedOrigin,
+  ApiSessionAuth,
+  ApiUuidParam,
+} from '../common/swagger';
 import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -40,6 +45,7 @@ import { ManagerAssignmentDto } from './dtos/manager-assignment.dto';
 import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto';
 
 @ApiTags('Vehicles')
+@ApiSessionAuth()
 @Controller('vehicles')
 @UseGuards(SessionAuthGuard)
 export class VehiclesController {
@@ -58,6 +64,7 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Get vehicle by id' })
+  @ApiUuidParam('id', 'Vehicle id')
   @ApiOkResponse({ type: VehicleDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
@@ -71,6 +78,7 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'List manager assignment history for vehicle' })
+  @ApiUuidParam('id', 'Vehicle id')
   @ApiOkResponse({ type: ManagerAssignmentDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
@@ -83,7 +91,12 @@ export class VehiclesController {
     return this.vehicles.managerHistory(principal, id);
   }
 
-  @ApiOperation({ summary: 'Create vehicle' })
+  @ApiOperation({
+    summary: 'Create vehicle',
+    description:
+      'Requires an ADMIN session. Copy the returned id for assignments and services.',
+  })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: VehicleDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -101,7 +114,12 @@ export class VehiclesController {
     return this.vehicles.create(principal, body);
   }
 
-  @ApiOperation({ summary: 'Assign manager to vehicle' })
+  @ApiOperation({
+    summary: 'Assign manager to vehicle',
+    description: 'Requires an ADMIN session; managerId is a company-user id.',
+  })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Vehicle id')
   @ApiCreatedResponse({ type: ManagerAssignmentDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -117,7 +135,13 @@ export class VehiclesController {
     return this.vehicles.assignManager(principal, id, body);
   }
 
-  @ApiOperation({ summary: 'Unassign manager from vehicle' })
+  @ApiOperation({
+    summary: 'Unassign manager from vehicle',
+    description: 'Requires an ADMIN session.',
+  })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Vehicle id')
+  @ApiUuidParam('managerId', 'Manager user id')
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Vehicle or assignment not found' })
@@ -133,6 +157,8 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Update vehicle' })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Vehicle id')
   @ApiOkResponse({ type: VehicleDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -153,6 +179,8 @@ export class VehiclesController {
   }
 
   @ApiOperation({ summary: 'Delete vehicle' })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Vehicle id')
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })

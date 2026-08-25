@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import type { SessionData } from '../types/session.types';
@@ -38,6 +39,7 @@ import { USER_PROFILES, type UserProfiles } from './user-profiles';
 import type { CurrentUserView } from './current-user-view';
 
 @ApiTags('Profile')
+@ApiSessionAuth()
 @Controller('users/me')
 export class UserProfileController {
   constructor(
@@ -49,6 +51,7 @@ export class UserProfileController {
   ) {}
 
   @ApiOperation({ summary: 'Leave current company' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiConflictResponse({
@@ -63,6 +66,7 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Update own profile' })
+  @ApiAllowedOrigin()
   @ApiOkResponse({ type: UserDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -81,6 +85,7 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Request email change' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({
     description: 'Not authenticated or invalid current password',
@@ -108,6 +113,7 @@ export class UserProfileController {
   }
 
   @ApiOperation({ summary: 'Change password' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({
     description: 'Not authenticated or invalid current password',

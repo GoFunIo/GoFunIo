@@ -13,8 +13,10 @@ import {
 } from 'class-validator';
 import { VehicleFuelType } from '../vehicles.entity';
 import { vehicleTransforms } from './vehicle-transforms';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateVehicleDto {
+  @ApiProperty({ example: 'Toyota' })
   @Transform(vehicleTransforms.trim)
   @IsString()
   @IsNotEmpty()

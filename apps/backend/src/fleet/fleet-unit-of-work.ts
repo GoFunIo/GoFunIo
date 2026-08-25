@@ -4,10 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConflictCode, conflictException } from '../common/conflict';
-import {
-  isWorkspaceAdmin,
-  MembershipRole,
-} from '../users/membership-role';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -649,11 +646,11 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
               (assignment) =>
                 assignment.companyId === companyId &&
                 assignment.vehicleId === vehicleId &&
+                assignment.driverId === driverId &&
                 assignment.assignedTo === null,
             );
-            if (active?.driverId === driverId) return active;
+            if (active) return active;
             const now = new Date();
-            if (active) active.assignedTo = now;
             const assignment = {
               id: `driver-assignment-${this.driverAssignments.length + 1}`,
               companyId,

@@ -6,7 +6,7 @@ describe('DriverAllocation lifecycle', () => {
   const companyId = 'company-one';
   const driverId = 'driver-one';
 
-  it('keeps one active driver per vehicle and retains replacement history', async () => {
+  it('keeps multiple active drivers per vehicle without duplicating a pair', async () => {
     const fleet = setup();
 
     await fleet.transact(async ({ driverAllocations }) => {
@@ -19,19 +19,29 @@ describe('DriverAllocation lifecycle', () => {
       await expect(
         driverAllocations.assign(companyId, 'vehicle-one', driverId),
       ).resolves.toMatchObject({ id: first.id });
-      await driverAllocations.assign(companyId, 'vehicle-one', 'driver-two');
+      const second = await driverAllocations.assign(
+        companyId,
+        'vehicle-one',
+        'driver-two',
+      );
+      await expect(
+        driverAllocations.assign(companyId, 'vehicle-one', 'driver-two'),
+      ).resolves.toMatchObject({ id: second.id });
     });
 
     expect(fleet.driverAssignments).toHaveLength(3);
     expect(
       fleet.driverAssignments.filter(({ assignedTo }) => assignedTo === null),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
-      fleet.driverAssignments.find(
-        ({ vehicleId, assignedTo }) =>
-          vehicleId === 'vehicle-one' && assignedTo === null,
-      )?.driverId,
-    ).toBe('driver-two');
+      fleet.driverAssignments
+        .filter(
+          ({ vehicleId, assignedTo }) =>
+            vehicleId === 'vehicle-one' && assignedTo === null,
+        )
+        .map(({ driverId: activeDriverId }) => activeDriverId)
+        .sort(),
+    ).toEqual(['driver-one', 'driver-two']);
   });
 
   it('lets each manager edit a shared driver and rolls cleanup back on failure', async () => {
