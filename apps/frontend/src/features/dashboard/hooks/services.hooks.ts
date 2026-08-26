@@ -26,7 +26,7 @@ export const useServices = (params?: ServiceListParams) => {
 // POBIERANIE POJEDYNCZEJ USŁUGI   GET /services/{id}
 // =========================================================================
 
-export const useService = (id?: string) => {
+export const useService = (id?: string | null) => {
   return useQuery({
     queryKey: ['services', id],
     queryFn: () => getService(id!),
@@ -98,7 +98,7 @@ export const useDeleteService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteService(id),
+    mutationFn: deleteService,
 
     onSuccess: () => {
       queryClient.invalidateQueries({
