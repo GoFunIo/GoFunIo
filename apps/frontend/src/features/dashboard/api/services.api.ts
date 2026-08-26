@@ -1,4 +1,3 @@
-import { AddServiceFormData } from '../lib/formValidationRules';
 import {
   CreateServiceData,
   PaginatedServices,
@@ -118,7 +117,7 @@ export const getService = async (id: string) => {
 // AKTUALIZACJA USŁUGI
 // =========================================================================
 
-export const updateService = async (id: string, form: AddServiceFormData) => {
+export const updateService = async (id: string, form: CreateServiceData) => {
   const payload = buildServicePayload(form);
 
   const res = await fetch(`${API_URL}/services/${id}`, {

@@ -75,17 +75,26 @@ export const useUpdateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, form }: { id: string; form: AddServiceFormData }) => updateService(id, form),
+    mutationFn: async ({ id, formData }: { id: string; formData: AddServiceFormData }) => {
+      const { attachments, ...serviceData } = formData;
 
-    onSuccess: async (_data, variables) => {
-      await Promise.all([
-        queryClient.refetchQueries({
-          queryKey: ['services'],
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['services', variables.id],
-        }),
-      ]);
+      const service = await updateService(id, serviceData);
+
+      if (attachments?.length) {
+        await Promise.all(
+          attachments
+            .filter((attachment) => attachment.type === 'new' && attachment.file)
+            .map((attachment) => createServiceAttachment(service.id, attachment.file!)),
+        );
+      }
+
+      return service;
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['services'],
+      });
     },
   });
 };

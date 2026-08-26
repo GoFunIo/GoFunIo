@@ -12,21 +12,37 @@ import { DatePicker } from '../ui/DatePicker';
 
 import { serviceTypeOptions } from '../constants/serviceOptions';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
-import { useCreateService } from '../hooks/services.hooks';
+import { useCreateService, useUpdateService } from '../hooks/services.hooks';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { formatFileSize, formatFileType } from '@/utils/formatFile';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 import { FormAttachment } from '../types/AttachmentTypes';
+import { SingleServiceData } from '../types';
+import { handlePriceInput } from '@/utils/handlePhoneInput';
 
-type FormProps = {
-  mode: 'create' | 'edit';
+type BaseFormProps = {
   className?: string;
   onClose: () => void;
 };
 
-export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
+type FormProps = BaseFormProps &
+  (
+    | {
+        mode: 'create';
+        service?: never;
+      }
+    | {
+        mode: 'edit';
+        service: SingleServiceData;
+      }
+  );
+
+export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormProps) => {
   const { mutateAsync: createService, isPending: isCreating } = useCreateService();
+  const { mutateAsync: updateService, isPending: isUpdating } = useUpdateService();
   const { data: vehiclesData, isLoading: isVehiclesLoading } = useVehicles();
+
+  const isPending = isCreating || isUpdating;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,21 +73,31 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
     mode: 'onTouched',
     shouldFocusError: false,
     defaultValues: {
-      vehicleId: '',
-      serviceDate: '',
-      serviceType: '',
-      servicePlace: '',
-      cost: 0,
-      notes: '',
-      attachments: [],
+      vehicleId: service?.vehicleId ?? '',
+      serviceDate: service?.serviceDate ?? '',
+      serviceType: service?.type ?? '',
+      servicePlace: service?.providerName ?? '',
+      cost: service?.cost ? Number(service.cost) : undefined,
+      notes: service?.notes ?? '',
+      attachments:
+        service?.attachments?.map((attachment) => ({
+          ...attachment,
+          type: 'existing' as const,
+        })) ?? [],
     },
   });
 
   const currentAttachments = watch('attachments');
-
   const onSubmit: SubmitHandler<AddServiceFormData> = async (formData) => {
     try {
-      await createService(formData);
+      if (mode === 'create') {
+        await createService(formData);
+      } else {
+        await updateService({
+          id: service.id,
+          formData,
+        });
+      }
 
       onClose();
     } catch (err) {
@@ -158,7 +184,7 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
                 placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
                 className="w-full !h-[45px] "
                 error={errors.vehicleId?.message}
-                disabled={isCreating}
+                disabled={isPending}
               />
             )}
           />
@@ -221,7 +247,7 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
                   placeholder="Podaj rodzaj serwisu"
                   className="w-full !h-[45px]"
                   error={errors.serviceType?.message}
-                  disabled={isCreating}
+                  disabled={isPending}
                 />
               )}
             />
@@ -233,12 +259,22 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
           <Input
             label="Koszt *"
             placeholder="0.00"
-            type="number"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
+            min="0"
             error={errors.cost?.message}
             className={inputStyles}
-            {...register('cost', { valueAsNumber: true })}
-            disabled={isCreating}
+            {...register('cost', {
+              setValueAs: (value) => {
+                if (value === '') return undefined;
+
+                return Number(String(value).replace(',', '.'));
+              },
+              onChange: (e) => {
+                e.target.value = handlePriceInput(e.target.value);
+              },
+            })}
+            disabled={isPending}
           />
           <Input
             label="Warsztat *"
@@ -246,7 +282,7 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
             error={errors.servicePlace?.message}
             className={inputStyles}
             {...register('servicePlace')}
-            disabled={isCreating}
+            disabled={isPending}
           />
         </div>
 
@@ -318,12 +354,16 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
                     </div>
 
                     <div className="flex gap-2 ml-auto">
-                      <button className="cursor-pointer">
-                        <Download size={21} className="text-content-secondary" />
-                      </button>
-                      <button className="cursor-pointer">
-                        <Pencil size={21} className="text-content-secondary" />
-                      </button>
+                      {mode === 'edit' && (
+                        <>
+                          <button className="cursor-pointer">
+                            <Download size={21} className="text-content-secondary" />
+                          </button>
+                          <button className="cursor-pointer">
+                            <Pencil size={21} className="text-content-secondary" />
+                          </button>
+                        </>
+                      )}
                       <button className="cursor-pointer" onClick={() => handleRemoveFile(index)}>
                         <Trash2 size={21} className="text-content-secondary" />
                       </button>
@@ -343,7 +383,7 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
           size="medium"
           className="!w-[120px] sm:!w-[140px]"
           onClick={onClose}
-          disabled={isCreating}
+          disabled={isPending}
         >
           Anuluj
         </BoardButton>
@@ -352,8 +392,8 @@ export const VehiclesServiceForm = ({ className, onClose }: FormProps) => {
           variant="default"
           size="medium"
           className="!w-[120px] sm:!w-[140px]"
-          loading={isCreating}
-          disabled={isCreating}
+          loading={isPending}
+          disabled={isPending}
         >
           Zapisz
         </BoardButton>

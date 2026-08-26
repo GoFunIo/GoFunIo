@@ -24,7 +24,7 @@ function RouteComponent() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<ServiceIdType>(null);
 
-  const { data: servicesResponse, isPending: allServicesPending } = useServices();
+  const { data: servicesResponse, isPending: allServicesLoading } = useServices();
   const { data: activeService, isPending: isServiceLoading } = useService(selectedServiceId);
 
   const services: ServiceData[] = servicesResponse?.items ?? [];
@@ -53,19 +53,17 @@ function RouteComponent() {
         };
 
       case 'edit':
-      // return {
-      //   title: 'Edytuj wpis serwisowy',
-      //   subtitle: 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.',
-      //   content: singleServicePending ? (
-      //     <LoadingIcon className="m-auto my-[24px]" />
-      //   ) : activeService ? (
-      //     <VehiclesServiceForm
-      //       mode="edit"
-      //       service={activeService}
-      //       onClose={() => setActiveModal(null)}
-      //     />
-      //   ) : null,
-      // };
+        return {
+          title: 'Edytuj wpis serwisowy',
+          subtitle: 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.',
+          content: isServiceLoading ? (
+            <LoadingIcon className="m-auto my-16" />
+          ) : activeService ? (
+            <VehiclesServiceForm mode="edit" service={activeService} onClose={closeServiceModal} />
+          ) : (
+            <EmptyPlaceholder title="Wpis nie został znaleziony." />
+          ),
+        };
       case 'delete':
         return {
           title: 'Usuń wpis serwisowy',
@@ -99,7 +97,7 @@ function RouteComponent() {
 
       <Filters />
 
-      {allServicesPending ? (
+      {allServicesLoading ? (
         <BlockWrapper>
           <LoadingIcon className="m-auto my-[24px]" />
         </BlockWrapper>
