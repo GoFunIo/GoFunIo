@@ -29,7 +29,6 @@ import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket'
 import { Banner } from '@/features/dashboard/widgets/Banner';
 import { History } from '@/features/dashboard/widgets/History';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { VehicleData } from '@/features/dashboard/types';
@@ -451,9 +450,7 @@ function RouteComponent() {
         title="Dodaj wpis serwisowy"
         subtitle="Wprowadź szczegóły wykonanej naprawy lub serwisu."
       >
-        <div className=" text-center text-content-secondary">
-          <AddVehicleServiceForm onClose={() => setIsServiceModalOpen(false)} />
-        </div>
+        <div className=" text-center text-content-secondary">{/* <VehiclesServiceForm /> */}</div>
       </Modal>
 
       {/* ========================================================
@@ -477,11 +474,13 @@ function RouteComponent() {
         title="Edytuj wpis serwisowy"
         subtitle="Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi."
       >
-        <AddVehicleServiceForm
+        <div className="">
+          {/* <AddVehicleServiceForm
           key={modalState?.id ?? 'edit-none'}
           initialData={modalState}
           onClose={() => setModalState(null)}
-        />
+        /> */}
+        </div>
       </Modal>
 
       {/* ========================================================

@@ -17,7 +17,6 @@ import { VehicleSpecs } from '@/features/dashboard/widgets/VehicleSpecs';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { DeleteCarConfirm } from '@/features/dashboard/forms/DeleteCarConfirm';
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
 import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
@@ -80,15 +79,15 @@ function RouteComponent() {
 
   const totalHistoryPages = Math.max(1, Math.ceil(singleCarHistory.length / HISTORY_PAGE_SIZE));
 
-  const serviceInitialData = useMemo(() => {
-    if (!currentCar) return undefined;
+  // const serviceInitialData = useMemo(() => {
+  //   if (!currentCar) return undefined;
 
-    if (isServiceEditMode) {
-      return modalState as ServiceData;
-    }
+  //   if (isServiceEditMode) {
+  //     return modalState as ServiceData;
+  //   }
 
-    return undefined;
-  }, [modalState, isServiceEditMode, currentCar]);
+  //   return undefined;
+  // }, [modalState, isServiceEditMode, currentCar]);
 
   if (isLoading && !currentCar) {
     return (
@@ -257,11 +256,13 @@ function RouteComponent() {
             : `Zapisz nową czynność serwisową dla pojazdu ${currentCar.brand}..`
         }
       >
-        <AddVehicleServiceForm
-          key={isServiceEditMode ? (modalState as ServiceData).id : 'new'}
-          onClose={() => setModalState(null)}
-          initialData={serviceInitialData}
-        />
+        <div className="">
+          {/* <AddVehicleServiceForm
+            key={isServiceEditMode ? (modalState as ServiceData).id : 'new'}
+            onClose={() => setModalState(null)}
+            initialData={serviceInitialData}
+          /> */}
+        </div>
       </Modal>
 
       <Modal

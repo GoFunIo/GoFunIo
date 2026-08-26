@@ -8,6 +8,7 @@ import {
 } from '../api/services.api';
 import { AddServiceFormData } from '../lib/formValidationRules';
 import { ServiceListParams } from '../types/ServiceTypes';
+import { createServiceAttachment } from '../api/attachments.api';
 
 // =========================================================================
 // POBIERANIE LISTY USŁUG  GET /services
@@ -25,10 +26,10 @@ export const useServices = (params?: ServiceListParams) => {
 // POBIERANIE POJEDYNCZEJ USŁUGI   GET /services/{id}
 // =========================================================================
 
-export const useService = (id: string) => {
+export const useService = (id?: string) => {
   return useQuery({
     queryKey: ['services', id],
-    queryFn: () => getService(id),
+    queryFn: () => getService(id!),
     enabled: !!id,
     retry: false,
   });
@@ -42,7 +43,21 @@ export const useCreateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (form: AddServiceFormData) => createService(form),
+    mutationFn: async (formData: AddServiceFormData) => {
+      const { attachments, ...serviceData } = formData;
+
+      const service = await createService(serviceData);
+
+      if (attachments?.length) {
+        await Promise.all(
+          attachments
+            .filter((attachment) => attachment.file)
+            .map((attachment) => createServiceAttachment(service.id, attachment.file!)),
+        );
+      }
+
+      return service;
+    },
 
     onSuccess: () => {
       queryClient.invalidateQueries({

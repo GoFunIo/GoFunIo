@@ -1,5 +1,11 @@
 import { AddServiceFormData } from '../lib/formValidationRules';
-import { PaginatedServices, ServiceData, ServiceListParams } from '../types/ServiceTypes';
+import {
+  CreateServiceData,
+  PaginatedServices,
+  ServiceData,
+  ServiceListParams,
+  SingleServiceData,
+} from '../types/ServiceTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -7,7 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
 // WSPÓLNY PAYLOAD
 // =========================================================================
 
-const buildServicePayload = (form: AddServiceFormData) => ({
+const buildServicePayload = (form: CreateServiceData) => ({
   vehicleId: form.vehicleId,
   serviceDate: form.serviceDate,
   type: form.serviceType,
@@ -60,7 +66,7 @@ export const getAllServices = async (params?: ServiceListParams) => {
 // TWORZENIE USŁUGI
 // =========================================================================
 
-export const createService = async (form: AddServiceFormData) => {
+export const createService = async (form: CreateServiceData) => {
   const payload = buildServicePayload(form);
 
   const res = await fetch(`${API_URL}/services`, {
@@ -104,7 +110,7 @@ export const getService = async (id: string) => {
     };
   }
 
-  return data as ServiceData;
+  return data as SingleServiceData;
 };
 
 // =========================================================================
