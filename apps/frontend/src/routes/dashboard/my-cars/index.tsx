@@ -1,17 +1,19 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { CarFront, Search } from 'lucide-react';
+import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
+import { useTeam } from '@/features/dashboard/hooks/team.hooks';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
-import { Modal } from '@/features/dashboard/ui/Modal';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleCard } from '@/features/dashboard/widgets/VehicleCard';
-import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
+import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Pagination } from '@/features/dashboard/ui/Pagination';
 import { Select } from '@/features/dashboard/ui/Select';
-import { useTeam } from '@/features/dashboard/hooks/team.hooks';
+import { Modal } from '@/features/dashboard/ui/Modal';
 
 const VEHICLES_PAGE_SIZE = 9;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -22,7 +24,7 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
-
+  const { canManageVehicleManagers } = usePermissions();
   const { data: team } = useTeam();
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -86,16 +88,18 @@ function RouteComponent() {
           />
         </div>
 
-        <Select
-          value={managerId ?? ''}
-          onChange={(value) => {
-            setManagerId(value ? String(value) : null);
-            setPage(1);
-          }}
-          placeholder="-- Wszyscy managerowie --"
-          options={managerOptions}
-          className="min-w-[220px]"
-        />
+        {canManageVehicleManagers && (
+          <Select
+            value={managerId ?? ''}
+            onChange={(value) => {
+              setManagerId(value ? String(value) : null);
+              setPage(1);
+            }}
+            placeholder="-- Wszyscy managerowie --"
+            options={managerOptions}
+            className="min-w-[220px]"
+          />
+        )}
       </GridWrapper>
 
       {isLoading ? (
