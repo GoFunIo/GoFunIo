@@ -9,6 +9,11 @@ import { VehicleData } from '@/features/dashboard/types';
 import { fuelTypeLabels } from '../constants/fuelOptions';
 import { usePermissions } from '../hooks/usePermissions';
 
+type VehicleCardProps = {
+  vehicle: VehicleData;
+  onDetailsClick: (id: string) => void;
+};
+
 type PersonWithName = {
   firstName: string;
   lastName: string;
@@ -23,10 +28,30 @@ const formatNames = (people?: PersonWithName[]): string => {
   return `${firstPerson} +${people.length - 1}`;
 };
 
-export interface VehicleCardProps {
-  vehicle: VehicleData;
-  onDetailsClick: (id: string) => void;
-}
+const getBadgeConfig = (daysLeft: number) => {
+  if (daysLeft < 0) {
+    return {
+      text: 'Termin minął',
+      className: 'bg-alert text-white',
+    };
+  }
+  if (daysLeft <= 7) {
+    return {
+      text: 'Termin ≤ 7 dni',
+      className: 'bg-alert text-white',
+    };
+  }
+  if (daysLeft <= 30) {
+    return {
+      text: 'Termin ≤ 30 dni',
+      className: 'bg-warning text-white',
+    };
+  }
+  return {
+    text: 'OK',
+    className: 'bg-success text-white',
+  };
+};
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
   const { canManageVehicleManagers } = usePermissions();
@@ -41,31 +66,6 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
   const acDays = vehicle.acExpiry ? calculateDaysToDate(vehicle.acExpiry).days : Infinity;
 
   const minDays = Math.min(inspectionDays, ocDays, acDays);
-
-  const getBadgeConfig = (daysLeft: number) => {
-    if (daysLeft < 0) {
-      return {
-        text: 'Termin minął',
-        className: 'bg-alert text-white',
-      };
-    }
-    if (daysLeft <= 7) {
-      return {
-        text: 'Termin ≤ 7 dni',
-        className: 'bg-alert text-white',
-      };
-    }
-    if (daysLeft <= 30) {
-      return {
-        text: 'Termin ≤ 30 dni',
-        className: 'bg-warning text-white',
-      };
-    }
-    return {
-      text: 'OK',
-      className: 'bg-success text-white',
-    };
-  };
 
   const badge = getBadgeConfig(minDays);
 

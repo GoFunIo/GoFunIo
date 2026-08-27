@@ -45,6 +45,9 @@ export const useChangeTeamMember = () => {
       queryClient.invalidateQueries({
         queryKey: ['team'],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['vehicles'],
+      });
     },
   });
 };
@@ -60,6 +63,9 @@ export const useDeleteTeamMember = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['team'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['vehicles'],
       });
     },
   });

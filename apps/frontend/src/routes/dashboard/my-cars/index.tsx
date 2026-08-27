@@ -23,14 +23,13 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 function RouteComponent() {
   const navigate = useNavigate();
 
+  const { data: team } = useTeam();
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [page, setPage] = useState(1);
-
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-
   const [managerId, setManagerId] = useState<string | null>(null);
-  const { data: team } = useTeam();
 
   useEffect(() => {
     const timeout = setTimeout(() => {
