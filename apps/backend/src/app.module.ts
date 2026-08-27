@@ -18,6 +18,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AttachmentStorageModule } from './attachment-storage/attachment-storage.module';
 import { TimeModule } from './common/time.module';
 import { AlertPolicyModule } from './alert-policy/alert-policy.module';
+import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AlertPolicyModule } from './alert-policy/alert-policy.module';
     DriversModule,
     ServicesModule,
     AlertPolicyModule,
+    NotificationPreferencesModule,
   ],
   controllers: [AppController],
   providers: [

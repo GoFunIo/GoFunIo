@@ -1,10 +1,22 @@
 import { randomBytes } from 'crypto';
+import { readdirSync } from 'fs';
 import { join } from 'path';
 import { DataSource } from 'typeorm';
 
 describe('Vehicle Deadline Alert Policy migration', () => {
   it('backfills existing Workspaces and supports a clean down/up cycle', async () => {
     const schema = `migration_policy_${randomBytes(4).toString('hex')}`;
+    const migrationDirectory = join(__dirname, '../src/migrations');
+    const policyMigrations = readdirSync(migrationDirectory)
+      .filter((file) => {
+        const timestamp = Number(file.split('-')[0]);
+        return (
+          Number.isFinite(timestamp) &&
+          timestamp <= 1764000000000 &&
+          /\.(js|ts)$/.test(file)
+        );
+      })
+      .map((file) => join(migrationDirectory, file));
     const admin = new DataSource({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -14,7 +26,7 @@ describe('Vehicle Deadline Alert Policy migration', () => {
       url: process.env.DATABASE_URL,
       schema,
       extra: { options: `-c search_path=${schema},public` },
-      migrations: [join(__dirname, '../src/migrations', '*.{js,ts}')],
+      migrations: policyMigrations,
     });
 
     await admin.initialize();

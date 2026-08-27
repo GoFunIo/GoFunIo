@@ -13,6 +13,7 @@ import { Service } from '../../src/services/services.entity';
 import { ServiceAttachment } from '../../src/service-attachments/service-attachment.entity';
 import { AttachmentObjectCleanup } from '../../src/service-attachments/attachment-object-cleanup.entity';
 import { VehicleDeadlineAlertPolicy } from '../../src/alert-policy/vehicle-deadline-alert-policy.entity';
+import { NotificationPreference } from '../../src/notification-preferences/notification-preference.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -45,6 +46,7 @@ function testDataSource(schema: string): DataSource {
       ServiceAttachment,
       AttachmentObjectCleanup,
       VehicleDeadlineAlertPolicy,
+      NotificationPreference,
     ],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
@@ -109,7 +111,7 @@ export async function truncateTestTables(): Promise<void> {
   // ponytail: hardcoded tables — extend list or switch to dynamic truncate when new FK tables appear
   await withAdminDataSource(async (admin) => {
     await admin.query(
-      `TRUNCATE TABLE "${schema}"."vehicle_deadline_alert_policies", "${schema}"."attachment_object_cleanup", "${schema}"."service_attachments", "${schema}"."services", "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."notification_preferences", "${schema}"."vehicle_deadline_alert_policies", "${schema}"."attachment_object_cleanup", "${schema}"."service_attachments", "${schema}"."services", "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
     );
   });
 }
