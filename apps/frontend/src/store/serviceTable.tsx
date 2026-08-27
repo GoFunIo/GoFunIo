@@ -2,7 +2,9 @@ import { ServiceData } from '@/features/dashboard/types';
 import { Column } from '@/types/table';
 import { Paperclip } from 'lucide-react';
 
-export const serviceColumns: Column<ServiceData>[] = [
+export const getServiceColumns = (
+  onAttachments: (service: ServiceData) => void,
+): Column<ServiceData>[] => [
   { header: 'Data', accessor: 'serviceDate' },
   {
     header: 'Pojazd',
@@ -19,9 +21,31 @@ export const serviceColumns: Column<ServiceData>[] = [
   {
     header: 'Załącznik',
     accessor: 'hasAttachment',
-    render: (has) =>
-      has ? <Paperclip size={18} className="text-gray-400 inline cursor-pointer" /> : '-',
+    render: (_, item) => (
+      <button type="button" className="cursor-pointer" onClick={() => onAttachments(item)}>
+        <Paperclip size={18} className="text-gray-400 inline" />
+      </button>
+    ),
   },
+  // {
+  //   header: 'Załącznik',
+  //   accessor: 'hasAttachment',
+  //   render: (has, item) =>
+  //     has ? (
+  //       <button
+  //         type="button"
+  //         className="cursor-pointer"
+  //         onClick={() => onAttachments(item)}
+  //       >
+  //         <Paperclip
+  //           size={18}
+  //           className="text-gray-400 inline"
+  //         />
+  //       </button>
+  //     ) : (
+  //       '-'
+  //     ),
+  // },
   {
     header: 'Koszt',
     accessor: 'cost',

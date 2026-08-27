@@ -7,8 +7,12 @@ import {
   deleteService,
 } from '../api/services.api';
 import { AddServiceFormData } from '../lib/formValidationRules';
-import { ServiceListParams } from '../types/ServiceTypes';
-import { createServiceAttachment } from '../api/attachments.api';
+import { ServiceListParams, SingleServiceData } from '../types/ServiceTypes';
+import {
+  createServiceAttachment,
+  deleteServiceAttachment,
+  updateServiceAttachment,
+} from '../api/attachments.api';
 
 // =========================================================================
 // POBIERANIE LISTY USŁUG  GET /services
@@ -75,26 +79,41 @@ export const useUpdateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, formData }: { id: string; formData: AddServiceFormData }) => {
+    mutationFn: async ({
+      service,
+      formData,
+    }: {
+      service: SingleServiceData;
+      formData: AddServiceFormData;
+    }) => {
       const { attachments, ...serviceData } = formData;
 
-      const service = await updateService(id, serviceData);
+      const updatedService = await updateService(service.id, serviceData);
 
-      if (attachments?.length) {
-        await Promise.all(
-          attachments
-            .filter((attachment) => attachment.type === 'new' && attachment.file)
-            .map((attachment) => createServiceAttachment(service.id, attachment.file!)),
-        );
-      }
+      const currentIds = new Set(attachments?.filter((a) => a.id).map((a) => a.id));
 
-      return service;
+      await Promise.all(
+        service.attachments
+          .filter((a) => a.id && !currentIds.has(a.id))
+          .map((a) => deleteServiceAttachment(updatedService.id, a.id!)),
+      );
+
+      await Promise.all(
+        attachments
+          ?.filter((a) => a.file)
+          .map((a) =>
+            a.id
+              ? updateServiceAttachment(updatedService.id, a.id, a.file!)
+              : createServiceAttachment(updatedService.id, a.file!),
+          ) ?? [],
+      );
+
+      return updatedService;
     },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['services'],
-      });
+    onSuccess: (_, { service }) => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['service', service.id] });
     },
   });
 };

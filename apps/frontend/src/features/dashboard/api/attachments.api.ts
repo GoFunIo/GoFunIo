@@ -36,3 +36,47 @@ export const createServiceAttachment = async (id: string, file: File) => {
 
   return response.json();
 };
+
+export const updateServiceAttachment = async (
+  serviceId: string,
+  attachmentId: string,
+  file: File,
+) => {
+  const body = new FormData();
+  body.append('attachment', file);
+
+  const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
+    method: 'PUT',
+    credentials: 'include',
+    body,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw {
+      status: response.status,
+      message: data?.message ?? 'Nie udało się zastąpić załącznika.',
+    };
+  }
+
+  return data;
+};
+
+export const deleteServiceAttachment = async (serviceId: string, attachmentId: string) => {
+  const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw {
+      status: response.status,
+      message: data?.message ?? 'Nie udało się usunąć załącznika.',
+    };
+  }
+
+  return data;
+};

@@ -1,5 +1,5 @@
 import { AddServiceFormData } from '../lib/formValidationRules';
-import { FormAttachment } from './AttachmentTypes';
+import { AttachmentData } from './AttachmentTypes';
 
 export type ServiceType = 'FULL' | 'OIL_CHANGE' | 'TECHNICAL_INSPECTION' | 'OC' | 'AC' | 'OTHER';
 
@@ -33,7 +33,7 @@ export type SingleServiceData = {
   providerName: string;
   notes: string;
   vehicle: ServiceVehicle;
-  attachments: FormAttachment[];
+  attachments: AttachmentData[];
 };
 
 export type PaginatedServices = {

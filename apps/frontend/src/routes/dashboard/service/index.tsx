@@ -3,29 +3,35 @@ import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { Filters } from '@/features/dashboard/widgets/Filters';
-import { serviceColumns } from '@/store/serviceTable';
+import { getServiceColumns } from '@/store/serviceTable';
 import { createFileRoute } from '@tanstack/react-router';
 import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
 import { ServiceData } from '@/features/dashboard/types';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { useState } from 'react';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
+import { MAX_FILES_PER_UPLOAD } from '@/features/dashboard/constants/fileOptions';
+import { AttachmentsForm } from '@/features/dashboard/forms/AttachmentsForm';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/service/')({
   component: RouteComponent,
 });
 
 type ServiceIdType = string | null;
-type ModalType = 'create' | 'edit' | 'delete' | null;
+type ModalType = 'create' | 'edit' | 'delete' | 'attachments' | null;
 
 function RouteComponent() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<ServiceIdType>(null);
 
+  const shouldFetchService =
+    selectedServiceId !== null && (activeModal === 'edit' || activeModal === 'attachments');
   const { data: servicesResponse, isPending: allServicesLoading } = useServices();
-  const { data: activeService, isPending: isServiceLoading } = useService(selectedServiceId);
+  const { data: activeService, isPending: isServiceLoading } = useService(
+    shouldFetchService ? selectedServiceId : null,
+  );
 
   const services: ServiceData[] = servicesResponse?.items ?? [];
   const totalCost = services.reduce((sum, service) => sum + Number(service.cost), 0).toFixed(2);
@@ -39,8 +45,8 @@ function RouteComponent() {
   };
 
   const closeServiceModal = () => {
-    setActiveModal(null);
     setSelectedServiceId(null);
+    setActiveModal(null);
   };
 
   const getModalConfig = () => {
@@ -69,10 +75,26 @@ function RouteComponent() {
           title: 'Usuń wpis serwisowy',
           subtitle:
             'Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna.',
+          content: (
+            <DeleteServiceConfirm
+              service={services.find((service) => service.id === selectedServiceId)!}
+              onClose={closeServiceModal}
+            />
+          ),
+        };
+
+      case 'attachments':
+        return {
+          title: `Załączniki ${activeService?.attachments.length}/${MAX_FILES_PER_UPLOAD}`,
+          subtitle: `Pełny serwis · ${activeService?.vehicle.brand} ${activeService?.vehicle.model} · ${activeService?.vehicle.registrationNumber}`,
           content: isServiceLoading ? (
             <LoadingIcon className="m-auto my-16" />
           ) : activeService ? (
-            <DeleteServiceConfirm service={activeService} onClose={closeServiceModal} />
+            <AttachmentsForm
+              mode="api"
+              serviceId={activeService.id}
+              attachments={activeService.attachments}
+            />
           ) : (
             <EmptyPlaceholder title="Wpis nie został znaleziony." />
           ),
@@ -107,7 +129,7 @@ function RouteComponent() {
         </BlockWrapper>
       ) : (
         <DataTable
-          columns={serviceColumns}
+          columns={getServiceColumns((service) => openServiceModal('attachments', service.id))}
           data={services}
           onEdit={(service) => openServiceModal('edit', service.id)}
           onDelete={(service) => openServiceModal('delete', service.id)}

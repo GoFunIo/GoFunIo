@@ -78,8 +78,6 @@ export const AddServiceSchema = yup.object().shape({
     .array()
     .of(
       yup.object({
-        type: yup.mixed<'existing' | 'new'>().oneOf(['existing', 'new']).required(),
-
         id: yup.string().optional(),
         file: yup.mixed<File>().optional(),
         name: yup.string().required(),

@@ -1,8 +1,7 @@
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import classNames from 'classnames';
-import { Download, Paperclip, Pencil, Trash2, Upload } from 'lucide-react';
 
 import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
@@ -14,11 +13,10 @@ import { serviceTypeOptions } from '../constants/serviceOptions';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useCreateService, useUpdateService } from '../hooks/services.hooks';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import { formatFileSize, formatFileType } from '@/utils/formatFile';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
-import { FormAttachment } from '../types/AttachmentTypes';
 import { SingleServiceData } from '../types';
 import { handlePriceInput } from '@/utils/handlePhoneInput';
+import { AttachmentsForm } from './AttachmentsForm';
 
 type BaseFormProps = {
   className?: string;
@@ -43,8 +41,6 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
   const { data: vehiclesData, isLoading: isVehiclesLoading } = useVehicles();
 
   const isPending = isCreating || isUpdating;
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const carOptions = useMemo(() => {
     if (!vehiclesData) return [];
@@ -79,22 +75,19 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
       servicePlace: service?.providerName ?? '',
       cost: service?.cost ? Number(service.cost) : undefined,
       notes: service?.notes ?? '',
-      attachments:
-        service?.attachments?.map((attachment) => ({
-          ...attachment,
-          type: 'existing' as const,
-        })) ?? [],
+      attachments: service?.attachments ?? [],
     },
   });
 
   const currentAttachments = watch('attachments');
+
   const onSubmit: SubmitHandler<AddServiceFormData> = async (formData) => {
     try {
       if (mode === 'create') {
         await createService(formData);
       } else {
         await updateService({
-          id: service.id,
+          service,
           formData,
         });
       }
@@ -112,43 +105,6 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
 
   const inputStyles =
     '!text-[14px] !placeholder:text-[12px] !placeholder:text-icon w-full !font-normal';
-
-  const handleAddFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    if (currentAttachments.length >= MAX_FILES_PER_UPLOAD) {
-      return;
-    }
-
-    const attachment: FormAttachment = {
-      type: 'new',
-      file,
-      name: file.name,
-      mimeType: file.type,
-      size: file.size,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    setValue('attachments', [...currentAttachments, attachment], {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-
-    e.target.value = '';
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setValue(
-      'attachments',
-      currentAttachments.filter((_, i) => i !== index),
-      {
-        shouldValidate: true,
-        shouldDirty: true,
-      },
-    );
-  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={classNames('w-full text-left', className)}>
@@ -315,64 +271,17 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
             </label>
           </div>
 
-          {currentAttachments.length < MAX_FILES_PER_UPLOAD && (
-            <div className="">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleAddFile}
-                accept=".pdf,.png,.jpg,.jpeg"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="cursor-pointer w-full h-[45px] border border-dashed border-icon rounded-[7px] flex items-center justify-center gap-2 text-content-secondary hover:border-secondary hover:text-secondary custom-transition text-[14px]"
-              >
-                <Upload size={16} />
-                Załącz dokumenty z dysku
-              </button>
-            </div>
-          )}
-
-          {currentAttachments?.length > 0 && (
-            <div className="flex flex-col gap-3 mt-3">
-              {currentAttachments?.map((item, index) => {
-                return (
-                  <div
-                    key={`${item?.name}-${item?.size}-${index}`}
-                    className="flex items-center gap-3"
-                  >
-                    <Paperclip size={21} className="text-content-secondary shrink-0" />
-
-                    <div className="">
-                      <p className="text-[14px] text-content-secondary">{item?.name}</p>
-                      <p className="text-[14px] text-content-secondary">
-                        {formatFileSize(item?.size)} · {formatFileType(item?.mimeType)} ·{' '}
-                        {item?.createdAt}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2 ml-auto">
-                      {mode === 'edit' && (
-                        <>
-                          <button className="cursor-pointer">
-                            <Download size={21} className="text-content-secondary" />
-                          </button>
-                          <button className="cursor-pointer">
-                            <Pencil size={21} className="text-content-secondary" />
-                          </button>
-                        </>
-                      )}
-                      <button className="cursor-pointer" onClick={() => handleRemoveFile(index)}>
-                        <Trash2 size={21} className="text-content-secondary" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <AttachmentsForm
+            mode="local"
+            serviceId={service?.id}
+            attachments={currentAttachments}
+            onChange={(attachments) =>
+              setValue('attachments', attachments, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+          />
         </div>
       </div>
 
