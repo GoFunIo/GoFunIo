@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
+  AttachmentContentDisposition,
   AttachmentObjectStore,
   AttachmentStorageInconsistentError,
   AttachmentStorageUnavailableError,
@@ -106,10 +107,11 @@ export class S3AttachmentObjectStore implements AttachmentObjectStore {
     }
   }
 
-  async createDownloadUrl(input: {
+  async createReadUrl(input: {
     key: string;
     fileName: string;
     expiresInSeconds: number;
+    disposition: AttachmentContentDisposition;
   }): Promise<URL> {
     try {
       await this.storageClient.send(
@@ -126,7 +128,10 @@ export class S3AttachmentObjectStore implements AttachmentObjectStore {
         new GetObjectCommand({
           Bucket: this.config.bucket,
           Key: input.key,
-          ResponseContentDisposition: downloadDisposition(input.fileName),
+          ResponseContentDisposition: contentDisposition(
+            input.disposition,
+            input.fileName,
+          ),
         }),
         { expiresIn: input.expiresInSeconds },
       );
@@ -203,10 +208,13 @@ function isMissing(error: unknown): boolean {
   );
 }
 
-function downloadDisposition(fileName: string): string {
+function contentDisposition(
+  disposition: AttachmentContentDisposition,
+  fileName: string,
+): string {
   const encoded = encodeURIComponent(fileName).replace(
     /[!'()*]/g,
     (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
   );
-  return `attachment; filename="attachment"; filename*=UTF-8''${encoded}`;
+  return `${disposition}; filename="attachment"; filename*=UTF-8''${encoded}`;
 }

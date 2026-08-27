@@ -1,6 +1,6 @@
 # Service Attachment operations
 
-Service Attachments are private objects in an S3-compatible store. PostgreSQL owns attachment identity and metadata plus the durable cleanup outbox. The API accepts one signature-verified PDF, JPEG, or PNG up to 10 MiB per request and never returns object keys or provider details.
+Service Attachments are private objects in an S3-compatible store. PostgreSQL owns attachment identity and metadata plus the durable cleanup outbox. The API accepts one signature-verified PDF, JPEG, or PNG up to 10 MiB per request and never returns object keys or provider details. JPEG and PNG metadata includes a stable application `previewUrl`; PDF metadata includes `previewUrl: null`.
 
 ## Storage configuration
 
@@ -23,7 +23,20 @@ ATTACHMENT_STORAGE_SECRET_ACCESS_KEY=...
 ATTACHMENT_STORAGE_FORCE_PATH_STYLE=true
 ```
 
-Use separate private buckets and bucket-scoped credentials for staging and production. Keep public access disabled. `ATTACHMENT_STORAGE_PUBLIC_ENDPOINT` is the endpoint signed into download URLs and must be reachable by the frontend; never rewrite a URL after signing.
+Use separate private buckets and bucket-scoped credentials for staging and production. Keep public access disabled. `ATTACHMENT_STORAGE_PUBLIC_ENDPOINT` is the endpoint signed into short-lived read URLs and must be reachable by the frontend; never rewrite a URL after signing.
+
+## Private reads and image previews
+
+Both read endpoints require a session and authorize the active Workspace, Service, and Vehicle Access before storage is contacted:
+
+```text
+GET /services/:serviceId/attachments/:attachmentId
+GET /services/:serviceId/attachments/:attachmentId/preview
+```
+
+Download returns `302` to a presigned URL valid for 300 seconds with `Content-Disposition: attachment`. Preview supports only JPEG and PNG and returns `302` with `Content-Disposition: inline`; its redirect response uses `Cache-Control: private, no-store`. An authorized PDF preview request returns `415` with the stable code `ATTACHMENT_PREVIEW_NOT_AVAILABLE`. Authorization runs before the MIME-type check, so inaccessible attachments remain masked by the normal access response.
+
+`previewUrl` always points to the application preview endpoint, never to an object key, bucket URL, or final presigned URL. Entering that stable path performs authorization again and creates a fresh short-lived URL.
 
 ## Cleanup and reconciliation
 

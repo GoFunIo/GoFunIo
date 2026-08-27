@@ -2,6 +2,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -142,6 +143,34 @@ export class ServiceAttachmentsController {
     @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
   ): Promise<{ url: string }> {
     const url = await this.attachments.download(
+      principal,
+      serviceId,
+      attachmentId,
+    );
+    return { url: url.toString() };
+  }
+
+  @ApiOperation({
+    summary: 'Preview a Service Attachment image',
+    description:
+      'Authorizes access and redirects JPEG or PNG Attachments to a five-minute private presigned URL with inline disposition. PDF preview returns ATTACHMENT_PREVIEW_NOT_AVAILABLE.',
+  })
+  @ApiFoundResponse({ description: 'Redirect to the private inline image URL' })
+  @ApiUnsupportedMediaTypeResponse({
+    description: 'ATTACHMENT_PREVIEW_NOT_AVAILABLE for PDF Attachments',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Attachment storage unavailable or inconsistent',
+  })
+  @Get(':attachmentId/preview')
+  @Header('Cache-Control', 'private, no-store')
+  @Redirect(undefined, HttpStatus.FOUND)
+  async preview(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<{ url: string }> {
+    const url = await this.attachments.preview(
       principal,
       serviceId,
       attachmentId,

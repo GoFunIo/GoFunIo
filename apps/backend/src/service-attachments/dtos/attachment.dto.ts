@@ -16,4 +16,7 @@ export class AttachmentDto {
 
   @Expose()
   createdAt!: string;
+
+  @Expose()
+  previewUrl!: string | null;
 }

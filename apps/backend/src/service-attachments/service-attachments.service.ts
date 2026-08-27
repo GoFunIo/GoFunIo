@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   ATTACHMENT_OBJECT_STORE,
@@ -21,12 +27,15 @@ import {
 } from './attachment-file';
 import {
   SERVICE_ATTACHMENT_QUERY,
+  isServiceAttachmentPreviewable,
+  serviceAttachmentPreviewUrl,
   type ServiceAttachmentQuery,
   type ServiceAttachmentView,
 } from './service-attachment-query';
 
 const PUBLISH_GUARD_MS = 60 * 60 * 1000;
 const ATTACHMENT_LIMIT = 5;
+const ATTACHMENT_READ_URL_TTL_SECONDS = 300;
 
 @Injectable()
 export class ServiceAttachmentsService {
@@ -112,25 +121,65 @@ export class ServiceAttachmentsService {
     serviceId: string,
     attachmentId: string,
   ): Promise<URL> {
+    const { attachment, companyId } = await this.authorizeRead(
+      actor,
+      serviceId,
+      attachmentId,
+    );
+
+    return this.createReadUrl(attachment, companyId, serviceId, 'attachment');
+  }
+
+  async preview(
+    actor: SessionPrincipal,
+    serviceId: string,
+    attachmentId: string,
+  ): Promise<URL> {
+    const { attachment, companyId } = await this.authorizeRead(
+      actor,
+      serviceId,
+      attachmentId,
+    );
+    if (!isServiceAttachmentPreviewable(attachment.mimeType)) {
+      throw attachmentPreviewUnavailableError();
+    }
+
+    return this.createReadUrl(attachment, companyId, serviceId, 'inline');
+  }
+
+  private async authorizeRead(
+    actor: SessionPrincipal,
+    serviceId: string,
+    attachmentId: string,
+  ): Promise<{ companyId: string; attachment: FleetServiceAttachment }> {
     const companyId = requireCompanyId(actor);
     const attachment = await this.fleet.transact(async (fleet) => {
       const service = await fleet.services.find(companyId, serviceId);
       await fleet.vehicleAccess.find(actor, service.vehicleId);
       return fleet.attachments.find(companyId, serviceId, attachmentId);
     });
+    return { companyId, attachment };
+  }
 
+  private async createReadUrl(
+    attachment: FleetServiceAttachment,
+    companyId: string,
+    serviceId: string,
+    disposition: 'inline' | 'attachment',
+  ): Promise<URL> {
     try {
-      return await this.objects.createDownloadUrl({
+      return await this.objects.createReadUrl({
         key: attachment.objectKey,
         fileName: attachment.name,
-        expiresInSeconds: 300,
+        expiresInSeconds: ATTACHMENT_READ_URL_TTL_SECONDS,
+        disposition,
       });
     } catch (error) {
       if (error instanceof AttachmentStorageInconsistentError) {
         this.logger.error('Referenced Attachment object is missing', {
           companyId,
           serviceId,
-          attachmentId,
+          attachmentId: attachment.id,
           objectKey: attachment.objectKey,
         });
       }
@@ -231,5 +280,24 @@ function attachmentView(
     mimeType: attachment.mimeType,
     size: attachment.size,
     createdAt: attachment.createdAt,
+    previewUrl: serviceAttachmentPreviewUrl(
+      attachment.serviceId,
+      attachment.id,
+      attachment.mimeType,
+    ),
   };
+}
+
+function attachmentPreviewUnavailableError(): HttpException {
+  const statusCode = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+  return new HttpException(
+    {
+      statusCode,
+      error: 'Unsupported Media Type',
+      message: 'Attachment preview is not available for this file type',
+      code: 'ATTACHMENT_PREVIEW_NOT_AVAILABLE',
+      field: 'attachment',
+    },
+    statusCode,
+  );
 }

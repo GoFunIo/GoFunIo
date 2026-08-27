@@ -21,10 +21,11 @@ describe('InMemoryAttachmentObjectStore', () => {
       mimeType: 'application/pdf',
     });
 
-    const download = await store.createDownloadUrl({
+    const download = await store.createReadUrl({
       key: firstKey,
       fileName: 'invoice.pdf',
       expiresInSeconds: 300,
+      disposition: 'attachment',
     });
     expect(download.protocol).toBe('memory:');
 
@@ -46,10 +47,11 @@ describe('InMemoryAttachmentObjectStore', () => {
     await store.delete(firstKey);
     await store.delete(firstKey);
     await expect(
-      store.createDownloadUrl({
+      store.createReadUrl({
         key: firstKey,
         fileName: 'invoice.pdf',
         expiresInSeconds: 300,
+        disposition: 'attachment',
       }),
     ).rejects.toBeInstanceOf(AttachmentStorageInconsistentError);
   });

@@ -1,4 +1,5 @@
 import {
+  AttachmentContentDisposition,
   AttachmentObjectStore,
   AttachmentStorageInconsistentError,
   AttachmentStorageUnavailableError,
@@ -39,10 +40,11 @@ export class InMemoryAttachmentObjectStore implements AttachmentObjectStore {
     });
   }
 
-  async createDownloadUrl(input: {
+  async createReadUrl(input: {
     key: string;
     fileName: string;
     expiresInSeconds: number;
+    disposition: AttachmentContentDisposition;
   }): Promise<URL> {
     this.throwInjectedFailure('head');
     if (!this.objects.has(input.key)) {

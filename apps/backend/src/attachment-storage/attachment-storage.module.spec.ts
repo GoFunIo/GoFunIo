@@ -39,7 +39,7 @@ describe('createAttachmentObjectStore', () => {
       const store = {
         probeBucket: jest.fn().mockRejectedValue(providerError),
         put: jest.fn(),
-        createDownloadUrl: jest.fn(),
+        createReadUrl: jest.fn(),
         delete: jest.fn(),
         list: jest.fn(),
       };
@@ -66,7 +66,7 @@ describe('createAttachmentObjectStore', () => {
         }),
       ),
       put: jest.fn(),
-      createDownloadUrl: jest.fn(),
+      createReadUrl: jest.fn(),
       delete: jest.fn(),
       list: jest.fn(),
     };

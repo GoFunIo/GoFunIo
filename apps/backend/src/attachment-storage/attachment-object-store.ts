@@ -1,11 +1,14 @@
 export const ATTACHMENT_OBJECT_STORE = Symbol('ATTACHMENT_OBJECT_STORE');
 
+export type AttachmentContentDisposition = 'inline' | 'attachment';
+
 export interface AttachmentObjectStore {
   put(input: { key: string; body: Buffer; mimeType: string }): Promise<void>;
-  createDownloadUrl(input: {
+  createReadUrl(input: {
     key: string;
     fileName: string;
     expiresInSeconds: number;
+    disposition: AttachmentContentDisposition;
   }): Promise<URL>;
   delete(key: string): Promise<void>;
   list(input: { prefix: string; cursor?: string }): Promise<{

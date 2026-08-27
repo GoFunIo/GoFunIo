@@ -128,6 +128,7 @@ describe('Services (e2e)', () => {
             mimeType: ServiceAttachmentMimeType.PDF,
             size: 1234,
             createdAt: expect.any(String),
+            previewUrl: null,
           },
         ]);
         expect(body.attachments[0]).not.toHaveProperty('objectKey');
