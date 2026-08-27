@@ -20,6 +20,7 @@ import { TimeModule } from './common/time.module';
 import { AlertPolicyModule } from './alert-policy/alert-policy.module';
 import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
 import { VehicleDeadlineAlertsModule } from './vehicle-deadline-alerts/vehicle-deadline-alerts.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { VehicleDeadlineAlertsModule } from './vehicle-deadline-alerts/vehicle-d
     AlertPolicyModule,
     NotificationPreferencesModule,
     VehicleDeadlineAlertsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

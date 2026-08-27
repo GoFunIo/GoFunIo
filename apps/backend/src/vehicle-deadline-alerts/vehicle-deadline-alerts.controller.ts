@@ -47,7 +47,7 @@ export class VehicleDeadlineAlertsController {
   @ApiOperation({
     summary: 'Get Notification Center summary',
     description:
-      'Keeps active Alert and unread Notification counts separate. Durable Notifications are not implemented yet.',
+      'Keeps active Alert and currently authorized unread Notification counts separate.',
   })
   @ApiOkResponse({ type: NotificationCenterSummaryDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })

@@ -11,6 +11,8 @@ import { MembershipRole } from '../src/users/membership-role';
 import { User } from '../src/users/users.entity';
 import { ManagerVehicleAssignment } from '../src/vehicles/manager-vehicle-assignment.entity';
 import { Vehicle } from '../src/vehicles/vehicles.entity';
+import { WorkspaceCalendar } from '../src/common/workspace-calendar';
+import { VehicleDeadlineNotificationWriter } from '../src/notifications/vehicle-deadline-notification-writer';
 
 describe('TypeOrmFleetUnitOfWork (integration)', () => {
   let dataSource: DataSource;
@@ -42,6 +44,10 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
       dataSource,
       vehicleAccess,
       new TypeOrmDriverAllocation(dataSource),
+      new VehicleDeadlineNotificationWriter(
+        new WorkspaceCalendar({ now: () => new Date() }),
+        { now: () => new Date() },
+      ),
     );
   });
 

@@ -13,6 +13,7 @@ import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
 import type { SessionPrincipal } from '../users/session-principal';
 import { requireCompanyId } from '../users/session-principal';
 import { ListVehicleDeadlineAlertsQueryDto } from './dtos/list-vehicle-deadline-alerts-query.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface AlertCursor {
   version: 1;
@@ -57,6 +58,7 @@ export class VehicleDeadlineAlertsService {
     private readonly policies: Repository<VehicleDeadlineAlertPolicy>,
     private readonly calendar: WorkspaceCalendar,
     private readonly config: ConfigService<EnvVars, true>,
+    private readonly notifications: NotificationsService,
   ) {
     this.signingKey = this.config.get('COOKIE_KEY');
   }
@@ -92,9 +94,13 @@ export class VehicleDeadlineAlertsService {
   }
 
   async summary(actor: SessionPrincipal) {
+    const [alerts, unreadNotificationCount] = await Promise.all([
+      this.project(actor),
+      this.notifications.unreadCount(actor),
+    ]);
     return {
-      activeAlertCount: (await this.project(actor)).length,
-      unreadNotificationCount: 0,
+      activeAlertCount: alerts.length,
+      unreadNotificationCount,
     };
   }
 

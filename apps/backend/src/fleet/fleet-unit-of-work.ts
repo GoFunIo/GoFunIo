@@ -17,6 +17,7 @@ import type {
 import type { DriverAllocationStore } from './driver-allocation';
 import type { ServiceType } from '../services/services.entity';
 import type { ServiceAttachmentMimeType } from '../service-attachments/service-attachment.entity';
+import type { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -216,6 +217,12 @@ export interface FleetTransaction {
     guard(objectKey: string, deleteAfter: Date): Promise<void>;
     cancel(objectKey: string, now: Date): Promise<boolean>;
     enqueue(objectKey: string, now: Date): Promise<void>;
+  };
+  notifications: {
+    persistVehicleDeadlineStages(
+      vehicle: FleetVehicle,
+      changedKinds: VehicleDeadlineKind[],
+    ): Promise<void>;
   };
 }
 
@@ -908,6 +915,9 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             return Promise.resolve(true);
           },
           enqueue: enqueueCleanup,
+        },
+        notifications: {
+          persistVehicleDeadlineStages: () => Promise.resolve(),
         },
       });
       this.transactionActive = false;

@@ -31,6 +31,7 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
+import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -55,6 +56,7 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly vehicleAccess: TypeOrmVehicleAccess,
     private readonly driverAllocation: TypeOrmDriverAllocation,
+    private readonly deadlineNotifications: VehicleDeadlineNotificationWriter,
   ) {}
 
   transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -114,7 +116,6 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       await vehicleAccess.requireActor(companyId, actor.id, actor.role);
       return companyId;
     };
-
     return {
       vehicles: {
         create: async (input: FleetVehicleInput): Promise<FleetVehicle> => {
@@ -272,6 +273,10 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           return result.affected === 1;
         },
         enqueue: enqueueCleanup,
+      },
+      notifications: {
+        persistVehicleDeadlineStages: (vehicle, changedKinds) =>
+          this.deadlineNotifications.persist(manager, vehicle, changedKinds),
       },
     };
   }

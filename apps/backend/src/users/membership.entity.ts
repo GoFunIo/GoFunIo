@@ -11,6 +11,7 @@ import { MembershipRole } from './membership-role';
 // ponytail: expand phase — nothing reads memberships yet, so no relations declared; add when a read needs them.
 @Entity('memberships')
 @Unique('UQ_memberships_user_company', ['userId', 'companyId'])
+@Unique('UQ_memberships_id_company', ['id', 'companyId'])
 export class Membership {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

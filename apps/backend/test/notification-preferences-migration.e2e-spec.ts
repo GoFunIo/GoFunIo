@@ -23,6 +23,7 @@ describe('Membership Notification Preferences migration', () => {
       await database.initialize();
       await database.runMigrations();
       await database.undoLastMigration();
+      await database.undoLastMigration();
       await expect(
         database.query(`SELECT to_regclass($1) AS regclass`, [
           `${schema}.notification_preferences`,

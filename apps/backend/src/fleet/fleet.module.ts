@@ -11,6 +11,7 @@ import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment
 import { Driver } from '../drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
+import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
   ],
   providers: [
     TypeOrmVehicleAccess,
+    VehicleDeadlineNotificationWriter,
     TypeOrmDriverAllocation,
     {
       provide: DRIVER_ALLOCATION,
