@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Company } from '../companies/companies.entity';
@@ -7,6 +7,8 @@ import { Membership } from './membership.entity';
 import { MembershipRole } from './membership-role';
 import type { UserAccount } from './user-account';
 import { User } from './users.entity';
+import { CLOCK, type Clock } from '../common/clock';
+import { provisionVehicleDeadlineAlertPolicy } from '../alert-policy/provision-vehicle-deadline-alert-policy';
 
 export const WORKSPACE_OWNER_PROVISIONER = Symbol(
   'WORKSPACE_OWNER_PROVISIONER',
@@ -45,6 +47,7 @@ export interface WorkspaceOwnerProvisioner {
 export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvisioner {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async provision(input: WorkspaceOwnerProvisioning): Promise<UserAccount> {
@@ -82,6 +85,11 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
         );
         const company = await manager.save(
           manager.create(Company, { name: 'Moja firma' }),
+        );
+        await provisionVehicleDeadlineAlertPolicy(
+          manager,
+          company.id,
+          this.clock.now(),
         );
         const user = await manager.save(
           Object.assign(reservation ?? manager.create(User), {

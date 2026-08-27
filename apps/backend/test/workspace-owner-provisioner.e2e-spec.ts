@@ -8,6 +8,7 @@ import {
   TypeOrmWorkspaceOwnerProvisioner,
   WorkspaceOwnerConflictError,
 } from '../src/users/workspace-owner-provisioner';
+import { VehicleDeadlineAlertPolicy } from '../src/alert-policy/vehicle-deadline-alert-policy.entity';
 
 describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
   let dataSource: DataSource;
@@ -18,7 +19,7 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company, Membership],
+      entities: [User, Company, Membership, VehicleDeadlineAlertPolicy],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,
@@ -27,6 +28,7 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
     await dataSource.initialize();
     provisioner = new TypeOrmWorkspaceOwnerProvisioner(
       dataSource.getRepository(User),
+      { now: () => new Date() },
     );
   });
 
@@ -68,6 +70,15 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
         .getRepository(Company)
         .findOneByOrFail({ id: membership.companyId }),
     ).resolves.toBeDefined();
+    await expect(
+      dataSource
+        .getRepository(VehicleDeadlineAlertPolicy)
+        .findOneByOrFail({ companyId: membership.companyId }),
+    ).resolves.toMatchObject({
+      enabledDeadlineKinds: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
+      leadDays: [30, 14, 7, 0],
+      timeZone: 'Europe/Warsaw',
+    });
     expect(user).not.toHaveProperty('companyId');
     expect(user).not.toHaveProperty('role');
     expect(account).not.toHaveProperty('companyId');
@@ -78,6 +89,9 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
   it('allows only one concurrent owner for an email', async () => {
     const email = `concurrent-${Date.now()}@example.com`;
     const companiesBefore = await dataSource.getRepository(Company).count();
+    const policiesBefore = await dataSource
+      .getRepository(VehicleDeadlineAlertPolicy)
+      .count();
     const results = await Promise.allSettled([
       provisioner.provision(input(email, 'one')),
       provisioner.provision(input(email, 'two')),
@@ -97,5 +111,8 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
     await expect(dataSource.getRepository(Company).count()).resolves.toBe(
       companiesBefore + 1,
     );
+    await expect(
+      dataSource.getRepository(VehicleDeadlineAlertPolicy).count(),
+    ).resolves.toBe(policiesBefore + 1);
   });
 });

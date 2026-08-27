@@ -15,6 +15,7 @@ import { MailService } from '../../src/mail/mail.service';
 import { toMilliseconds } from '../../src/common/duration.util';
 import { ATTACHMENT_OBJECT_STORE } from '../../src/attachment-storage/attachment-object-store';
 import { InMemoryAttachmentObjectStore } from '../../src/attachment-storage/in-memory-attachment-object-store';
+import { CLOCK, type Clock } from '../../src/common/clock';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -33,6 +34,7 @@ const noopMailService = {
 export async function createTestApp(
   options: {
     enableThrottling?: boolean;
+    clock?: Clock;
   } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
@@ -42,6 +44,9 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(ThrottlerGuard)
       .useClass(MockThrottlerGuard);
+  }
+  if (options.clock) {
+    builder = builder.overrideProvider(CLOCK).useValue(options.clock);
   }
   const moduleFixture: TestingModule = await builder
     .overrideProvider(ATTACHMENT_OBJECT_STORE)

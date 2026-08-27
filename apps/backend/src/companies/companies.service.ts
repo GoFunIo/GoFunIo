@@ -1,16 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Membership } from '../users/membership.entity';
 import { MembershipRole } from '../users/membership-role';
 import { Company } from './companies.entity';
 import { UpdateCompanyDto } from './dtos/update-company.dto';
+import { CLOCK, type Clock } from '../common/clock';
+import { provisionVehicleDeadlineAlertPolicy } from '../alert-policy/provision-vehicle-deadline-alert-policy';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectRepository(Company)
     private companies: Repository<Company>,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async findActive(id: string): Promise<Company> {
@@ -28,6 +31,11 @@ export class CompaniesService {
   create(userId: string, name: string): Promise<Company> {
     return this.companies.manager.transaction(async (manager) => {
       const company = await manager.save(manager.create(Company, { name }));
+      await provisionVehicleDeadlineAlertPolicy(
+        manager,
+        company.id,
+        this.clock.now(),
+      );
       await manager.save(
         manager.create(Membership, {
           userId,

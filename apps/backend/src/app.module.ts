@@ -16,6 +16,8 @@ import { ServicesModule } from './services/services.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AttachmentStorageModule } from './attachment-storage/attachment-storage.module';
+import { TimeModule } from './common/time.module';
+import { AlertPolicyModule } from './alert-policy/alert-policy.module';
 
 @Module({
   imports: [
@@ -42,6 +44,7 @@ import { AttachmentStorageModule } from './attachment-storage/attachment-storage
       }),
     }),
     FrontendOriginsModule,
+    TimeModule,
     AttachmentStorageModule,
     UsersModule,
     MailModule,
@@ -49,6 +52,7 @@ import { AttachmentStorageModule } from './attachment-storage/attachment-storage
     VehiclesModule,
     DriversModule,
     ServicesModule,
+    AlertPolicyModule,
   ],
   controllers: [AppController],
   providers: [
