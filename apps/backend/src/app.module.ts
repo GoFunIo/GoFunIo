@@ -19,6 +19,7 @@ import { AttachmentStorageModule } from './attachment-storage/attachment-storage
 import { TimeModule } from './common/time.module';
 import { AlertPolicyModule } from './alert-policy/alert-policy.module';
 import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
+import { VehicleDeadlineAlertsModule } from './vehicle-deadline-alerts/vehicle-deadline-alerts.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { NotificationPreferencesModule } from './notification-preferences/notifi
     ServicesModule,
     AlertPolicyModule,
     NotificationPreferencesModule,
+    VehicleDeadlineAlertsModule,
   ],
   controllers: [AppController],
   providers: [
