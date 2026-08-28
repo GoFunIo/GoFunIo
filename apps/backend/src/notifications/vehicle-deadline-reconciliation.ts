@@ -14,6 +14,7 @@ import { WorkspaceCalendar } from '../common/workspace-calendar';
 import { EnvVars, NodeEnv } from '../config/env.validation';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import { VehicleDeadlineNotificationWriter } from './vehicle-deadline-notification-writer';
+import { VehicleDeadlineRecipientReconciler } from './vehicle-deadline-recipient-reconciler';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
 import { selectVehicleDeadlineStage } from './vehicle-deadline-stage';
 import {
@@ -36,6 +37,7 @@ export class VehicleDeadlineReconciliationStore {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly writer: VehicleDeadlineNotificationWriter,
+    private readonly recipients: VehicleDeadlineRecipientReconciler,
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -124,6 +126,11 @@ export class VehicleDeadlineReconciliationStore {
         await this.writer.persist(manager, vehicle, missingKinds, {
           policy,
           enforceActivationBoundary: true,
+        });
+      }
+      for (const policy of policies) {
+        await this.recipients.reconcileRecipients(manager, {
+          companyId: policy.companyId,
         });
       }
     });

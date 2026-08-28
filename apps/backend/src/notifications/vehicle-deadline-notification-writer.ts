@@ -7,24 +7,10 @@ import {
 import { CLOCK, type Clock } from '../common/clock';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
 import type { FleetVehicle } from '../fleet/fleet-unit-of-work';
-import {
-  NotificationEmailMode,
-  NotificationPreference,
-} from '../notification-preferences/notification-preference.entity';
-import { Membership } from '../users/membership.entity';
-import { MembershipRole } from '../users/membership-role';
-import {
-  NotificationChannel,
-  NotificationDelivery,
-  NotificationDeliveryStatus,
-} from './notification-delivery.entity';
-import { NotificationRecipient } from './notification-recipient.entity';
 import { Notification, NotificationType } from './notification.entity';
-import {
-  NOTIFICATION_TYPES,
-  NotificationEmailPolicy,
-} from './notification-types';
+import { NOTIFICATION_TYPES } from './notification-types';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
+import { VehicleDeadlineRecipientReconciler } from './vehicle-deadline-recipient-reconciler';
 import { selectVehicleDeadlineStage } from './vehicle-deadline-stage';
 import {
   vehicleDeadlineDate,
@@ -36,6 +22,7 @@ export class VehicleDeadlineNotificationWriter {
   constructor(
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly recipients: VehicleDeadlineRecipientReconciler,
   ) {}
 
   async persist(
@@ -118,65 +105,9 @@ export class VehicleDeadlineNotificationWriter {
           registrationNumberSnapshot: vehicle.registrationNumber,
         }),
       );
-      const memberships = await manager
-        .createQueryBuilder(Membership, 'membership')
-        .where('membership.companyId = :companyId', {
-          companyId: vehicle.companyId,
-        })
-        .andWhere("membership.status = 'active'")
-        .andWhere(
-          `(membership.role IN (:...admins) OR (membership.role = :managerRole AND EXISTS (
-          SELECT 1 FROM manager_vehicle_assignments assignment
-          WHERE assignment."companyId" = membership."companyId"
-            AND assignment."managerId" = membership."userId"
-            AND assignment."vehicleId" = :vehicleId AND assignment."assignedTo" IS NULL)))`,
-          {
-            admins: [MembershipRole.OWNER, MembershipRole.ADMIN],
-            managerRole: MembershipRole.MANAGER,
-            vehicleId: vehicle.id,
-          },
-        )
-        .getMany();
-      for (const membership of memberships) {
-        const recipient = await manager.save(
-          manager.create(NotificationRecipient, {
-            companyId: vehicle.companyId,
-            notificationId: notification.id,
-            membershipId: membership.id,
-            readAt: null,
-            archivedAt: null,
-            revokedAt: null,
-          }),
-        );
-        const preference = await manager.findOneBy(NotificationPreference, {
-          companyId: vehicle.companyId,
-          membershipId: membership.id,
-          category: contract.category,
-        });
-        const createDelivery =
-          contract.emailPolicy === NotificationEmailPolicy.REQUIRED ||
-          (contract.emailPolicy === NotificationEmailPolicy.OPTIONAL &&
-            (!preference ||
-              preference.emailMode === NotificationEmailMode.IMMEDIATE));
-        if (createDelivery) {
-          await manager.save(
-            manager.create(NotificationDelivery, {
-              companyId: vehicle.companyId,
-              recipientId: recipient.id,
-              channel: NotificationChannel.EMAIL,
-              status: NotificationDeliveryStatus.PENDING,
-              attempts: 0,
-              nextAttemptAt: this.clock.now(),
-              lockedAt: null,
-              recipientAddress: null,
-              providerMessageId: null,
-              lastError: null,
-              sentAt: null,
-              completedAt: null,
-            }),
-          );
-        }
-      }
+      await this.recipients.addRecipientsForNotifications(manager, [
+        notification.id,
+      ]);
     }
   }
 }

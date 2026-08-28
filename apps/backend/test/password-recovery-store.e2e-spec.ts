@@ -22,7 +22,9 @@ describe('TypeOrmPasswordRecoveryStore (integration)', () => {
       },
     });
     await dataSource.initialize();
-    store = new TypeOrmPasswordRecoveryStore(dataSource.getRepository(User));
+    store = new TypeOrmPasswordRecoveryStore(dataSource.getRepository(User), {
+      reconcileRecipients: () => Promise.resolve(),
+    });
   });
 
   afterAll(async () => {

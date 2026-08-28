@@ -5,6 +5,18 @@ export const TRANSACTIONAL_VEHICLE_ACCESS = Symbol(
 );
 
 export interface TransactionalVehicleAccess {
+  authorizedMemberships(
+    manager: EntityManager,
+    companyId: string,
+    vehicleIds: string[],
+    userIds?: string[],
+  ): Promise<
+    Array<{
+      membershipId: string;
+      userId: string;
+      vehicleId: string;
+    }>
+  >;
   closeManager(
     manager: EntityManager,
     companyId: string,

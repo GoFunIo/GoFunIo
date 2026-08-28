@@ -24,6 +24,10 @@ import { isWorkspaceAdmin, MembershipRole } from './membership-role';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { requireCompanyId, type SessionPrincipal } from './session-principal';
 import { User } from './users.entity';
+import {
+  TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
+  type TransactionalNotificationRecipientReconciliation,
+} from '../notifications/transactional-notification-recipient-reconciliation';
 
 export type CompanyUser = User & {
   companyId: string;
@@ -43,6 +47,8 @@ export class CompanyUsersService {
     private readonly passwordRecovery: PasswordRecoveryService,
     @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
     private readonly vehicleAccess: TransactionalVehicleAccess,
+    @Inject(TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION)
+    private readonly notificationRecipients: TransactionalNotificationRecipientReconciliation,
   ) {}
 
   async list(
@@ -120,6 +126,10 @@ export class CompanyUsersService {
             role: body.role,
           }),
         );
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId,
+          userIds: [created.id],
+        });
         return this.contextualUser(created, companyId, body.role);
       });
     } catch (error) {
@@ -182,6 +192,12 @@ export class CompanyUsersService {
       if (cleanupManager) {
         await this.vehicleAccess.closeManager(manager, companyId, id);
       }
+      if (role) {
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId,
+          userIds: [id],
+        });
+      }
       const saved = await manager.save(user);
       return this.contextualUser(saved, companyId, membership.role);
     });
@@ -210,6 +226,10 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(manager, companyId, id);
       }
+      await this.notificationRecipients.reconcileRecipients(manager, {
+        companyId,
+        userIds: [id],
+      });
       await this.softDeleteIfEmpty(manager, companyId);
     });
   }
@@ -233,6 +253,10 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(manager, companyId, actor.id);
       }
+      await this.notificationRecipients.reconcileRecipients(manager, {
+        companyId,
+        userIds: [actor.id],
+      });
       await this.softDeleteIfEmpty(manager, companyId);
     });
   }

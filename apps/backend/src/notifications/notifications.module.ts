@@ -7,15 +7,16 @@ import { Notification } from './notification.entity';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
 import { NotificationRecipient } from './notification-recipient.entity';
 import { NotificationDelivery } from './notification-delivery.entity';
-import { VehicleDeadlineNotificationWriter } from './vehicle-deadline-notification-writer';
 import {
   VehicleDeadlineReconciliation,
   VehicleDeadlineReconciliationStore,
 } from './vehicle-deadline-reconciliation';
+import { FleetModule } from '../fleet/fleet.module';
 
 @Module({
   imports: [
     UsersModule,
+    FleetModule,
     TypeOrmModule.forFeature([
       Notification,
       VehicleDeadlineNotificationDetail,
@@ -26,7 +27,6 @@ import {
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
-    VehicleDeadlineNotificationWriter,
     VehicleDeadlineReconciliationStore,
     VehicleDeadlineReconciliation,
   ],

@@ -32,6 +32,7 @@ import {
   type SessionPrincipal,
 } from '../users/session-principal';
 import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
+import { VehicleDeadlineRecipientReconciler } from '../notifications/vehicle-deadline-recipient-reconciler';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -57,6 +58,7 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
     private readonly vehicleAccess: TypeOrmVehicleAccess,
     private readonly driverAllocation: TypeOrmDriverAllocation,
     private readonly deadlineNotifications: VehicleDeadlineNotificationWriter,
+    private readonly deadlineRecipients: VehicleDeadlineRecipientReconciler,
   ) {}
 
   transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -275,6 +277,8 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         enqueue: enqueueCleanup,
       },
       notifications: {
+        reconcileVehicleDeadlineRecipients: (input) =>
+          this.deadlineRecipients.reconcileRecipients(manager, input),
         persistVehicleDeadlineStages: (vehicle, changedKinds) =>
           this.deadlineNotifications.persist(manager, vehicle, changedKinds),
       },

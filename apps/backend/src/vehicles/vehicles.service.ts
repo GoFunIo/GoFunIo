@@ -184,7 +184,17 @@ export class VehiclesService {
       const companyId = requireCompanyId(actor);
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       await fleet.vehicleAccess.find(actor, vehicleId, true);
-      return fleet.vehicleAccess.assign(companyId, vehicleId, body.managerId);
+      const assignment = await fleet.vehicleAccess.assign(
+        companyId,
+        vehicleId,
+        body.managerId,
+      );
+      await fleet.notifications.reconcileVehicleDeadlineRecipients({
+        companyId,
+        vehicleIds: [vehicleId],
+        userIds: [body.managerId],
+      });
+      return assignment;
     });
   }
 
@@ -199,6 +209,11 @@ export class VehiclesService {
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       await fleet.vehicleAccess.find(actor, vehicleId, true);
       await fleet.vehicleAccess.unassign(companyId, vehicleId, managerId);
+      await fleet.notifications.reconcileVehicleDeadlineRecipients({
+        companyId,
+        vehicleIds: [vehicleId],
+        userIds: [managerId],
+      });
     });
   }
 

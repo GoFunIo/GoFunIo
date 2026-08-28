@@ -1,7 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -11,6 +10,14 @@ import { NOTIFICATION_TYPES } from './notification-types';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
 import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import { CLOCK, type Clock } from '../common/clock';
+import {
+  TRANSACTIONAL_VEHICLE_ACCESS,
+  type TransactionalVehicleAccess,
+} from '../fleet/transactional-vehicle-access';
+import {
+  VEHICLE_DEADLINE_SOURCE_VALIDITY_JOINS,
+  VEHICLE_DEADLINE_SOURCE_VALIDITY_PREDICATE,
+} from './vehicle-deadline-source-validity';
 
 interface NotificationRow {
   id: string;
@@ -32,6 +39,8 @@ export class NotificationsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
+    private readonly vehicleAccess: TransactionalVehicleAccess,
   ) {}
 
   async list(actor: SessionPrincipal) {
@@ -60,49 +69,44 @@ export class NotificationsService {
     unreadOnly = false,
   ): Promise<NotificationRow[]> {
     const companyId = requireCompanyId(actor);
-    const isAdmin =
-      actor.role === MembershipRole.OWNER ||
-      actor.role === MembershipRole.ADMIN;
     const rows = await this.dataSource.query<NotificationRow[]>(
-      `SELECT n.id, n.type, n."rendererVersion", n."createdAt",
-              d."vehicleId", d."deadlineKind", to_char(d."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate", d."leadDay",
-              d."registrationNumberSnapshot" AS "registrationNumber",
-              p."leadDays", p."timeZone"
-       FROM notifications n
-       JOIN vehicle_deadline_notification_details d
-         ON d."notificationId" = n.id AND d."companyId" = n."companyId"
-       JOIN notification_recipients r
-         ON r."notificationId" = n.id AND r."companyId" = n."companyId" AND r."revokedAt" IS NULL
-       JOIN memberships m
-         ON m.id = r."membershipId" AND m."companyId" = r."companyId"
-        AND m."userId" = $2 AND m.status = 'active'
-       JOIN vehicles v ON v.id = d."vehicleId" AND v."companyId" = d."companyId" AND v."deletedAt" IS NULL
-       JOIN vehicle_deadline_alert_policies p ON p."companyId" = n."companyId"
-       WHERE n."companyId" = $1
-         AND n.type = 'VEHICLE_DEADLINE_REACHED'
-         AND n."invalidatedAt" IS NULL
-         AND (n."expiresAt" IS NULL OR n."expiresAt" > $6)
-         AND d."deadlineKind" = ANY(p."enabledDeadlineKinds")
-         AND CASE d."deadlineKind"
-           WHEN 'OC' THEN v."ocExpiry" = d."deadlineDate"
-           WHEN 'AC' THEN v."acExpiry" = d."deadlineDate"
-           WHEN 'TECHNICAL_INSPECTION' THEN v."technicalInspectionExpiry" = d."deadlineDate"
-         END
-         AND ($3::boolean OR EXISTS (
-           SELECT 1 FROM manager_vehicle_assignments a
-           WHERE a."companyId" = n."companyId" AND a."vehicleId" = d."vehicleId"
-             AND a."managerId" = $2 AND a."assignedTo" IS NULL
-         ))
-         AND ($4::uuid IS NULL OR n.id = $4)
-         AND ($5::boolean = false OR (r."readAt" IS NULL AND r."archivedAt" IS NULL))
-       ORDER BY n."createdAt" DESC, n.id DESC`,
-      [companyId, actor.id, isAdmin, id ?? null, unreadOnly, this.clock.now()],
+      `SELECT notification.id, notification.type, notification."rendererVersion", notification."createdAt",
+              detail."vehicleId", detail."deadlineKind", to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate", detail."leadDay",
+              detail."registrationNumberSnapshot" AS "registrationNumber",
+              policy."leadDays", policy."timeZone"
+       FROM notifications notification
+       JOIN vehicle_deadline_notification_details detail
+         ON detail."notificationId" = notification.id AND detail."companyId" = notification."companyId"
+       JOIN notification_recipients recipient
+         ON recipient."notificationId" = notification.id AND recipient."companyId" = notification."companyId" AND recipient."revokedAt" IS NULL
+       JOIN memberships membership
+         ON membership.id = recipient."membershipId" AND membership."companyId" = recipient."companyId"
+        AND membership."userId" = $2 AND membership.status = 'active'
+       ${VEHICLE_DEADLINE_SOURCE_VALIDITY_JOINS}
+       WHERE notification."companyId" = $1
+         AND notification.type = 'VEHICLE_DEADLINE_REACHED'
+         AND ${VEHICLE_DEADLINE_SOURCE_VALIDITY_PREDICATE}
+         AND (notification."expiresAt" IS NULL OR notification."expiresAt" > $5)
+         AND ($3::uuid IS NULL OR notification.id = $3)
+         AND ($4::boolean = false OR (recipient."readAt" IS NULL AND recipient."archivedAt" IS NULL))
+       ORDER BY notification."createdAt" DESC, notification.id DESC`,
+      [companyId, actor.id, id ?? null, unreadOnly, this.clock.now()],
+    );
+    const authorized = await this.vehicleAccess.authorizedMemberships(
+      this.dataSource.manager,
+      companyId,
+      [...new Set(rows.map(({ vehicleId }) => vehicleId))],
+      [actor.id],
+    );
+    const authorizedVehicles = new Set(
+      authorized.map(({ vehicleId }) => vehicleId),
     );
     const valid = rows.filter((row) => {
       const today = this.calendar.now(row.timeZone).date;
       return (
+        authorizedVehicles.has(row.vehicleId) &&
         this.calendar.daysBetween(today, row.deadlineDate) <=
-        Math.max(...row.leadDays)
+          Math.max(...row.leadDays)
       );
     });
     return limit === undefined ? valid : valid.slice(0, limit);

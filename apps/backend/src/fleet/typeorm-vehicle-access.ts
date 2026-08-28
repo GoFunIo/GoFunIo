@@ -159,6 +159,42 @@ export class TypeOrmVehicleAccess
     return this.close(manager, companyId, 'managerId', managerId);
   }
 
+  authorizedMemberships(
+    manager: EntityManager,
+    companyId: string,
+    vehicleIds: string[],
+    userIds?: string[],
+  ): Promise<
+    Array<{ membershipId: string; userId: string; vehicleId: string }>
+  > {
+    if (!vehicleIds.length) return Promise.resolve([]);
+    const parameters: unknown[] = [companyId, vehicleIds];
+    const userFilter = userIds?.length
+      ? `AND membership."userId" = ANY($${parameters.push(userIds)}::uuid[])`
+      : '';
+    return manager.query(
+      `SELECT membership.id AS "membershipId", membership."userId", vehicle.id AS "vehicleId"
+       FROM vehicles vehicle
+       JOIN memberships membership
+         ON membership."companyId" = vehicle."companyId" AND membership.status = 'active'
+       WHERE vehicle."companyId" = $1
+         AND vehicle.id = ANY($2::uuid[])
+         AND vehicle."deletedAt" IS NULL
+         ${userFilter}
+         AND (membership.role IN ('OWNER', 'ADMIN') OR (
+           membership.role = 'MANAGER' AND EXISTS (
+             SELECT 1 FROM manager_vehicle_assignments assignment
+             WHERE assignment."companyId" = membership."companyId"
+               AND assignment."managerId" = membership."userId"
+               AND assignment."vehicleId" = vehicle.id
+               AND assignment."assignedTo" IS NULL
+           )
+         ))
+       FOR KEY SHARE OF vehicle, membership`,
+      parameters,
+    );
+  }
+
   transactionStore(manager: EntityManager): FleetVehicleAccessStore {
     return {
       requireActor: async (companyId, userId, role) => {

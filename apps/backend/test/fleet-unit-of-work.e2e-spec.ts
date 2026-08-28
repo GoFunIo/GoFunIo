@@ -13,6 +13,7 @@ import { ManagerVehicleAssignment } from '../src/vehicles/manager-vehicle-assign
 import { Vehicle } from '../src/vehicles/vehicles.entity';
 import { WorkspaceCalendar } from '../src/common/workspace-calendar';
 import { VehicleDeadlineNotificationWriter } from '../src/notifications/vehicle-deadline-notification-writer';
+import { VehicleDeadlineRecipientReconciler } from '../src/notifications/vehicle-deadline-recipient-reconciler';
 
 describe('TypeOrmFleetUnitOfWork (integration)', () => {
   let dataSource: DataSource;
@@ -40,14 +41,23 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     });
     await dataSource.initialize();
     vehicleAccess = new TypeOrmVehicleAccess(dataSource);
+    const clock = { now: () => new Date() };
+    const calendar = new WorkspaceCalendar(clock);
+    const deadlineRecipients = new VehicleDeadlineRecipientReconciler(
+      calendar,
+      clock,
+      vehicleAccess,
+    );
     fleet = new TypeOrmFleetUnitOfWork(
       dataSource,
       vehicleAccess,
       new TypeOrmDriverAllocation(dataSource),
       new VehicleDeadlineNotificationWriter(
-        new WorkspaceCalendar({ now: () => new Date() }),
-        { now: () => new Date() },
+        calendar,
+        clock,
+        deadlineRecipients,
       ),
+      deadlineRecipients,
     );
   });
 

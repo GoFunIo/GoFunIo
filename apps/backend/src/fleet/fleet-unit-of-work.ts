@@ -18,6 +18,7 @@ import type { DriverAllocationStore } from './driver-allocation';
 import type { ServiceType } from '../services/services.entity';
 import type { ServiceAttachmentMimeType } from '../service-attachments/service-attachment.entity';
 import type { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import type { VehicleDeadlineRecipientReconciliationScope } from '../notifications/transactional-notification-recipient-reconciliation';
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -222,6 +223,9 @@ export interface FleetTransaction {
     persistVehicleDeadlineStages(
       vehicle: FleetVehicle,
       changedKinds: VehicleDeadlineKind[],
+    ): Promise<void>;
+    reconcileVehicleDeadlineRecipients(
+      input: VehicleDeadlineRecipientReconciliationScope,
     ): Promise<void>;
   };
 }
@@ -917,6 +921,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
           enqueue: enqueueCleanup,
         },
         notifications: {
+          reconcileVehicleDeadlineRecipients: () => Promise.resolve(),
           persistVehicleDeadlineStages: () => Promise.resolve(),
         },
       });

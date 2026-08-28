@@ -168,6 +168,7 @@ describe('CompanyUsersService membership rules', () => {
       repository as unknown as Repository<User>,
       { issueFirstPassword: jest.fn() } as unknown as PasswordRecoveryService,
       vehicleAccess as unknown as TransactionalVehicleAccess,
+      { reconcileRecipients: jest.fn() },
     );
     return { manager, service, vehicleAccess };
   }
