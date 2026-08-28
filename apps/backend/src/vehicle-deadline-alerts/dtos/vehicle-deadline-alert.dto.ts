@@ -76,7 +76,7 @@ export class NotificationCenterSummaryDto {
     minimum: 0,
     default: 0,
     description:
-      'Unread durable Notifications. Always zero until Notifications are implemented.',
+      'Valid, currently authorized, unrevoked and unarchived durable Notifications whose caller Recipient has no readAt.',
   })
   @Expose()
   unreadNotificationCount!: number;

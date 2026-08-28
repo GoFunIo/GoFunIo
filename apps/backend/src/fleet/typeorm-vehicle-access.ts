@@ -172,8 +172,16 @@ export class TypeOrmVehicleAccess
     const userFilter = userIds?.length
       ? `AND membership."userId" = ANY($${parameters.push(userIds)}::uuid[])`
       : '';
-    return manager.query(
-      `SELECT membership.id AS "membershipId", membership."userId", vehicle.id AS "vehicleId"
+    return manager
+      .query<
+        Array<{
+          membershipId: string;
+          userId: string;
+          vehicleId: string;
+          role: MembershipRole;
+        }>
+      >(
+        `SELECT membership.id AS "membershipId", membership."userId", vehicle.id AS "vehicleId", membership.role
        FROM vehicles vehicle
        JOIN memberships membership
          ON membership."companyId" = vehicle."companyId" AND membership.status = 'active'
@@ -181,18 +189,54 @@ export class TypeOrmVehicleAccess
          AND vehicle.id = ANY($2::uuid[])
          AND vehicle."deletedAt" IS NULL
          ${userFilter}
-         AND (membership.role IN ('OWNER', 'ADMIN') OR (
-           membership.role = 'MANAGER' AND EXISTS (
-             SELECT 1 FROM manager_vehicle_assignments assignment
-             WHERE assignment."companyId" = membership."companyId"
-               AND assignment."managerId" = membership."userId"
-               AND assignment."vehicleId" = vehicle.id
-               AND assignment."assignedTo" IS NULL
-           )
-         ))
-       FOR KEY SHARE OF vehicle, membership`,
-      parameters,
-    );
+         AND membership.role IN ('OWNER', 'ADMIN', 'MANAGER')
+       FOR SHARE OF vehicle, membership`,
+        parameters,
+      )
+      .then(async (candidates) => {
+        const managers = candidates.filter(
+          ({ role }) => role === MembershipRole.MANAGER,
+        );
+        if (!managers.length) {
+          return candidates.map(({ membershipId, userId, vehicleId }) => ({
+            membershipId,
+            userId,
+            vehicleId,
+          }));
+        }
+        const assignments = await manager.query<
+          Array<{ userId: string; vehicleId: string }>
+        >(
+          `SELECT assignment."managerId" AS "userId", assignment."vehicleId"
+             FROM manager_vehicle_assignments assignment
+             JOIN unnest($2::uuid[], $3::uuid[])
+               AS requested("userId", "vehicleId")
+               ON requested."userId" = assignment."managerId"
+              AND requested."vehicleId" = assignment."vehicleId"
+            WHERE assignment."companyId" = $1
+              AND assignment."assignedTo" IS NULL
+            FOR SHARE OF assignment`,
+          [
+            companyId,
+            managers.map(({ userId }) => userId),
+            managers.map(({ vehicleId }) => vehicleId),
+          ],
+        );
+        const activeAccess = new Set(
+          assignments.map(({ userId, vehicleId }) => `${userId}:${vehicleId}`),
+        );
+        return candidates
+          .filter(
+            ({ role, userId, vehicleId }) =>
+              role !== MembershipRole.MANAGER ||
+              activeAccess.has(`${userId}:${vehicleId}`),
+          )
+          .map(({ membershipId, userId, vehicleId }) => ({
+            membershipId,
+            userId,
+            vehicleId,
+          }));
+      });
   }
 
   transactionStore(manager: EntityManager): FleetVehicleAccessStore {

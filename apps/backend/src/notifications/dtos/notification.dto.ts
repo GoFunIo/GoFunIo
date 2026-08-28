@@ -17,6 +17,20 @@ export class VehicleDeadlineNotificationDto {
   category!: NotificationCategory;
   @ApiProperty({ example: 1 }) @Expose() rendererVersion!: number;
   @ApiProperty({ format: 'date-time' }) @Expose() createdAt!: Date;
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    description: 'Personal read timestamp for the caller Recipient.',
+  })
+  @Expose()
+  readAt!: Date | null;
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    description: 'Personal archive timestamp for the caller Recipient.',
+  })
+  @Expose()
+  archivedAt!: Date | null;
   @ApiProperty({ format: 'uuid' }) @Expose() vehicleId!: string;
   @ApiProperty({ enum: VehicleDeadlineKind })
   @Expose()
@@ -35,4 +49,13 @@ export class NotificationListDto {
   @Expose()
   @Type(() => VehicleDeadlineNotificationDto)
   items!: VehicleDeadlineNotificationDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Opaque stable cursor for the next page; valid only for the same Membership, Active Workspace, and filters.',
+  })
+  @Expose()
+  nextCursor!: string | null;
 }

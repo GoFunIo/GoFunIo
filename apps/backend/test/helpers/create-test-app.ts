@@ -16,6 +16,10 @@ import { toMilliseconds } from '../../src/common/duration.util';
 import { ATTACHMENT_OBJECT_STORE } from '../../src/attachment-storage/attachment-object-store';
 import { InMemoryAttachmentObjectStore } from '../../src/attachment-storage/in-memory-attachment-object-store';
 import { CLOCK, type Clock } from '../../src/common/clock';
+import {
+  FRONTEND_ORIGINS,
+  type FrontendOrigins,
+} from '../../src/common/frontend-origins';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -35,6 +39,7 @@ export async function createTestApp(
   options: {
     enableThrottling?: boolean;
     clock?: Clock;
+    frontendOrigins?: FrontendOrigins;
   } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
@@ -47,6 +52,11 @@ export async function createTestApp(
   }
   if (options.clock) {
     builder = builder.overrideProvider(CLOCK).useValue(options.clock);
+  }
+  if (options.frontendOrigins) {
+    builder = builder
+      .overrideProvider(FRONTEND_ORIGINS)
+      .useValue(options.frontendOrigins);
   }
   const moduleFixture: TestingModule = await builder
     .overrideProvider(ATTACHMENT_OBJECT_STORE)

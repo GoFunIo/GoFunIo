@@ -86,26 +86,96 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     });
   });
 
-  it('documents list, detail, typed DTOs, and errors in Swagger', () => {
+  it('documents the complete inbox contract and exposes no delete, dismiss, or unarchive operation', () => {
     const document = SwaggerModule.createDocument(app, createSwaggerConfig());
-    expect(document.paths['/notifications']?.get?.responses).toHaveProperty(
-      '200',
-    );
-    expect(document.paths['/notifications']?.get?.responses).toHaveProperty(
-      '401',
+    const list = document.paths['/notifications']?.get;
+    expect(list?.responses).toHaveProperty('200');
+    expect(list?.responses).toHaveProperty('400');
+    expect(list?.responses).toHaveProperty('401');
+    expect(list?.parameters).toEqual(
+      expect.arrayContaining(
+        ['category', 'unread', 'archived', 'limit', 'cursor'].map((name) =>
+          expect.objectContaining({ name, in: 'query' }),
+        ),
+      ),
     );
     expect(
-      document.paths['/notifications/{id}']?.get?.responses,
-    ).toHaveProperty('200');
+      list?.parameters?.find(
+        (parameter) => 'name' in parameter && parameter.name === 'limit',
+      ),
+    ).toMatchObject({
+      schema: { default: 20, minimum: 1, maximum: 100 },
+    });
     expect(
-      document.paths['/notifications/{id}']?.get?.responses,
-    ).toHaveProperty('404');
-    expect(document.components?.schemas).toHaveProperty(
-      'VehicleDeadlineNotificationDto',
-    );
-    expect(document.components?.schemas).toHaveProperty(
-      'NotificationActionDto',
-    );
+      list?.parameters?.find(
+        (parameter) => 'name' in parameter && parameter.name === 'cursor',
+      ),
+    ).toMatchObject({
+      description: expect.stringContaining('createdAt'),
+    });
+    expect(
+      list?.parameters?.find(
+        (parameter) => 'name' in parameter && parameter.name === 'archived',
+      ),
+    ).toMatchObject({
+      schema: expect.objectContaining({ default: false }),
+    });
+    const detail = document.paths['/notifications/{id}']?.get;
+    expect(detail?.responses).toHaveProperty('200');
+    expect(detail?.responses).toHaveProperty('404');
+
+    for (const [path, method] of [
+      ['/notifications/{id}/read', 'patch'],
+      ['/notifications/{id}/archive', 'patch'],
+      ['/notifications/read-all', 'post'],
+    ] as const) {
+      const operation = document.paths[path]?.[method];
+      expect(operation?.responses).toHaveProperty('200');
+      expect(operation?.responses).toHaveProperty('403');
+      expect(operation?.parameters).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Origin', in: 'header' }),
+        ]),
+      );
+    }
+    expect(
+      document.paths['/notifications/read-all']?.post?.requestBody,
+    ).toBeDefined();
+    expect(document.paths['/notifications/{id}']).not.toHaveProperty('delete');
+    expect(document.paths['/notifications/{id}/dismiss']).toBeUndefined();
+    expect(document.paths['/notifications/{id}/unarchive']).toBeUndefined();
+
+    const schemas = document.components?.schemas ?? {};
+    expect(schemas).toHaveProperty('VehicleDeadlineNotificationDto');
+    expect(schemas).toHaveProperty('NotificationActionDto');
+    expect(schemas).toHaveProperty('NotificationListDto');
+    expect(schemas).toHaveProperty('ReadAllNotificationsDto');
+    expect(schemas).toHaveProperty('ReadAllNotificationsResultDto');
+    expect(schemas.VehicleDeadlineNotificationDto).toMatchObject({
+      required: expect.arrayContaining([
+        'id',
+        'createdAt',
+        'readAt',
+        'archivedAt',
+        'action',
+      ]),
+    });
+    expect(schemas.NotificationListDto).toMatchObject({
+      required: expect.arrayContaining(['items', 'nextCursor']),
+    });
+
+    const summarySchema = schemas.NotificationCenterSummaryDto;
+    if (!summarySchema || !('properties' in summarySchema)) {
+      throw new Error('Expected inline summary schema');
+    }
+    expect(summarySchema.properties?.activeAlertCount).toMatchObject({
+      description: expect.stringContaining('Vehicle visibility'),
+    });
+    expect(summarySchema.properties?.unreadNotificationCount).toMatchObject({
+      description: expect.stringMatching(
+        /valid.*authorized.*unrevoked.*unarchived/i,
+      ),
+    });
   });
 
   it('atomically persists one current stage and exposes typed list/detail', async () => {
@@ -145,6 +215,262 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     expect(rows[0]).toEqual({ notifications: 1, recipients: 1, deliveries: 1 });
   });
 
+  it('paginates newest-first with an opaque cursor that stays stable across concurrent inserts', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-pagination@example.com');
+    const dataSource = app.get(DataSource);
+
+    for (const [registrationNumber, createdAt] of [
+      ['PAGE001', '2026-03-30T06:01:00.000Z'],
+      ['PAGE002', '2026-03-30T06:02:00.000Z'],
+      ['PAGE003', '2026-03-30T06:03:00.000Z'],
+    ] as const) {
+      await actor
+        .post('/vehicles')
+        .send({
+          brand: 'Toyota',
+          model: 'Corolla',
+          registrationNumber,
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+      await dataSource.query(
+        `UPDATE notifications notification
+         SET "createdAt" = $1
+         FROM vehicle_deadline_notification_details detail
+         WHERE detail."notificationId" = notification.id
+           AND detail."registrationNumberSnapshot" = $2`,
+        [createdAt, registrationNumber],
+      );
+    }
+
+    const first = await actor
+      .get('/notifications')
+      .query({ limit: 2 })
+      .expect(200);
+    expect(
+      first.body.items.map(
+        ({ registrationNumber }: { registrationNumber: string }) =>
+          registrationNumber,
+      ),
+    ).toEqual(['PAGE003', 'PAGE002']);
+    expect(first.body.nextCursor).toEqual(expect.any(String));
+    expect(first.body.nextCursor).not.toContain(first.body.items[1].id);
+
+    await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Toyota',
+        model: 'Corolla',
+        registrationNumber: 'PAGE004',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    await dataSource.query(
+      `UPDATE notifications notification
+       SET "createdAt" = '2026-03-30T06:04:00.000Z'
+       FROM vehicle_deadline_notification_details detail
+       WHERE detail."notificationId" = notification.id
+         AND detail."registrationNumberSnapshot" = 'PAGE004'`,
+    );
+
+    const second = await actor
+      .get('/notifications')
+      .query({ limit: 2, cursor: first.body.nextCursor })
+      .expect(200);
+    expect(
+      second.body.items.map(
+        ({ registrationNumber }: { registrationNumber: string }) =>
+          registrationNumber,
+      ),
+    ).toEqual(['PAGE001']);
+    expect(second.body.nextCursor).toBeNull();
+  });
+
+  it('preserves PostgreSQL microsecond precision in the createdAt cursor position', async () => {
+    const actor = await owner('notification-cursor-precision@example.com');
+    const dataSource = app.get(DataSource);
+    for (const [registrationNumber, createdAt] of [
+      ['MICRO01', '2026-03-30T06:00:00.123400Z'],
+      ['MICRO02', '2026-03-30T06:00:00.123500Z'],
+      ['MICRO03', '2026-03-30T06:00:00.123600Z'],
+    ] as const) {
+      await actor
+        .post('/vehicles')
+        .send({
+          brand: 'Toyota',
+          model: 'Corolla',
+          registrationNumber,
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+      await dataSource.query(
+        `UPDATE notifications notification
+         SET "createdAt" = $1
+         FROM vehicle_deadline_notification_details detail
+         WHERE detail."notificationId" = notification.id
+           AND detail."registrationNumberSnapshot" = $2`,
+        [createdAt, registrationNumber],
+      );
+    }
+
+    const first = await actor
+      .get('/notifications')
+      .query({ limit: 1 })
+      .expect(200);
+    const second = await actor
+      .get('/notifications')
+      .query({ limit: 1, cursor: first.body.nextCursor })
+      .expect(200);
+    const third = await actor
+      .get('/notifications')
+      .query({ limit: 1, cursor: second.body.nextCursor })
+      .expect(200);
+    expect(
+      [first, second, third].map(
+        ({ body }) => body.items[0].registrationNumber,
+      ),
+    ).toEqual(['MICRO03', 'MICRO02', 'MICRO01']);
+    expect(third.body.nextCursor).toBeNull();
+  });
+
+  it('filters the personal inbox by category, unread, and archive state', async () => {
+    const actor = await owner('notification-filters@example.com');
+    for (const registrationNumber of ['FILTER1', 'FILTER2', 'FILTER3']) {
+      await actor
+        .post('/vehicles')
+        .send({
+          brand: 'Skoda',
+          model: 'Octavia',
+          registrationNumber,
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+    }
+    const items = (await actor.get('/notifications').query({ limit: 100 })).body
+      .items as Array<{ id: string; registrationNumber: string }>;
+    const read = items.find(
+      ({ registrationNumber }) => registrationNumber === 'FILTER1',
+    )!;
+    const archived = items.find(
+      ({ registrationNumber }) => registrationNumber === 'FILTER2',
+    )!;
+    await actor.patch(`/notifications/${read.id}/read`).expect(200);
+    await actor.patch(`/notifications/${archived.id}/archive`).expect(200);
+
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toHaveLength(2));
+    await actor
+      .get('/notifications')
+      .query({ unread: true })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          registrationNumber: 'FILTER3',
+          readAt: null,
+          archivedAt: null,
+        });
+      });
+    await actor
+      .get('/notifications')
+      .query({ unread: false })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          registrationNumber: 'FILTER1',
+          archivedAt: null,
+        });
+      });
+    await actor
+      .get('/notifications')
+      .query({ archived: true, unread: false })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          registrationNumber: 'FILTER2',
+          readAt: expect.any(String),
+          archivedAt: expect.any(String),
+        });
+      });
+    await actor
+      .get('/notifications')
+      .query({ category: 'FLEET_DEADLINES' })
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toHaveLength(2));
+    await actor
+      .get('/notifications')
+      .query({ category: 'SERVICE' })
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
+  });
+
+  it('uses limit 20 by default, accepts 100, preserves id tie-break order, and rejects invalid cursors or query input', async () => {
+    const actor = await owner('notification-list-validation@example.com');
+    const dataSource = app.get(DataSource);
+    for (let index = 0; index < 21; index += 1) {
+      await actor
+        .post('/vehicles')
+        .send({
+          brand: 'Seat',
+          model: 'Leon',
+          registrationNumber: `LIM${String(index).padStart(3, '0')}`,
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+    }
+    await dataSource.query(
+      `UPDATE notifications SET "createdAt" = '2026-03-30T07:00:00.000Z'`,
+    );
+    const expectedIds = (
+      await dataSource.query<Array<{ id: string }>>(
+        `SELECT id FROM notifications ORDER BY "createdAt" DESC, id DESC`,
+      )
+    ).map(({ id }) => id);
+    const defaultPage = await actor.get('/notifications').expect(200);
+    expect(defaultPage.body.items).toHaveLength(20);
+    expect(defaultPage.body.nextCursor).toEqual(expect.any(String));
+    expect(defaultPage.body.items.map(({ id }: { id: string }) => id)).toEqual(
+      expectedIds.slice(0, 20),
+    );
+    await actor
+      .get('/notifications')
+      .query({ limit: 100 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(21);
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual(
+          expectedIds,
+        );
+      });
+
+    const tampered = `${defaultPage.body.nextCursor.slice(0, -1)}x`;
+    for (const query of [
+      { limit: 0 },
+      { limit: 101 },
+      { limit: 'many' },
+      { category: 'UNKNOWN' },
+      { unread: 'yes' },
+      { archived: 'yes' },
+      { cursor: 'invalid' },
+      { cursor: tampered },
+      { cursor: defaultPage.body.nextCursor, unread: true },
+      { companyId: '00000000-0000-0000-0000-000000000000' },
+    ]) {
+      await actor.get('/notifications').query(query).expect(400);
+    }
+
+    const foreign = await owner('notification-list-cursor-foreign@example.com');
+    await foreign
+      .get('/notifications')
+      .query({ cursor: defaultPage.body.nextCursor })
+      .expect(400);
+  });
+
   it('gates generation before 08:00 and generates exactly at 08:00', async () => {
     instant = new Date('2026-03-30T05:59:59.000Z');
     const actor = await owner('notification-clock@example.com');
@@ -157,7 +483,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
         acExpiry: '2026-04-29',
       })
       .expect(201);
-    await actor.get('/notifications').expect(200).expect({ items: [] });
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     instant = new Date('2026-03-30T06:00:00.000Z');
     await actor
       .patch(`/vehicles/${first.body.id}`)
@@ -355,7 +684,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .send({ technicalInspectionExpiry: '2026-06-30' })
       .expect(200);
     await app.get(VehicleDeadlineReconciliation).processDue();
-    await actor.get('/notifications').expect(200).expect({ items: [] });
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const states = await dataSource.query(
       `SELECT notification."invalidatedAt", delivery.status, delivery."completedAt"
        FROM notifications notification
@@ -521,7 +853,438 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     await actor
       .delete(`/vehicles/${vehicle.body.id}/managers/${manager.userId}`)
       .expect(204);
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
+  });
+
+  it('marks read and archive idempotently for only the caller Recipient', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-personal-state@example.com');
+    const admin = await invite(
+      actor,
+      'notification-personal-state-admin@example.com',
+      MembershipRole.ADMIN,
+    );
+    await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Toyota',
+        model: 'Corolla',
+        registrationNumber: 'STATE01',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    const notification = (await actor.get('/notifications').expect(200)).body
+      .items[0];
+    expect(notification).toMatchObject({ readAt: null, archivedAt: null });
+
+    const firstRead = await actor
+      .patch(`/notifications/${notification.id}/read`)
+      .expect(200);
+    const repeatedRead = await actor
+      .patch(`/notifications/${notification.id}/read`)
+      .expect(200);
+    expect(firstRead.body).toMatchObject({
+      id: notification.id,
+      readAt: instant.toISOString(),
+      archivedAt: null,
+    });
+    expect(repeatedRead.body.readAt).toBe(firstRead.body.readAt);
+
+    const firstArchive = await actor
+      .patch(`/notifications/${notification.id}/archive`)
+      .expect(200);
+    const repeatedArchive = await actor
+      .patch(`/notifications/${notification.id}/archive`)
+      .expect(200);
+    expect(firstArchive.body).toMatchObject({
+      id: notification.id,
+      readAt: instant.toISOString(),
+      archivedAt: instant.toISOString(),
+    });
+    expect(repeatedArchive.body.archivedAt).toBe(firstArchive.body.archivedAt);
+
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
+    await actor
+      .get('/notifications')
+      .query({ archived: true })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          id: notification.id,
+          readAt: instant.toISOString(),
+          archivedAt: instant.toISOString(),
+        });
+      });
+    await admin.agent
+      .get(`/notifications/${notification.id}`)
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ readAt: null, archivedAt: null }),
+      );
+  });
+
+  it('marks all only currently valid visible unarchived caller items, optionally by category', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-read-all@example.com');
+    const admin = await invite(
+      actor,
+      'notification-read-all-admin@example.com',
+      MembershipRole.ADMIN,
+    );
+    const dataSource = app.get(DataSource);
+    for (const registrationNumber of [
+      'READA01',
+      'READA02',
+      'READA03',
+      'READA04',
+    ]) {
+      await actor
+        .post('/vehicles')
+        .send({
+          brand: 'Ford',
+          model: 'Focus',
+          registrationNumber,
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+    }
+    const items = (await actor.get('/notifications').query({ limit: 100 })).body
+      .items as Array<{ id: string; registrationNumber: string }>;
+    const archived = items.find(
+      ({ registrationNumber }) => registrationNumber === 'READA03',
+    )!;
+    const invalid = items.find(
+      ({ registrationNumber }) => registrationNumber === 'READA04',
+    )!;
+    await actor.patch(`/notifications/${archived.id}/archive`).expect(200);
+    await dataSource.query(
+      `UPDATE notifications SET "invalidatedAt" = $2 WHERE id = $1`,
+      [invalid.id, instant],
+    );
+
+    await actor
+      .post('/notifications/read-all')
+      .send({ category: 'SERVICE' })
+      .expect(200, { updatedCount: 0 });
+    await actor
+      .post('/notifications/read-all')
+      .send({ category: 'FLEET_DEADLINES' })
+      .expect(200, { updatedCount: 2 });
+    await actor
+      .post('/notifications/read-all')
+      .send({ category: 'FLEET_DEADLINES' })
+      .expect(200, { updatedCount: 0 });
+
+    await actor
+      .get('/notifications')
+      .query({ unread: true })
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
+    await admin.agent
+      .get('/notifications')
+      .query({ unread: true, limit: 100 })
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toHaveLength(3));
+    const [invalidRecipient] = await dataSource.query<
+      Array<{ readAt: Date | null }>
+    >(
+      `SELECT recipient."readAt"
+       FROM notification_recipients recipient
+       JOIN memberships membership ON membership.id = recipient."membershipId"
+       WHERE recipient."notificationId" = $1 AND membership."userId" = (
+         SELECT users.id FROM users WHERE users.email = $2
+       )`,
+      [invalid.id, 'notification-read-all@example.com'],
+    );
+    expect(invalidRecipient.readAt).toBeNull();
+  });
+
+  it('masks detail and personal mutations after source invalidation or current access loss', async () => {
+    const actor = await owner('notification-mask-state@example.com');
+    const manager = await invite(
+      actor,
+      'notification-mask-state-manager@example.com',
+      MembershipRole.MANAGER,
+    );
+    const vehicle = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Volvo',
+        model: 'XC60',
+        registrationNumber: 'MASK001',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    await actor
+      .post(`/vehicles/${vehicle.body.id}/managers`)
+      .send({ managerId: manager.userId })
+      .expect(201);
+    const notification = (await manager.agent.get('/notifications')).body
+      .items[0];
+
+    await actor
+      .delete(`/vehicles/${vehicle.body.id}/managers/${manager.userId}`)
+      .expect(204);
+    await manager.agent.get(`/notifications/${notification.id}`).expect(404);
+    await manager.agent
+      .patch(`/notifications/${notification.id}/read`)
+      .expect(404);
+    await manager.agent
+      .patch(`/notifications/${notification.id}/archive`)
+      .expect(404);
+
+    await actor
+      .patch(`/vehicles/${vehicle.body.id}`)
+      .send({ ocExpiry: '2026-04-12' })
+      .expect(200);
+    await actor.get(`/notifications/${notification.id}`).expect(404);
+    await actor.patch(`/notifications/${notification.id}/read`).expect(404);
+    await actor.patch(`/notifications/${notification.id}/archive`).expect(404);
+  });
+
+  it('serializes a personal mutation behind concurrent source invalidation', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-mutation-race@example.com');
+    await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Volvo',
+        model: 'V60',
+        registrationNumber: 'RACE001',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    const notification = (await actor.get('/notifications')).body.items[0];
+    const dataSource = app.get(DataSource);
+    const invalidation = dataSource.createQueryRunner();
+    await invalidation.connect();
+    await invalidation.startTransaction();
+    let mutationSettled = false;
+    try {
+      await invalidation.query(
+        `UPDATE notifications SET "invalidatedAt" = $2 WHERE id = $1`,
+        [notification.id, instant],
+      );
+      const mutation = actor
+        .patch(`/notifications/${notification.id}/read`)
+        .then((response) => {
+          mutationSettled = true;
+          return response;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(mutationSettled).toBe(false);
+      await invalidation.commitTransaction();
+      expect((await mutation).status).toBe(404);
+    } finally {
+      if (invalidation.isTransactionActive) {
+        await invalidation.rollbackTransaction();
+      }
+      await invalidation.release();
+    }
+    const [recipient] = await dataSource.query<Array<{ readAt: Date | null }>>(
+      `SELECT "readAt" FROM notification_recipients WHERE "notificationId" = $1`,
+      [notification.id],
+    );
+    expect(recipient.readAt).toBeNull();
+  });
+
+  it('serializes a personal mutation behind concurrent Vehicle Access revocation', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-access-race@example.com');
+    const manager = await invite(
+      actor,
+      'notification-access-race-manager@example.com',
+      MembershipRole.MANAGER,
+    );
+    const vehicle = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Volvo',
+        model: 'XC40',
+        registrationNumber: 'RACE002',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    await actor
+      .post(`/vehicles/${vehicle.body.id}/managers`)
+      .send({ managerId: manager.userId })
+      .expect(201);
+    const notification = (await manager.agent.get('/notifications')).body
+      .items[0];
+    const dataSource = app.get(DataSource);
+    const revocation = dataSource.createQueryRunner();
+    await revocation.connect();
+    await revocation.startTransaction();
+    const revokedAt = new Date(Date.now() + 1_000);
+    let mutationSettled = false;
+    try {
+      await revocation.query(
+        `UPDATE manager_vehicle_assignments
+            SET "assignedTo" = $3
+          WHERE "vehicleId" = $1 AND "managerId" = $2
+            AND "assignedTo" IS NULL`,
+        [vehicle.body.id, manager.userId, revokedAt],
+      );
+      const mutation = manager.agent
+        .patch(`/notifications/${notification.id}/read`)
+        .then((response) => {
+          mutationSettled = true;
+          return response;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(mutationSettled).toBe(false);
+      await revocation.query(
+        `UPDATE notification_recipients
+            SET "revokedAt" = $2
+          WHERE "notificationId" = $1 AND "revokedAt" IS NULL`,
+        [notification.id, revokedAt],
+      );
+      await revocation.commitTransaction();
+      expect((await mutation).status).toBe(404);
+    } finally {
+      if (revocation.isTransactionActive) {
+        await revocation.rollbackTransaction();
+      }
+      await revocation.release();
+    }
+    const [recipient] = await dataSource.query<
+      Array<{ readAt: Date | null; revokedAt: Date | null }>
+    >(
+      `SELECT recipient."readAt", recipient."revokedAt"
+         FROM notification_recipients recipient
+         JOIN memberships membership ON membership.id = recipient."membershipId"
+        WHERE recipient."notificationId" = $1 AND membership."userId" = $2`,
+      [notification.id, manager.userId],
+    );
+    expect(recipient.readAt).toBeNull();
+    expect(recipient.revokedAt).toEqual(revokedAt);
+  });
+
+  it('counts active Alerts independently from currently visible unread Notifications', async () => {
+    const actor = await owner('notification-summary@example.com');
+    const manager = await invite(
+      actor,
+      'notification-summary-manager@example.com',
+      MembershipRole.MANAGER,
+    );
+    const first = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Audi',
+        model: 'A4',
+        registrationNumber: 'SUM001',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    const second = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Audi',
+        model: 'A6',
+        registrationNumber: 'SUM002',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    for (const vehicleId of [first.body.id, second.body.id]) {
+      await actor
+        .post(`/vehicles/${vehicleId}/managers`)
+        .send({ managerId: manager.userId })
+        .expect(201);
+    }
+    await actor
+      .get('/notification-center/summary')
+      .expect(200, { activeAlertCount: 2, unreadNotificationCount: 2 });
+    await manager.agent
+      .get('/notification-center/summary')
+      .expect(200, { activeAlertCount: 2, unreadNotificationCount: 2 });
+
+    const ownerItems = (await actor.get('/notifications').query({ limit: 100 }))
+      .body.items as Array<{ id: string; vehicleId: string }>;
+    await actor.patch(`/notifications/${ownerItems[0].id}/archive`).expect(200);
+    await app
+      .get(DataSource)
+      .query(`UPDATE notifications SET "invalidatedAt" = $2 WHERE id = $1`, [
+        ownerItems[1].id,
+        instant,
+      ]);
+    await actor
+      .get('/notification-center/summary')
+      .expect(200, { activeAlertCount: 2, unreadNotificationCount: 0 });
+    await manager.agent
+      .get('/notification-center/summary')
+      .expect(200, { activeAlertCount: 2, unreadNotificationCount: 1 });
+
+    for (const vehicleId of [first.body.id, second.body.id]) {
+      await actor
+        .delete(`/vehicles/${vehicleId}/managers/${manager.userId}`)
+        .expect(204);
+    }
+    await manager.agent
+      .get('/notification-center/summary')
+      .expect(200, { activeAlertCount: 0, unreadNotificationCount: 0 });
+  });
+
+  it('protects every inbox mutation with the allowed Origin policy', async () => {
+    const allowedOrigin = 'https://app.example.com';
+    const strictApp = (await createTestApp({
+      clock: { now: () => new Date(instant) },
+      frontendOrigins: {
+        corsOrigins: [allowedOrigin],
+        allowsMutation: (origin) => origin === allowedOrigin,
+        resolveLinkBase: () => allowedOrigin,
+      },
+    })) as INestApplication<App>;
+    try {
+      await createVerifiedUser(
+        strictApp,
+        'notification-origin@example.com',
+        'Password123!',
+      );
+      const strictActor = request.agent(strictApp.getHttpServer());
+      await strictActor
+        .post('/auth/signin')
+        .send({
+          email: 'notification-origin@example.com',
+          password: 'Password123!',
+        })
+        .expect(201);
+      await strictActor
+        .post('/vehicles')
+        .set('Origin', allowedOrigin)
+        .send({
+          brand: 'Toyota',
+          model: 'Yaris',
+          registrationNumber: 'ORIGIN1',
+          ocExpiry: '2026-04-13',
+        })
+        .expect(201);
+      const notification = (await strictActor.get('/notifications')).body
+        .items[0];
+
+      for (const path of [
+        `/notifications/${notification.id}/read`,
+        `/notifications/${notification.id}/archive`,
+        '/notifications/read-all',
+      ]) {
+        const method = path.endsWith('read-all') ? 'post' : 'patch';
+        await strictActor[method](path).expect(403);
+        await strictActor[method](path)
+          .set('Origin', 'https://evil.example.com')
+          .expect(403);
+        await strictActor[method](path)
+          .set('Origin', allowedOrigin)
+          .expect(200);
+      }
+    } finally {
+      await strictApp.close();
+    }
   });
 
   it('adds a newly authorized Manager only to the current stage and follows current preferences', async () => {
@@ -641,7 +1404,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .send({ managerId: manager.userId })
       .expect(201);
 
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const rows = await app
       .get(DataSource)
       .query<Array<{ recipients: number; deliveries: number }>>(
@@ -754,7 +1520,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .delete(`/vehicles/${vehicle.body.id}/managers/${manager.userId}`)
       .expect(204);
 
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const states = await dataSource.query<
       Array<{
         deadlineKind: string;
@@ -871,7 +1640,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .post('/auth/switch-company')
       .send({ companyId: targetContext.body.companyId })
       .expect(204);
-    await target.get('/notifications').expect(200).expect({ items: [] });
+    await target
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
   });
 
   it('adds a Membership activated by first-password completion to the current stage', async () => {
@@ -959,7 +1731,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .delete(`/vehicles/${vehicle.body.id}/managers/${first.userId}`)
       .expect(204);
 
-    await first.agent.get('/notifications').expect(200).expect({ items: [] });
+    await first.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     await second.agent
       .get('/notifications')
       .expect(200)
@@ -1025,7 +1800,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
          AND "assignedTo" IS NULL`,
       [companyId, vehicle.body.id, manager.userId],
     );
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const [staleRecipient] = await dataSource.query<
       Array<{ revokedAt: Date | null }>
     >(
@@ -1038,7 +1816,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     expect(staleRecipient.revokedAt).toBeNull();
     await processor.processDue();
     await processor.processDue();
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const [state] = await dataSource.query<
       Array<{ revokedAt: Date | null; status: string }>
     >(
@@ -1081,7 +1862,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .post(`/vehicles/${vehicle.body.id}/managers`)
       .send({ managerId: manager.userId })
       .expect(201);
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
 
     instant = new Date('2026-04-06T06:00:00.000Z');
     await app.get(VehicleDeadlineReconciliation).processDue();
@@ -1156,7 +1940,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .patch(`/users/${manager.userId}`)
       .send({ role: MembershipRole.MANAGER })
       .expect(200);
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
 
     const rows = await app
       .get(DataSource)
@@ -1245,7 +2032,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .expect(201);
     await app.get(VehicleDeadlineReconciliation).processDue();
 
-    await manager.agent.get('/notifications').expect(200).expect({ items: [] });
+    await manager.agent
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     const [{ count }] = await app
       .get(DataSource)
       .query<Array<{ count: number }>>(
@@ -1330,7 +2120,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
         acExpiry: '2026-03-30',
       })
       .expect(201);
-    await actor.get('/notifications').expect(200).expect({ items: [] });
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
   });
 
   it('deduplicates concurrent equivalent deadline updates', async () => {
@@ -1410,7 +2203,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .expect(201);
     const notification = (await first.get('/notifications').expect(200)).body
       .items[0];
-    await second.get('/notifications').expect(200).expect({ items: [] });
+    await second
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => expect(body.items).toEqual([]));
     await second.get(`/notifications/${notification.id}`).expect(404);
   });
 
