@@ -21,6 +21,7 @@ import { AlertPolicyModule } from './alert-policy/alert-policy.module';
 import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
 import { VehicleDeadlineAlertsModule } from './vehicle-deadline-alerts/vehicle-deadline-alerts.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationChangesModule } from './notification-changes/notification-changes.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     }),
     FrontendOriginsModule,
     TimeModule,
+    NotificationChangesModule,
     AttachmentStorageModule,
     UsersModule,
     MailModule,

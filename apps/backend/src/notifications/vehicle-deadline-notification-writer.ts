@@ -16,6 +16,7 @@ import {
   vehicleDeadlineDate,
   vehicleDeadlineTriggerKey,
 } from './vehicle-deadline-trigger';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 @Injectable()
 export class VehicleDeadlineNotificationWriter {
@@ -23,6 +24,7 @@ export class VehicleDeadlineNotificationWriter {
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly recipients: VehicleDeadlineRecipientReconciler,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async persist(
@@ -108,6 +110,10 @@ export class VehicleDeadlineNotificationWriter {
       await this.recipients.addRecipientsForNotifications(manager, [
         notification.id,
       ]);
+      await this.notificationChanges.record(manager, {
+        companyId: vehicle.companyId,
+        userId: null,
+      });
     }
   }
 }

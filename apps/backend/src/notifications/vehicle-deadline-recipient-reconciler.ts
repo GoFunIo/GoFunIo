@@ -29,6 +29,7 @@ import {
   VEHICLE_DEADLINE_SOURCE_VALIDITY_JOINS,
   VEHICLE_DEADLINE_SOURCE_VALIDITY_PREDICATE,
 } from './vehicle-deadline-source-validity';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 @Injectable()
 export class VehicleDeadlineRecipientReconciler implements TransactionalNotificationRecipientReconciliation {
@@ -37,6 +38,7 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
     private readonly vehicleAccess: TransactionalVehicleAccess,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async reconcileRecipients(
@@ -110,6 +112,7 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
       companyId: string;
       notificationId: string;
       membershipId: string;
+      userId: string;
     }> = [];
     for (const companyId of new Set(
       sources.map((source) => source.companyId),
@@ -123,6 +126,9 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
         [...new Set(companySources.map(({ vehicleId }) => vehicleId))],
         userIds,
       );
+      const userByMembership = new Map(
+        authorized.map(({ membershipId, userId }) => [membershipId, userId]),
+      );
       const byVehicle = new Map<string, string[]>();
       for (const membership of authorized) {
         const membershipIds = byVehicle.get(membership.vehicleId) ?? [];
@@ -135,6 +141,7 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
             companyId,
             notificationId: source.notificationId,
             membershipId,
+            userId: userByMembership.get(membershipId)!,
           });
         }
       }
@@ -156,6 +163,12 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
         [candidate.companyId, candidate.notificationId, candidate.membershipId],
       );
       inserted.push(...recipients);
+      if (recipients.length) {
+        await this.notificationChanges.record(manager, {
+          companyId: candidate.companyId,
+          userId: candidate.userId,
+        });
+      }
     }
     if (!inserted.length) return;
     const contract =
@@ -244,12 +257,12 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
     const authorizedPairs = new Set(
       authorized.map(({ userId, vehicleId }) => `${userId}:${vehicleId}`),
     );
-    const recipientIds = recipients
-      .filter(
-        ({ userId, vehicleId }) =>
-          !authorizedPairs.has(`${userId}:${vehicleId}`),
-      )
-      .map(({ recipientId }) => recipientId);
+    const revokedRecipients = recipients.filter(
+      ({ userId, vehicleId }) => !authorizedPairs.has(`${userId}:${vehicleId}`),
+    );
+    const recipientIds = revokedRecipients.map(
+      ({ recipientId }) => recipientId,
+    );
     if (!recipientIds.length) return;
     await manager.query(
       `WITH revoked AS (
@@ -267,5 +280,13 @@ export class VehicleDeadlineRecipientReconciler implements TransactionalNotifica
           AND delivery.status IN ('PENDING', 'SENDING')`,
       [recipientIds, this.clock.now()],
     );
+    for (const userId of new Set(
+      revokedRecipients.map((recipient) => recipient.userId),
+    )) {
+      await this.notificationChanges.record(manager, {
+        companyId: input.companyId,
+        userId,
+      });
+    }
   }
 }

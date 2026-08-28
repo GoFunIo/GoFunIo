@@ -8,6 +8,7 @@ import { WorkspaceCalendar } from '../src/common/workspace-calendar';
 import { TypeOrmVehicleAccess } from '../src/fleet/typeorm-vehicle-access';
 import { TypeOrmNotificationDeliveryStore } from '../src/notifications/typeorm-notification-delivery-store';
 import { VehicleDeadlineDeliveryTypeAdapter } from '../src/notifications/vehicle-deadline-delivery-type-adapter';
+import { NotificationChangeRelay } from '../src/notification-changes/notification-change-relay';
 
 describe('TypeOrmNotificationDeliveryStore (PostgreSQL integration)', () => {
   let app: INestApplication<App>;
@@ -38,7 +39,10 @@ describe('TypeOrmNotificationDeliveryStore (PostgreSQL integration)', () => {
     await dataSource.initialize();
     connections.push(dataSource);
     const calendar = new WorkspaceCalendar({ now: () => new Date(instant) });
-    const vehicleAccess = new TypeOrmVehicleAccess(dataSource);
+    const vehicleAccess = new TypeOrmVehicleAccess(
+      dataSource,
+      new NotificationChangeRelay(dataSource),
+    );
     return new TypeOrmNotificationDeliveryStore(
       dataSource,
       [new VehicleDeadlineDeliveryTypeAdapter(vehicleAccess, calendar)],

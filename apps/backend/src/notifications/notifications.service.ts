@@ -28,6 +28,7 @@ import {
 import { ListNotificationsQueryDto } from './dtos/list-notifications-query.dto';
 import { NotificationCategory } from '../notification-preferences/notification-preference.entity';
 import type { EnvVars } from '../config/env.validation';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 interface NotificationCursor {
   version: 1;
@@ -76,6 +77,7 @@ export class NotificationsService {
     @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
     private readonly vehicleAccess: TransactionalVehicleAccess,
     config: ConfigService<EnvVars, true>,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {
     this.signingKey = config.get('COOKIE_KEY');
   }
@@ -166,6 +168,12 @@ export class NotificationsService {
          SELECT count(*)::int AS "updatedCount" FROM updated`,
         [rows.map(({ recipientId }) => recipientId), this.clock.now()],
       );
+      if (result.updatedCount > 0) {
+        await this.notificationChanges.record(manager, {
+          companyId: requireCompanyId(actor),
+          userId: actor.id,
+        });
+      }
       return result;
     });
   }
@@ -284,6 +292,10 @@ export class NotificationsService {
       )[0];
       if (!row) throw new NotFoundException('Notification not found');
       await update(manager, row);
+      await this.notificationChanges.record(manager, {
+        companyId: requireCompanyId(actor),
+        userId: actor.id,
+      });
       const updated = (
         await this.vehicleDeadlineRows(actor, { id }, manager)
       )[0];

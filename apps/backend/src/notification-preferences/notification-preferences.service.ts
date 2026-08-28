@@ -14,12 +14,14 @@ import {
   NOTIFICATION_CATEGORIES,
   NotificationPreference,
 } from './notification-preference.entity';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 @Injectable()
 export class NotificationPreferencesService {
   constructor(
     @InjectRepository(NotificationPreference)
     private readonly preferences: Repository<NotificationPreference>,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async get(actor: SessionPrincipal): Promise<NotificationPreferencesDto> {
@@ -82,6 +84,10 @@ export class NotificationPreferencesService {
       const stored = await manager.findBy(NotificationPreference, {
         companyId,
         membershipId: membership.id,
+      });
+      await this.notificationChanges.record(manager, {
+        companyId,
+        userId: actor.id,
       });
       return this.effective(stored);
     });

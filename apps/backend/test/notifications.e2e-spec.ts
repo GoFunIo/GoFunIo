@@ -2261,6 +2261,12 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       (
         await dataSource.query(`SELECT to_regclass('notifications') AS table`)
       )[0].table,
+    ).toBe('notifications');
+    await dataSource.undoLastMigration();
+    expect(
+      (
+        await dataSource.query(`SELECT to_regclass('notifications') AS table`)
+      )[0].table,
     ).toBeNull();
     await dataSource.runMigrations();
     expect(

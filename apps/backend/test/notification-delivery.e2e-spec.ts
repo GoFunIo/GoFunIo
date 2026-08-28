@@ -269,7 +269,7 @@ describe('Notification Delivery worker (authenticated PostgreSQL e2e)', () => {
     await dataSource.query(
       `UPDATE manager_vehicle_assignments SET "assignedTo" = $1
         WHERE "managerId" = $2 AND "vehicleId" = $3 AND "assignedTo" IS NULL`,
-      [instant, managerId, created.body.id],
+      [new Date(), managerId, created.body.id],
     );
 
     await worker.processDue(instant);

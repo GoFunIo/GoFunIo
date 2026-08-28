@@ -14,6 +14,7 @@ import { isWorkspaceAdmin } from '../users/membership-role';
 import { CLOCK, type Clock } from '../common/clock';
 import { UpdateVehicleDeadlineAlertPolicyDto } from './dtos/update-vehicle-deadline-alert-policy.dto';
 import { VehicleDeadlineAlertPolicy } from './vehicle-deadline-alert-policy.entity';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 @Injectable()
 export class AlertPolicyService {
@@ -21,6 +22,7 @@ export class AlertPolicyService {
     @InjectRepository(VehicleDeadlineAlertPolicy)
     private readonly policies: Repository<VehicleDeadlineAlertPolicy>,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async get(actor: SessionPrincipal): Promise<VehicleDeadlineAlertPolicy> {
@@ -63,7 +65,12 @@ export class AlertPolicyService {
       }
       if (body.timeZone !== undefined) policy.timeZone = body.timeZone;
       policy.activatedAt = this.clock.now();
-      return manager.save(policy);
+      const saved = await manager.save(policy);
+      await this.notificationChanges.record(manager, {
+        companyId,
+        userId: null,
+      });
+      return saved;
     });
   }
 }

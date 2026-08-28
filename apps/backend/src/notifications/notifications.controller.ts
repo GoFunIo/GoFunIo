@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -8,6 +9,8 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,6 +22,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import {
   ApiAllowedOrigin,
   ApiSessionAuth,
@@ -39,13 +43,19 @@ import {
   ReadAllNotificationsResultDto,
 } from './dtos/read-all-notifications.dto';
 import { NotificationsService } from './notifications.service';
+import { NotificationSseTransport } from '../notification-changes/notification-sse-transport';
+import { requireCompanyId } from '../users/session-principal';
+import { NotificationStreamQueryDto } from './dtos/notification-stream-query.dto';
 
 @ApiTags('Notifications')
 @ApiSessionAuth()
 @Controller('notifications')
 @UseGuards(SessionAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly streams: NotificationSseTransport,
+  ) {}
   @ApiOperation({ summary: 'List current authorized Notifications' })
   @ApiOkResponse({ type: NotificationListDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
@@ -59,6 +69,34 @@ export class NotificationsController {
     @Query() query: ListNotificationsQueryDto,
   ) {
     return this.notifications.list(principal, query);
+  }
+
+  @ApiOperation({
+    summary: 'Open a content-free Notification invalidation stream',
+    description:
+      'Uses the cookie Session Principal Active Workspace. Open and reconnect clients recover authoritative state through normal GET requests; replay and Last-Event-ID are not supported.',
+  })
+  @ApiOkResponse({
+    description:
+      'SSE with only notification.changed events, server reconnect hint and content-free heartbeat comments.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
+  @Get('stream')
+  stream(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Query() query: NotificationStreamQueryDto,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): void {
+    if (Object.keys(query).length) {
+      throw new BadRequestException('Stream scope comes from the session');
+    }
+    this.streams.open(
+      { companyId: requireCompanyId(principal), userId: principal.id },
+      request,
+      response,
+    );
   }
 
   @ApiOperation({ summary: 'Get an authorized typed Notification' })

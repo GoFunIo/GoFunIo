@@ -29,6 +29,7 @@ import type {
   VehicleAccess,
 } from './vehicle-access';
 import type { TransactionalVehicleAccess } from './transactional-vehicle-access';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 import { constrainToVisibleVehicles } from './typeorm-vehicle-visibility';
 
 const sortColumns: Record<VehicleSortBy, string> = {
@@ -52,7 +53,10 @@ const expiryColumns: Record<VehicleExpiryType, string> = {
 export class TypeOrmVehicleAccess
   implements VehicleAccess, TransactionalVehicleAccess
 {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly notificationChanges: NotificationChangeRelay,
+  ) {}
 
   visible(actor: SessionPrincipal): Promise<Vehicle[]> {
     if (!actor.companyId) return Promise.resolve([]);
@@ -324,13 +328,18 @@ export class TypeOrmVehicleAccess
       lock: { mode: 'pessimistic_write' },
     });
     if (active) return active;
-    return manager.save(
+    const assignment = await manager.save(
       manager.create(ManagerVehicleAssignment, {
         companyId,
         vehicleId,
         managerId,
       }),
     );
+    await this.notificationChanges.record(manager, {
+      companyId,
+      userId: managerId,
+    });
+    return assignment;
   }
 
   private async unassign(
@@ -350,6 +359,10 @@ export class TypeOrmVehicleAccess
       .set({ assignedTo: () => 'clock_timestamp()' })
       .where('id = :id', { id: assignment.id })
       .execute();
+    await this.notificationChanges.record(manager, {
+      companyId,
+      userId: managerId,
+    });
   }
 
   private async activeManagersFrom(

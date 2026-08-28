@@ -15,6 +15,8 @@ import { WorkspaceCalendar } from '../src/common/workspace-calendar';
 import { VehicleDeadlineNotificationWriter } from '../src/notifications/vehicle-deadline-notification-writer';
 import { VehicleDeadlineRecipientReconciler } from '../src/notifications/vehicle-deadline-recipient-reconciler';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationChangeRelay } from '../src/notification-changes/notification-change-relay';
+import { NotificationChange } from '../src/notification-changes/notification-change.entity';
 
 describe('TypeOrmFleetUnitOfWork (integration)', () => {
   let dataSource: DataSource;
@@ -34,6 +36,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
         ManagerVehicleAssignment,
         Driver,
         DriverVehicleAssignment,
+        NotificationChange,
       ],
       synchronize: false,
       extra: {
@@ -41,13 +44,15 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
       },
     });
     await dataSource.initialize();
-    vehicleAccess = new TypeOrmVehicleAccess(dataSource);
+    const notificationChanges = new NotificationChangeRelay(dataSource);
+    vehicleAccess = new TypeOrmVehicleAccess(dataSource, notificationChanges);
     const clock = { now: () => new Date() };
     const calendar = new WorkspaceCalendar(clock);
     const deadlineRecipients = new VehicleDeadlineRecipientReconciler(
       calendar,
       clock,
       vehicleAccess,
+      notificationChanges,
     );
     fleet = new TypeOrmFleetUnitOfWork(
       dataSource,
@@ -57,9 +62,11 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
         calendar,
         clock,
         deadlineRecipients,
+        notificationChanges,
       ),
       deadlineRecipients,
       new EventEmitter2(),
+      notificationChanges,
     );
   });
 

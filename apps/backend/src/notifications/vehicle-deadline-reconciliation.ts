@@ -24,6 +24,7 @@ import {
   vehicleDeadlineTriggerKey,
 } from './vehicle-deadline-trigger';
 import { NOTIFICATION_DELIVERY_COMMITTED } from './notification-delivery-events';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 const SCHEDULE_MS = 15 * 60 * 1000;
 const INVALID_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -43,11 +44,26 @@ export class VehicleDeadlineReconciliationStore {
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly events: EventEmitter2,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async run(): Promise<void> {
     const now = this.clock.now();
     await this.dataSource.transaction(async (manager) => {
+      const invalidScopes = await manager.query<Array<{ companyId: string }>>(
+        `SELECT DISTINCT n."companyId"
+           FROM notifications n
+           JOIN vehicle_deadline_notification_details d
+             ON n.id = d."notificationId" AND n."companyId" = d."companyId"
+           LEFT JOIN vehicles v
+             ON v.id = d."vehicleId" AND v."companyId" = d."companyId"
+           LEFT JOIN vehicle_deadline_alert_policies p
+             ON p."companyId" = d."companyId"
+          WHERE n."invalidatedAt" IS NULL
+            AND (v.id IS NULL OR v."deletedAt" IS NOT NULL OR p."companyId" IS NULL
+              OR NOT (d."deadlineKind" = ANY(p."enabledDeadlineKinds"))
+              OR CASE d."deadlineKind" ${SOURCE_DATE_INVALIDITY_SQL} END)`,
+      );
       await manager.query(
         `WITH invalid AS (
            UPDATE notifications n SET "invalidatedAt" = $1
@@ -134,6 +150,12 @@ export class VehicleDeadlineReconciliationStore {
       for (const policy of policies) {
         await this.recipients.reconcileRecipients(manager, {
           companyId: policy.companyId,
+        });
+      }
+      for (const { companyId } of invalidScopes) {
+        await this.notificationChanges.record(manager, {
+          companyId,
+          userId: null,
         });
       }
     });

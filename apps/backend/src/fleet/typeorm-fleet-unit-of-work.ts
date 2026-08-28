@@ -35,6 +35,7 @@ import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-dead
 import { VehicleDeadlineRecipientReconciler } from '../notifications/vehicle-deadline-recipient-reconciler';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_DELIVERY_COMMITTED } from '../notifications/notification-delivery-events';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -62,6 +63,7 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
     private readonly deadlineNotifications: VehicleDeadlineNotificationWriter,
     private readonly deadlineRecipients: VehicleDeadlineRecipientReconciler,
     private readonly events: EventEmitter2,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
@@ -137,6 +139,10 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
       vehicles: {
         create: async (input: FleetVehicleInput): Promise<FleetVehicle> => {
           const vehicle = await manager.save(manager.create(Vehicle, input));
+          await this.notificationChanges.record(manager, {
+            companyId: vehicle.companyId,
+            userId: null,
+          });
           return {
             id: vehicle.id,
             companyId: vehicle.companyId,
@@ -161,6 +167,10 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           await manager.update(Vehicle, vehicleId, fields);
           const vehicle = await manager.findOneBy(Vehicle, { id: vehicleId });
           if (!vehicle) throw new NotFoundException('Vehicle not found');
+          await this.notificationChanges.record(manager, {
+            companyId: vehicle.companyId,
+            userId: null,
+          });
           return vehicle;
         },
         remove: async (actor, vehicleId) => {
@@ -183,6 +193,10 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           await vehicleAccess.closeVehicle(companyId, vehicleId);
           await driverAllocations.closeVehicle(companyId, vehicleId);
           await manager.softDelete(Vehicle, vehicleId);
+          await this.notificationChanges.record(manager, {
+            companyId,
+            userId: null,
+          });
         },
       },
       vehicleAccess,

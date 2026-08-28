@@ -26,6 +26,7 @@ import {
   TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
   type TransactionalNotificationRecipientReconciliation,
 } from '../notifications/transactional-notification-recipient-reconciliation';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 const INVITATION_TTL_HOURS = 7 * 24;
 
@@ -49,6 +50,7 @@ export class MembershipInvitationsService {
     private readonly vehicleAccess: TransactionalVehicleAccess,
     @Inject(TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION)
     private readonly notificationRecipients: TransactionalNotificationRecipientReconciliation,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async invite(
@@ -241,6 +243,10 @@ export class MembershipInvitationsService {
       await this.notificationRecipients.reconcileRecipients(manager, {
         companyId: membership.companyId,
         userIds: [membership.userId],
+      });
+      await this.notificationChanges.record(manager, {
+        companyId: membership.companyId,
+        userId: membership.userId,
       });
     });
   }
