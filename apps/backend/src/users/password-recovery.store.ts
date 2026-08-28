@@ -219,8 +219,9 @@ export class InMemoryPasswordRecoveryStore implements PasswordRecoveryStore {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
-    _membershipId?: string,
+    membershipId?: string,
   ): Promise<PasswordRecoveryTarget | null> {
+    void membershipId;
     const user = this.users.get(userId);
     return Promise.resolve(
       this.assignUser(

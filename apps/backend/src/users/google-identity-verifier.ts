@@ -62,7 +62,8 @@ export class FakeGoogleIdentityVerifier implements GoogleIdentityVerifier {
   };
   error?: Error;
 
-  verify(_credential: string): Promise<VerifiedGoogleIdentity> {
+  verify(credential: string): Promise<VerifiedGoogleIdentity> {
+    void credential;
     return this.error
       ? Promise.reject(this.error)
       : Promise.resolve(this.identity);

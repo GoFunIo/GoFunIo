@@ -16,10 +16,10 @@ import { createSwaggerConfig } from './swagger-document';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<EnvVars, true>>(ConfigService);
-  const cookieKey = config.get('COOKIE_KEY');
+  const cookieKey = config.get<string>('COOKIE_KEY');
   const frontendOrigins = app.get<FrontendOrigins>(FRONTEND_ORIGINS);
-  const isProd = config.get('NODE_ENV') === NodeEnv.Production;
-  const port = config.get('PORT');
+  const isProd = config.get<NodeEnv>('NODE_ENV') === NodeEnv.Production;
+  const port = config.get<number>('PORT');
 
   if (isProd) {
     app.set('trust proxy', 1);

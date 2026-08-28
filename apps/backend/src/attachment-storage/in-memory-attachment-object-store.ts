@@ -28,6 +28,9 @@ export class InMemoryAttachmentObjectStore implements AttachmentObjectStore {
     this.failures.set(operation, error);
   }
 
+  // The in-memory adapter implements an asynchronous storage contract with
+  // intentionally synchronous operations.
+  // eslint-disable-next-line @typescript-eslint/require-await
   async put(input: {
     key: string;
     body: Buffer;
@@ -40,6 +43,7 @@ export class InMemoryAttachmentObjectStore implements AttachmentObjectStore {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async createReadUrl(input: {
     key: string;
     fileName: string;
@@ -54,11 +58,13 @@ export class InMemoryAttachmentObjectStore implements AttachmentObjectStore {
     return new URL(`memory://attachment/${encodeURIComponent(input.key)}`);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async delete(key: string): Promise<void> {
     this.throwInjectedFailure('delete');
     this.objects.delete(key);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async list(input: { prefix: string; cursor?: string }): Promise<{
     objects: Array<{ key: string; size: number; lastModified: Date }>;
     nextCursor?: string;

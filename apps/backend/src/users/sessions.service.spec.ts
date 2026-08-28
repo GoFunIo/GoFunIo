@@ -14,8 +14,9 @@ describe('SessionsService', () => {
   };
 
   it('establishes a session on the oldest active membership', async () => {
+    const findActiveById = jest.fn().mockResolvedValue(user);
     const reader: SessionUserReader = {
-      findActiveById: jest.fn().mockResolvedValue(user),
+      findActiveById,
     };
     const service = new SessionsService(reader);
     const session = {} as SessionData;
@@ -26,7 +27,7 @@ describe('SessionsService', () => {
       role: MembershipRole.ADMIN,
     });
 
-    expect(reader.findActiveById).toHaveBeenCalledWith(user.id);
+    expect(findActiveById).toHaveBeenCalledWith(user.id);
     expect(session.userId).toBe(user.id);
     expect(session.passwordVersion).toBe(user.passwordVersion);
     expect(session.currentCompanyId).toBe('company-1');

@@ -94,7 +94,10 @@ describe('Company users (e2e)', () => {
     const manager = request.agent(app.getHttpServer());
     await manager
       .post('/auth/signin')
-      .send({ email: 'role-manager@example.com', password: 'Manager-password1!' })
+      .send({
+        email: 'role-manager@example.com',
+        password: 'Manager-password1!',
+      })
       .expect(201);
 
     const { body: context } = await admin.get('/auth/me').expect(200);

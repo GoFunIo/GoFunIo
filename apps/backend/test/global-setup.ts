@@ -1,5 +1,4 @@
 import { writeFileSync } from 'fs';
-import { join } from 'path';
 import { createTestSchema } from './helpers/test-db';
 import { createSchemaHandoffPath } from './helpers/e2e-schema-handoff';
 

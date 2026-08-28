@@ -27,7 +27,8 @@ import {
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
-  canActivate(_context: ExecutionContext): boolean {
+  canActivate(context: ExecutionContext): boolean {
+    void context;
     return true;
   }
 }

@@ -26,10 +26,10 @@ describe('S3AttachmentObjectStore', () => {
   it('uses S3 commands and signs the final public endpoint after verifying existence', async () => {
     const commands: unknown[] = [];
     const storageClient = {
-      send: jest.fn(async (command: unknown) => {
+      send: jest.fn((command: unknown) => {
         commands.push(command);
         if (command instanceof ListObjectsV2Command) {
-          return {
+          return Promise.resolve({
             Contents: [
               {
                 Key: 'prefix/file.pdf',
@@ -38,17 +38,18 @@ describe('S3AttachmentObjectStore', () => {
               },
             ],
             NextContinuationToken: 'next-token',
-          };
+          });
         }
-        return {};
+        return Promise.resolve({});
       }),
     };
     const signingClient = { endpoint: 'public' };
     const presignedCommands: unknown[] = [];
     const presign = jest.fn(
-      async (_client: unknown, command: unknown, _options: unknown) => {
+      (_client: unknown, command: unknown, options: unknown) => {
+        void options;
         presignedCommands.push(command);
-        return 'http://localhost:9000/signed';
+        return Promise.resolve('http://localhost:9000/signed');
       },
     );
     const store = new S3AttachmentObjectStore(config, {
@@ -120,10 +121,14 @@ describe('S3AttachmentObjectStore', () => {
       $metadata: { httpStatusCode: 404 },
     });
     const storageClient = {
-      send: jest.fn(async (command: unknown) => {
-        if (command instanceof HeadObjectCommand) throw missing;
-        if (command instanceof DeleteObjectCommand) throw missing;
-        return {};
+      send: jest.fn((command: unknown) => {
+        if (
+          command instanceof HeadObjectCommand ||
+          command instanceof DeleteObjectCommand
+        ) {
+          return Promise.reject(missing);
+        }
+        return Promise.resolve({});
       }),
     };
     const store = new S3AttachmentObjectStore(config, {

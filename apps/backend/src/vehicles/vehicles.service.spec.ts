@@ -35,8 +35,8 @@ describe('VehiclesService create workflow', () => {
     });
     const vehicleAccess = {
       list: jest.fn(),
-      activeManagers: jest.fn(
-        async (_companyId, vehicleIds: string[]) =>
+      activeManagers: jest.fn((_companyId, vehicleIds: string[]) =>
+        Promise.resolve(
           new Map(
             vehicleIds.map((vehicleId) => [
               vehicleId,
@@ -54,11 +54,12 @@ describe('VehiclesService create workflow', () => {
                 })),
             ]),
           ),
+        ),
       ),
     };
     const driverAllocation = {
-      activeDrivers: jest.fn(
-        async (_companyId, vehicleIds: string[]) =>
+      activeDrivers: jest.fn((_companyId, vehicleIds: string[]) =>
+        Promise.resolve(
           new Map(
             vehicleIds.map((vehicleId) => [
               vehicleId,
@@ -71,6 +72,7 @@ describe('VehiclesService create workflow', () => {
                 : [],
             ]),
           ),
+        ),
       ),
     };
     const service = new VehiclesService(

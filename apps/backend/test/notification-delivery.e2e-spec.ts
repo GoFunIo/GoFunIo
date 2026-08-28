@@ -19,11 +19,13 @@ class FakeNotificationEmailSender implements NotificationEmailSender {
   readonly calls: NotificationEmailSendInput[] = [];
   readonly outcomes: Array<Error | string> = [];
 
-  async send(input: NotificationEmailSendInput) {
+  send(
+    input: NotificationEmailSendInput,
+  ): Promise<{ providerMessageId: string }> {
     this.calls.push(input);
     const outcome = this.outcomes.shift() ?? `message-${this.calls.length}`;
-    if (outcome instanceof Error) throw outcome;
-    return { providerMessageId: outcome };
+    if (outcome instanceof Error) return Promise.reject(outcome);
+    return Promise.resolve({ providerMessageId: outcome });
   }
 
   reset(): void {

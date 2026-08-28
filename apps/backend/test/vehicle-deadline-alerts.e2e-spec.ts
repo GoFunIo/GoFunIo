@@ -197,11 +197,11 @@ describe('Vehicle Deadline Alerts (e2e)', () => {
   });
 
   it('does not persist a Vehicle Deadline Alert table or rows', async () => {
-    const tables = (await app.get(DataSource).query(
+    const tables = await app.get(DataSource).query(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = current_schema()
          AND table_name IN ('vehicle_deadline_alerts', 'deadline_alerts')`,
-    )) as Array<{ table_name: string }>;
+    );
     expect(tables).toEqual([]);
   });
 

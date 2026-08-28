@@ -20,6 +20,10 @@ import type { ServiceAttachmentMimeType } from '../service-attachments/service-a
 import type { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import type { VehicleDeadlineRecipientReconciliationScope } from '../notifications/transactional-notification-recipient-reconciliation';
 
+// The in-memory unit of work mirrors asynchronous persistence interfaces while
+// applying most operations synchronously to transaction-local collections.
+/* eslint-disable @typescript-eslint/require-await */
+
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
 export interface FleetVehicleInput {
@@ -481,7 +485,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const visible =
               activeMembership &&
               (isWorkspaceAdmin(actor.role) ||
-                (actor.role === 'MANAGER' &&
+                (actor.role === MembershipRole.MANAGER &&
                   vehicle?.deletedAt === null &&
                   this.managerAssignments.some(
                     (assignment) =>
@@ -499,7 +503,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
               (membership) =>
                 membership.userId === managerId &&
                 membership.companyId === companyId &&
-                membership.role === 'MANAGER' &&
+                membership.role === MembershipRole.MANAGER &&
                 membership.status === 'active',
             );
             if (!valid) throw new BadRequestException('Invalid manager');
@@ -611,7 +615,8 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         driverAllocations: {
           requireActor: async (actor) => {
             const valid =
-              (isWorkspaceAdmin(actor.role) || actor.role === 'MANAGER') &&
+              (isWorkspaceAdmin(actor.role) ||
+                actor.role === MembershipRole.MANAGER) &&
               this.memberships.some(
                 ({ userId, companyId, role, status }) =>
                   userId === actor.id &&
@@ -629,7 +634,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const visible =
               driver &&
               (isWorkspaceAdmin(actor.role) ||
-                (actor.role === 'MANAGER' &&
+                (actor.role === MembershipRole.MANAGER &&
                   (!this.driverAssignments.some(
                     (assignment) =>
                       assignment.companyId === actor.companyId &&
