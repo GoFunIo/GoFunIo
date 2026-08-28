@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import { Logger, type INestApplication } from '@nestjs/common';
 import { DataSource, QueryRunner } from 'typeorm';
 import { createTestApp } from './helpers/create-test-app';
 import { NotificationChangeRelay } from '../src/notification-changes/notification-change-relay';
@@ -44,6 +44,7 @@ describe('Notification change relay (PostgreSQL)', () => {
   });
 
   it('publishes only the relay UUID after commit and resolves its scope', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     const notification = nextNotification(listener);
     const transaction = dataSource.createQueryRunner();
     await transaction.connect();
@@ -72,10 +73,21 @@ describe('Notification change relay (PostgreSQL)', () => {
       companyId,
       userId,
     });
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: 'notification_invalidation_enqueued',
+        changeId: id,
+        audience: 'USER',
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain(companyId);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(userId);
+    log.mockRestore();
     await transaction.release();
   });
 
   it('does not publish or retain a rolled-back change', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     const notification = nextNotification(listener);
     const transaction = dataSource.createQueryRunner();
     await transaction.connect();
@@ -89,6 +101,12 @@ describe('Notification change relay (PostgreSQL)', () => {
 
     await expect(noNotificationYet(notification)).resolves.toBeUndefined();
     await expect(relay.find(id)).resolves.toBeNull();
+    expect(
+      log.mock.calls.some(([entry]) =>
+        String(entry).includes('notification_invalidation_enqueued'),
+      ),
+    ).toBe(false);
+    log.mockRestore();
     await transaction.release();
   });
 

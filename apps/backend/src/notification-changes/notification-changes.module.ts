@@ -8,6 +8,7 @@ import { NotificationChange } from './notification-change.entity';
 import { NotificationSseTransport } from './notification-sse-transport';
 import { NotificationStreamRegistry } from './notification-stream-registry';
 import { MembershipAuthorizationModule } from '../users/membership-authorization.module';
+import { NotificationTransactionObserver } from './notification-transaction-observer';
 
 @Global()
 @Module({
@@ -22,6 +23,7 @@ import { MembershipAuthorizationModule } from '../users/membership-authorization
     NotificationChangeRouter,
     NotificationChangeListener,
     NotificationChangeCleanup,
+    NotificationTransactionObserver,
   ],
   exports: [
     NotificationChangeRelay,

@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -28,10 +29,11 @@ export class VehicleDeadlineAlertsController {
   @ApiOperation({
     summary: 'List active Vehicle Deadline Alerts',
     description:
-      'Projects current visible Vehicle deadlines using the Active Workspace policy and calendar date.',
+      'Projects current visible Vehicle deadlines using the cookie session Active Workspace policy and calendar date. OWNER/ADMIN see all Vehicles; MANAGER visibility comes only from Vehicle Access. Supports documented filters and opaque cursor pagination.',
   })
   @ApiOkResponse({ type: VehicleDeadlineAlertListDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
   @ApiBadRequestResponse({
     description: 'Invalid filter, limit, or opaque cursor.',
   })
@@ -47,10 +49,11 @@ export class VehicleDeadlineAlertsController {
   @ApiOperation({
     summary: 'Get Notification Center summary',
     description:
-      'Keeps active Alert and currently authorized unread Notification counts separate.',
+      'Keeps the current active Alert count separate from the currently valid, authorized, unrevoked, unarchived unread Notification count in the cookie session Active Workspace.',
   })
   @ApiOkResponse({ type: NotificationCenterSummaryDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
   @Get('notification-center/summary')
   @Serialize(NotificationCenterSummaryDto)
   summary(@CurrentPrincipal() principal: SessionPrincipal) {

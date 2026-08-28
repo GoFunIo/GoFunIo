@@ -3,6 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThan } from 'typeorm';
 import type { NotificationChangeScope } from './notification-change-scope';
 import { NotificationChange } from './notification-change.entity';
+import { recordNotificationOperationalEvent } from './notification-transaction-observer';
 
 @Injectable()
 export class NotificationChangeRelay {
@@ -21,6 +22,11 @@ export class NotificationChangeRelay {
     await manager.query(`SELECT pg_notify('notification_changes', $1)`, [
       change.id,
     ]);
+    recordNotificationOperationalEvent(manager, {
+      event: 'notification_invalidation_enqueued',
+      changeId: change.id,
+      audience: scope.userId ? 'USER' : 'WORKSPACE',
+    });
     return change.id;
   }
 

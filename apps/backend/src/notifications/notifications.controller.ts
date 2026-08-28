@@ -56,9 +56,14 @@ export class NotificationsController {
     private readonly notifications: NotificationsService,
     private readonly streams: NotificationSseTransport,
   ) {}
-  @ApiOperation({ summary: 'List current authorized Notifications' })
+  @ApiOperation({
+    summary: 'List current authorized Notifications',
+    description:
+      'Uses the cookie Session Principal and its Active Workspace; tenant scope cannot be supplied by the client. Returns only currently valid and authorized recipient items, supports category/unread/archive filters, and paginates newest-first with an opaque cursor.',
+  })
   @ApiOkResponse({ type: NotificationListDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
   @ApiBadRequestResponse({
     description: 'Invalid filter, limit, or opaque cursor.',
   })
@@ -74,7 +79,7 @@ export class NotificationsController {
   @ApiOperation({
     summary: 'Open a content-free Notification invalidation stream',
     description:
-      'Uses the cookie Session Principal Active Workspace. Open and reconnect clients recover authoritative state through normal GET requests; replay and Last-Event-ID are not supported.',
+      'Uses the cookie Session Principal Active Workspace and accepts no client-selected tenant or token. Events have no business payload. After open, reconnect, or notification.changed, refetch authoritative state with normal GET requests; replay and Last-Event-ID are not supported.',
   })
   @ApiOkResponse({
     description:
@@ -82,6 +87,10 @@ export class NotificationsController {
   })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
+  @ApiBadRequestResponse({
+    description:
+      'Query parameters are not accepted; stream scope is session-only.',
+  })
   @Get('stream')
   stream(
     @CurrentPrincipal() principal: SessionPrincipal,
@@ -99,10 +108,16 @@ export class NotificationsController {
     );
   }
 
-  @ApiOperation({ summary: 'Get an authorized typed Notification' })
+  @ApiOperation({
+    summary: 'Get an authorized typed Notification',
+    description:
+      'Masks foreign, invalid, revoked, or currently inaccessible data as not found. The action descriptor is computed from current typed source data and authorization for frontend deep links.',
+  })
   @ApiUuidParam('id', 'Notification id')
   @ApiOkResponse({ type: VehicleDeadlineNotificationDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
+  @ApiBadRequestResponse({ description: 'Notification id is not a UUID.' })
   @ApiNotFoundResponse({ description: 'Notification not found' })
   @Get(':id')
   @Serialize(VehicleDeadlineNotificationDto)
@@ -116,7 +131,7 @@ export class NotificationsController {
   @ApiOperation({
     summary: 'Mark all currently visible Notifications as read',
     description:
-      'Updates only valid, currently authorized, unrevoked, unarchived caller Recipients. An optional category narrows the operation.',
+      'Idempotently updates only valid, currently authorized, unrevoked, unarchived caller Recipients. An optional category narrows the operation; repeated calls are safe.',
   })
   @ApiAllowedOrigin()
   @ApiOkResponse({ type: ReadAllNotificationsResultDto })
@@ -144,6 +159,7 @@ export class NotificationsController {
   @ApiOkResponse({ type: VehicleDeadlineNotificationDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Origin not allowed' })
+  @ApiBadRequestResponse({ description: 'Notification id is not a UUID.' })
   @ApiNotFoundResponse({ description: 'Notification not found' })
   @Patch(':id/read')
   @UseGuards(AllowedOriginGuard)
@@ -165,6 +181,7 @@ export class NotificationsController {
   @ApiOkResponse({ type: VehicleDeadlineNotificationDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Origin not allowed' })
+  @ApiBadRequestResponse({ description: 'Notification id is not a UUID.' })
   @ApiNotFoundResponse({ description: 'Notification not found' })
   @Patch(':id/archive')
   @UseGuards(AllowedOriginGuard)

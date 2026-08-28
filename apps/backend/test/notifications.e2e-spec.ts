@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -92,6 +92,8 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     expect(list?.responses).toHaveProperty('200');
     expect(list?.responses).toHaveProperty('400');
     expect(list?.responses).toHaveProperty('401');
+    expect(list?.responses).toHaveProperty('403');
+    expect(list?.description).toMatch(/cookie.*Active Workspace.*tenant/is);
     expect(list?.parameters).toEqual(
       expect.arrayContaining(
         ['category', 'unread', 'archived', 'limit', 'cursor'].map((name) =>
@@ -122,7 +124,33 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     });
     const detail = document.paths['/notifications/{id}']?.get;
     expect(detail?.responses).toHaveProperty('200');
+    expect(detail?.responses).toHaveProperty('400');
+    expect(detail?.responses).toHaveProperty('401');
+    expect(detail?.responses).toHaveProperty('403');
     expect(detail?.responses).toHaveProperty('404');
+    expect(detail?.description).toMatch(/action descriptor.*current/is);
+
+    const stream = document.paths['/notifications/stream']?.get;
+    expect(stream?.responses).toHaveProperty('400');
+    expect(stream?.description).toMatch(/no business payload/is);
+    expect(stream?.description).toMatch(/refetch.*GET/is);
+
+    const alerts = document.paths['/vehicle-deadline-alerts']?.get;
+    expect(alerts?.responses).toHaveProperty('403');
+    expect(alerts?.description).toMatch(/Vehicle Access.*opaque cursor/is);
+
+    const summary = document.paths['/notification-center/summary']?.get;
+    expect(summary?.responses).toHaveProperty('403');
+    expect(summary?.description).toMatch(
+      /active Alert count.*unread Notification count/is,
+    );
+
+    const preferences = document.paths['/notification-preferences/me']?.get;
+    expect(preferences?.description).toMatch(/Active Workspace.*defaults/is);
+
+    const policy = document.paths['/alert-policy']?.get;
+    expect(policy?.responses).toHaveProperty('403');
+    expect(policy?.description).toMatch(/Active Workspace.*tenant/is);
 
     for (const [path, method] of [
       ['/notifications/{id}/read', 'patch'],
@@ -131,6 +159,8 @@ describe('Vehicle deadline Notifications (e2e)', () => {
     ] as const) {
       const operation = document.paths[path]?.[method];
       expect(operation?.responses).toHaveProperty('200');
+      expect(operation?.responses).toHaveProperty('400');
+      expect(operation?.responses).toHaveProperty('401');
       expect(operation?.responses).toHaveProperty('403');
       expect(operation?.parameters).toEqual(
         expect.arrayContaining([
@@ -179,6 +209,7 @@ describe('Vehicle deadline Notifications (e2e)', () => {
   });
 
   it('atomically persists one current stage and exposes typed list/detail', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     const actor = await owner('notification-owner@example.com');
     const vehicle = await actor
       .post('/vehicles')
@@ -213,6 +244,16 @@ describe('Vehicle deadline Notifications (e2e)', () => {
              (SELECT count(*)::int FROM notification_recipients) recipients,
              (SELECT count(*)::int FROM notification_deliveries) deliveries`);
     expect(rows[0]).toEqual({ notifications: 1, recipients: 1, deliveries: 1 });
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"notification_generated"'),
+    );
+    const generated = log.mock.calls
+      .map(([entry]) => String(entry))
+      .find((entry) => entry.includes('notification_generated'));
+    expect(generated).toBeDefined();
+    expect(generated).not.toContain('NOT001');
+    expect(generated).not.toContain('2026-04-13');
+    log.mockRestore();
   });
 
   it('paginates newest-first with an opaque cursor that stays stable across concurrent inserts', async () => {
@@ -627,6 +668,7 @@ describe('Vehicle deadline Notifications (e2e)', () => {
   });
 
   it('deduplicates concurrent cycles through PostgreSQL', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     instant = new Date('2026-03-30T05:59:59.000Z');
     const actor = await owner('notification-reconcile-concurrent@example.com');
     const vehicle = await actor
@@ -648,6 +690,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
         [vehicle.body.id],
       );
     expect(count).toBe(1);
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"notification_deduplicated"'),
+    );
+    log.mockRestore();
   });
 
   it('atomically invalidates stale sources, cancels nonterminal deliveries, and retains terminal ones', async () => {
@@ -2156,6 +2202,7 @@ describe('Vehicle deadline Notifications (e2e)', () => {
   });
 
   it('rolls back Vehicle, Notification, Recipient, and Delivery when the source transaction fails', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     const actor = await owner('notification-rollback@example.com');
     const dataSource = app.get(DataSource);
     await dataSource.query(
@@ -2187,6 +2234,12 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       recipients: 0,
       deliveries: 0,
     });
+    expect(
+      log.mock.calls.some(([entry]) =>
+        String(entry).includes('notification_generated'),
+      ),
+    ).toBe(false);
+    log.mockRestore();
   });
 
   it('masks Notification list and detail across Workspaces', async () => {

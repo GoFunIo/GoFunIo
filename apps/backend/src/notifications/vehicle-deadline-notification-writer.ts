@@ -17,6 +17,7 @@ import {
   vehicleDeadlineTriggerKey,
 } from './vehicle-deadline-trigger';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
+import { recordNotificationOperationalEvent } from '../notification-changes/notification-transaction-observer';
 
 @Injectable()
 export class VehicleDeadlineNotificationWriter {
@@ -81,7 +82,13 @@ export class VehicleDeadlineNotificationWriter {
           leadDay,
         },
       );
-      if (existing) continue;
+      if (existing) {
+        recordNotificationOperationalEvent(manager, {
+          event: 'notification_deduplicated',
+          notificationType: NotificationType.VEHICLE_DEADLINE_REACHED,
+        });
+        continue;
+      }
 
       const contract =
         NOTIFICATION_TYPES[NotificationType.VEHICLE_DEADLINE_REACHED];
@@ -113,6 +120,11 @@ export class VehicleDeadlineNotificationWriter {
       await this.notificationChanges.record(manager, {
         companyId: vehicle.companyId,
         userId: null,
+      });
+      recordNotificationOperationalEvent(manager, {
+        event: 'notification_generated',
+        notificationId: notification.id,
+        notificationType: notification.type,
       });
     }
   }

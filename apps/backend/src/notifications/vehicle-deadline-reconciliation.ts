@@ -25,6 +25,7 @@ import {
 } from './vehicle-deadline-trigger';
 import { NOTIFICATION_DELIVERY_COMMITTED } from './notification-delivery-events';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
+import { recordNotificationOperationalEvent } from '../notification-changes/notification-transaction-observer';
 
 const SCHEDULE_MS = 15 * 60 * 1000;
 const INVALID_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -156,6 +157,12 @@ export class VehicleDeadlineReconciliationStore {
         await this.notificationChanges.record(manager, {
           companyId,
           userId: null,
+        });
+      }
+      if (invalidScopes.length) {
+        recordNotificationOperationalEvent(manager, {
+          event: 'notification_source_invalidated',
+          workspaceCount: invalidScopes.length,
         });
       }
     });

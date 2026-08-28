@@ -29,6 +29,8 @@ export class NotificationPreferencesController {
 
   @ApiOperation({
     summary: 'Get effective preferences for the current Membership',
+    description:
+      'Uses the cookie session Active Workspace and returns every supported category, filling missing Membership rows with documented defaults.',
   })
   @ApiOkResponse({ type: NotificationPreferencesDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
@@ -41,7 +43,7 @@ export class NotificationPreferencesController {
   @ApiOperation({
     summary: 'Update preferences for the current Membership',
     description:
-      'Idempotently upserts only supplied categories in the Active Workspace. Changes affect only future optional delivery decisions.',
+      'Idempotently upserts only supplied categories for the caller Membership in the cookie session Active Workspace. Tenant or recipient identity is never accepted; changes affect only future optional delivery decisions.',
   })
   @ApiAllowedOrigin()
   @ApiOkResponse({ type: NotificationPreferencesDto })

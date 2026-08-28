@@ -64,6 +64,7 @@ function setup(
 describe('NotificationDeliveryWorker', () => {
   it('sends a prepared job with its stable Delivery UUID and completes by lease ownership', async () => {
     const { worker, store, send } = setup();
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
 
     await worker.processDue(now);
 
@@ -81,6 +82,18 @@ describe('NotificationDeliveryWorker', () => {
       providerMessageId: 'email_123',
       sentAt: now,
     });
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: 'notification_delivery_sent',
+        deliveryId: job().id,
+        attempts: 1,
+      }),
+    );
+    const logged = JSON.stringify(log.mock.calls);
+    expect(logged).not.toContain('captured@example.com');
+    expect(logged).not.toContain('<p>Treść</p>');
+    expect(logged).not.toContain('email_123');
+    log.mockRestore();
   });
 
   it('cancels an ineligible job without provider I/O', async () => {
@@ -153,6 +166,44 @@ describe('NotificationDeliveryWorker', () => {
     const logged = JSON.stringify(error.mock.calls);
     expect(logged).not.toContain('captured@example.com');
     expect(logged).not.toContain('<p>Treść</p>');
+    error.mockRestore();
+  });
+
+  it('does not report retry or failure after lease ownership is lost', async () => {
+    const retrySetup = setup(
+      jest.fn<
+        ReturnType<NotificationEmailSender['send']>,
+        Parameters<NotificationEmailSender['send']>
+      >(() => Promise.reject(new ResendHttpError(503))),
+    );
+    retrySetup.store.retry.mockResolvedValueOnce(false);
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+    await retrySetup.worker.processDue(now);
+
+    expect(
+      warn.mock.calls.some(([entry]) =>
+        String(entry).includes('notification_delivery_retry'),
+      ),
+    ).toBe(false);
+    warn.mockRestore();
+
+    const failureSetup = setup(
+      jest.fn<
+        ReturnType<NotificationEmailSender['send']>,
+        Parameters<NotificationEmailSender['send']>
+      >(() => Promise.reject(new ResendHttpError(422))),
+    );
+    failureSetup.store.fail.mockResolvedValueOnce(false);
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
+    await failureSetup.worker.processDue(now);
+
+    expect(
+      error.mock.calls.some(([entry]) =>
+        String(entry).includes('notification_delivery_failed'),
+      ),
+    ).toBe(false);
     error.mockRestore();
   });
 

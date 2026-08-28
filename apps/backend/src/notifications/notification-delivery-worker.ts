@@ -204,50 +204,66 @@ export class NotificationDeliveryWorker
           idempotencyKey: job.id,
         });
         const sentAt = fixedNow ?? new Date();
-        await this.store.completeSent({
-          id: job.id,
-          claimedAt: job.claimedAt,
-          attempts,
-          providerMessageId: accepted.providerMessageId,
-          sentAt,
-        });
+        if (
+          await this.store.completeSent({
+            id: job.id,
+            claimedAt: job.claimedAt,
+            attempts,
+            providerMessageId: accepted.providerMessageId,
+            sentAt,
+          })
+        ) {
+          this.logger.log(
+            JSON.stringify({
+              event: 'notification_delivery_sent',
+              deliveryId: job.id,
+              attempts,
+            }),
+          );
+        }
       } catch (error) {
         const failure = notificationDeliveryFailure(error);
         const failedAt = fixedNow ?? new Date();
         if (failure.transient) {
-          await this.store.retry({
-            id: job.id,
-            claimedAt: job.claimedAt,
-            attempts,
-            nextAttemptAt: new Date(
-              failedAt.getTime() + deliveryRetryDelayMs(attempts),
-            ),
-            lastError: failure.diagnostic,
-          });
-          this.logger.warn(
-            JSON.stringify({
-              event: 'notification_delivery_retry',
-              deliveryId: job.id,
+          if (
+            await this.store.retry({
+              id: job.id,
+              claimedAt: job.claimedAt,
               attempts,
-              diagnostic: failure.diagnostic,
-            }),
-          );
+              nextAttemptAt: new Date(
+                failedAt.getTime() + deliveryRetryDelayMs(attempts),
+              ),
+              lastError: failure.diagnostic,
+            })
+          ) {
+            this.logger.warn(
+              JSON.stringify({
+                event: 'notification_delivery_retry',
+                deliveryId: job.id,
+                attempts,
+                diagnostic: failure.diagnostic,
+              }),
+            );
+          }
         } else {
-          await this.store.fail({
-            id: job.id,
-            claimedAt: job.claimedAt,
-            attempts,
-            lastError: failure.diagnostic,
-            completedAt: failedAt,
-          });
-          this.logger.error(
-            JSON.stringify({
-              event: 'notification_delivery_failed',
-              deliveryId: job.id,
+          if (
+            await this.store.fail({
+              id: job.id,
+              claimedAt: job.claimedAt,
               attempts,
-              diagnostic: failure.diagnostic,
-            }),
-          );
+              lastError: failure.diagnostic,
+              completedAt: failedAt,
+            })
+          ) {
+            this.logger.error(
+              JSON.stringify({
+                event: 'notification_delivery_failed',
+                deliveryId: job.id,
+                attempts,
+                diagnostic: failure.diagnostic,
+              }),
+            );
+          }
         }
       }
     }

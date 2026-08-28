@@ -29,9 +29,12 @@ export class AlertPolicyController {
 
   @ApiOperation({
     summary: 'Get the Active Workspace Vehicle Deadline Alert Policy',
+    description:
+      'Uses the cookie Session Principal Active Workspace and accepts no client-selected tenant scope. Any active Membership may read the shared Workspace policy.',
   })
   @ApiOkResponse({ type: VehicleDeadlineAlertPolicyDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  @ApiForbiddenResponse({ description: 'No active Workspace Membership' })
   @ApiNotFoundResponse({ description: 'Alert policy not found' })
   @Get()
   get(@CurrentPrincipal() principal: SessionPrincipal) {
@@ -41,7 +44,7 @@ export class AlertPolicyController {
   @ApiOperation({
     summary: 'Update the Active Workspace Vehicle Deadline Alert Policy',
     description:
-      'Requires OWNER or ADMIN. Every accepted change starts a new activation boundary.',
+      'Uses the cookie session Active Workspace. Requires OWNER or ADMIN and rechecks authorization transactionally. The idempotent state replacement starts a new activation boundary for every accepted change.',
   })
   @ApiAllowedOrigin()
   @ApiOkResponse({ type: VehicleDeadlineAlertPolicyDto })
