@@ -6,6 +6,7 @@ import {
   OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, IsNull } from 'typeorm';
 import { VehicleDeadlineAlertPolicy } from '../alert-policy/vehicle-deadline-alert-policy.entity';
@@ -22,6 +23,7 @@ import {
   vehicleDeadlineDate,
   vehicleDeadlineTriggerKey,
 } from './vehicle-deadline-trigger';
+import { NOTIFICATION_DELIVERY_COMMITTED } from './notification-delivery-events';
 
 const SCHEDULE_MS = 15 * 60 * 1000;
 const INVALID_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -40,6 +42,7 @@ export class VehicleDeadlineReconciliationStore {
     private readonly recipients: VehicleDeadlineRecipientReconciler,
     private readonly calendar: WorkspaceCalendar,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly events: EventEmitter2,
   ) {}
 
   async run(): Promise<void> {
@@ -134,6 +137,7 @@ export class VehicleDeadlineReconciliationStore {
         });
       }
     });
+    this.events.emit(NOTIFICATION_DELIVERY_COMMITTED);
   }
 }
 

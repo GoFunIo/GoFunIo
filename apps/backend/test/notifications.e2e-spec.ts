@@ -2234,8 +2234,28 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       await dataSource.query(`SELECT conname FROM pg_constraint
       WHERE conname IN ('UQ_vehicle_deadline_notification_trigger', 'UQ_notification_recipient_membership',
         'UQ_notification_delivery_channel', 'FK_vehicle_deadline_detail_vehicle',
-        'FK_notification_recipient_membership', 'FK_notification_delivery_recipient')`);
-    expect(constraints).toHaveLength(6);
+        'FK_notification_recipient_membership', 'FK_notification_delivery_recipient',
+        'CHK_notification_delivery_attempts')`);
+    expect(constraints).toHaveLength(7);
+    const [{ dueIndex, updatedAt }] = await dataSource.query<
+      Array<{ dueIndex: string | null; updatedAt: boolean }>
+    >(
+      `SELECT to_regclass('"IDX_notification_deliveries_due"')::text AS "dueIndex",
+              EXISTS (
+                SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = current_schema()
+                   AND table_name = 'notification_deliveries'
+                   AND column_name = 'updatedAt'
+              ) AS "updatedAt"`,
+    );
+    expect(dueIndex).toBe('"IDX_notification_deliveries_due"');
+    expect(updatedAt).toBe(true);
+    await dataSource.undoLastMigration();
+    expect(
+      (
+        await dataSource.query(`SELECT to_regclass('notifications') AS table`)
+      )[0].table,
+    ).toBe('notifications');
     await dataSource.undoLastMigration();
     expect(
       (

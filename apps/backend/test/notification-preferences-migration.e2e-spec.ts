@@ -24,6 +24,7 @@ describe('Membership Notification Preferences migration', () => {
       await database.runMigrations();
       await database.undoLastMigration();
       await database.undoLastMigration();
+      await database.undoLastMigration();
       await expect(
         database.query(`SELECT to_regclass($1) AS regclass`, [
           `${schema}.notification_preferences`,
@@ -89,6 +90,8 @@ describe('Membership Notification Preferences migration', () => {
         database.query(`SELECT * FROM notification_preferences`),
       ).resolves.toHaveLength(0);
 
+      await database.undoLastMigration();
+      await database.undoLastMigration();
       await database.undoLastMigration();
       await database.runMigrations();
       await expect(

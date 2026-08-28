@@ -20,6 +20,10 @@ import {
   FRONTEND_ORIGINS,
   type FrontendOrigins,
 } from '../../src/common/frontend-origins';
+import {
+  NOTIFICATION_EMAIL_SENDER,
+  type NotificationEmailSender,
+} from '../../src/notifications/notification-email-sender';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -35,11 +39,16 @@ const noopMailService = {
   sendMembershipInvitation: jest.fn().mockResolvedValue(undefined),
 };
 
+const noopNotificationEmailSender: NotificationEmailSender = {
+  send: jest.fn().mockResolvedValue({ providerMessageId: 'fake-message-id' }),
+};
+
 export async function createTestApp(
   options: {
     enableThrottling?: boolean;
     clock?: Clock;
     frontendOrigins?: FrontendOrigins;
+    notificationEmailSender?: NotificationEmailSender;
   } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
@@ -63,6 +72,8 @@ export async function createTestApp(
     .useValue(new InMemoryAttachmentObjectStore())
     .overrideProvider(MailService)
     .useValue(noopMailService)
+    .overrideProvider(NOTIFICATION_EMAIL_SENDER)
+    .useValue(options.notificationEmailSender ?? noopNotificationEmailSender)
     .compile();
 
   const app = moduleFixture.createNestApplication<NestExpressApplication>();

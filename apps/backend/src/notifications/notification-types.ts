@@ -1,6 +1,10 @@
 import { NotificationCategory } from '../notification-preferences/notification-preference.entity';
 import { NotificationType } from './notification.entity';
 import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import {
+  type RenderedNotificationEmail,
+  renderVehicleDeadlineNotificationEmail,
+} from './notification-email-renderer';
 
 export enum NotificationRecipientBehavior {
   SOURCE_SCOPED = 'SOURCE_SCOPED',
@@ -20,7 +24,15 @@ export interface NotificationTypeContract<TDetail, TDto> {
   validityEvaluator: (detail: TDetail) => boolean;
   detailAdapter: (row: unknown) => TDetail;
   dtoRenderer: (detail: TDetail) => TDto;
-  emailRenderer: (detail: TDetail) => { subject: string; text: string };
+  emailRenderer: (
+    detail: TDetail,
+    context: {
+      rendererVersion: number;
+      workspaceId: string;
+      notificationId: string;
+      frontendBaseUrl: string;
+    },
+  ) => RenderedNotificationEmail;
 }
 
 export interface VehicleDeadlineDetail {
@@ -64,10 +76,15 @@ const vehicleDeadlineReached: NotificationTypeContract<
     leadDay: detail.leadDay,
     registrationNumber: detail.registrationNumber,
   }),
-  emailRenderer: (detail) => ({
-    subject: `Termin pojazdu ${detail.registrationNumber}`,
-    text: `Termin ${detail.deadlineKind} pojazdu ${detail.registrationNumber} przypada ${detail.deadlineDate}.`,
-  }),
+  emailRenderer: (detail, context) =>
+    renderVehicleDeadlineNotificationEmail({
+      ...context,
+      deadlineKind: detail.deadlineKind,
+      deadlineDate: detail.deadlineDate,
+      leadDay: detail.leadDay,
+      daysRemaining: detail.daysRemaining,
+      registrationNumber: detail.registrationNumber,
+    }),
 };
 
 export const NOTIFICATION_TYPES = {

@@ -12,6 +12,15 @@ import {
   VehicleDeadlineReconciliationStore,
 } from './vehicle-deadline-reconciliation';
 import { FleetModule } from '../fleet/fleet.module';
+import {
+  NOTIFICATION_DELIVERY_STORE,
+  NotificationDeliveryWorker,
+} from './notification-delivery-worker';
+import { TypeOrmNotificationDeliveryStore } from './typeorm-notification-delivery-store';
+import { ResendNotificationEmailSender } from './resend-notification-email-sender';
+import { NOTIFICATION_EMAIL_SENDER } from './notification-email-sender';
+import { NOTIFICATION_DELIVERY_TYPE_ADAPTERS } from './notification-delivery-type-adapter';
+import { VehicleDeadlineDeliveryTypeAdapter } from './vehicle-deadline-delivery-type-adapter';
 
 @Module({
   imports: [
@@ -29,7 +38,28 @@ import { FleetModule } from '../fleet/fleet.module';
     NotificationsService,
     VehicleDeadlineReconciliationStore,
     VehicleDeadlineReconciliation,
+    VehicleDeadlineDeliveryTypeAdapter,
+    {
+      provide: NOTIFICATION_DELIVERY_TYPE_ADAPTERS,
+      useFactory: (adapter: VehicleDeadlineDeliveryTypeAdapter) => [adapter],
+      inject: [VehicleDeadlineDeliveryTypeAdapter],
+    },
+    TypeOrmNotificationDeliveryStore,
+    {
+      provide: NOTIFICATION_DELIVERY_STORE,
+      useExisting: TypeOrmNotificationDeliveryStore,
+    },
+    ResendNotificationEmailSender,
+    {
+      provide: NOTIFICATION_EMAIL_SENDER,
+      useExisting: ResendNotificationEmailSender,
+    },
+    NotificationDeliveryWorker,
   ],
-  exports: [NotificationsService, VehicleDeadlineReconciliation],
+  exports: [
+    NotificationsService,
+    VehicleDeadlineReconciliation,
+    NotificationDeliveryWorker,
+  ],
 })
 export class NotificationsModule {}

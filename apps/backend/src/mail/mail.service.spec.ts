@@ -130,7 +130,9 @@ describe('MailService', () => {
   });
 
   it('sendVerificationEmail logs and swallows Resend errors', async () => {
-    sendSpy.mockRejectedValue(new Error('Resend API 500: server error'));
+    sendSpy.mockRejectedValue(
+      new Error('secret user@example.com server error'),
+    );
     const errorSpy = jest.spyOn(service['logger'], 'error');
 
     await expect(
@@ -145,10 +147,10 @@ describe('MailService', () => {
     expect(log).toMatchObject({
       event: 'mail.delivery_failed',
       template: 'verify-email',
-      to: 'user@example.com',
-      error: 'Resend API 500: server error',
+      errorType: 'Error',
     });
-    expect(typeof log.stack).toBe('string');
+    expect(JSON.stringify(log)).not.toContain('user@example.com');
+    expect(JSON.stringify(log)).not.toContain('secret');
   });
 
   it('does not swallow template rendering errors', async () => {

@@ -14,6 +14,7 @@ import { Vehicle } from '../src/vehicles/vehicles.entity';
 import { WorkspaceCalendar } from '../src/common/workspace-calendar';
 import { VehicleDeadlineNotificationWriter } from '../src/notifications/vehicle-deadline-notification-writer';
 import { VehicleDeadlineRecipientReconciler } from '../src/notifications/vehicle-deadline-recipient-reconciler';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('TypeOrmFleetUnitOfWork (integration)', () => {
   let dataSource: DataSource;
@@ -58,6 +59,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
         deadlineRecipients,
       ),
       deadlineRecipients,
+      new EventEmitter2(),
     );
   });
 

@@ -33,6 +33,8 @@ import {
 } from '../users/session-principal';
 import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
 import { VehicleDeadlineRecipientReconciler } from '../notifications/vehicle-deadline-recipient-reconciler';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_DELIVERY_COMMITTED } from '../notifications/notification-delivery-events';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -59,15 +61,28 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
     private readonly driverAllocation: TypeOrmDriverAllocation,
     private readonly deadlineNotifications: VehicleDeadlineNotificationWriter,
     private readonly deadlineRecipients: VehicleDeadlineRecipientReconciler,
+    private readonly events: EventEmitter2,
   ) {}
 
-  transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
-    return this.dataSource.transaction((manager) =>
-      work(this.transactionStores(manager)),
+  async transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
+    let notificationWorkCommitted = false;
+    const result = await this.dataSource.transaction((manager) =>
+      work(
+        this.transactionStores(manager, () => {
+          notificationWorkCommitted = true;
+        }),
+      ),
     );
+    if (notificationWorkCommitted) {
+      this.events.emit(NOTIFICATION_DELIVERY_COMMITTED);
+    }
+    return result;
   }
 
-  private transactionStores(manager: EntityManager): FleetTransaction {
+  private transactionStores(
+    manager: EntityManager,
+    markNotificationWork: () => void,
+  ): FleetTransaction {
     const vehicleAccess = this.vehicleAccess.transactionStore(manager);
     const driverAllocations = this.driverAllocation.transactionStore(manager);
     const enqueueCleanup = async (objectKey: string, now: Date) => {
@@ -277,10 +292,18 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         enqueue: enqueueCleanup,
       },
       notifications: {
-        reconcileVehicleDeadlineRecipients: (input) =>
-          this.deadlineRecipients.reconcileRecipients(manager, input),
-        persistVehicleDeadlineStages: (vehicle, changedKinds) =>
-          this.deadlineNotifications.persist(manager, vehicle, changedKinds),
+        reconcileVehicleDeadlineRecipients: async (input) => {
+          await this.deadlineRecipients.reconcileRecipients(manager, input);
+          markNotificationWork();
+        },
+        persistVehicleDeadlineStages: async (vehicle, changedKinds) => {
+          await this.deadlineNotifications.persist(
+            manager,
+            vehicle,
+            changedKinds,
+          );
+          markNotificationWork();
+        },
       },
     };
   }

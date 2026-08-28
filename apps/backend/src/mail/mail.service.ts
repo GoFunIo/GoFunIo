@@ -93,9 +93,7 @@ export class MailService {
       this.logger.error({
         event: 'mail.delivery_failed',
         template,
-        to,
-        error: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
       });
     }
   }

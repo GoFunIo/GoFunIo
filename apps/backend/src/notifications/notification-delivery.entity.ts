@@ -6,6 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { NotificationRecipient } from './notification-recipient.entity';
 
@@ -45,8 +46,10 @@ export class NotificationDelivery {
   @Column({ type: 'integer', default: 0 }) attempts!: number;
   @Column({ type: 'timestamptz' }) nextAttemptAt!: Date;
   @Column({ type: 'timestamptz', nullable: true }) lockedAt!: Date | null;
-  @Column({ type: 'varchar', nullable: true }) recipientAddress!: string | null;
-  @Column({ type: 'varchar', nullable: true }) providerMessageId!:
+  @Column({ type: 'varchar', length: 254, nullable: true }) recipientAddress!:
+    | string
+    | null;
+  @Column({ type: 'varchar', length: 255, nullable: true }) providerMessageId!:
     | string
     | null;
   @Column({ type: 'varchar', length: 500, nullable: true }) lastError!:
@@ -55,6 +58,7 @@ export class NotificationDelivery {
   @Column({ type: 'timestamptz', nullable: true }) sentAt!: Date | null;
   @Column({ type: 'timestamptz', nullable: true }) completedAt!: Date | null;
   @CreateDateColumn({ type: 'timestamptz' }) createdAt!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updatedAt!: Date;
 
   @ManyToOne(() => NotificationRecipient, { onDelete: 'CASCADE' })
   @JoinColumn([
