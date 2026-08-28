@@ -62,14 +62,22 @@ docker compose up --build
 
 On Windows, run these commands from PowerShell with Docker Desktop running.
 
-Command reference:
+Command reference (`make help` prints the complete list):
 
-| Action                                                         | Make         | Docker Compose                                   |
-| -------------------------------------------------------------- | ------------ | ------------------------------------------------ |
-| Start all services, build the image, and run migrations        | `make dev`   | `docker compose up --build`                      |
-| Follow logs from running services                              | `make logs`  | `docker compose logs --follow`                   |
-| Stop services but keep database data                           | `make down`  | `docker compose down --remove-orphans`           |
-| Stop services and delete local database and dependency volumes | `make reset` | `docker compose down --volumes --remove-orphans` |
+| Action                                                         | Make command                        |
+| -------------------------------------------------------------- | ----------------------------------- |
+| Start all services in the foreground and rebuild               | `make dev`                          |
+| Start all services detached and rebuild                        | `make dev-d` or `make dev-detached` |
+| Start existing images detached without rebuilding              | `make up`                           |
+| Show service status and ports                                  | `make ps`                           |
+| Follow all logs                                                | `make logs`                         |
+| Follow one service                                             | `make logs SERVICE=backend`         |
+| Follow only backend logs                                       | `make logs-backend`                 |
+| Limit initial log history                                      | `make logs-backend LOG_TAIL=50`     |
+| Restart only the backend                                       | `make restart-backend`              |
+| Open a shell in the backend container                          | `make shell-backend`                |
+| Stop services but keep database data                           | `make down`                         |
+| Stop services and delete local database and dependency volumes | `make reset`                        |
 
 ### Development without Docker
 
