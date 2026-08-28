@@ -12,6 +12,7 @@ type Props = {
   placeholder?: string;
   className?: string;
   isRenewalMode?: boolean;
+  clearable?: boolean;
 };
 
 const formatWeekdayName = (date: Date) => {
@@ -44,6 +45,7 @@ export const DatePicker = ({
   placeholder = 'dd.mm.rrrr',
   className,
   isRenewalMode = false,
+  clearable = false,
 }: Props) => {
   const OFFSET = 6;
 
@@ -150,6 +152,18 @@ export const DatePicker = ({
             }}
             className="flex flex-col gap-[4px] bg-bg-card border border-icon rounded-[5px] p-[8px] h-auto shadow-md"
           >
+            {clearable && value && (
+              <button
+                type="button"
+                className="cursor-pointer w-full rounded-md px-2 py-2 text-[13px] font-medium text-content-secondary hover:bg-bg-section hover:text-content-primary"
+                onClick={() => {
+                  onChange(undefined);
+                  setIsOpen(false);
+                }}
+              >
+                Wyczyść datę
+              </button>
+            )}
             <DayPicker
               mode="single"
               locale={pl}
@@ -171,11 +185,11 @@ export const DatePicker = ({
                 formatMonthDropdown,
               }}
               classNames={{
-                month: 'w-full',
+                month: 'w-full relative',
                 month_grid: 'w-full',
                 month_caption: 'flex items-center justify-between gap-2 mb-3',
                 dropdowns: 'flex items-center gap-2',
-                nav: 'absolute top-4 right-4 flex items-center gap-1 ml-auto ',
+                nav: 'absolute top-1 right-4 flex items-center gap-1 ml-auto ',
                 button_previous:
                   'flex h-5 w-5 items-center justify-center rounded-md  hover:bg-bg-section',
                 button_next:

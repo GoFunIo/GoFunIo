@@ -17,6 +17,7 @@ import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 import { SingleServiceData } from '../types';
 import { handlePriceInput } from '@/utils/handlePhoneInput';
 import { AttachmentsForm } from './AttachmentsForm';
+import { formatDate } from '@/utils/formatFile';
 
 type BaseFormProps = {
   className?: string;
@@ -166,7 +167,7 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
                 <DatePicker
                   value={field.value ? new Date(field.value) : undefined}
                   onChange={(date) => {
-                    field.onChange(date ? date.toISOString().split('T')[0] : '');
+                    field.onChange(formatDate(date));
                     clearErrors('serviceDate');
                   }}
                   placeholder="Wybierz datę serwisu"

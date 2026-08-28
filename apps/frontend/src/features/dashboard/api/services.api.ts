@@ -29,17 +29,13 @@ const buildServicePayload = (form: CreateServiceData) => ({
 export const getAllServices = async (params?: ServiceListParams) => {
   const query = new URLSearchParams();
 
-  if (params?.page) {
-    query.set('page', String(params.page));
-  }
-
-  if (params?.pageSize) {
-    query.set('pageSize', String(params.pageSize));
-  }
-
-  if (params?.type) {
-    query.set('type', params.type);
-  }
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+  if (params?.vehicleId) query.set('vehicleId', params.vehicleId);
+  if (params?.type) query.set('type', params.type);
+  if (params?.providerName) query.set('providerName', params.providerName);
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
 
   const queryString = query.toString();
 

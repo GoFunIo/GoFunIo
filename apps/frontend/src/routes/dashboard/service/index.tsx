@@ -2,11 +2,10 @@ import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { Filters } from '@/features/dashboard/widgets/Filters';
 import { getServiceColumns } from '@/store/serviceTable';
 import { createFileRoute } from '@tanstack/react-router';
 import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
-import { ServiceData } from '@/features/dashboard/types';
+import { ServiceData, ServicesFiltersType } from '@/features/dashboard/types';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
@@ -14,27 +13,54 @@ import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceCo
 import { MAX_FILES_PER_UPLOAD } from '@/features/dashboard/constants/fileOptions';
 import { AttachmentsForm } from '@/features/dashboard/forms/AttachmentsForm';
 import { useState } from 'react';
+import { SERVICES_PAGE_SIZE } from '@/features/dashboard/constants/serviceOptions';
+import { Pagination } from '@/features/dashboard/ui/Pagination';
+import { ServicesFilters } from '@/features/dashboard/widgets/ServicesFilters';
+import { formatDate } from '@/utils/formatFile';
 
 export const Route = createFileRoute('/dashboard/service/')({
   component: RouteComponent,
 });
 
 type ServiceIdType = string | null;
+
 type ModalType = 'create' | 'edit' | 'delete' | 'attachments' | null;
 
 function RouteComponent() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<ServiceIdType>(null);
 
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<ServicesFiltersType>({
+    vehicleId: null,
+    type: null,
+    from: undefined,
+    to: undefined,
+  });
+
   const shouldFetchService =
     selectedServiceId !== null && (activeModal === 'edit' || activeModal === 'attachments');
-  const { data: servicesResponse, isPending: allServicesLoading } = useServices();
+
+  const { data: servicesResponse, isPending: allServicesLoading } = useServices({
+    page,
+    pageSize: SERVICES_PAGE_SIZE,
+    vehicleId: filters.vehicleId ?? undefined,
+    type: filters.type ?? undefined,
+    from: formatDate(filters.from),
+    to: formatDate(filters.to),
+  });
   const { data: activeService, isPending: isServiceLoading } = useService(
     shouldFetchService ? selectedServiceId : null,
   );
 
+  console.log(servicesResponse);
+  console.log(filters);
   const services: ServiceData[] = servicesResponse?.items ?? [];
-  const totalCost = services.reduce((sum, service) => sum + Number(service.cost), 0).toFixed(2);
+
+  const handleFilterChange = (filters: ServicesFiltersType) => {
+    setFilters(filters);
+    setPage(1);
+  };
 
   const openServiceModal = (modal: ModalType, serviceId?: string) => {
     setActiveModal(modal);
@@ -117,7 +143,7 @@ function RouteComponent() {
         }}
       />
 
-      <Filters />
+      <ServicesFilters filters={filters} onChange={handleFilterChange} />
 
       {allServicesLoading ? (
         <BlockWrapper>
@@ -128,13 +154,22 @@ function RouteComponent() {
           <EmptyPlaceholder title="Brak wpisów serwisowych" />
         </BlockWrapper>
       ) : (
-        <DataTable
-          columns={getServiceColumns((service) => openServiceModal('attachments', service.id))}
-          data={services}
-          onEdit={(service) => openServiceModal('edit', service.id)}
-          onDelete={(service) => openServiceModal('delete', service.id)}
-          footerLabel={`Łącznie: ${totalCost} zł`}
-        />
+        <div className="flex flex-col flex-1">
+          <DataTable
+            columns={getServiceColumns((service) => openServiceModal('attachments', service.id))}
+            data={services}
+            onEdit={(service) => openServiceModal('edit', service.id)}
+            onDelete={(service) => openServiceModal('delete', service.id)}
+            footerLabel={`Łącznie: ${servicesResponse?.totalCost} zł`}
+            totalLength={servicesResponse?.total}
+          />
+          <Pagination
+            className="mt-auto pt-6"
+            currentPage={servicesResponse?.page ?? page}
+            totalPages={servicesResponse?.totalPages ?? 1}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       <Modal

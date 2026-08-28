@@ -48,5 +48,16 @@ export type PaginatedServices = {
 export type ServiceListParams = {
   page?: number;
   pageSize?: number;
+  vehicleId?: string;
   type?: ServiceType;
+  providerName?: string;
+  from?: string;
+  to?: string;
+};
+
+export type ServicesFiltersType = {
+  vehicleId: string | null;
+  type: ServiceType | null;
+  from: Date | undefined;
+  to: Date | undefined;
 };

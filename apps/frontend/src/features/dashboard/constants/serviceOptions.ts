@@ -1,5 +1,7 @@
 import { ServiceType } from '../types';
 
+export const SERVICES_PAGE_SIZE = 20;
+
 export const serviceTypeOptions: { id: number; value: ServiceType; label: string }[] = [
   { id: 1, value: 'FULL', label: 'Pełny serwis' },
   { id: 2, value: 'OIL_CHANGE', label: 'Wymiana oleju' },
