@@ -17,15 +17,17 @@ import {
   NotificationDeliveryWorker,
 } from './notification-delivery-worker';
 import { TypeOrmNotificationDeliveryStore } from './typeorm-notification-delivery-store';
-import { ResendNotificationEmailSender } from './resend-notification-email-sender';
 import { NOTIFICATION_EMAIL_SENDER } from './notification-email-sender';
 import { NOTIFICATION_DELIVERY_TYPE_ADAPTERS } from './notification-delivery-type-adapter';
 import { VehicleDeadlineDeliveryTypeAdapter } from './vehicle-deadline-delivery-type-adapter';
+import { MailModule } from '../mail/mail.module';
+import { TransportNotificationEmailSender } from './transport-notification-email-sender';
 
 @Module({
   imports: [
     UsersModule,
     FleetModule,
+    MailModule,
     TypeOrmModule.forFeature([
       Notification,
       VehicleDeadlineNotificationDetail,
@@ -49,10 +51,10 @@ import { VehicleDeadlineDeliveryTypeAdapter } from './vehicle-deadline-delivery-
       provide: NOTIFICATION_DELIVERY_STORE,
       useExisting: TypeOrmNotificationDeliveryStore,
     },
-    ResendNotificationEmailSender,
+    TransportNotificationEmailSender,
     {
       provide: NOTIFICATION_EMAIL_SENDER,
-      useExisting: ResendNotificationEmailSender,
+      useExisting: TransportNotificationEmailSender,
     },
     NotificationDeliveryWorker,
   ],

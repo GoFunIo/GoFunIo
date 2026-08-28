@@ -36,7 +36,8 @@ make dev
 ```
 
 The frontend is available at `http://localhost:5173`, the backend at
-`http://localhost:3000`, and the MinIO console at `http://localhost:9001`.
+`http://localhost:3000`, the MinIO console at `http://localhost:9001`, and the
+Mailpit inbox at `http://localhost:8025`.
 Source changes trigger hot reload in both applications. Docker Compose creates
 the private `gofunio-attachments-local` bucket idempotently and persists its
 objects in the `minio_data` volume.
@@ -143,6 +144,27 @@ pnpm --filter backend test:storage
 
 Normal `test` and `test:e2e` runs use the in-memory adapter and require neither
 MinIO nor Cloudflare.
+
+Local email is delivered over SMTP to Mailpit. When the backend runs on the
+host, start Mailpit separately and use the defaults from `.env.example`:
+
+```bash
+docker compose up -d mailpit
+pnpm dev:backend
+```
+
+Captured messages are available at `http://localhost:8025`. The inbox is
+intentionally ephemeral and is cleared when the container is recreated.
+
+To run the SMTP-to-Mailpit contract test:
+
+```bash
+docker compose up -d mailpit
+pnpm --filter backend test:mail
+```
+
+Normal unit and e2e tests continue to use test doubles and do not require
+Mailpit.
 
 ## Optional host tooling
 

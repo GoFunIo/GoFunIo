@@ -2,6 +2,7 @@ process.env.NODE_ENV = 'test';
 process.env.ATTACHMENT_STORAGE_DRIVER = 'memory';
 process.env.COOKIE_KEY = 'test-cookie-key-min-32-chars-long!!';
 process.env.FRONTEND_URL = 'http://localhost:5173';
+process.env.MAIL_TRANSPORT = 'resend';
 process.env.RESEND_API_KEY = 're_test_key';
 process.env.MAIL_FROM = 'test@test.local';
 process.env.DATABASE_URL =
