@@ -25,18 +25,11 @@ import {
   NotificationEmailPolicy,
 } from './notification-types';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
-
-const deadlineFields: Record<
-  VehicleDeadlineKind,
-  keyof Pick<
-    FleetVehicle,
-    'ocExpiry' | 'acExpiry' | 'technicalInspectionExpiry'
-  >
-> = {
-  [VehicleDeadlineKind.OC]: 'ocExpiry',
-  [VehicleDeadlineKind.AC]: 'acExpiry',
-  [VehicleDeadlineKind.TECHNICAL_INSPECTION]: 'technicalInspectionExpiry',
-};
+import { selectVehicleDeadlineStage } from './vehicle-deadline-stage';
+import {
+  vehicleDeadlineDate,
+  vehicleDeadlineTriggerKey,
+} from './vehicle-deadline-trigger';
 
 @Injectable()
 export class VehicleDeadlineNotificationWriter {
@@ -49,27 +42,42 @@ export class VehicleDeadlineNotificationWriter {
     manager: EntityManager,
     vehicle: FleetVehicle,
     changedKinds: VehicleDeadlineKind[],
+    scheduled?: {
+      policy: VehicleDeadlineAlertPolicy;
+      enforceActivationBoundary: true;
+    },
   ): Promise<void> {
     if (!changedKinds.length) return;
-    const policy = await manager.findOneBy(VehicleDeadlineAlertPolicy, {
-      companyId: vehicle.companyId,
-    });
-    if (!policy || !this.calendar.isAtOrAfterHour(policy.timeZone, 8)) return;
+    const policy =
+      scheduled?.policy ??
+      (await manager.findOneBy(VehicleDeadlineAlertPolicy, {
+        companyId: vehicle.companyId,
+      }));
+    if (!policy) return;
     const now = this.calendar.now(policy.timeZone);
     if (policy.activatedAt > this.clock.now()) return;
 
     for (const deadlineKind of changedKinds) {
       if (!policy.enabledDeadlineKinds.includes(deadlineKind)) continue;
-      const deadlineDate = vehicle[deadlineFields[deadlineKind]];
+      const deadlineDate = vehicleDeadlineDate(vehicle, deadlineKind);
       if (!deadlineDate) continue;
-      const daysRemaining = this.calendar.daysBetween(now.date, deadlineDate);
-      const leadDay = [...policy.leadDays]
-        .sort((a, b) => a - b)
-        .find((candidate) => daysRemaining <= candidate);
-      if (leadDay === undefined || (leadDay === 0 && daysRemaining < -7))
-        continue;
+      const leadDay = selectVehicleDeadlineStage({
+        deadlineDate,
+        leadDays: policy.leadDays,
+        localNow: now,
+        activatedLocal: scheduled?.enforceActivationBoundary
+          ? this.calendar.localIso(policy.activatedAt, policy.timeZone)
+          : '0000-01-01T00:00:00.000',
+      });
+      if (leadDay === undefined) continue;
 
-      const trigger = `${vehicle.companyId}:${vehicle.id}:${deadlineKind}:${deadlineDate}:${leadDay}`;
+      const trigger = vehicleDeadlineTriggerKey({
+        companyId: vehicle.companyId,
+        vehicleId: vehicle.id,
+        deadlineKind,
+        deadlineDate,
+        leadDay,
+      });
       await manager.query(
         `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
         [trigger],

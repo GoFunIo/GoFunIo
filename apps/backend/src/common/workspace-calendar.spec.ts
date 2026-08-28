@@ -19,20 +19,6 @@ describe('WorkspaceCalendar', () => {
     });
   });
 
-  it('opens the daily processing gate at 08:00 Workspace time', () => {
-    const before = new WorkspaceCalendar(
-      fixedClock('2026-01-15T06:59:59.000Z'),
-    );
-    const atEight = new WorkspaceCalendar(
-      fixedClock('2026-01-15T07:00:00.000Z'),
-    );
-
-    expect([
-      before.isAtOrAfterHour('Europe/Warsaw', 8),
-      atEight.isAtOrAfterHour('Europe/Warsaw', 8),
-    ]).toEqual([false, true]);
-  });
-
   it('calculates date-only differences across DST boundaries', () => {
     const calendar = new WorkspaceCalendar(fixedClock('2026-01-01T00:00:00Z'));
 

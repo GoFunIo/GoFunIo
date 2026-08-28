@@ -8,6 +8,12 @@ export interface WorkspaceDateTime {
   second: number;
 }
 
+export function calendarDaysBetween(fromDate: string, toDate: string): number {
+  const from = Date.parse(`${fromDate}T00:00:00.000Z`);
+  const to = Date.parse(`${toDate}T00:00:00.000Z`);
+  return (to - from) / 86_400_000;
+}
+
 export function isIanaTimeZone(value: string): boolean {
   try {
     new Intl.DateTimeFormat('en', { timeZone: value }).format();
@@ -22,6 +28,10 @@ export class WorkspaceCalendar {
   constructor(@Inject(CLOCK) private readonly clock: Clock) {}
 
   now(timeZone: string): WorkspaceDateTime {
+    return this.at(this.clock.now(), timeZone);
+  }
+
+  at(instant: Date, timeZone: string): WorkspaceDateTime {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone,
       year: 'numeric',
@@ -31,7 +41,7 @@ export class WorkspaceCalendar {
       minute: '2-digit',
       second: '2-digit',
       hourCycle: 'h23',
-    }).formatToParts(this.clock.now());
+    }).formatToParts(instant);
     const values = Object.fromEntries(
       parts.map(({ type, value }) => [type, value]),
     );
@@ -43,13 +53,12 @@ export class WorkspaceCalendar {
     };
   }
 
-  isAtOrAfterHour(timeZone: string, hour: number): boolean {
-    return this.now(timeZone).hour >= hour;
+  localIso(instant: Date, timeZone: string): string {
+    const value = this.at(instant, timeZone);
+    return `${value.date}T${String(value.hour).padStart(2, '0')}:${String(value.minute).padStart(2, '0')}:${String(value.second).padStart(2, '0')}.${String(instant.getUTCMilliseconds()).padStart(3, '0')}`;
   }
 
   daysBetween(fromDate: string, toDate: string): number {
-    const from = Date.parse(`${fromDate}T00:00:00.000Z`);
-    const to = Date.parse(`${toDate}T00:00:00.000Z`);
-    return (to - from) / 86_400_000;
+    return calendarDaysBetween(fromDate, toDate);
   }
 }

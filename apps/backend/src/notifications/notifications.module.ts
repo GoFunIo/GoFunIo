@@ -7,6 +7,11 @@ import { Notification } from './notification.entity';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
 import { NotificationRecipient } from './notification-recipient.entity';
 import { NotificationDelivery } from './notification-delivery.entity';
+import { VehicleDeadlineNotificationWriter } from './vehicle-deadline-notification-writer';
+import {
+  VehicleDeadlineReconciliation,
+  VehicleDeadlineReconciliationStore,
+} from './vehicle-deadline-reconciliation';
 
 @Module({
   imports: [
@@ -19,7 +24,12 @@ import { NotificationDelivery } from './notification-delivery.entity';
     ]),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService],
-  exports: [NotificationsService],
+  providers: [
+    NotificationsService,
+    VehicleDeadlineNotificationWriter,
+    VehicleDeadlineReconciliationStore,
+    VehicleDeadlineReconciliation,
+  ],
+  exports: [NotificationsService, VehicleDeadlineReconciliation],
 })
 export class NotificationsModule {}

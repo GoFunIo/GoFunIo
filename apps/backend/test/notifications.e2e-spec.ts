@@ -16,6 +16,10 @@ import { NotificationType } from '../src/notifications/notification.entity';
 import { MembershipRole } from '../src/users/membership-role';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createSwaggerConfig } from '../src/swagger-document';
+import {
+  VehicleDeadlineReconciliation,
+  VehicleDeadlineReconciliationStore,
+} from '../src/notifications/vehicle-deadline-reconciliation';
 
 describe('Vehicle deadline Notifications (e2e)', () => {
   let app: INestApplication<App>;
@@ -169,6 +173,245 @@ describe('Vehicle deadline Notifications (e2e)', () => {
           leadDay: 30,
         });
       });
+  });
+
+  it('generates scheduled stages through the explicit deterministic cycle', async () => {
+    instant = new Date('2026-03-30T05:59:59.000Z');
+    const actor = await owner('notification-reconcile-stage@example.com');
+    await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Skoda',
+        model: 'Octavia',
+        registrationNumber: 'SCHED01',
+        ocExpiry: '2026-04-29',
+      })
+      .expect(201);
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    await app.get(VehicleDeadlineReconciliation).processDue();
+    await actor
+      .get('/notifications')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          deadlineKind: 'OC',
+          leadDay: 30,
+        });
+      });
+  });
+
+  it('progresses every deadline kind and skips an outage-missed stage', async () => {
+    instant = new Date('2026-03-30T05:59:59.000Z');
+    const actor = await owner('notification-reconcile-progression@example.com');
+    await actor
+      .post('/vehicles')
+      .send({
+        brand: 'BMW',
+        model: '320',
+        registrationNumber: 'PROGR01',
+        ocExpiry: '2026-04-29',
+        acExpiry: '2026-04-29',
+        technicalInspectionExpiry: '2026-04-29',
+      })
+      .expect(201);
+    const processor = app.get(VehicleDeadlineReconciliation);
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    await processor.processDue();
+    instant = new Date('2026-04-23T06:00:00.000Z');
+    await processor.processDue();
+    const details = await app.get(DataSource).query(
+      `SELECT "deadlineKind", "leadDay" FROM vehicle_deadline_notification_details
+       ORDER BY "deadlineKind", "leadDay" DESC`,
+    );
+    expect(details).toEqual([
+      { deadlineKind: 'OC', leadDay: 30 },
+      { deadlineKind: 'OC', leadDay: 7 },
+      { deadlineKind: 'AC', leadDay: 30 },
+      { deadlineKind: 'AC', leadDay: 7 },
+      { deadlineKind: 'TECHNICAL_INSPECTION', leadDay: 30 },
+      { deadlineKind: 'TECHNICAL_INSPECTION', leadDay: 7 },
+    ]);
+  });
+
+  it('honors policy edits, preserves removed lead stages, and invalidates disabled kinds and removed Vehicles', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-reconcile-policy-edit@example.com');
+    const first = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Audi',
+        model: 'A4',
+        registrationNumber: 'POLICY1',
+        ocExpiry: '2026-04-29',
+      })
+      .expect(201);
+    const second = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Audi',
+        model: 'A6',
+        registrationNumber: 'POLICY2',
+        acExpiry: '2026-04-29',
+      })
+      .expect(201);
+    await actor
+      .patch('/alert-policy')
+      .send({ leadDays: [14, 7, 0] })
+      .expect(200);
+    await app.get(VehicleDeadlineReconciliation).processDue();
+    let rows = await app.get(DataSource).query(
+      `SELECT detail."vehicleId", notification."invalidatedAt"
+       FROM notifications notification
+       JOIN vehicle_deadline_notification_details detail ON detail."notificationId" = notification.id
+       ORDER BY detail."vehicleId"`,
+    );
+    expect(rows).toHaveLength(2);
+    expect(
+      rows.every(
+        ({ invalidatedAt }: { invalidatedAt: Date | null }) =>
+          invalidatedAt === null,
+      ),
+    ).toBe(true);
+
+    await actor
+      .patch('/alert-policy')
+      .send({ enabledDeadlineKinds: ['AC', 'TECHNICAL_INSPECTION'] })
+      .expect(200);
+    await actor.delete(`/vehicles/${second.body.id}`).expect(204);
+    await app.get(VehicleDeadlineReconciliation).processDue();
+    rows = await app.get(DataSource).query(
+      `SELECT detail."vehicleId", notification."invalidatedAt"
+       FROM notifications notification
+       JOIN vehicle_deadline_notification_details detail ON detail."notificationId" = notification.id`,
+    );
+    expect(
+      rows.find(
+        ({ vehicleId }: { vehicleId: string }) => vehicleId === first.body.id,
+      ).invalidatedAt,
+    ).toEqual(instant);
+    expect(
+      rows.find(
+        ({ vehicleId }: { vehicleId: string }) => vehicleId === second.body.id,
+      ).invalidatedAt,
+    ).toEqual(instant);
+  });
+
+  it('deduplicates concurrent cycles through PostgreSQL', async () => {
+    instant = new Date('2026-03-30T05:59:59.000Z');
+    const actor = await owner('notification-reconcile-concurrent@example.com');
+    const vehicle = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Mazda',
+        model: '6',
+        registrationNumber: 'SCHED02',
+        acExpiry: '2026-04-29',
+      })
+      .expect(201);
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const store = app.get(VehicleDeadlineReconciliationStore);
+    await Promise.all([store.run(), store.run()]);
+    const [{ count }] = await app
+      .get(DataSource)
+      .query(
+        `SELECT count(*)::int count FROM vehicle_deadline_notification_details WHERE "vehicleId" = $1`,
+        [vehicle.body.id],
+      );
+    expect(count).toBe(1);
+  });
+
+  it('atomically invalidates stale sources, cancels nonterminal deliveries, and retains terminal ones', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-reconcile-invalid@example.com');
+    await invite(
+      actor,
+      'notification-reconcile-invalid-admin@example.com',
+      MembershipRole.ADMIN,
+    );
+    const vehicle = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Honda',
+        model: 'Civic',
+        registrationNumber: 'INVAL01',
+        technicalInspectionExpiry: '2026-04-13',
+      })
+      .expect(201);
+    const dataSource = app.get(DataSource);
+    const deliveries = await dataSource.query(
+      `SELECT delivery.id FROM notification_deliveries delivery
+       JOIN notification_recipients recipient ON recipient.id = delivery."recipientId"
+       JOIN vehicle_deadline_notification_details detail ON detail."notificationId" = recipient."notificationId"
+       WHERE detail."vehicleId" = $1 ORDER BY delivery.id`,
+      [vehicle.body.id],
+    );
+    await dataSource.query(
+      `UPDATE notification_deliveries SET status = 'SENT', "sentAt" = $1, "completedAt" = $1 WHERE id = $2`,
+      [instant, deliveries[0].id],
+    );
+    await actor
+      .patch(`/vehicles/${vehicle.body.id}`)
+      .send({ technicalInspectionExpiry: '2026-06-30' })
+      .expect(200);
+    await app.get(VehicleDeadlineReconciliation).processDue();
+    await actor.get('/notifications').expect(200).expect({ items: [] });
+    const states = await dataSource.query(
+      `SELECT notification."invalidatedAt", delivery.status, delivery."completedAt"
+       FROM notifications notification
+       JOIN notification_recipients recipient ON recipient."notificationId" = notification.id
+       JOIN notification_deliveries delivery ON delivery."recipientId" = recipient.id
+       WHERE delivery.id = ANY($1::uuid[]) ORDER BY delivery.id`,
+      [deliveries.map(({ id }: { id: string }) => id)],
+    );
+    expect(states).toHaveLength(2);
+    expect(
+      states.every(
+        ({ invalidatedAt }: { invalidatedAt: Date }) =>
+          invalidatedAt.getTime() === instant.getTime(),
+      ),
+    ).toBe(true);
+    expect(
+      states.map(({ status }: { status: string }) => status).sort(),
+    ).toEqual(['CANCELLED', 'SENT']);
+  });
+
+  it('purges invalid Notifications only after the 90-day boundary with cascades', async () => {
+    instant = new Date('2026-03-30T06:00:00.000Z');
+    const actor = await owner('notification-reconcile-retention@example.com');
+    const vehicle = await actor
+      .post('/vehicles')
+      .send({
+        brand: 'Renault',
+        model: 'Clio',
+        registrationNumber: 'RETEN01',
+        ocExpiry: '2026-04-13',
+      })
+      .expect(201);
+    await actor.delete(`/vehicles/${vehicle.body.id}`).expect(204);
+    const processor = app.get(VehicleDeadlineReconciliation);
+    const dataSource = app.get(DataSource);
+    await processor.processDue();
+    instant = new Date('2026-06-28T06:00:00.000Z');
+    await processor.processDue();
+    expect(
+      (
+        await dataSource.query(`SELECT count(*)::int count FROM notifications`)
+      )[0].count,
+    ).toBe(1);
+    instant = new Date('2026-06-28T06:00:00.001Z');
+    await processor.processDue();
+    const [counts] = await dataSource.query(`SELECT
+      (SELECT count(*)::int FROM notifications) notifications,
+      (SELECT count(*)::int FROM vehicle_deadline_notification_details) details,
+      (SELECT count(*)::int FROM notification_recipients) recipients,
+      (SELECT count(*)::int FROM notification_deliveries) deliveries`);
+    expect(counts).toEqual({
+      notifications: 0,
+      details: 0,
+      recipients: 0,
+      deliveries: 0,
+    });
   });
 
   it('does not generate for an unrelated update or unchanged deadline and stores a new date separately', async () => {

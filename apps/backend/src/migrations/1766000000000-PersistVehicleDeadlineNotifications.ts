@@ -15,7 +15,7 @@ export class PersistVehicleDeadlineNotifications1766000000000 implements Migrati
     );
     await queryRunner.query(`
       CREATE TABLE "notifications" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "companyId" uuid NOT NULL,
         "type" "notification_type" NOT NULL,
         "category" "notification_category" NOT NULL,
@@ -44,7 +44,7 @@ export class PersistVehicleDeadlineNotifications1766000000000 implements Migrati
       )`);
     await queryRunner.query(`
       CREATE TABLE "notification_recipients" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "companyId" uuid NOT NULL,
         "notificationId" uuid NOT NULL,
         "membershipId" uuid NOT NULL,
@@ -63,7 +63,7 @@ export class PersistVehicleDeadlineNotifications1766000000000 implements Migrati
     );
     await queryRunner.query(`
       CREATE TABLE "notification_deliveries" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "companyId" uuid NOT NULL,
         "recipientId" uuid NOT NULL,
         "channel" "notification_channel" NOT NULL,
