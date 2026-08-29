@@ -26,7 +26,7 @@ Uwierzytelniona tożsamość Usera w kontekście Active Workspace. Udostępnia w
 
 ## Email Verification
 
-Proces potwierdzający, że User kontroluje podany adres email. Powodzenie aktywuje możliwość logowania tym adresem.
+Proces potwierdzający, że User kontroluje podany adres email. Powodzenie aktywuje możliwość logowania tym adresem. Ostatni wydany, nawet wygasły token może zostać atomowo zastąpiony nowym tokenem i ponownie dostarczony; starsze oraz zużyte tokeny nie ujawniają stanu konta.
 
 ## Password Recovery
 
@@ -74,4 +74,4 @@ Czasowa relacja Managera z Vehicle. Określa, które Vehicle Manager może widzi
 
 ## Driver Allocation
 
-Czasowa relacja aktualnej odpowiedzialności Drivera za Vehicle. Driver może mieć wiele aktywnych Driver Allocation, ale Vehicle najwyżej jedno. Nowe przypisanie kończy poprzednie aktywne Driver Allocation tego Vehicle; Vehicle może pozostać bez aktywnego przypisania. OWNER i ADMIN zarządzają Driver Allocation wszystkich Vehicle; MANAGER wyłącznie Vehicle objętych własnym Vehicle Access.
+Czasowa relacja aktualnej odpowiedzialności Drivera za Vehicle. Driver i Vehicle mogą mieć wiele aktywnych Driver Allocation, ale dana para Driver–Vehicle najwyżej jedno. Ponowne przypisanie aktywnej pary jest idempotentne; zakończenie przypisania nie wpływa na pozostałych Driverów Vehicle. Vehicle może pozostać bez aktywnego przypisania. OWNER i ADMIN zarządzają Driver Allocation wszystkich Vehicle; MANAGER wyłącznie Vehicle objętych własnym Vehicle Access.

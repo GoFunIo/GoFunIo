@@ -20,13 +20,12 @@ export class ConfiguredFrontendOrigins implements FrontendOrigins {
   private readonly production: boolean;
 
   constructor(config: ConfigService<EnvVars, true>) {
-    this.fallback = config.get('FRONTEND_URL').replace(/\/$/, '');
+    this.fallback = config.get<string>('FRONTEND_URL').replace(/\/$/, '');
     this.fallbackOrigin = new URL(this.fallback).origin;
-    this.corsOrigins = config.get('CORS_ORIGINS').length
-      ? config.get('CORS_ORIGINS')
-      : [this.fallbackOrigin];
-    this.patterns = config.get('FRONTEND_URL_PATTERNS');
-    this.production = config.get('NODE_ENV') === NodeEnv.Production;
+    const corsOrigins = config.get<string[]>('CORS_ORIGINS');
+    this.corsOrigins = corsOrigins.length ? corsOrigins : [this.fallbackOrigin];
+    this.patterns = config.get<RegExp[]>('FRONTEND_URL_PATTERNS');
+    this.production = config.get<NodeEnv>('NODE_ENV') === NodeEnv.Production;
   }
 
   allowsMutation(origin?: string): boolean {

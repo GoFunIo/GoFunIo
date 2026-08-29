@@ -23,6 +23,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { ConflictResponseDto } from '../common/conflict';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
@@ -37,6 +38,7 @@ import { Driver } from './drivers.entity';
 import { DriversService } from './drivers.service';
 
 @ApiTags('Drivers')
+@ApiSessionAuth()
 @Controller('drivers')
 @Serialize(DriverDto)
 @UseGuards(SessionAuthGuard)
@@ -63,7 +65,12 @@ export class DriversController {
     return this.drivers.findOne(principal, id);
   }
 
-  @ApiOperation({ summary: 'Create driver' })
+  @ApiOperation({
+    summary: 'Create driver',
+    description:
+      'Use an ADMIN session when linking a driver to a company user.',
+  })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: DriverDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -81,6 +88,7 @@ export class DriversController {
   }
 
   @ApiOperation({ summary: 'Update driver' })
+  @ApiAllowedOrigin()
   @ApiOkResponse({ type: DriverDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -99,7 +107,11 @@ export class DriversController {
     return this.drivers.update(principal, id, body);
   }
 
-  @ApiOperation({ summary: 'Delete driver' })
+  @ApiOperation({
+    summary: 'Delete driver',
+    description: 'Requires an ADMIN session.',
+  })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin role required' })

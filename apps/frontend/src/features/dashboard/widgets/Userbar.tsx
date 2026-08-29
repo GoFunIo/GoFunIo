@@ -17,15 +17,17 @@ import { getUserFullName } from '@/utils/getUserFullName';
 import { useUser } from '../hooks/user.hooks';
 
 export const Userbar = () => {
-  const { data: user } = useUser();
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [dropdown, setDropdown] = useState<'settings' | 'alerts' | null>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const alertsRef = useRef<HTMLDivElement>(null);
+
+  const { data: user } = useUser();
+  const { data: vehiclesResponse } = useVehicles();
+
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [dropdown, setDropdown] = useState<'settings' | 'alerts' | null>(null);
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-  const { data: vehiclesResponse } = useVehicles();
   const vehicles = vehiclesResponse?.items ?? [];
 
   const hasUrgentAlerts = useMemo(() => {
@@ -123,14 +125,14 @@ export const Userbar = () => {
               {/* AVATAR Z INICJAŁAMI  */}
               <div className="w-[32px] h-[32px] bg-secondary rounded-full flex items-center justify-center shrink-0">
                 <p className="text-[12px] font-bold text-white">
-                  {getInitials(user.firstName, user.lastName, user.email)}
+                  {getInitials(user?.firstName, user?.lastName, user?.email)}
                 </p>
               </div>
 
               {/* DANE UŻYTKOWNIKA */}
               <div className="max-[426px]:hidden flex flex-col">
                 <p className="text-[14px] font-bold text-content-primary leading-tight">
-                  {getUserFullName(user.firstName, user.lastName, user.email)}
+                  {getUserFullName(user?.firstName, user?.lastName, user?.email)}
                 </p>
                 <p className="text-[12px] text-content-secondary leading-tight mt-0.5">
                   {user?.email}

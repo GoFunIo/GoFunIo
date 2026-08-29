@@ -4,11 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConflictCode, conflictException } from '../common/conflict';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import {
-  isWorkspaceAdmin,
-  type MembershipRole,
-} from '../users/membership-role';
-import type { SessionPrincipal } from '../users/session-principal';
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
 import type { VehicleFuelType } from '../vehicles/vehicles.entity';
 import type {
   FleetManagerAssignment,
@@ -17,6 +17,12 @@ import type {
 import type { DriverAllocationStore } from './driver-allocation';
 import type { ServiceType } from '../services/services.entity';
 import type { ServiceAttachmentMimeType } from '../service-attachments/service-attachment.entity';
+import type { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import type { VehicleDeadlineRecipientReconciliationScope } from '../notifications/transactional-notification-recipient-reconciliation';
+
+// The in-memory unit of work mirrors asynchronous persistence interfaces while
+// applying most operations synchronously to transaction-local collections.
+/* eslint-disable @typescript-eslint/require-await */
 
 export const FLEET_UNIT_OF_WORK = Symbol('FLEET_UNIT_OF_WORK');
 
@@ -161,7 +167,7 @@ export interface FleetTransaction {
       vehicleId: string,
       fields: Partial<Omit<FleetVehicleInput, 'companyId'>>,
     ): Promise<FleetVehicle>;
-    softDelete(vehicleId: string): Promise<void>;
+    remove(actor: SessionPrincipal, vehicleId: string): Promise<void>;
   };
   vehicleAccess: FleetVehicleAccessStore;
   drivers: {
@@ -186,8 +192,7 @@ export interface FleetTransaction {
       serviceId: string,
       fields: Partial<Omit<FleetServiceInput, 'companyId'>>,
     ): Promise<FleetService>;
-    softDelete(serviceId: string): Promise<void>;
-    softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
+    remove(actor: SessionPrincipal, serviceId: string): Promise<void>;
   };
   attachments: {
     countActive(companyId: string, serviceId: string): Promise<number>;
@@ -212,13 +217,20 @@ export interface FleetTransaction {
       >,
     ): Promise<FleetServiceAttachment>;
     softDelete(attachmentId: string): Promise<void>;
-    softDeleteService(companyId: string, serviceId: string): Promise<void>;
-    softDeleteVehicle(companyId: string, vehicleId: string): Promise<void>;
   };
   attachmentCleanups: {
     guard(objectKey: string, deleteAfter: Date): Promise<void>;
     cancel(objectKey: string, now: Date): Promise<boolean>;
     enqueue(objectKey: string, now: Date): Promise<void>;
+  };
+  notifications: {
+    persistVehicleDeadlineStages(
+      vehicle: FleetVehicle,
+      changedKinds: VehicleDeadlineKind[],
+    ): Promise<void>;
+    reconcileVehicleDeadlineRecipients(
+      input: VehicleDeadlineRecipientReconciliationScope,
+    ): Promise<void>;
   };
 }
 
@@ -342,10 +354,79 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             Object.assign(vehicle, fields, { updatedAt: new Date() });
             return vehicle;
           },
-          softDelete: async (vehicleId) => {
-            const vehicle = this.vehicles.find(({ id }) => id === vehicleId);
-            if (!vehicle) throw new NotFoundException('Vehicle not found');
-            vehicle.deletedAt = new Date();
+          remove: async (actor, vehicleId) => {
+            const companyId = requireCompanyId(actor);
+            if (!actor.role) throw new ForbiddenException();
+            const activeMembership = this.memberships.some(
+              ({ userId, companyId: ownerId, role, status }) =>
+                userId === actor.id &&
+                ownerId === companyId &&
+                role === actor.role &&
+                status === 'active',
+            );
+            if (!activeMembership) throw new ForbiddenException();
+            const vehicle = this.vehicles.find(
+              ({ id, companyId: ownerId, deletedAt }) =>
+                id === vehicleId && ownerId === companyId && !deletedAt,
+            );
+            const visible =
+              activeMembership &&
+              (isWorkspaceAdmin(actor.role) ||
+                (actor.role === MembershipRole.MANAGER &&
+                  this.managerAssignments.some(
+                    (assignment) =>
+                      assignment.companyId === companyId &&
+                      assignment.vehicleId === vehicleId &&
+                      assignment.managerId === actor.id &&
+                      assignment.assignedTo === null,
+                  )));
+            if (!vehicle || !visible) {
+              throw new NotFoundException('Vehicle not found');
+            }
+
+            const now = new Date();
+            const serviceIds = new Set(
+              this.services
+                .filter(
+                  (service) =>
+                    service.companyId === companyId &&
+                    service.vehicleId === vehicleId &&
+                    !service.deletedAt,
+                )
+                .map(({ id }) => id),
+            );
+            for (const attachment of this.serviceAttachments) {
+              if (
+                attachment.companyId === companyId &&
+                serviceIds.has(attachment.serviceId) &&
+                !attachment.deletedAt
+              ) {
+                await enqueueCleanup(attachment.objectKey, now);
+                attachment.deletedAt = now;
+              }
+            }
+            for (const service of this.services) {
+              if (serviceIds.has(service.id)) service.deletedAt = now;
+            }
+            for (const assignment of this.managerAssignments) {
+              if (
+                assignment.companyId === companyId &&
+                assignment.vehicleId === vehicleId &&
+                assignment.assignedTo === null
+              ) {
+                assignment.assignedTo = now;
+              }
+            }
+            for (const assignment of this.driverAssignments) {
+              if (
+                assignment.companyId === companyId &&
+                assignment.vehicleId === vehicleId &&
+                assignment.assignedTo === null
+              ) {
+                assignment.assignedTo = now;
+              }
+            }
+            vehicle.deletedAt = now;
           },
         },
         vehicleAccess: {
@@ -376,7 +457,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const visible =
               activeMembership &&
               (isWorkspaceAdmin(actor.role) ||
-                (actor.role === 'MANAGER' &&
+                (actor.role === MembershipRole.MANAGER &&
                   this.managerAssignments.some(
                     (assignment) =>
                       assignment.vehicleId === vehicleId &&
@@ -404,7 +485,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const visible =
               activeMembership &&
               (isWorkspaceAdmin(actor.role) ||
-                (actor.role === 'MANAGER' &&
+                (actor.role === MembershipRole.MANAGER &&
                   vehicle?.deletedAt === null &&
                   this.managerAssignments.some(
                     (assignment) =>
@@ -422,7 +503,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
               (membership) =>
                 membership.userId === managerId &&
                 membership.companyId === companyId &&
-                membership.role === 'MANAGER' &&
+                membership.role === MembershipRole.MANAGER &&
                 membership.status === 'active',
             );
             if (!valid) throw new BadRequestException('Invalid manager');
@@ -534,7 +615,8 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
         driverAllocations: {
           requireActor: async (actor) => {
             const valid =
-              (isWorkspaceAdmin(actor.role) || actor.role === 'MANAGER') &&
+              (isWorkspaceAdmin(actor.role) ||
+                actor.role === MembershipRole.MANAGER) &&
               this.memberships.some(
                 ({ userId, companyId, role, status }) =>
                   userId === actor.id &&
@@ -552,7 +634,7 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             const visible =
               driver &&
               (isWorkspaceAdmin(actor.role) ||
-                (actor.role === 'MANAGER' &&
+                (actor.role === MembershipRole.MANAGER &&
                   (!this.driverAssignments.some(
                     (assignment) =>
                       assignment.companyId === actor.companyId &&
@@ -580,11 +662,11 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
               (assignment) =>
                 assignment.companyId === companyId &&
                 assignment.vehicleId === vehicleId &&
+                assignment.driverId === driverId &&
                 assignment.assignedTo === null,
             );
-            if (active?.driverId === driverId) return active;
+            if (active) return active;
             const now = new Date();
-            if (active) active.assignedTo = now;
             const assignment = {
               id: `driver-assignment-${this.driverAssignments.length + 1}`,
               companyId,
@@ -708,28 +790,49 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             Object.assign(service, fields, { updatedAt: new Date() });
             return Promise.resolve(service);
           },
-          softDelete: (serviceId) => {
+          remove: async (actor, serviceId) => {
+            const companyId = requireCompanyId(actor);
+            if (!actor.role) throw new ForbiddenException();
+            const activeMembership = this.memberships.some(
+              ({ userId, companyId: ownerId, role, status }) =>
+                userId === actor.id &&
+                ownerId === companyId &&
+                role === actor.role &&
+                status === 'active',
+            );
+            if (!activeMembership) throw new ForbiddenException();
             const service = this.services.find(
-              ({ id, deletedAt }) => id === serviceId && !deletedAt,
+              ({ id, companyId: ownerId, deletedAt }) =>
+                id === serviceId && ownerId === companyId && !deletedAt,
             );
             if (!service) {
-              return Promise.reject(new NotFoundException('Service not found'));
+              throw new NotFoundException('Service not found');
             }
-            Object.assign(service, { deletedAt: new Date() });
-            return Promise.resolve();
-          },
-          softDeleteVehicle: (companyId, vehicleId) => {
+            const visible =
+              activeMembership &&
+              (isWorkspaceAdmin(actor.role) ||
+                (actor.role === MembershipRole.MANAGER &&
+                  this.managerAssignments.some(
+                    (assignment) =>
+                      assignment.companyId === companyId &&
+                      assignment.vehicleId === service.vehicleId &&
+                      assignment.managerId === actor.id &&
+                      assignment.assignedTo === null,
+                  )));
+            if (!visible) throw new NotFoundException('Vehicle not found');
+
             const now = new Date();
-            for (const service of this.services) {
+            for (const attachment of this.serviceAttachments) {
               if (
-                service.companyId === companyId &&
-                service.vehicleId === vehicleId &&
-                !service.deletedAt
+                attachment.companyId === companyId &&
+                attachment.serviceId === serviceId &&
+                !attachment.deletedAt
               ) {
-                service.deletedAt = now;
+                await enqueueCleanup(attachment.objectKey, now);
+                attachment.deletedAt = now;
               }
             }
-            return Promise.resolve();
+            service.deletedAt = now;
           },
         },
         attachments: {
@@ -790,41 +893,6 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             }
             return Promise.resolve();
           },
-          softDeleteService: async (companyId, serviceId) => {
-            const now = new Date();
-            for (const attachment of this.serviceAttachments) {
-              if (
-                attachment.companyId === companyId &&
-                attachment.serviceId === serviceId &&
-                !attachment.deletedAt
-              ) {
-                attachment.deletedAt = now;
-                await enqueueCleanup(attachment.objectKey, now);
-              }
-            }
-          },
-          softDeleteVehicle: async (companyId, vehicleId) => {
-            const serviceIds = new Set(
-              this.services
-                .filter(
-                  (service) =>
-                    service.companyId === companyId &&
-                    service.vehicleId === vehicleId,
-                )
-                .map(({ id }) => id),
-            );
-            const now = new Date();
-            for (const attachment of this.serviceAttachments) {
-              if (
-                attachment.companyId === companyId &&
-                serviceIds.has(attachment.serviceId) &&
-                !attachment.deletedAt
-              ) {
-                attachment.deletedAt = now;
-                await enqueueCleanup(attachment.objectKey, now);
-              }
-            }
-          },
         },
         attachmentCleanups: {
           guard: (objectKey, deleteAfter) => {
@@ -856,6 +924,10 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             return Promise.resolve(true);
           },
           enqueue: enqueueCleanup,
+        },
+        notifications: {
+          reconcileVehicleDeadlineRecipients: () => Promise.resolve(),
+          persistVehicleDeadlineStages: () => Promise.resolve(),
         },
       });
       this.transactionActive = false;

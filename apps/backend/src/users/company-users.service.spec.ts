@@ -8,6 +8,7 @@ import type { TransactionalVehicleAccess } from '../fleet/transactional-vehicle-
 import { CompanyUsersService } from './company-users.service';
 import { Membership } from './membership.entity';
 import { MembershipRole } from './membership-role';
+import type { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { User } from './users.entity';
 
@@ -168,6 +169,8 @@ describe('CompanyUsersService membership rules', () => {
       repository as unknown as Repository<User>,
       { issueFirstPassword: jest.fn() } as unknown as PasswordRecoveryService,
       vehicleAccess as unknown as TransactionalVehicleAccess,
+      { reconcileRecipients: jest.fn() },
+      { record: jest.fn() } as unknown as NotificationChangeRelay,
     );
     return { manager, service, vehicleAccess };
   }

@@ -85,8 +85,12 @@ describe('GoogleAuthenticationService', () => {
       googleId: 'google-1',
       firstName: 'Jan',
       lastName: 'Kowalski',
-      emailVerifiedAt: expect.any(Date),
     });
+    const provisioning = provisioner.calls[0];
+    if (!provisioning || !('emailVerifiedAt' in provisioning)) {
+      throw new Error('Expected Google workspace owner provisioning');
+    }
+    expect(provisioning.emailVerifiedAt).toBeInstanceOf(Date);
     expect(result.hasPassword).toBe(false);
     expect(result).not.toHaveProperty('companyId');
     expect(result).not.toHaveProperty('role');

@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieSession from 'cookie-session';
@@ -11,14 +11,15 @@ import {
   FRONTEND_ORIGINS,
   type FrontendOrigins,
 } from './common/frontend-origins';
+import { createSwaggerConfig } from './swagger-document';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<EnvVars, true>>(ConfigService);
-  const cookieKey = config.get('COOKIE_KEY');
+  const cookieKey = config.get<string>('COOKIE_KEY');
   const frontendOrigins = app.get<FrontendOrigins>(FRONTEND_ORIGINS);
-  const isProd = config.get('NODE_ENV') === NodeEnv.Production;
-  const port = config.get('PORT');
+  const isProd = config.get<NodeEnv>('NODE_ENV') === NodeEnv.Production;
+  const port = config.get<number>('PORT');
 
   if (isProd) {
     app.set('trust proxy', 1);
@@ -46,11 +47,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  const docConfig = new DocumentBuilder()
-    .setTitle('GoFunIo API')
-    .setVersion('1.0')
-    .addCookieAuth('session')
-    .build();
+  const docConfig = createSwaggerConfig();
   const document = SwaggerModule.createDocument(app, docConfig);
   SwaggerModule.setup('api', app, document);
 

@@ -37,13 +37,22 @@ import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { useServices } from '@/features/dashboard/hooks/services.hooks';
 
-export type DashboardAction = {
+type DashboardAction = {
   id: number;
   title: string;
   icon: LucideIcon;
   actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link';
   href?: string;
 };
+
+type ModalType =
+  | 'add_car'
+  | 'edit_car'
+  | 'add_service'
+  | 'edit_service'
+  | 'delete_service'
+  | 'add_user'
+  | null;
 
 export const dashboardActions: DashboardAction[] = [
   {
@@ -91,38 +100,43 @@ function RouteComponent() {
   const navigate = useNavigate();
 
   const { data: user } = useUser();
-  const { canInviteUsers } = usePermissions();
-
   const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
   const { data: servicesResponse } = useServices();
   const { data: team, isPending: isTeamPending } = useTeam();
+  const { canInviteUsers, canManageUsers } = usePermissions();
 
-  const isTeamLoading = isTeamPending && user?.role === 'ADMIN';
-  const activeUsersCount = user?.role === 'ADMIN' ? (team?.length ?? 0) : 1;
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+
+  const HISTORY_PAGE_SIZE = 5;
+  const { data: historyServicesResponse } = useServices({
+    page: historyPage,
+    pageSize: HISTORY_PAGE_SIZE,
+  });
+
+  const isTeamLoading = isTeamPending && canManageUsers;
+  const activeUsersCount = canManageUsers ? (team?.length ?? 0) : 1;
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
 
-  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
-  const [modalState, setModalState] = useState<ServiceData | null>(null);
-  const [deleteModalState, setDeleteModalState] = useState<ServiceData | null>(null);
-
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isEditCarModalOpen, setIsEditCarModalOpen] = useState<boolean>(false);
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState<boolean>(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
-
-  const isServiceEditMode = modalState !== null;
-
   const selectedCar = vehicles.find((c) => c.id === selectedCarId);
-
-  const editCarModalTitle = selectedCar
-    ? `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`
-    : 'Edytuj dane pojazdu';
 
   const handleRenewCar = (id: string) => {
     setSelectedCarId(id);
-    setIsEditCarModalOpen(true);
+    setActiveModal('edit_car');
+  };
+
+  const handleEditServiceClick = (item: ServiceData) => {
+    setSelectedService(item);
+    setActiveModal('edit_service');
+  };
+
+  const handleDeleteServiceClick = (item: ServiceData) => {
+    setSelectedService(item);
+    setActiveModal('delete_service');
   };
 
   // ============================================================
@@ -174,38 +188,6 @@ function RouteComponent() {
   };
 
   // ============================================================
-  // QUICK ACTIONS
-  // ============================================================
-  const visibleActions = useMemo(
-    () =>
-      dashboardActions.filter((action) => {
-        if (action.actionType === 'modal_user') return canInviteUsers;
-        return true;
-      }),
-    [canInviteUsers],
-  );
-
-  const handleActionClick = (actionType: DashboardAction['actionType'], href?: ToOptions['to']) => {
-    if (actionType === 'link' && href) {
-      navigate({ to: href });
-      return;
-    }
-    if (actionType === 'modal_car') {
-      setIsModalOpen(true);
-      return;
-    }
-    if (actionType === 'modal_user') {
-      if (!canInviteUsers) return;
-      setIsUserModalOpen(true);
-      return;
-    }
-    if (actionType === 'modal_service') {
-      setIsServiceModalOpen(true);
-      return;
-    }
-  };
-
-  // ============================================================
   // PODSUMOWANIE WYDATKÓW
   // ============================================================
   const expensesSummary = useMemo(() => {
@@ -230,14 +212,127 @@ function RouteComponent() {
   }, [services]);
 
   // ============================================================
-  // OSTATNIA HISTORIA
+  // QUICK ACTIONS
   // ============================================================
-  const [historyPage, setHistoryPage] = useState(1);
-  const HISTORY_PAGE_SIZE = 5;
-  const { data: historyServicesResponse } = useServices({
-    page: historyPage,
-    pageSize: HISTORY_PAGE_SIZE,
-  });
+  const visibleActions = useMemo(
+    () =>
+      dashboardActions.filter((action) => {
+        if (action.actionType === 'modal_user') return canInviteUsers;
+        return true;
+      }),
+    [canInviteUsers],
+  );
+
+  const handleActionClick = (actionType: DashboardAction['actionType'], href?: ToOptions['to']) => {
+    if (actionType === 'link' && href) {
+      navigate({ to: href });
+      return;
+    }
+    if (actionType === 'modal_car') {
+      setActiveModal('add_car');
+      return;
+    }
+    if (actionType === 'modal_user') {
+      if (!canInviteUsers) return;
+      setActiveModal('add_user');
+      return;
+    }
+    if (actionType === 'modal_service') {
+      setActiveModal('add_service');
+      return;
+    }
+  };
+
+  // ============================================================
+  // CONFIG DLA MODALI
+  // ============================================================
+  const getModalConfig = () => {
+    switch (activeModal) {
+      case 'add_car':
+        return {
+          title: 'Dodaj pojazd',
+          subtitle: 'Wprowadź dane pojazdu. Pola oznaczone * są wymagane.',
+          content: <AddVehicleForm onClose={() => setActiveModal(null)} />,
+        };
+
+      case 'edit_car':
+        if (!selectedCar) return { title: '', subtitle: '', content: null };
+
+        return {
+          title: `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`,
+          subtitle: 'Zaktualizuj ubezpieczenia lub badania techniczne pojazdu.',
+          content: (
+            <AddVehicleForm
+              initialData={selectedCar}
+              onClose={() => {
+                setActiveModal(null);
+                setSelectedCarId(null);
+              }}
+              isRenewalMode={true}
+            />
+          ),
+        };
+
+      case 'add_service':
+        return {
+          title: 'Dodaj wpis serwisowy',
+          subtitle: 'Wprowadź szczegóły wykonanej naprawy lub serwisu.',
+          content: (
+            <div className="text-center text-content-secondary">
+              <AddVehicleServiceForm onClose={() => setActiveModal(null)} />
+            </div>
+          ),
+        };
+
+      case 'edit_service':
+        if (!selectedService) return { title: '', subtitle: '', content: null };
+
+        return {
+          title: 'Edytuj wpis serwisowy',
+          subtitle: 'Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi.',
+          content: (
+            <AddVehicleServiceForm
+              key={selectedService.id}
+              initialData={selectedService}
+              onClose={() => {
+                setActiveModal(null);
+                setSelectedService(null);
+              }}
+            />
+          ),
+        };
+
+      case 'delete_service':
+        if (!selectedService) return { title: '', subtitle: '', content: null };
+
+        return {
+          title: 'Usuń wpis serwisowy',
+          subtitle:
+            'Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna.',
+          content: (
+            <DeleteServiceConfirm
+              service={selectedService}
+              onClose={() => {
+                setActiveModal(null);
+                setSelectedService(null);
+              }}
+            />
+          ),
+        };
+
+      case 'add_user':
+        return {
+          title: 'Dodaj użytkownika',
+          subtitle: 'Wprowadź dane nowego kierowcy lub administratora systemu.',
+          content: <AddEditUserForm onClose={() => setActiveModal(null)} />,
+        };
+
+      default:
+        return { title: '', subtitle: '', content: null };
+    }
+  };
+
+  const modalConfig = getModalConfig();
 
   if (!user) return null;
 
@@ -351,8 +446,8 @@ function RouteComponent() {
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
           }}
-          onEditClick={(item) => setModalState(item)}
-          onDeleteClick={(item) => setDeleteModalState(item)}
+          onEditClick={handleEditServiceClick}
+          onDeleteClick={handleDeleteServiceClick}
           pagination={{
             currentPage: historyServicesResponse?.page ?? historyPage,
             totalPages: historyServicesResponse?.totalPages ?? 1,
@@ -414,90 +509,21 @@ function RouteComponent() {
       </GridWrapper>
 
       {/* ========================================================
-          DODAJ POJAZD
+          MODAL
           ======================================================== */}
       <Modal
-        isOpen={isModalOpen}
-        setIsOpen={setIsModalOpen}
-        title="Dodaj pojazd"
-        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
+        isOpen={activeModal !== null}
+        setIsOpen={(isOpen) => {
+          if (!isOpen) {
+            setActiveModal(null);
+            setSelectedCarId(null);
+            setSelectedService(null);
+          }
+        }}
+        title={modalConfig.title}
+        subtitle={modalConfig.subtitle}
       >
-        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
-      </Modal>
-
-      {/* ========================================================
-          EDYCJA POJAZDU
-          ======================================================== */}
-      <Modal
-        isOpen={isEditCarModalOpen}
-        setIsOpen={setIsEditCarModalOpen}
-        title={editCarModalTitle}
-        subtitle="Zaktualizuj ubezpieczenia lub badania techniczne pojazdu."
-      >
-        <AddVehicleForm
-          initialData={selectedCar}
-          onClose={() => setIsEditCarModalOpen(false)}
-          isRenewalMode={true}
-        />
-      </Modal>
-
-      {/* ========================================================
-          DODAJ SERWIS
-          ======================================================== */}
-      <Modal
-        isOpen={isServiceModalOpen}
-        setIsOpen={setIsServiceModalOpen}
-        title="Dodaj wpis serwisowy"
-        subtitle="Wprowadź szczegóły wykonanej naprawy lub serwisu."
-      >
-        <div className=" text-center text-content-secondary">{/* <VehiclesServiceForm /> */}</div>
-      </Modal>
-
-      {/* ========================================================
-          DODAJ UŻYTKOWNIKA
-          ======================================================== */}
-      <Modal
-        isOpen={isUserModalOpen}
-        setIsOpen={setIsUserModalOpen}
-        title="Dodaj użytkownika"
-        subtitle="Wprowadź dane nowego kierowcy lub administratora systemu."
-      >
-        <AddEditUserForm onClose={() => setIsUserModalOpen(false)} />
-      </Modal>
-
-      {/* ========================================================
-          EDYCJA SERWISU
-          ======================================================== */}
-      <Modal
-        isOpen={isServiceEditMode}
-        setIsOpen={(open) => !open && setModalState(null)}
-        title="Edytuj wpis serwisowy"
-        subtitle="Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi."
-      >
-        <div className="">
-          {/* <AddVehicleServiceForm
-          key={modalState?.id ?? 'edit-none'}
-          initialData={modalState}
-          onClose={() => setModalState(null)}
-        /> */}
-        </div>
-      </Modal>
-
-      {/* ========================================================
-          USUWANIE SERWISU
-          ======================================================== */}
-      <Modal
-        isOpen={!!deleteModalState}
-        setIsOpen={(open) => !open && setDeleteModalState(null)}
-        title="Usuń wpis serwisowy"
-        subtitle="Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna."
-      >
-        {deleteModalState && (
-          <DeleteServiceConfirm
-            service={deleteModalState}
-            onClose={() => setDeleteModalState(null)}
-          />
-        )}
+        {modalConfig.content}
       </Modal>
     </>
   );

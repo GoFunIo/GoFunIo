@@ -68,6 +68,46 @@ describe('TypeOrmEmailVerificationStore (integration)', () => {
     });
   });
 
+  describe('rotate', () => {
+    it('rotates an expired token without verifying the user', async () => {
+      const user = await seedUser();
+      await store.assign(user.email, 'hash-old', new Date(Date.now() - 1_000));
+
+      await expect(
+        store.rotate('hash-old', 'hash-new', new Date(Date.now() + 60_000)),
+      ).resolves.toEqual({ userId: user.id, email: user.email });
+      await expect(store.consume('hash-old', new Date())).resolves.toBeNull();
+      await expect(store.consume('hash-new', new Date())).resolves.toBe(
+        user.id,
+      );
+    });
+
+    it('allows only one concurrent rotation of the current token', async () => {
+      const user = await seedUser();
+      await store.assign(user.email, 'hash-old', new Date(Date.now() - 1_000));
+
+      const results = await Promise.all([
+        store.rotate('hash-old', 'hash-new-1', new Date(Date.now() + 60_000)),
+        store.rotate('hash-old', 'hash-new-2', new Date(Date.now() + 60_000)),
+      ]);
+
+      expect(results.filter(Boolean)).toHaveLength(1);
+    });
+
+    it('returns null for an unknown or consumed token', async () => {
+      await expect(
+        store.rotate('unknown', 'hash-new', new Date(Date.now() + 60_000)),
+      ).resolves.toBeNull();
+
+      const user = await seedUser();
+      await store.assign(user.email, 'consumed', new Date(Date.now() + 60_000));
+      await store.consume('consumed', new Date());
+      await expect(
+        store.rotate('consumed', 'hash-new', new Date(Date.now() + 60_000)),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('consume', () => {
     it('marks the user verified, clears the token and returns userId', async () => {
       const user = await seedUser();

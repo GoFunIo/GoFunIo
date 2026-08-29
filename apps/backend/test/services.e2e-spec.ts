@@ -23,7 +23,7 @@ describe('Services (e2e)', () => {
 
   afterAll(async () => app.close());
 
-  async function signedIn(email: string, password = 'password123') {
+  async function signedIn(email: string, password = 'Password123!') {
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -61,13 +61,13 @@ describe('Services (e2e)', () => {
         .post('/auth/reset-password')
         .send({
           token: events.passwordResetToken,
-          password: 'manager-password',
+          password: 'Manager-password1!',
         })
         .expect(204);
       const manager = request.agent(app.getHttpServer());
       await manager
         .post('/auth/signin')
-        .send({ email, password: 'manager-password' })
+        .send({ email, password: 'Manager-password1!' })
         .expect(201);
       return { manager, userId: response.body.id as string };
     } finally {
@@ -128,6 +128,7 @@ describe('Services (e2e)', () => {
             mimeType: ServiceAttachmentMimeType.PDF,
             size: 1234,
             createdAt: expect.any(String),
+            previewUrl: null,
           },
         ]);
         expect(body.attachments[0]).not.toHaveProperty('objectKey');

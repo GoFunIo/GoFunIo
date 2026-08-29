@@ -1,5 +1,6 @@
 import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
+import { useUser } from '../hooks/user.hooks';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
@@ -7,7 +8,13 @@ import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import { VehicleData } from '@/features/dashboard/types';
 import { fuelTypeLabels } from '../constants/fuelOptions';
-import { usePermissions } from '../hooks/usePermissions';
+import { Tooltip } from '../ui/Tooltip ';
+import { useMemo } from 'react';
+
+type VehicleCardProps = {
+  vehicle: VehicleData;
+  onDetailsClick: (id: string) => void;
+};
 
 type PersonWithName = {
   firstName: string;
@@ -20,19 +27,50 @@ const formatNames = (people?: PersonWithName[]): string => {
   const firstPerson = `${people[0].firstName} ${people[0].lastName}`;
   if (people.length === 1) return firstPerson;
 
-  return `${firstPerson} +${people.length - 1}`;
+  return `${firstPerson} + ${people.length - 1}`;
 };
 
-export interface VehicleCardProps {
-  vehicle: VehicleData;
-  onDetailsClick: (id: string) => void;
-}
+const getBadgeConfig = (daysLeft: number) => {
+  if (daysLeft < 0) {
+    return {
+      text: 'Termin minął',
+      className: 'bg-alert text-white',
+    };
+  }
+  if (daysLeft <= 7) {
+    return {
+      text: 'Termin ≤ 7 dni',
+      className: 'bg-alert text-white',
+    };
+  }
+  if (daysLeft <= 30) {
+    return {
+      text: 'Termin ≤ 30 dni',
+      className: 'bg-warning text-white',
+    };
+  }
+  return {
+    text: 'OK',
+    className: 'bg-success text-white',
+  };
+};
 
 export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
-  const { canManageVehicleManagers } = usePermissions();
+  const { data: currentUser } = useUser();
+
+  const orderedManagers = useMemo(() => {
+    if (!currentUser) return vehicle.managers;
+
+    const selfIndex = vehicle.managers.findIndex((m) => m.id === currentUser.id);
+    if (selfIndex <= 0) return vehicle.managers;
+
+    const self = vehicle.managers[selfIndex];
+    const rest = vehicle.managers.filter((_, i) => i !== selfIndex);
+    return [self, ...rest];
+  }, [vehicle.managers, currentUser]);
 
   const driverNames = formatNames(vehicle.drivers);
-  const managerNames = formatNames(vehicle.managers);
+  const managerNames = formatNames(orderedManagers);
 
   const inspectionDays = vehicle.technicalInspectionExpiry
     ? calculateDaysToDate(vehicle.technicalInspectionExpiry).days
@@ -41,31 +79,6 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
   const acDays = vehicle.acExpiry ? calculateDaysToDate(vehicle.acExpiry).days : Infinity;
 
   const minDays = Math.min(inspectionDays, ocDays, acDays);
-
-  const getBadgeConfig = (daysLeft: number) => {
-    if (daysLeft < 0) {
-      return {
-        text: 'Termin minął',
-        className: 'bg-alert text-white',
-      };
-    }
-    if (daysLeft <= 7) {
-      return {
-        text: 'Termin ≤ 7 dni',
-        className: 'bg-alert text-white',
-      };
-    }
-    if (daysLeft <= 30) {
-      return {
-        text: 'Termin ≤ 30 dni',
-        className: 'bg-warning text-white',
-      };
-    }
-    return {
-      text: 'OK',
-      className: 'bg-success text-white',
-    };
-  };
 
   const badge = getBadgeConfig(minDays);
 
@@ -114,15 +127,51 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
               </p>
             </div>
             <div className="flex gap-[10px] items-center text-content-secondary">
-              <Users size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-              <span className="text-[14px] text-content-secondary">KIEROWCA: {driverNames}</span>
+              <Tooltip
+                content={
+                  vehicle.drivers.length > 1
+                    ? vehicle.drivers.map((d) => `${d.firstName} ${d.lastName}`).join(', ')
+                    : ''
+                }
+              >
+                <div
+                  className={classNames(
+                    'flex gap-[10px] items-center text-content-secondary',
+                    vehicle.drivers.length > 1 && 'cursor-help',
+                  )}
+                >
+                  <Users size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
+                  <span className="text-[14px] text-content-secondary">
+                    KIEROWCA: {driverNames}
+                  </span>
+                </div>
+              </Tooltip>
             </div>
-            {canManageVehicleManagers && (
-              <div className="flex gap-[10px] items-center text-content-secondary">
-                <User size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
-                <span className="text-[14px] text-content-secondary">MANAGER: {managerNames}</span>
-              </div>
-            )}
+
+            <div className="flex gap-[10px] items-center text-content-secondary cursor-help">
+              <Tooltip
+                content={
+                  orderedManagers.length > 1
+                    ? orderedManagers
+                        .slice(1)
+                        .map((m) => `${m.firstName} ${m.lastName}`)
+                        .join(', ')
+                    : ''
+                }
+              >
+                <div
+                  className={classNames(
+                    'flex gap-[10px] items-center text-content-secondary',
+                    orderedManagers.length > 1 && 'cursor-help',
+                  )}
+                >
+                  <User size={16} strokeWidth={3} className="shrink-0 text-content-primary" />
+                  <span className="text-[14px] text-content-secondary">
+                    MANAGER: {managerNames}
+                  </span>
+                </div>
+              </Tooltip>
+            </div>
           </div>
           <BoardButton
             className="!w-10 !h-10 "

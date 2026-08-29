@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './users.entity';
 import { Membership } from './membership.entity';
+import {
+  TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
+  type TransactionalNotificationRecipientReconciliation,
+} from '../notifications/transactional-notification-recipient-reconciliation';
 
 export const PASSWORD_RECOVERY_STORE = Symbol('PASSWORD_RECOVERY_STORE');
 
@@ -31,6 +35,8 @@ export interface PasswordRecoveryStore {
 export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @Inject(TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION)
+    private readonly notificationRecipients: TransactionalNotificationRecipientReconciliation,
   ) {}
 
   async assignByEmail(
@@ -118,11 +124,16 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
       );
       if (result.affected !== 1) return false;
       if (invitation) {
-        await manager.update(
+        const activation = await manager.update(
           Membership,
           { id: invitation.id, status: 'pending', tokenHash },
           { status: 'active', tokenHash: null, tokenExpiresAt: null },
         );
+        if (activation.affected !== 1) return false;
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId: invitation.companyId,
+          userIds: [user.id],
+        });
       }
       return true;
     });
@@ -208,8 +219,9 @@ export class InMemoryPasswordRecoveryStore implements PasswordRecoveryStore {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
-    _membershipId?: string,
+    membershipId?: string,
   ): Promise<PasswordRecoveryTarget | null> {
+    void membershipId;
     const user = this.users.get(userId);
     return Promise.resolve(
       this.assignUser(

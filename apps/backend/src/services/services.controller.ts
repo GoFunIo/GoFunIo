@@ -24,6 +24,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiUuidParam } from '../common/swagger';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
@@ -67,6 +68,7 @@ export class ServicesController {
     description:
       "Returns 404 when the Service or Vehicle is deleted, belongs to another Workspace, or is outside the caller's Vehicle Access.",
   })
+  @ApiUuidParam('id', 'Service id')
   @ApiOkResponse({ type: ServiceDto })
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
   @Get(':id')
@@ -83,6 +85,7 @@ export class ServicesController {
     description:
       'Requires vehicleId, serviceDate, type, positive cost, and providerName. serviceDate cannot be in the future; notes are optional and limited to 5000 characters. OWNER and ADMIN may use any active Vehicle in the Active Workspace; MANAGER requires Vehicle Access.',
   })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: ServiceDto })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Vehicle not found' })
@@ -100,6 +103,8 @@ export class ServicesController {
     description:
       'Accepts the create fields as optional and applies only submitted fields. The same value validation applies. Moving a Service requires access to both its current Vehicle and the submitted active Vehicle in the same Workspace.',
   })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Service id')
   @ApiOkResponse({ type: ServiceDto })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
@@ -118,6 +123,8 @@ export class ServicesController {
     description:
       "Soft-deletes the Service. Returns 404 when the Service or Vehicle is deleted, belongs to another Workspace, or is outside the caller's Vehicle Access.",
   })
+  @ApiAllowedOrigin()
+  @ApiUuidParam('id', 'Service id')
   @ApiNoContentResponse()
   @ApiNotFoundResponse({ description: 'Service or Vehicle not found' })
   @Delete(':id')

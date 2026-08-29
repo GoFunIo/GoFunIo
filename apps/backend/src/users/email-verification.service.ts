@@ -31,12 +31,12 @@ export class EmailVerificationService {
     return userId;
   }
 
-  async resend(email: string, origin?: string): Promise<void> {
+  async resend(currentToken: string, origin?: string): Promise<void> {
     const { token, tokenHash, expiresAt } = generateToken(
       this.config.getOrThrow<number>('VERIFICATION_TOKEN_TTL_HOURS'),
     );
-    const pending = await this.store.assign(
-      email.trim().toLowerCase(),
+    const pending = await this.store.rotate(
+      hashToken(currentToken),
       tokenHash,
       expiresAt,
     );

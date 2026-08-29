@@ -12,6 +12,13 @@ import { Membership } from '../../src/users/membership.entity';
 import { Service } from '../../src/services/services.entity';
 import { ServiceAttachment } from '../../src/service-attachments/service-attachment.entity';
 import { AttachmentObjectCleanup } from '../../src/service-attachments/attachment-object-cleanup.entity';
+import { VehicleDeadlineAlertPolicy } from '../../src/alert-policy/vehicle-deadline-alert-policy.entity';
+import { NotificationPreference } from '../../src/notification-preferences/notification-preference.entity';
+import { Notification } from '../../src/notifications/notification.entity';
+import { VehicleDeadlineNotificationDetail } from '../../src/notifications/vehicle-deadline-notification-detail.entity';
+import { NotificationRecipient } from '../../src/notifications/notification-recipient.entity';
+import { NotificationDelivery } from '../../src/notifications/notification-delivery.entity';
+import { NotificationChange } from '../../src/notification-changes/notification-change.entity';
 
 function postgresExtras(schema?: string): Record<string, string> | undefined {
   if (!schema) {
@@ -43,6 +50,13 @@ function testDataSource(schema: string): DataSource {
       Service,
       ServiceAttachment,
       AttachmentObjectCleanup,
+      VehicleDeadlineAlertPolicy,
+      NotificationPreference,
+      Notification,
+      VehicleDeadlineNotificationDetail,
+      NotificationRecipient,
+      NotificationDelivery,
+      NotificationChange,
     ],
     migrations: [join(__dirname, '../../src/migrations', '*.{js,ts}')],
     synchronize: false,
@@ -107,7 +121,7 @@ export async function truncateTestTables(): Promise<void> {
   // ponytail: hardcoded tables — extend list or switch to dynamic truncate when new FK tables appear
   await withAdminDataSource(async (admin) => {
     await admin.query(
-      `TRUNCATE TABLE "${schema}"."attachment_object_cleanup", "${schema}"."service_attachments", "${schema}"."services", "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."notification_changes", "${schema}"."notification_deliveries", "${schema}"."notification_recipients", "${schema}"."vehicle_deadline_notification_details", "${schema}"."notifications", "${schema}"."notification_preferences", "${schema}"."vehicle_deadline_alert_policies", "${schema}"."attachment_object_cleanup", "${schema}"."service_attachments", "${schema}"."services", "${schema}"."driver_vehicle_assignments", "${schema}"."manager_vehicle_assignments", "${schema}"."drivers", "${schema}"."vehicles", "${schema}"."memberships", "${schema}"."users", "${schema}"."companies" RESTART IDENTITY CASCADE`,
     );
   });
 }

@@ -46,7 +46,7 @@ describe('Auth (e2e)', () => {
 
   it('signup → verify → me returns the logged-in user without password', async () => {
     const email = 'flow@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     const events = trackEvents();
     const agent = request.agent(app.getHttpServer());
 
@@ -75,7 +75,7 @@ describe('Auth (e2e)', () => {
 
   it('signin rejects unverified email with 401', async () => {
     const email = 'unverified@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
 
     trackEvents();
 
@@ -99,7 +99,7 @@ describe('Auth (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
     await request(app.getHttpServer())
       .post('/auth/forgot-password')
@@ -107,11 +107,11 @@ describe('Auth (e2e)', () => {
       .expect(204);
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token: events.passwordResetToken, password: 'new-password' })
+      .send({ token: events.passwordResetToken, password: 'New-password1!' })
       .expect(204);
     await request(app.getHttpServer())
       .post('/auth/signin')
-      .send({ email, password: 'new-password' })
+      .send({ email, password: 'New-password1!' })
       .expect(401)
       .expect((res) => {
         expect(res.body.message).toBe('Email not verified');
@@ -119,7 +119,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('normalizes email for signup and signin', async () => {
-    const password = 'password123';
+    const password = 'Password123!';
     const events = trackEvents();
 
     await request(app.getHttpServer())
@@ -139,20 +139,16 @@ describe('Auth (e2e)', () => {
       .expect(201);
   });
 
-  it('rejects short and oversized signup passwords', async () => {
+  it('applies the password policy during signup', async () => {
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ email: 'short@example.com', password: '1234567' })
-      .expect(400);
-    await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send({ email: 'long@example.com', password: 'x'.repeat(129) })
+      .send({ email: 'invalid-password@example.com', password: 'NoSpecial1' })
       .expect(400);
   });
 
   it('signin rejects wrong password with 401', async () => {
     const email = 'wrong-pass@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     await createVerifiedUser(app, email, password);
 
     await request(app.getHttpServer())
@@ -166,7 +162,7 @@ describe('Auth (e2e)', () => {
 
   it('signup rejects duplicate email with 400', async () => {
     const email = 'dup@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
 
     trackEvents();
 
@@ -186,7 +182,7 @@ describe('Auth (e2e)', () => {
 
   it('does not reuse email after soft delete', async () => {
     const email = 'deleted@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     trackEvents();
 
     await request(app.getHttpServer())
@@ -217,11 +213,66 @@ describe('Auth (e2e)', () => {
       });
   });
 
+  it('resends verification by rotating the expired current token', async () => {
+    const email = 'resend-verification@example.com';
+    const events = trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password: 'Password123!' })
+      .expect(201);
+    const expiredToken = events.verificationToken;
+    expect(expiredToken).toBeTruthy();
+
+    await app
+      .get(DataSource)
+      .query(
+        `UPDATE "users" SET "verificationTokenExpiresAt" = now() - interval '1 minute' WHERE email = $1`,
+        [email],
+      );
+
+    await request(app.getHttpServer())
+      .post('/auth/resend-verification')
+      .send({ token: expiredToken })
+      .expect(204);
+    const newToken = events.verificationToken;
+    expect(newToken).toBeTruthy();
+    expect(newToken).not.toBe(expiredToken);
+
+    await request(app.getHttpServer())
+      .get('/auth/verify-email')
+      .query({ token: expiredToken })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/auth/verify-email')
+      .query({ token: newToken })
+      .expect(200);
+  });
+
+  it('resend-verification is silent for unknown tokens and rejects the old email contract', async () => {
+    const events = trackEvents();
+
+    await request(app.getHttpServer())
+      .post('/auth/resend-verification')
+      .send({ token: 'a'.repeat(64) })
+      .expect(204);
+    expect(events.verificationToken).toBeNull();
+
+    await request(app.getHttpServer())
+      .post('/auth/resend-verification')
+      .send({ email: 'user@example.com' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/auth/resend-verification')
+      .send({ token: 'not-a-token' })
+      .expect(400);
+  });
+
   it('consumed verification token does not establish another session', async () => {
     const events = trackEvents();
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ email: 'consumed@example.com', password: 'password123' })
+      .send({ email: 'consumed@example.com', password: 'Password123!' })
       .expect(201);
 
     const token = events.verificationToken;
@@ -238,8 +289,8 @@ describe('Auth (e2e)', () => {
 
   it('forgot-password → reset → signin with new password works', async () => {
     const email = 'reset@example.com';
-    const oldPassword = 'old-password';
-    const newPassword = 'new-password-99';
+    const oldPassword = 'Old-password1!';
+    const newPassword = 'New-password99!';
     await createVerifiedUser(app, email, oldPassword);
 
     const agent = request.agent(app.getHttpServer());
@@ -274,7 +325,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('forgot-password does not reveal whether an email exists', async () => {
-    await createVerifiedUser(app, 'known@example.com', 'password123');
+    await createVerifiedUser(app, 'known@example.com', 'Password123!');
 
     await request(app.getHttpServer())
       .post('/auth/forgot-password')
@@ -289,17 +340,32 @@ describe('Auth (e2e)', () => {
   it('reset-password maps invalid tokens to the stable error', async () => {
     await request(app.getHttpServer())
       .post('/auth/reset-password')
-      .send({ token: 'a'.repeat(64), password: 'new-password-99' })
+      .send({ token: 'a'.repeat(64), password: 'New-password99!' })
       .expect(400)
       .expect((res) => {
         expect(res.body.message).toBe('Invalid or expired token');
       });
   });
 
+  it('applies the password policy during reset', async () => {
+    const email = 'reset-password-policy@example.com';
+    await createVerifiedUser(app, email, 'Password123!');
+    const events = trackEvents();
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email })
+      .expect(204);
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: events.passwordResetToken, password: 'lowercase1!' })
+      .expect(400);
+  });
+
   it('password reset invalidates existing session on /auth/me', async () => {
     const email = 'session@example.com';
-    const oldPassword = 'old-password';
-    const newPassword = 'new-password-99';
+    const oldPassword = 'Old-password1!';
+    const newPassword = 'New-password99!';
     await createVerifiedUser(app, email, oldPassword);
 
     const agent = request.agent(app.getHttpServer());
@@ -325,7 +391,7 @@ describe('Auth (e2e)', () => {
 
   it('signout clears session so /auth/me has no user', async () => {
     const email = 'signout@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     await createVerifiedUser(app, email, password);
 
     const agent = request.agent(app.getHttpServer());
@@ -343,7 +409,7 @@ describe('Auth (e2e)', () => {
 
   it('keeps the account authenticated when its company is soft-deleted', async () => {
     const email = 'deleted-company@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     await createVerifiedUser(app, email, password);
 
     const agent = request.agent(app.getHttpServer());
@@ -382,7 +448,7 @@ describe('Auth (e2e)', () => {
   it('signup rejects invalid email with 400', async () => {
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ email: 'not-an-email', password: 'password123' })
+      .send({ email: 'not-an-email', password: 'Password123!' })
       .expect(400);
   });
 
@@ -442,7 +508,7 @@ describe('Auth (e2e)', () => {
 
   it('google signin auto-links verified Gmail account', async () => {
     const email = 'link-google@gmail.com';
-    const password = 'password123';
+    const password = 'Password123!';
     await createVerifiedUser(app, email, password);
 
     mockVerifyIdToken.mockResolvedValueOnce(
@@ -468,7 +534,7 @@ describe('Auth (e2e)', () => {
 
   it('explicitly links a non-authoritative Google identity', async () => {
     const email = 'explicit-google@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -492,7 +558,7 @@ describe('Auth (e2e)', () => {
 
   it('google signin rejects unverified email account with 409', async () => {
     const email = 'unverified-google@example.com';
-    const password = 'password123';
+    const password = 'Password123!';
     const events = trackEvents();
 
     await request(app.getHttpServer())
@@ -554,7 +620,7 @@ describe('Auth (e2e)', () => {
 
   it('google user can set password via forgot-password and sign in with email', async () => {
     const email = 'set-pass-google@example.com';
-    const newPassword = 'new-password-99';
+    const newPassword = 'New-password99!';
 
     mockVerifyIdToken.mockResolvedValueOnce(
       buildGoogleVerifyResult({

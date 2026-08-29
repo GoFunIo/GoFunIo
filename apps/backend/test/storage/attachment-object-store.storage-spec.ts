@@ -35,10 +35,11 @@ describe('S3AttachmentObjectStore MinIO contract', () => {
       mimeType: 'application/pdf',
     });
 
-    const downloadUrl = await store.createDownloadUrl({
+    const downloadUrl = await store.createReadUrl({
       key: firstKey,
       fileName: 'contract.pdf',
       expiresInSeconds: 300,
+      disposition: 'attachment',
     });
     const response = await fetch(downloadUrl);
     expect(response.status).toBe(200);
@@ -58,10 +59,11 @@ describe('S3AttachmentObjectStore MinIO contract', () => {
     await store.delete(firstKey);
     await store.delete(firstKey);
     await expect(
-      store.createDownloadUrl({
+      store.createReadUrl({
         key: firstKey,
         fileName: 'contract.pdf',
         expiresInSeconds: 300,
+        disposition: 'attachment',
       }),
     ).rejects.toBeInstanceOf(AttachmentStorageInconsistentError);
   });

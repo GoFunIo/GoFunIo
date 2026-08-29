@@ -2,6 +2,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -34,6 +35,7 @@ import {
   ApiUnsupportedMediaTypeResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin } from '../common/swagger';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
@@ -80,6 +82,7 @@ export class ServiceAttachmentsController {
     description:
       'Accepts exactly one PDF, JPEG, or PNG up to 10 MiB. Creation is at-least-once; after an ambiguous network error, refresh the collection before retrying.',
   })
+  @ApiAllowedOrigin()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -148,10 +151,39 @@ export class ServiceAttachmentsController {
   }
 
   @ApiOperation({
+    summary: 'Preview a Service Attachment image',
+    description:
+      'Authorizes access and redirects JPEG or PNG Attachments to a five-minute private presigned URL with inline disposition. PDF preview returns ATTACHMENT_PREVIEW_NOT_AVAILABLE.',
+  })
+  @ApiFoundResponse({ description: 'Redirect to the private inline image URL' })
+  @ApiUnsupportedMediaTypeResponse({
+    description: 'ATTACHMENT_PREVIEW_NOT_AVAILABLE for PDF Attachments',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Attachment storage unavailable or inconsistent',
+  })
+  @Get(':attachmentId/preview')
+  @Header('Cache-Control', 'private, no-store')
+  @Redirect(undefined, HttpStatus.FOUND)
+  async preview(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<{ url: string }> {
+    const url = await this.attachments.preview(
+      principal,
+      serviceId,
+      attachmentId,
+    );
+    return { url: url.toString() };
+  }
+
+  @ApiOperation({
     summary: 'Replace a Service Attachment',
     description:
       'Replaces the file under a fresh immutable object key while preserving Attachment identity and creation time.',
   })
+  @ApiAllowedOrigin()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -197,6 +229,7 @@ export class ServiceAttachmentsController {
   }
 
   @ApiOperation({ summary: 'Delete a Service Attachment' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse({
     description: 'Attachment deleted or was already deleted',
   })

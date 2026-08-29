@@ -29,6 +29,8 @@ import type {
   VehicleAccess,
 } from './vehicle-access';
 import type { TransactionalVehicleAccess } from './transactional-vehicle-access';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
+import { constrainToVisibleVehicles } from './typeorm-vehicle-visibility';
 
 const sortColumns: Record<VehicleSortBy, string> = {
   [VehicleSortBy.CREATED_AT]: 'vehicle.createdAt',
@@ -51,7 +53,10 @@ const expiryColumns: Record<VehicleExpiryType, string> = {
 export class TypeOrmVehicleAccess
   implements VehicleAccess, TransactionalVehicleAccess
 {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly notificationChanges: NotificationChangeRelay,
+  ) {}
 
   visible(actor: SessionPrincipal): Promise<Vehicle[]> {
     if (!actor.companyId) return Promise.resolve([]);
@@ -158,6 +163,86 @@ export class TypeOrmVehicleAccess
     return this.close(manager, companyId, 'managerId', managerId);
   }
 
+  authorizedMemberships(
+    manager: EntityManager,
+    companyId: string,
+    vehicleIds: string[],
+    userIds?: string[],
+  ): Promise<
+    Array<{ membershipId: string; userId: string; vehicleId: string }>
+  > {
+    if (!vehicleIds.length) return Promise.resolve([]);
+    const parameters: unknown[] = [companyId, vehicleIds];
+    const userFilter = userIds?.length
+      ? `AND membership."userId" = ANY($${parameters.push(userIds)}::uuid[])`
+      : '';
+    return manager
+      .query<
+        Array<{
+          membershipId: string;
+          userId: string;
+          vehicleId: string;
+          role: MembershipRole;
+        }>
+      >(
+        `SELECT membership.id AS "membershipId", membership."userId", vehicle.id AS "vehicleId", membership.role
+       FROM vehicles vehicle
+       JOIN memberships membership
+         ON membership."companyId" = vehicle."companyId" AND membership.status = 'active'
+       WHERE vehicle."companyId" = $1
+         AND vehicle.id = ANY($2::uuid[])
+         AND vehicle."deletedAt" IS NULL
+         ${userFilter}
+         AND membership.role IN ('OWNER', 'ADMIN', 'MANAGER')
+       FOR SHARE OF vehicle, membership`,
+        parameters,
+      )
+      .then(async (candidates) => {
+        const managers = candidates.filter(
+          ({ role }) => role === MembershipRole.MANAGER,
+        );
+        if (!managers.length) {
+          return candidates.map(({ membershipId, userId, vehicleId }) => ({
+            membershipId,
+            userId,
+            vehicleId,
+          }));
+        }
+        const assignments = await manager.query<
+          Array<{ userId: string; vehicleId: string }>
+        >(
+          `SELECT assignment."managerId" AS "userId", assignment."vehicleId"
+             FROM manager_vehicle_assignments assignment
+             JOIN unnest($2::uuid[], $3::uuid[])
+               AS requested("userId", "vehicleId")
+               ON requested."userId" = assignment."managerId"
+              AND requested."vehicleId" = assignment."vehicleId"
+            WHERE assignment."companyId" = $1
+              AND assignment."assignedTo" IS NULL
+            FOR SHARE OF assignment`,
+          [
+            companyId,
+            managers.map(({ userId }) => userId),
+            managers.map(({ vehicleId }) => vehicleId),
+          ],
+        );
+        const activeAccess = new Set(
+          assignments.map(({ userId, vehicleId }) => `${userId}:${vehicleId}`),
+        );
+        return candidates
+          .filter(
+            ({ role, userId, vehicleId }) =>
+              role !== MembershipRole.MANAGER ||
+              activeAccess.has(`${userId}:${vehicleId}`),
+          )
+          .map(({ membershipId, userId, vehicleId }) => ({
+            membershipId,
+            userId,
+            vehicleId,
+          }));
+      });
+  }
+
   transactionStore(manager: EntityManager): FleetVehicleAccessStore {
     return {
       requireActor: async (companyId, userId, role) => {
@@ -187,42 +272,11 @@ export class TypeOrmVehicleAccess
     actor: SessionPrincipal,
     includeDeletedForAdmin = false,
   ): SelectQueryBuilder<Vehicle> {
-    const companyId = requireCompanyId(actor);
-    if (
-      !isWorkspaceAdmin(actor.role) &&
-      actor.role !== MembershipRole.MANAGER
-    ) {
-      throw new ForbiddenException();
-    }
-    const qb = manager
-      .createQueryBuilder(Vehicle, 'vehicle')
-      .where('vehicle.companyId = :companyId', { companyId })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "memberships" actor_membership
-          WHERE actor_membership."userId" = :actorId
-            AND actor_membership."companyId" = vehicle."companyId"
-            AND actor_membership.role = :actorRole
-            AND actor_membership.status = 'active'
-        )`,
-        { actorId: actor.id, actorRole: actor.role },
-      );
+    const qb = manager.createQueryBuilder(Vehicle, 'vehicle');
     if (includeDeletedForAdmin && isWorkspaceAdmin(actor.role)) {
       qb.withDeleted();
     }
-    if (actor.role === MembershipRole.MANAGER) {
-      qb.andWhere(
-        `EXISTS (
-          SELECT 1 FROM "manager_vehicle_assignments" assignment
-          WHERE assignment."vehicleId" = vehicle.id
-            AND assignment."companyId" = vehicle."companyId"
-            AND assignment."managerId" = :managerId
-            AND assignment."assignedTo" IS NULL
-        )`,
-        { managerId: actor.id },
-      );
-    }
-    return qb;
+    return constrainToVisibleVehicles(qb, actor);
   }
 
   private async findVisible(
@@ -274,13 +328,18 @@ export class TypeOrmVehicleAccess
       lock: { mode: 'pessimistic_write' },
     });
     if (active) return active;
-    return manager.save(
+    const assignment = await manager.save(
       manager.create(ManagerVehicleAssignment, {
         companyId,
         vehicleId,
         managerId,
       }),
     );
+    await this.notificationChanges.record(manager, {
+      companyId,
+      userId: managerId,
+    });
+    return assignment;
   }
 
   private async unassign(
@@ -300,6 +359,10 @@ export class TypeOrmVehicleAccess
       .set({ assignedTo: () => 'clock_timestamp()' })
       .where('id = :id', { id: assignment.id })
       .execute();
+    await this.notificationChanges.record(manager, {
+      companyId,
+      userId: managerId,
+    });
   }
 
   private async activeManagersFrom(

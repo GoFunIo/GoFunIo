@@ -20,6 +20,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AllowedOriginGuard } from '../common/allowed-origin.guard';
+import { ApiAllowedOrigin, ApiSessionAuth } from '../common/swagger';
 import { Serialize } from '../interceptors/serialize.interceptor';
 import { CurrentPrincipal } from '../users/decorators/current-principal.decorator';
 import { SessionAuthGuard } from '../users/guards/session-auth.guard';
@@ -30,6 +31,7 @@ import { DriverVehicleAssignment } from './driver-vehicle-assignment.entity';
 import { DriversService } from './drivers.service';
 
 @ApiTags('Drivers')
+@ApiSessionAuth()
 @Controller('vehicles/:vehicleId')
 @UseGuards(SessionAuthGuard)
 export class DriverAssignmentsController {
@@ -49,6 +51,7 @@ export class DriverAssignmentsController {
   }
 
   @ApiOperation({ summary: 'Assign driver to vehicle' })
+  @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: DriverAssignmentDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiBadRequestResponse({ description: 'Validation failed' })
@@ -65,6 +68,7 @@ export class DriverAssignmentsController {
   }
 
   @ApiOperation({ summary: 'Unassign driver from vehicle' })
+  @ApiAllowedOrigin()
   @ApiNoContentResponse()
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @ApiNotFoundResponse({ description: 'Vehicle or assignment not found' })

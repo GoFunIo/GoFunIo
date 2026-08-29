@@ -24,6 +24,11 @@ import { isWorkspaceAdmin, MembershipRole } from './membership-role';
 import { PasswordRecoveryService } from './password-recovery.service';
 import { requireCompanyId, type SessionPrincipal } from './session-principal';
 import { User } from './users.entity';
+import {
+  TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
+  type TransactionalNotificationRecipientReconciliation,
+} from '../notifications/transactional-notification-recipient-reconciliation';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 export type CompanyUser = User & {
   companyId: string;
@@ -43,6 +48,9 @@ export class CompanyUsersService {
     private readonly passwordRecovery: PasswordRecoveryService,
     @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
     private readonly vehicleAccess: TransactionalVehicleAccess,
+    @Inject(TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION)
+    private readonly notificationRecipients: TransactionalNotificationRecipientReconciliation,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async list(
@@ -60,13 +68,9 @@ export class CompanyUsersService {
       .addSelect('membership.role', 'contextRole')
       .orderBy('membership.createdAt', 'ASC')
       .addOrderBy('user.id', 'ASC')
-      .getRawAndEntities();
+      .getRawAndEntities<{ contextRole: MembershipRole }>();
     const users = entities.map((user, index) =>
-      this.contextualUser(
-        user,
-        companyId,
-        raw[index].contextRole as MembershipRole,
-      ),
+      this.contextualUser(user, companyId, raw[index].contextRole),
     );
     if (!users.some(({ id, role }) => id === actor.id && role === actor.role)) {
       throw new ForbiddenException();
@@ -120,6 +124,14 @@ export class CompanyUsersService {
             role: body.role,
           }),
         );
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId,
+          userIds: [created.id],
+        });
+        await this.notificationChanges.record(manager, {
+          companyId,
+          userId: created.id,
+        });
         return this.contextualUser(created, companyId, body.role);
       });
     } catch (error) {
@@ -182,6 +194,16 @@ export class CompanyUsersService {
       if (cleanupManager) {
         await this.vehicleAccess.closeManager(manager, companyId, id);
       }
+      if (role) {
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId,
+          userIds: [id],
+        });
+        await this.notificationChanges.record(manager, {
+          companyId,
+          userId: id,
+        });
+      }
       const saved = await manager.save(user);
       return this.contextualUser(saved, companyId, membership.role);
     });
@@ -210,6 +232,11 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(manager, companyId, id);
       }
+      await this.notificationRecipients.reconcileRecipients(manager, {
+        companyId,
+        userIds: [id],
+      });
+      await this.notificationChanges.record(manager, { companyId, userId: id });
       await this.softDeleteIfEmpty(manager, companyId);
     });
   }
@@ -233,6 +260,14 @@ export class CompanyUsersService {
       if (membership.role === MembershipRole.MANAGER) {
         await this.vehicleAccess.closeManager(manager, companyId, actor.id);
       }
+      await this.notificationRecipients.reconcileRecipients(manager, {
+        companyId,
+        userIds: [actor.id],
+      });
+      await this.notificationChanges.record(manager, {
+        companyId,
+        userId: actor.id,
+      });
       await this.softDeleteIfEmpty(manager, companyId);
     });
   }
@@ -258,6 +293,14 @@ export class CompanyUsersService {
       await manager.save(owner);
       target.role = MembershipRole.OWNER;
       await manager.save(target);
+      await this.notificationChanges.record(manager, {
+        companyId,
+        userId: actor.id,
+      });
+      await this.notificationChanges.record(manager, {
+        companyId,
+        userId: targetId,
+      });
     });
   }
 

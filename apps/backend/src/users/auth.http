@@ -21,7 +21,7 @@ Content-Type: application/json
 Origin: {{origin}}
 
 {
-  "email": "{{email}}"
+  "token": "{{verifyToken}}"
 }
 
 ### Signin (zapisuje cookie sesji)

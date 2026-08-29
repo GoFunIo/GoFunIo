@@ -25,6 +25,11 @@ export enum AttachmentStorageDriver {
   Memory = 'memory',
 }
 
+export enum MailTransportDriver {
+  Resend = 'resend',
+  Smtp = 'smtp',
+}
+
 export class DatabaseEnv {
   @IsString()
   @IsNotEmpty()
@@ -61,9 +66,24 @@ export class EnvVars extends DatabaseEnv {
   @IsUrl({ require_tld: false })
   FRONTEND_URL!: string;
 
+  @IsEnum(MailTransportDriver)
+  MAIL_TRANSPORT: MailTransportDriver = MailTransportDriver.Resend;
+
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  RESEND_API_KEY!: string;
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  MAIL_SMTP_HOST?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  MAIL_SMTP_PORT?: number;
 
   @IsString()
   @IsNotEmpty()
@@ -164,6 +184,21 @@ export function validateDatabaseEnv(
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {
   const validated = validate(EnvVars, config);
+  if (
+    validated.MAIL_TRANSPORT === MailTransportDriver.Resend &&
+    validated.RESEND_API_KEY === undefined
+  ) {
+    throw new Error('Invalid environment configuration: RESEND_API_KEY');
+  }
+  if (validated.MAIL_TRANSPORT === MailTransportDriver.Smtp) {
+    const required: Array<keyof EnvVars> = ['MAIL_SMTP_HOST', 'MAIL_SMTP_PORT'];
+    const missing = required.filter((key) => validated[key] === undefined);
+    if (missing.length) {
+      throw new Error(
+        `Invalid environment configuration: ${missing.join(', ')}`,
+      );
+    }
+  }
   if (
     validated.ATTACHMENT_STORAGE_DRIVER === AttachmentStorageDriver.Memory &&
     validated.NODE_ENV !== NodeEnv.Test

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,6 +27,15 @@ import { TypeOrmVehicleAccess } from './typeorm-vehicle-access';
 import { TypeOrmDriverAllocation } from './typeorm-driver-allocation';
 import { ServiceAttachment } from '../service-attachments/service-attachment.entity';
 import { AttachmentObjectCleanup } from '../service-attachments/attachment-object-cleanup.entity';
+import {
+  requireCompanyId,
+  type SessionPrincipal,
+} from '../users/session-principal';
+import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
+import { VehicleDeadlineRecipientReconciler } from '../notifications/vehicle-deadline-recipient-reconciler';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_DELIVERY_COMMITTED } from '../notifications/notification-delivery-events';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 function throwMembershipLinkError(error: unknown): never {
   const constraint =
@@ -50,15 +60,33 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly vehicleAccess: TypeOrmVehicleAccess,
     private readonly driverAllocation: TypeOrmDriverAllocation,
+    private readonly deadlineNotifications: VehicleDeadlineNotificationWriter,
+    private readonly deadlineRecipients: VehicleDeadlineRecipientReconciler,
+    private readonly events: EventEmitter2,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
-  transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
-    return this.dataSource.transaction((manager) =>
-      work(this.transactionStores(manager)),
+  async transact<T>(work: (fleet: FleetTransaction) => Promise<T>): Promise<T> {
+    let notificationWorkCommitted = false;
+    const result = await this.dataSource.transaction((manager) =>
+      work(
+        this.transactionStores(manager, () => {
+          notificationWorkCommitted = true;
+        }),
+      ),
     );
+    if (notificationWorkCommitted) {
+      this.events.emit(NOTIFICATION_DELIVERY_COMMITTED);
+    }
+    return result;
   }
 
-  private transactionStores(manager: EntityManager): FleetTransaction {
+  private transactionStores(
+    manager: EntityManager,
+    markNotificationWork: () => void,
+  ): FleetTransaction {
+    const vehicleAccess = this.vehicleAccess.transactionStore(manager);
+    const driverAllocations = this.driverAllocation.transactionStore(manager);
     const enqueueCleanup = async (objectKey: string, now: Date) => {
       await manager.upsert(
         AttachmentObjectCleanup,
@@ -84,11 +112,37 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         id: In(attachments.map(({ id }) => id)),
       });
     };
-
+    const findService = async (
+      companyId: string,
+      serviceId: string,
+      lock = false,
+      vehicleId?: string,
+    ) => {
+      const service = await manager.findOne(Service, {
+        where: {
+          id: serviceId,
+          companyId,
+          ...(vehicleId && { vehicleId }),
+        },
+        ...(lock ? { lock: { mode: 'pessimistic_write' as const } } : {}),
+      });
+      if (!service) throw new NotFoundException('Service not found');
+      return service;
+    };
+    const requireActor = async (actor: SessionPrincipal) => {
+      const companyId = requireCompanyId(actor);
+      if (!actor.role) throw new ForbiddenException();
+      await vehicleAccess.requireActor(companyId, actor.id, actor.role);
+      return companyId;
+    };
     return {
       vehicles: {
         create: async (input: FleetVehicleInput): Promise<FleetVehicle> => {
           const vehicle = await manager.save(manager.create(Vehicle, input));
+          await this.notificationChanges.record(manager, {
+            companyId: vehicle.companyId,
+            userId: null,
+          });
           return {
             id: vehicle.id,
             companyId: vehicle.companyId,
@@ -113,13 +167,39 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           await manager.update(Vehicle, vehicleId, fields);
           const vehicle = await manager.findOneBy(Vehicle, { id: vehicleId });
           if (!vehicle) throw new NotFoundException('Vehicle not found');
+          await this.notificationChanges.record(manager, {
+            companyId: vehicle.companyId,
+            userId: null,
+          });
           return vehicle;
         },
-        softDelete: async (vehicleId) => {
+        remove: async (actor, vehicleId) => {
+          const companyId = await requireActor(actor);
+          await vehicleAccess.find(actor, vehicleId, true);
+          const attachments = await manager
+            .createQueryBuilder(ServiceAttachment, 'attachment')
+            .innerJoin(
+              Service,
+              'service',
+              'service.id = attachment.serviceId AND service.companyId = attachment.companyId',
+            )
+            .where('attachment.companyId = :companyId', { companyId })
+            .andWhere('service.vehicleId = :vehicleId', { vehicleId })
+            .andWhere('attachment.deletedAt IS NULL')
+            .setLock('pessimistic_write')
+            .getMany();
+          await softDeleteAttachments(attachments);
+          await manager.softDelete(Service, { companyId, vehicleId });
+          await vehicleAccess.closeVehicle(companyId, vehicleId);
+          await driverAllocations.closeVehicle(companyId, vehicleId);
           await manager.softDelete(Vehicle, vehicleId);
+          await this.notificationChanges.record(manager, {
+            companyId,
+            userId: null,
+          });
         },
       },
-      vehicleAccess: this.vehicleAccess.transactionStore(manager),
+      vehicleAccess,
       drivers: {
         create: async (input) => {
           try {
@@ -149,32 +229,27 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           if (!driver) throw new BadRequestException('Invalid driver');
         },
       },
-      driverAllocations: this.driverAllocation.transactionStore(manager),
+      driverAllocations,
       services: {
         create: (input) => manager.save(manager.create(Service, input)),
-        find: async (companyId, serviceId, lock, vehicleId) => {
-          const service = await manager.findOne(Service, {
-            where: {
-              id: serviceId,
-              companyId,
-              ...(vehicleId && { vehicleId }),
-            },
-            ...(lock ? { lock: { mode: 'pessimistic_write' } } : {}),
-          });
-          if (!service) throw new NotFoundException('Service not found');
-          return service;
-        },
+        find: findService,
         update: async (serviceId, fields) => {
           await manager.update(Service, serviceId, fields);
           const service = await manager.findOneBy(Service, { id: serviceId });
           if (!service) throw new NotFoundException('Service not found');
           return service;
         },
-        softDelete: async (serviceId) => {
+        remove: async (actor, serviceId) => {
+          const companyId = await requireActor(actor);
+          const service = await findService(companyId, serviceId);
+          await vehicleAccess.find(actor, service.vehicleId, true);
+          await findService(companyId, serviceId, true, service.vehicleId);
+          const attachments = await manager.find(ServiceAttachment, {
+            where: { companyId, serviceId, deletedAt: IsNull() },
+            lock: { mode: 'pessimistic_write' },
+          });
+          await softDeleteAttachments(attachments);
           await manager.softDelete(Service, serviceId);
-        },
-        softDeleteVehicle: async (companyId, vehicleId) => {
-          await manager.softDelete(Service, { companyId, vehicleId });
         },
       },
       attachments: {
@@ -210,28 +285,6 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
         softDelete: async (attachmentId) => {
           await manager.softDelete(ServiceAttachment, attachmentId);
         },
-        softDeleteService: async (companyId, serviceId) => {
-          const attachments = await manager.find(ServiceAttachment, {
-            where: { companyId, serviceId, deletedAt: IsNull() },
-            lock: { mode: 'pessimistic_write' },
-          });
-          await softDeleteAttachments(attachments);
-        },
-        softDeleteVehicle: async (companyId, vehicleId) => {
-          const attachments = await manager
-            .createQueryBuilder(ServiceAttachment, 'attachment')
-            .innerJoin(
-              Service,
-              'service',
-              'service.id = attachment.serviceId AND service.companyId = attachment.companyId',
-            )
-            .where('attachment.companyId = :companyId', { companyId })
-            .andWhere('service.vehicleId = :vehicleId', { vehicleId })
-            .andWhere('attachment.deletedAt IS NULL')
-            .setLock('pessimistic_write')
-            .getMany();
-          await softDeleteAttachments(attachments);
-        },
       },
       attachmentCleanups: {
         guard: async (objectKey, deleteAfter) => {
@@ -251,6 +304,20 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
           return result.affected === 1;
         },
         enqueue: enqueueCleanup,
+      },
+      notifications: {
+        reconcileVehicleDeadlineRecipients: async (input) => {
+          await this.deadlineRecipients.reconcileRecipients(manager, input);
+          markNotificationWork();
+        },
+        persistVehicleDeadlineStages: async (vehicle, changedKinds) => {
+          await this.deadlineNotifications.persist(
+            manager,
+            vehicle,
+            changedKinds,
+          );
+          markNotificationWork();
+        },
       },
     };
   }

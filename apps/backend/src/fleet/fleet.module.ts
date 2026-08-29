@@ -11,6 +11,9 @@ import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment
 import { Driver } from '../drivers/drivers.entity';
 import { DriverVehicleAssignment } from '../drivers/driver-vehicle-assignment.entity';
 import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
+import { VehicleDeadlineNotificationWriter } from '../notifications/vehicle-deadline-notification-writer';
+import { TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION } from '../notifications/transactional-notification-recipient-reconciliation';
+import { VehicleDeadlineRecipientReconciler } from '../notifications/vehicle-deadline-recipient-reconciler';
 
 @Module({
   imports: [
@@ -23,6 +26,12 @@ import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
   ],
   providers: [
     TypeOrmVehicleAccess,
+    VehicleDeadlineRecipientReconciler,
+    VehicleDeadlineNotificationWriter,
+    {
+      provide: TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
+      useExisting: VehicleDeadlineRecipientReconciler,
+    },
     TypeOrmDriverAllocation,
     {
       provide: DRIVER_ALLOCATION,
@@ -45,7 +54,10 @@ import { TRANSACTIONAL_VEHICLE_ACCESS } from './transactional-vehicle-access';
   exports: [
     DRIVER_ALLOCATION,
     FLEET_UNIT_OF_WORK,
+    TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
     TRANSACTIONAL_VEHICLE_ACCESS,
+    VehicleDeadlineNotificationWriter,
+    VehicleDeadlineRecipientReconciler,
     VEHICLE_ACCESS,
   ],
 })

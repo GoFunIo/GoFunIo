@@ -15,10 +15,20 @@ import { MailService } from '../../src/mail/mail.service';
 import { toMilliseconds } from '../../src/common/duration.util';
 import { ATTACHMENT_OBJECT_STORE } from '../../src/attachment-storage/attachment-object-store';
 import { InMemoryAttachmentObjectStore } from '../../src/attachment-storage/in-memory-attachment-object-store';
+import { CLOCK, type Clock } from '../../src/common/clock';
+import {
+  FRONTEND_ORIGINS,
+  type FrontendOrigins,
+} from '../../src/common/frontend-origins';
+import {
+  NOTIFICATION_EMAIL_SENDER,
+  type NotificationEmailSender,
+} from '../../src/notifications/notification-email-sender';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
-  canActivate(_context: ExecutionContext): boolean {
+  canActivate(context: ExecutionContext): boolean {
+    void context;
     return true;
   }
 }
@@ -30,9 +40,16 @@ const noopMailService = {
   sendMembershipInvitation: jest.fn().mockResolvedValue(undefined),
 };
 
+const noopNotificationEmailSender: NotificationEmailSender = {
+  send: jest.fn().mockResolvedValue({ providerMessageId: 'fake-message-id' }),
+};
+
 export async function createTestApp(
   options: {
     enableThrottling?: boolean;
+    clock?: Clock;
+    frontendOrigins?: FrontendOrigins;
+    notificationEmailSender?: NotificationEmailSender;
   } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
@@ -43,11 +60,21 @@ export async function createTestApp(
       .overrideProvider(ThrottlerGuard)
       .useClass(MockThrottlerGuard);
   }
+  if (options.clock) {
+    builder = builder.overrideProvider(CLOCK).useValue(options.clock);
+  }
+  if (options.frontendOrigins) {
+    builder = builder
+      .overrideProvider(FRONTEND_ORIGINS)
+      .useValue(options.frontendOrigins);
+  }
   const moduleFixture: TestingModule = await builder
     .overrideProvider(ATTACHMENT_OBJECT_STORE)
     .useValue(new InMemoryAttachmentObjectStore())
     .overrideProvider(MailService)
     .useValue(noopMailService)
+    .overrideProvider(NOTIFICATION_EMAIL_SENDER)
+    .useValue(options.notificationEmailSender ?? noopNotificationEmailSender)
     .compile();
 
   const app = moduleFixture.createNestApplication<NestExpressApplication>();

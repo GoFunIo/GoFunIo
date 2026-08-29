@@ -19,7 +19,7 @@ describe('Drivers (e2e)', () => {
 
   afterAll(async () => app.close());
 
-  async function signedIn(email: string, password = 'password123') {
+  async function signedIn(email: string, password = 'Password123!') {
     await createVerifiedUser(app, email, password);
     const agent = request.agent(app.getHttpServer());
     await agent.post('/auth/signin').send({ email, password }).expect(201);
@@ -41,13 +41,13 @@ describe('Drivers (e2e)', () => {
         .post('/auth/reset-password')
         .send({
           token: events.passwordResetToken,
-          password: 'manager-password',
+          password: 'Manager-password1!',
         })
         .expect(204);
       const manager = request.agent(app.getHttpServer());
       await manager
         .post('/auth/signin')
-        .send({ email, password: 'manager-password' })
+        .send({ email, password: 'Manager-password1!' })
         .expect(201);
       return { manager, user: response.body };
     } finally {
@@ -147,7 +147,7 @@ describe('Drivers (e2e)', () => {
       .expect((res) => expect(res.body).toHaveLength(2));
   });
 
-  it('replaces the active driver and preserves allocation history', async () => {
+  it('keeps multiple active drivers without duplicating an allocation', async () => {
     const admin = await signedIn('driver-replacement-admin@example.com');
     const first = await admin
       .post('/drivers')
@@ -190,11 +190,13 @@ describe('Drivers (e2e)', () => {
       .expect((res) => {
         expect(res.body).toHaveLength(2);
         expect(
-          res.body.find(
-            ({ assignedTo }: { assignedTo: string | null }) =>
-              assignedTo === null,
-          )?.driverId,
-        ).toBe(second.body.id);
+          res.body
+            .filter(
+              ({ assignedTo }: { assignedTo: string | null }) =>
+                assignedTo === null,
+            )
+            .map(({ driverId }: { driverId: string }) => driverId),
+        ).toEqual(expect.arrayContaining([first.body.id, second.body.id]));
       });
   });
 
@@ -457,7 +459,7 @@ describe('Drivers (e2e)', () => {
         .post('/auth/signin')
         .send({
           email: 'driver-link-manager@example.com',
-          password: 'manager-password',
+          password: 'Manager-password1!',
         })
         .expect(201);
       await invited

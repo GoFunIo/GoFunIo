@@ -11,6 +11,12 @@ import { MembershipRole } from '../src/users/membership-role';
 import { User } from '../src/users/users.entity';
 import { ManagerVehicleAssignment } from '../src/vehicles/manager-vehicle-assignment.entity';
 import { Vehicle } from '../src/vehicles/vehicles.entity';
+import { WorkspaceCalendar } from '../src/common/workspace-calendar';
+import { VehicleDeadlineNotificationWriter } from '../src/notifications/vehicle-deadline-notification-writer';
+import { VehicleDeadlineRecipientReconciler } from '../src/notifications/vehicle-deadline-recipient-reconciler';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationChangeRelay } from '../src/notification-changes/notification-change-relay';
+import { NotificationChange } from '../src/notification-changes/notification-change.entity';
 
 describe('TypeOrmFleetUnitOfWork (integration)', () => {
   let dataSource: DataSource;
@@ -30,6 +36,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
         ManagerVehicleAssignment,
         Driver,
         DriverVehicleAssignment,
+        NotificationChange,
       ],
       synchronize: false,
       extra: {
@@ -37,11 +44,29 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
       },
     });
     await dataSource.initialize();
-    vehicleAccess = new TypeOrmVehicleAccess(dataSource);
+    const notificationChanges = new NotificationChangeRelay(dataSource);
+    vehicleAccess = new TypeOrmVehicleAccess(dataSource, notificationChanges);
+    const clock = { now: () => new Date() };
+    const calendar = new WorkspaceCalendar(clock);
+    const deadlineRecipients = new VehicleDeadlineRecipientReconciler(
+      calendar,
+      clock,
+      vehicleAccess,
+      notificationChanges,
+    );
     fleet = new TypeOrmFleetUnitOfWork(
       dataSource,
       vehicleAccess,
       new TypeOrmDriverAllocation(dataSource),
+      new VehicleDeadlineNotificationWriter(
+        calendar,
+        clock,
+        deadlineRecipients,
+        notificationChanges,
+      ),
+      deadlineRecipients,
+      new EventEmitter2(),
+      notificationChanges,
     );
   });
 
@@ -124,7 +149,7 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     ).resolves.toBe(2);
   });
 
-  it('keeps one active driver per vehicle and restores closed history', async () => {
+  it('keeps multiple active drivers per vehicle', async () => {
     const seed = await seedFleet();
     const firstVehicleId = await createVehicle(seed);
     const secondDriver = await dataSource.getRepository(Driver).save({
@@ -166,22 +191,24 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(assignments).toHaveLength(3);
     expect(
       assignments.filter(({ assignedTo }) => assignedTo === null),
-    ).toHaveLength(2);
-    expect(assignments[0].assignedTo!.getTime()).toBeGreaterThanOrEqual(
-      assignments[0].assignedFrom.getTime(),
+    ).toHaveLength(3);
+    expect(assignments.every(({ assignedTo }) => assignedTo === null)).toBe(
+      true,
     );
     expect(
       assignments.some(({ vehicleId }) => vehicleId === secondVehicleId),
     ).toBe(true);
     expect(
-      assignments.find(
-        ({ vehicleId, assignedTo }) =>
-          vehicleId === firstVehicleId && assignedTo === null,
-      )?.driverId,
-    ).toBe(secondDriver.id);
+      assignments
+        .filter(
+          ({ vehicleId, assignedTo }) =>
+            vehicleId === firstVehicleId && assignedTo === null,
+        )
+        .map(({ driverId }) => driverId),
+    ).toEqual(expect.arrayContaining([seed.driverId, secondDriver.id]));
   });
 
-  it('serializes concurrent driver replacements', async () => {
+  it('keeps concurrent assignments of different drivers', async () => {
     const seed = await seedFleet();
     const vehicleId = await createVehicle(seed);
     const drivers = await dataSource.getRepository(Driver).save([
@@ -211,9 +238,9 @@ describe('TypeOrmFleetUnitOfWork (integration)', () => {
     expect(assignments).toHaveLength(3);
     expect(
       assignments.filter(({ assignedTo }) => assignedTo === null),
-    ).toHaveLength(1);
-    expect(drivers.map(({ id }) => id)).toContain(
-      assignments.find(({ assignedTo }) => assignedTo === null)?.driverId,
+    ).toHaveLength(3);
+    expect(assignments.map(({ driverId }) => driverId)).toEqual(
+      expect.arrayContaining([seed.driverId, ...drivers.map(({ id }) => id)]),
     );
   });
 

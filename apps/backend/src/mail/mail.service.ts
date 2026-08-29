@@ -5,21 +5,20 @@ import {
   type FrontendOrigins,
 } from '../common/frontend-origins';
 import type { TokenDelivery } from '../users/events/token-delivery';
-import { sendResendEmail } from './resend.client';
+import { MAIL_TRANSPORT, type MailTransport } from './mail-transport';
 import { renderMailTemplate } from './template-renderer';
 import type { EnvVars } from '../config/env.validation';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly apiKey: string;
   private readonly from: string;
 
   constructor(
     config: ConfigService<EnvVars, true>,
     @Inject(FRONTEND_ORIGINS) private readonly frontendOrigins: FrontendOrigins,
+    @Inject(MAIL_TRANSPORT) private readonly transport: MailTransport,
   ) {
-    this.apiKey = config.getOrThrow<string>('RESEND_API_KEY');
     this.from = config.getOrThrow<string>('MAIL_FROM');
   }
 
@@ -83,7 +82,7 @@ export class MailService {
   ): Promise<void> {
     const html = renderMailTemplate(template, context);
     try {
-      await sendResendEmail(this.apiKey, {
+      await this.transport.send({
         from: this.from,
         to,
         subject,
@@ -93,9 +92,7 @@ export class MailService {
       this.logger.error({
         event: 'mail.delivery_failed',
         template,
-        to,
-        error: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
       });
     }
   }

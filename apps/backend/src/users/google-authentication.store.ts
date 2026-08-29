@@ -154,7 +154,8 @@ export class InMemoryGoogleAuthenticationStore implements GoogleAuthenticationSt
     );
   }
 
-  recordLogin(userId: string, googleId: string, _at: Date): Promise<boolean> {
+  recordLogin(userId: string, googleId: string, at: Date): Promise<boolean> {
+    void at;
     return Promise.resolve(
       this.records.some(
         (record) =>

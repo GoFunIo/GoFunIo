@@ -50,6 +50,7 @@ describe('ServiceAttachmentsService', () => {
       name: 'invoice.pdf',
       mimeType: 'application/pdf',
       size: 16,
+      previewUrl: null,
     });
     expect(put).toHaveBeenCalledTimes(1);
     expect(fleet.serviceAttachments).toHaveLength(1);
@@ -170,21 +171,89 @@ describe('ServiceAttachmentsService', () => {
       attachmentQuery,
     );
     const created = await attachments.create(actor, serviceId, pdf);
-    const createDownloadUrl = jest
-      .spyOn(storage, 'createDownloadUrl')
-      .mockImplementation(async (input) => {
+    const createReadUrl = jest
+      .spyOn(storage, 'createReadUrl')
+      .mockImplementation((input) => {
         expect(fleet.transactionActive).toBe(false);
         expect(input).toMatchObject({
           fileName: 'invoice.pdf',
           expiresInSeconds: 300,
+          disposition: 'attachment',
         });
-        return new URL('https://download.example/file');
+        return Promise.resolve(new URL('https://download.example/file'));
       });
 
     await expect(
       attachments.download(actor, serviceId, created.id),
     ).resolves.toEqual(new URL('https://download.example/file'));
-    expect(createDownloadUrl).toHaveBeenCalledTimes(1);
+    expect(createReadUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('authorizes image preview before signing an inline five-minute URL', async () => {
+    const fleet = setupFleet();
+    const storage = new InMemoryAttachmentObjectStore();
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
+    const created = await attachments.create(actor, serviceId, {
+      originalName: 'photo.png',
+      mimeType: 'image/png',
+      body: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    });
+    const createReadUrl = jest
+      .spyOn(storage, 'createReadUrl')
+      .mockImplementation((input) => {
+        expect(fleet.transactionActive).toBe(false);
+        expect(input).toMatchObject({
+          fileName: 'photo.png',
+          expiresInSeconds: 300,
+          disposition: 'inline',
+        });
+        return Promise.resolve(new URL('https://preview.example/file'));
+      });
+
+    expect(created.previewUrl).toBe(
+      `/services/${serviceId}/attachments/${created.id}/preview`,
+    );
+    await expect(
+      attachments.preview(actor, serviceId, created.id),
+    ).resolves.toEqual(new URL('https://preview.example/file'));
+    expect(createReadUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects PDF preview only after authorizing access', async () => {
+    const fleet = setupFleet();
+    const storage = new InMemoryAttachmentObjectStore();
+    const attachments = new ServiceAttachmentsService(
+      fleet,
+      storage,
+      attachmentQuery,
+    );
+    const created = await attachments.create(actor, serviceId, pdf);
+    const createReadUrl = jest.spyOn(storage, 'createReadUrl');
+
+    let previewError: unknown;
+    try {
+      await attachments.preview(actor, serviceId, created.id);
+    } catch (error) {
+      previewError = error;
+    }
+    expect(previewError).toBeInstanceOf(HttpException);
+    const httpError = previewError as HttpException;
+    expect(httpError.getStatus()).toBe(415);
+    expect(httpError.getResponse()).toMatchObject({
+      code: 'ATTACHMENT_PREVIEW_NOT_AVAILABLE',
+    });
+    await expect(
+      attachments.preview(
+        { ...actor, companyId: 'another-company' },
+        serviceId,
+        created.id,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(createReadUrl).not.toHaveBeenCalled();
   });
 
   it('replaces content under a fresh key and queues the previous object', async () => {
@@ -210,6 +279,7 @@ describe('ServiceAttachmentsService', () => {
       mimeType: 'image/jpeg',
       size: 4,
       createdAt: created.createdAt,
+      previewUrl: `/services/${serviceId}/attachments/${created.id}/preview`,
     });
     expect(fleet.serviceAttachments[0].objectKey).not.toBe(original.objectKey);
     expect(fleet.attachmentCleanups).toEqual([

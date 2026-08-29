@@ -8,7 +8,11 @@ import { AttachmentObjectCleanup } from '../src/service-attachments/attachment-o
 import { MAX_ATTACHMENT_SIZE } from '../src/service-attachments/attachment-file';
 import { ServiceAttachment } from '../src/service-attachments/service-attachment.entity';
 import { ServiceType } from '../src/services/services.entity';
-import { createVerifiedUser } from './helpers/auth-test-utils';
+import { MembershipRole } from '../src/users/membership-role';
+import {
+  captureEmittedEvents,
+  createVerifiedUser,
+} from './helpers/auth-test-utils';
 import { createTestApp } from './helpers/create-test-app';
 
 describe('Service Attachments (e2e)', () => {
@@ -21,11 +25,11 @@ describe('Service Attachments (e2e)', () => {
   afterAll(async () => app.close());
 
   async function serviceOwner(email: string) {
-    await createVerifiedUser(app, email, 'password123');
+    await createVerifiedUser(app, email, 'Password123!');
     const agent = request.agent(app.getHttpServer());
     await agent
       .post('/auth/signin')
-      .send({ email, password: 'password123' })
+      .send({ email, password: 'Password123!' })
       .expect(201);
     const vehicle = await agent
       .post('/vehicles')
@@ -46,6 +50,35 @@ describe('Service Attachments (e2e)', () => {
       serviceId: service.body.id as string,
       vehicleId: vehicle.body.id as string,
     };
+  }
+
+  async function inviteManager(
+    admin: ReturnType<typeof request.agent>,
+    email: string,
+  ) {
+    const events = captureEmittedEvents(app);
+    try {
+      await admin
+        .post('/users')
+        .send({ email, role: MembershipRole.MANAGER })
+        .expect(201);
+      if (!events.passwordResetToken) throw new Error('Expected invite token');
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({
+          token: events.passwordResetToken,
+          password: 'Manager-password1!',
+        })
+        .expect(204);
+      const manager = request.agent(app.getHttpServer());
+      await manager
+        .post('/auth/signin')
+        .send({ email, password: 'Manager-password1!' })
+        .expect(201);
+      return manager;
+    } finally {
+      events.restore();
+    }
   }
 
   it('creates and lists safe Attachment metadata newest first', async () => {
@@ -74,26 +107,27 @@ describe('Service Attachments (e2e)', () => {
       mimeType: 'application/pdf',
       size: 10,
       createdAt: expect.any(String),
+      previewUrl: null,
+    });
+    expect(second.body).toEqual({
+      id: expect.any(String),
+      name: 'second.png',
+      mimeType: 'image/png',
+      size: 8,
+      createdAt: expect.any(String),
+      previewUrl: `/services/${serviceId}/attachments/${second.body.id}/preview`,
     });
     expect(second.body).not.toHaveProperty('objectKey');
 
     await agent
       .get(`/services/${serviceId}/attachments`)
       .expect(200)
-      .expect(({ body }) =>
-        expect(body.map(({ id }: { id: string }) => id)).toEqual([
-          second.body.id,
-          first.body.id,
-        ]),
-      );
+      .expect(({ body }) => expect(body).toEqual([second.body, first.body]));
     await agent
       .get(`/services/${serviceId}`)
       .expect(200)
       .expect(({ body }) =>
-        expect(body.attachments.map(({ id }: { id: string }) => id)).toEqual([
-          second.body.id,
-          first.body.id,
-        ]),
+        expect(body.attachments).toEqual([second.body, first.body]),
       );
     await agent
       .patch(`/services/${serviceId}`)
@@ -111,6 +145,97 @@ describe('Service Attachments (e2e)', () => {
         });
         expect(body.items[0]).not.toHaveProperty('attachments');
       });
+  });
+
+  it('redirects preview inline for 300 seconds and keeps download as attachment', async () => {
+    const { agent, serviceId } = await serviceOwner(
+      'attachment-preview@example.com',
+    );
+    const created = await agent
+      .post(`/services/${serviceId}/attachments`)
+      .attach(
+        'attachment',
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        { filename: 'preview.png', contentType: 'image/png' },
+      )
+      .expect(201);
+    const storage = app.get<InMemoryAttachmentObjectStore>(
+      ATTACHMENT_OBJECT_STORE,
+    );
+    const createReadUrl = jest.spyOn(storage, 'createReadUrl');
+
+    try {
+      await agent
+        .get(created.body.previewUrl)
+        .expect(302)
+        .expect('Cache-Control', 'private, no-store')
+        .expect('Location', /^memory:\/\/attachment\//);
+      expect(createReadUrl).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fileName: 'preview.png',
+          expiresInSeconds: 300,
+          disposition: 'inline',
+        }),
+      );
+
+      await agent
+        .get(`/services/${serviceId}/attachments/${created.body.id}`)
+        .expect(302)
+        .expect('Location', /^memory:\/\/attachment\//);
+      expect(createReadUrl).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fileName: 'preview.png',
+          expiresInSeconds: 300,
+          disposition: 'attachment',
+        }),
+      );
+    } finally {
+      createReadUrl.mockRestore();
+    }
+  });
+
+  it('authorizes preview before rejecting PDF and isolates Workspace and Vehicle access', async () => {
+    const owner = await serviceOwner('attachment-preview-owner@example.com');
+    const outsider = await serviceOwner(
+      'attachment-preview-outsider@example.com',
+    );
+    const manager = await inviteManager(
+      owner.agent,
+      'attachment-preview-manager@example.com',
+    );
+    const image = await owner.agent
+      .post(`/services/${owner.serviceId}/attachments`)
+      .attach('attachment', Buffer.from([0xff, 0xd8, 0xff, 0x00]), {
+        filename: 'private.jpg',
+        contentType: 'image/jpeg',
+      })
+      .expect(201);
+    const pdf = await owner.agent
+      .post(`/services/${owner.serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-private'), {
+        filename: 'private.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer()).get(image.body.previewUrl).expect(401);
+    await outsider.agent.get(image.body.previewUrl).expect(404);
+    await manager.get(image.body.previewUrl).expect(404);
+    await outsider.agent
+      .get(`/services/${owner.serviceId}/attachments/${pdf.body.id}/preview`)
+      .expect(404);
+    await owner.agent
+      .get(`/services/${owner.serviceId}/attachments/${pdf.body.id}/preview`)
+      .expect(415)
+      .expect(({ body }) =>
+        expect(body).toEqual({
+          statusCode: 415,
+          error: 'Unsupported Media Type',
+          message: 'Attachment preview is not available for this file type',
+          code: 'ATTACHMENT_PREVIEW_NOT_AVAILABLE',
+          field: 'attachment',
+        }),
+      );
   });
 
   it('returns stable errors for invalid multipart uploads', async () => {
@@ -264,17 +389,21 @@ describe('Service Attachments (e2e)', () => {
         contentType: 'image/jpeg',
       })
       .expect(200);
-    expect(replaced.body).toMatchObject({
+    expect(replaced.body).toEqual({
       id: created.body.id,
       name: 'replacement.jpg',
       mimeType: 'image/jpeg',
       size: 4,
       createdAt: created.body.createdAt,
+      previewUrl: `${item}/preview`,
     });
+
+    await agent.get(`${item}/preview`).expect(302);
 
     await agent.delete(item).expect(204);
     await agent.delete(item).expect(204);
     await agent.get(item).expect(404);
+    await agent.get(`${item}/preview`).expect(404);
   });
 
   it('keeps the previous file usable after replacement storage failure', async () => {

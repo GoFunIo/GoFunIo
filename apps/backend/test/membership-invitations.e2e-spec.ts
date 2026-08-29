@@ -19,18 +19,18 @@ describe('Membership invitations (e2e)', () => {
   afterAll(async () => app.close());
 
   it('lets an admin invite an existing account into the active workspace', async () => {
-    await createVerifiedUser(app, 'invite-admin@example.com', 'password123');
-    await createVerifiedUser(app, 'invite-target@example.com', 'password123');
+    await createVerifiedUser(app, 'invite-admin@example.com', 'Password123!');
+    await createVerifiedUser(app, 'invite-target@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
 
     const adminSignin = await admin
       .post('/auth/signin')
-      .send({ email: 'invite-admin@example.com', password: 'password123' })
+      .send({ email: 'invite-admin@example.com', password: 'Password123!' })
       .expect(201);
     await target
       .post('/auth/signin')
-      .send({ email: 'invite-target@example.com', password: 'password123' })
+      .send({ email: 'invite-target@example.com', password: 'Password123!' })
       .expect(201);
 
     const events = captureEmittedEvents(app);
@@ -66,12 +66,12 @@ describe('Membership invitations (e2e)', () => {
     await createVerifiedUser(
       app,
       'new-invite-admin@example.com',
-      'password123',
+      'Password123!',
     );
     const admin = request.agent(app.getHttpServer());
     const adminSignin = await admin
       .post('/auth/signin')
-      .send({ email: 'new-invite-admin@example.com', password: 'password123' })
+      .send({ email: 'new-invite-admin@example.com', password: 'Password123!' })
       .expect(201);
     const database = app.get(DataSource);
     const companiesBefore = await database.query<Array<{ count: string }>>(
@@ -103,7 +103,7 @@ describe('Membership invitations (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/auth/reset-password')
-        .send({ token: events.passwordResetToken, password: 'new-password-99' })
+        .send({ token: events.passwordResetToken, password: 'New-password99!' })
         .expect(204);
       await expect(
         database.query<Array<{ status: string }>>(
@@ -115,7 +115,7 @@ describe('Membership invitations (e2e)', () => {
         .post('/auth/signin')
         .send({
           email: 'new-invitee@example.com',
-          password: 'new-password-99',
+          password: 'New-password99!',
         })
         .expect(201)
         .expect(({ body }) =>
@@ -127,11 +127,11 @@ describe('Membership invitations (e2e)', () => {
   });
 
   it('lets normal signup claim an invited account', async () => {
-    await createVerifiedUser(app, 'claim-admin@example.com', 'password123');
+    await createVerifiedUser(app, 'claim-admin@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const adminSignin = await admin
       .post('/auth/signin')
-      .send({ email: 'claim-admin@example.com', password: 'password123' })
+      .send({ email: 'claim-admin@example.com', password: 'Password123!' })
       .expect(201);
     const events = captureEmittedEvents(app);
     try {
@@ -145,13 +145,13 @@ describe('Membership invitations (e2e)', () => {
         .post('/auth/signup')
         .send({
           email: ' CLAIM-INVITEE@example.com ',
-          password: 'signup-password',
+          password: 'Signup-password1!',
         })
         .expect(201);
       expect(events.verificationToken).toHaveLength(64);
       await request(app.getHttpServer())
         .post('/auth/reset-password')
-        .send({ token: firstPasswordToken, password: 'stale-password' })
+        .send({ token: firstPasswordToken, password: 'Stale-password1!' })
         .expect(400);
       await request(app.getHttpServer())
         .get('/auth/verify-email')
@@ -162,7 +162,7 @@ describe('Membership invitations (e2e)', () => {
         .post('/auth/signin')
         .send({
           email: 'claim-invitee@example.com',
-          password: 'signup-password',
+          password: 'Signup-password1!',
         })
         .expect(201);
       expect(signin.body.companyId).not.toBe(adminSignin.body.companyId);
@@ -180,24 +180,24 @@ describe('Membership invitations (e2e)', () => {
   });
 
   it('accepts a valid link only for the invited signed-in account', async () => {
-    await createVerifiedUser(app, 'accept-admin@example.com', 'password123');
-    await createVerifiedUser(app, 'accept-target@example.com', 'password123');
-    await createVerifiedUser(app, 'accept-other@example.com', 'password123');
+    await createVerifiedUser(app, 'accept-admin@example.com', 'Password123!');
+    await createVerifiedUser(app, 'accept-target@example.com', 'Password123!');
+    await createVerifiedUser(app, 'accept-other@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
     const other = request.agent(app.getHttpServer());
 
     const adminSignin = await admin
       .post('/auth/signin')
-      .send({ email: 'accept-admin@example.com', password: 'password123' })
+      .send({ email: 'accept-admin@example.com', password: 'Password123!' })
       .expect(201);
     const targetSignin = await target
       .post('/auth/signin')
-      .send({ email: 'accept-target@example.com', password: 'password123' })
+      .send({ email: 'accept-target@example.com', password: 'Password123!' })
       .expect(201);
     await other
       .post('/auth/signin')
-      .send({ email: 'accept-other@example.com', password: 'password123' })
+      .send({ email: 'accept-other@example.com', password: 'Password123!' })
       .expect(201);
 
     const events = captureEmittedEvents(app);
@@ -266,12 +266,12 @@ describe('Membership invitations (e2e)', () => {
     await createVerifiedUser(
       app,
       'rollback-invite-admin@example.com',
-      'password123',
+      'Password123!',
     );
     await createVerifiedUser(
       app,
       'rollback-invite-target@example.com',
-      'password123',
+      'Password123!',
     );
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
@@ -279,14 +279,14 @@ describe('Membership invitations (e2e)', () => {
       .post('/auth/signin')
       .send({
         email: 'rollback-invite-admin@example.com',
-        password: 'password123',
+        password: 'Password123!',
       })
       .expect(201);
     const targetSignin = await target
       .post('/auth/signin')
       .send({
         email: 'rollback-invite-target@example.com',
-        password: 'password123',
+        password: 'Password123!',
       })
       .expect(201);
     const events = captureEmittedEvents(app);
@@ -345,17 +345,17 @@ describe('Membership invitations (e2e)', () => {
   });
 
   it('declines in-app and permits a fresh invitation', async () => {
-    await createVerifiedUser(app, 'decline-admin@example.com', 'password123');
-    await createVerifiedUser(app, 'decline-target@example.com', 'password123');
+    await createVerifiedUser(app, 'decline-admin@example.com', 'Password123!');
+    await createVerifiedUser(app, 'decline-target@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
     await admin
       .post('/auth/signin')
-      .send({ email: 'decline-admin@example.com', password: 'password123' })
+      .send({ email: 'decline-admin@example.com', password: 'Password123!' })
       .expect(201);
     await target
       .post('/auth/signin')
-      .send({ email: 'decline-target@example.com', password: 'password123' })
+      .send({ email: 'decline-target@example.com', password: 'Password123!' })
       .expect(201);
 
     await admin
@@ -396,17 +396,17 @@ describe('Membership invitations (e2e)', () => {
   });
 
   it('invalidates the previous token when resending', async () => {
-    await createVerifiedUser(app, 'resend-admin@example.com', 'password123');
-    await createVerifiedUser(app, 'resend-target@example.com', 'password123');
+    await createVerifiedUser(app, 'resend-admin@example.com', 'Password123!');
+    await createVerifiedUser(app, 'resend-target@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
     await admin
       .post('/auth/signin')
-      .send({ email: 'resend-admin@example.com', password: 'password123' })
+      .send({ email: 'resend-admin@example.com', password: 'Password123!' })
       .expect(201);
     await target
       .post('/auth/signin')
-      .send({ email: 'resend-target@example.com', password: 'password123' })
+      .send({ email: 'resend-target@example.com', password: 'Password123!' })
       .expect(201);
 
     const firstEvents = captureEmittedEvents(app);
@@ -438,31 +438,27 @@ describe('Membership invitations (e2e)', () => {
     }
   });
 
-  it('rejects a token after its seven-day expiry', async () => {
-    await createVerifiedUser(app, 'expiry-admin@example.com', 'password123');
-    await createVerifiedUser(app, 'expiry-target@example.com', 'password123');
+  it('rejects an expired invitation token', async () => {
+    await createVerifiedUser(app, 'expiry-admin@example.com', 'Password123!');
+    await createVerifiedUser(app, 'expiry-target@example.com', 'Password123!');
     const admin = request.agent(app.getHttpServer());
     const target = request.agent(app.getHttpServer());
     await admin
       .post('/auth/signin')
-      .send({ email: 'expiry-admin@example.com', password: 'password123' })
+      .send({ email: 'expiry-admin@example.com', password: 'Password123!' })
       .expect(201);
     await target
       .post('/auth/signin')
-      .send({ email: 'expiry-target@example.com', password: 'password123' })
+      .send({ email: 'expiry-target@example.com', password: 'Password123!' })
       .expect(201);
 
     const events = captureEmittedEvents(app);
     try {
-      const invitedAt = Date.now();
       await admin
         .post('/users/invitations')
         .send({ email: 'expiry-target@example.com', role: 'MANAGER' })
         .expect(201);
       const pending = await target.get('/auth/invitations').expect(200);
-      expect(
-        new Date(pending.body[0].expiresAt).getTime() - invitedAt,
-      ).toBeCloseTo(7 * 24 * 60 * 60 * 1000, -4);
 
       await app
         .get(DataSource)

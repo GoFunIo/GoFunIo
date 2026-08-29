@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import {
   ServiceAttachment,
-  type ServiceAttachmentMimeType,
+  ServiceAttachmentMimeType,
 } from './service-attachment.entity';
 
 export const SERVICE_ATTACHMENT_QUERY = Symbol('SERVICE_ATTACHMENT_QUERY');
@@ -14,6 +14,26 @@ export interface ServiceAttachmentView {
   mimeType: ServiceAttachmentMimeType;
   size: number;
   createdAt: Date;
+  previewUrl: string | null;
+}
+
+export function serviceAttachmentPreviewUrl(
+  serviceId: string,
+  attachmentId: string,
+  mimeType: ServiceAttachmentMimeType,
+): string | null {
+  if (!isServiceAttachmentPreviewable(mimeType)) return null;
+
+  return `/services/${encodeURIComponent(serviceId)}/attachments/${encodeURIComponent(attachmentId)}/preview`;
+}
+
+export function isServiceAttachmentPreviewable(
+  mimeType: ServiceAttachmentMimeType,
+): boolean {
+  return (
+    mimeType === ServiceAttachmentMimeType.JPEG ||
+    mimeType === ServiceAttachmentMimeType.PNG
+  );
 }
 
 export interface ServiceAttachmentQuery {
@@ -49,6 +69,7 @@ export class TypeOrmServiceAttachmentQuery implements ServiceAttachmentQuery {
       mimeType,
       size,
       createdAt,
+      previewUrl: serviceAttachmentPreviewUrl(serviceId, id, mimeType),
     }));
   }
 

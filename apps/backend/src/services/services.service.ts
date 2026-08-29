@@ -13,6 +13,7 @@ import {
   type FleetVehicle,
 } from '../fleet/fleet-unit-of-work';
 import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
+import { constrainToVisibleVehicles } from '../fleet/typeorm-vehicle-visibility';
 import {
   SERVICE_ATTACHMENT_QUERY,
   type ServiceAttachmentQuery,
@@ -21,7 +22,6 @@ import {
   requireCompanyId,
   type SessionPrincipal,
 } from '../users/session-principal';
-import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import { CreateServiceDto } from './dtos/create-service.dto';
 import { ListServicesQueryDto } from './dtos/list-services-query.dto';
 import { UpdateServiceDto } from './dtos/update-service.dto';
@@ -46,40 +46,15 @@ export class ServicesService {
     if (query.from && query.to && query.from > query.to) {
       throw new BadRequestException('from cannot be after to');
     }
-    if (
-      !actor.role ||
-      (!isWorkspaceAdmin(actor.role) && actor.role !== MembershipRole.MANAGER)
-    ) {
-      throw new ForbiddenException();
-    }
     if (query.vehicleId) await this.vehicleAccess.find(actor, query.vehicleId);
 
-    const filtered = this.services
-      .createQueryBuilder('service')
-      .innerJoinAndSelect('service.vehicle', 'vehicle')
-      .where('service.companyId = :companyId', { companyId })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM "memberships" actor_membership
-          WHERE actor_membership."userId" = :actorId
-            AND actor_membership."companyId" = service."companyId"
-            AND actor_membership.role = :actorRole
-            AND actor_membership.status = 'active'
-        )`,
-        { actorId: actor.id, actorRole: actor.role },
-      );
-    if (actor.role === MembershipRole.MANAGER) {
-      filtered.andWhere(
-        `EXISTS (
-          SELECT 1 FROM "manager_vehicle_assignments" assignment
-          WHERE assignment."vehicleId" = service."vehicleId"
-            AND assignment."companyId" = service."companyId"
-            AND assignment."managerId" = :managerId
-            AND assignment."assignedTo" IS NULL
-        )`,
-        { managerId: actor.id },
-      );
-    }
+    const filtered = constrainToVisibleVehicles(
+      this.services
+        .createQueryBuilder('service')
+        .innerJoinAndSelect('service.vehicle', 'vehicle')
+        .where('service.companyId = :companyId', { companyId }),
+      actor,
+    );
     if (query.vehicleId) {
       filtered.andWhere('service.vehicleId = :vehicleId', {
         vehicleId: query.vehicleId,
@@ -204,16 +179,7 @@ export class ServicesService {
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
-    await this.fleet.transact(async (fleet) => {
-      const companyId = requireCompanyId(actor);
-      if (!actor.role) throw new ForbiddenException();
-      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
-      const service = await fleet.services.find(companyId, id);
-      await fleet.vehicleAccess.find(actor, service.vehicleId, true);
-      await fleet.services.find(companyId, id, true, service.vehicleId);
-      await fleet.attachments.softDeleteService(companyId, id);
-      await fleet.services.softDelete(id);
-    });
+    await this.fleet.transact((fleet) => fleet.services.remove(actor, id));
   }
 
   private validateDate(value?: string): void {

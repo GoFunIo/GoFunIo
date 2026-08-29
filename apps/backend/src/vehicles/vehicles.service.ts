@@ -31,6 +31,13 @@ import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
 import type { VehicleView } from './vehicle-view';
+import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+
+const deadlineKindsByField = {
+  ocExpiry: VehicleDeadlineKind.OC,
+  acExpiry: VehicleDeadlineKind.AC,
+  technicalInspectionExpiry: VehicleDeadlineKind.TECHNICAL_INSPECTION,
+} as const;
 
 @Injectable()
 export class VehiclesService {
@@ -98,6 +105,10 @@ export class VehiclesService {
           technicalInspectionExpiry: body.technicalInspectionExpiry ?? null,
           notes: body.notes ?? null,
         });
+        await fleet.notifications.persistVehicleDeadlineStages(
+          created,
+          Object.values(VehicleDeadlineKind),
+        );
         return (
           await this.views(
             companyId,
@@ -127,8 +138,20 @@ export class VehiclesService {
       return await this.fleet.transact(async (fleet) => {
         if (!actor.role) throw new ForbiddenException();
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
-        await fleet.vehicleAccess.find(actor, id, true);
+        const existing = await fleet.vehicleAccess.find(actor, id, true);
         const vehicle = await fleet.vehicles.update(id, body);
+        const changedKinds = Object.entries(deadlineKindsByField)
+          .filter(
+            ([field]) =>
+              Object.prototype.hasOwnProperty.call(body, field) &&
+              body[field as keyof typeof deadlineKindsByField] !==
+                existing[field as keyof typeof deadlineKindsByField],
+          )
+          .map(([, kind]) => kind);
+        await fleet.notifications.persistVehicleDeadlineStages(
+          vehicle,
+          changedKinds,
+        );
         return (
           await this.views(
             companyId,
@@ -144,17 +167,7 @@ export class VehiclesService {
   }
 
   async remove(actor: SessionPrincipal, id: string): Promise<void> {
-    await this.fleet.transact(async (fleet) => {
-      const companyId = requireCompanyId(actor);
-      if (!actor.role) throw new ForbiddenException();
-      await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
-      await fleet.vehicleAccess.find(actor, id, true);
-      await fleet.attachments.softDeleteVehicle(companyId, id);
-      await fleet.services.softDeleteVehicle(companyId, id);
-      await fleet.vehicleAccess.closeVehicle(companyId, id);
-      await fleet.driverAllocations.closeVehicle(companyId, id);
-      await fleet.vehicles.softDelete(id);
-    });
+    await this.fleet.transact((fleet) => fleet.vehicles.remove(actor, id));
   }
 
   async managerHistory(actor: SessionPrincipal, id: string) {
@@ -171,7 +184,17 @@ export class VehiclesService {
       const companyId = requireCompanyId(actor);
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       await fleet.vehicleAccess.find(actor, vehicleId, true);
-      return fleet.vehicleAccess.assign(companyId, vehicleId, body.managerId);
+      const assignment = await fleet.vehicleAccess.assign(
+        companyId,
+        vehicleId,
+        body.managerId,
+      );
+      await fleet.notifications.reconcileVehicleDeadlineRecipients({
+        companyId,
+        vehicleIds: [vehicleId],
+        userIds: [body.managerId],
+      });
+      return assignment;
     });
   }
 
@@ -186,6 +209,11 @@ export class VehiclesService {
       await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
       await fleet.vehicleAccess.find(actor, vehicleId, true);
       await fleet.vehicleAccess.unassign(companyId, vehicleId, managerId);
+      await fleet.notifications.reconcileVehicleDeadlineRecipients({
+        companyId,
+        vehicleIds: [vehicleId],
+        userIds: [managerId],
+      });
     });
   }
 

@@ -4,6 +4,7 @@ const validEnv = {
   NODE_ENV: 'production',
   COOKIE_KEY: 'a'.repeat(32),
   FRONTEND_URL: 'https://app.example.com',
+  MAIL_TRANSPORT: 'resend',
   RESEND_API_KEY: 're_test',
   MAIL_FROM: 'test@example.com',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/app',
@@ -53,6 +54,44 @@ describe('validateEnv', () => {
     ).toMatchObject({ ATTACHMENT_STORAGE_DRIVER: 'memory' });
   });
 
+  it('accepts SMTP without a Resend API key', () => {
+    expect(
+      validateEnv({
+        ...validEnv,
+        MAIL_TRANSPORT: 'smtp',
+        RESEND_API_KEY: undefined,
+        MAIL_SMTP_HOST: 'localhost',
+        MAIL_SMTP_PORT: '1025',
+      }),
+    ).toMatchObject({
+      MAIL_TRANSPORT: 'smtp',
+      MAIL_SMTP_HOST: 'localhost',
+      MAIL_SMTP_PORT: 1025,
+    });
+  });
+
+  it('defaults to Resend for existing deployments', () => {
+    const legacyEnv: Record<string, unknown> = { ...validEnv };
+    delete legacyEnv.MAIL_TRANSPORT;
+    expect(validateEnv(legacyEnv)).toMatchObject({
+      MAIL_TRANSPORT: 'resend',
+      RESEND_API_KEY: 're_test',
+    });
+  });
+
+  it('requires the selected transport configuration', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, RESEND_API_KEY: undefined }),
+    ).toThrow('RESEND_API_KEY');
+    expect(() =>
+      validateEnv({
+        ...validEnv,
+        MAIL_TRANSPORT: 'smtp',
+        RESEND_API_KEY: undefined,
+      }),
+    ).toThrow('MAIL_SMTP_HOST, MAIL_SMTP_PORT');
+  });
+
   it('rejects memory storage outside tests', () => {
     expect(() =>
       validateEnv({ ...validEnv, ATTACHMENT_STORAGE_DRIVER: 'memory' }),
@@ -85,6 +124,16 @@ describe('validateEnv', () => {
     ],
     [{ DATABASE_SCHEMA: 'bad-schema' }, 'DATABASE_SCHEMA'],
     [{ PORT: 0 }, 'PORT'],
+    [{ MAIL_TRANSPORT: 'mailpit' }, 'MAIL_TRANSPORT'],
+    [
+      {
+        MAIL_TRANSPORT: 'smtp',
+        RESEND_API_KEY: undefined,
+        MAIL_SMTP_HOST: 'localhost',
+        MAIL_SMTP_PORT: 0,
+      },
+      'MAIL_SMTP_PORT',
+    ],
     [
       { ATTACHMENT_STORAGE_FORCE_PATH_STYLE: 'yes' },
       'ATTACHMENT_STORAGE_FORCE_PATH_STYLE',

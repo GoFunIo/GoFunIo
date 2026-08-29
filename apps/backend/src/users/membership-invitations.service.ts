@@ -22,6 +22,11 @@ import {
   MembershipInvitationRequestedEvent,
 } from './events/membership-invitation-requested.event';
 import { PasswordRecoveryService } from './password-recovery.service';
+import {
+  TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION,
+  type TransactionalNotificationRecipientReconciliation,
+} from '../notifications/transactional-notification-recipient-reconciliation';
+import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 
 const INVITATION_TTL_HOURS = 7 * 24;
 
@@ -43,6 +48,9 @@ export class MembershipInvitationsService {
     private readonly passwordRecovery: PasswordRecoveryService,
     @Inject(TRANSACTIONAL_VEHICLE_ACCESS)
     private readonly vehicleAccess: TransactionalVehicleAccess,
+    @Inject(TRANSACTIONAL_NOTIFICATION_RECIPIENT_RECONCILIATION)
+    private readonly notificationRecipients: TransactionalNotificationRecipientReconciliation,
+    private readonly notificationChanges: NotificationChangeRelay,
   ) {}
 
   async invite(
@@ -108,6 +116,10 @@ export class MembershipInvitationsService {
           tokenExpiresAt: generated.expiresAt,
         });
         await manager.save(membership);
+        await this.notificationRecipients.reconcileRecipients(manager, {
+          companyId,
+          userIds: [user.id],
+        });
         return {
           membershipId: membership.id,
           userId: user.id,
@@ -228,6 +240,14 @@ export class MembershipInvitationsService {
         )
         .execute();
       if (result.affected !== 1) fail();
+      await this.notificationRecipients.reconcileRecipients(manager, {
+        companyId: membership.companyId,
+        userIds: [membership.userId],
+      });
+      await this.notificationChanges.record(manager, {
+        companyId: membership.companyId,
+        userId: membership.userId,
+      });
     });
   }
 }

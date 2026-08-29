@@ -1,11 +1,6 @@
-import {
-  IsString,
-  Length,
-  Matches,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsString, Length, Matches } from 'class-validator';
 import { TOKEN_HEX_LENGTH } from '../token.util';
+import { IsNewPassword } from '../password-policy';
 
 export class ResetPasswordDto {
   @IsString()
@@ -14,7 +9,6 @@ export class ResetPasswordDto {
   token!: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @IsNewPassword()
   password!: string;
 }

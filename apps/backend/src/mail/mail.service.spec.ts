@@ -2,18 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from './mail.service';
 import { FRONTEND_ORIGINS } from '../common/frontend-origins';
-import * as resendClient from './resend.client';
 import * as templateRenderer from './template-renderer';
+import { MAIL_TRANSPORT, type MailTransport } from './mail-transport';
 
 describe('MailService', () => {
   let service: MailService;
-  let sendSpy: jest.SpyInstance;
+  let send: jest.MockedFunction<MailTransport['send']>;
   let renderSpy: jest.SpyInstance;
 
   beforeEach(async () => {
-    sendSpy = jest
-      .spyOn(resendClient, 'sendResendEmail')
-      .mockResolvedValue({ id: 'email_123' });
+    send = jest.fn().mockResolvedValue({ messageId: 'email_123' });
     renderSpy = jest
       .spyOn(templateRenderer, 'renderMailTemplate')
       .mockReturnValue('<html>rendered</html>');
@@ -25,7 +23,6 @@ describe('MailService', () => {
           provide: ConfigService,
           useValue: {
             getOrThrow: (key: string) => {
-              if (key === 'RESEND_API_KEY') return 're_test';
               if (key === 'MAIL_FROM') return 'GoFunIo <no-reply@test.com>';
               throw new Error(`Unexpected config key: ${key}`);
             },
@@ -38,6 +35,7 @@ describe('MailService', () => {
               origin?.replace(/\/$/, '') ?? 'http://localhost:5173',
           },
         },
+        { provide: MAIL_TRANSPORT, useValue: { send } },
       ],
     }).compile();
 
@@ -48,7 +46,7 @@ describe('MailService', () => {
     jest.restoreAllMocks();
   });
 
-  it('sendVerificationEmail renders template and calls Resend', async () => {
+  it('sendVerificationEmail renders template and calls the mail transport', async () => {
     await service.sendVerificationEmail({
       email: 'user@example.com',
       token: 'abc123',
@@ -58,7 +56,7 @@ describe('MailService', () => {
     expect(renderSpy).toHaveBeenCalledWith('verify-email', {
       verificationUrl: 'http://localhost:5173/verify-email?token=abc123',
     });
-    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+    expect(send).toHaveBeenCalledWith({
       from: 'GoFunIo <no-reply@test.com>',
       to: 'user@example.com',
       subject: 'Verify your GoFunIo email',
@@ -80,7 +78,7 @@ describe('MailService', () => {
       resetUrl: 'http://localhost:5173/reset-password?token=reset456',
       ttlHours: 24,
     });
-    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+    expect(send).toHaveBeenCalledWith({
       from: 'GoFunIo <no-reply@test.com>',
       to: 'user@example.com',
       subject: 'Reset your GoFunIo password',
@@ -103,7 +101,7 @@ describe('MailService', () => {
       resetUrl: 'http://localhost:5173/reset-password?token=set789',
       ttlHours: 24,
     });
-    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+    expect(send).toHaveBeenCalledWith({
       from: 'GoFunIo <no-reply@test.com>',
       to: 'google@example.com',
       subject: 'Set your GoFunIo password',
@@ -121,7 +119,7 @@ describe('MailService', () => {
     expect(renderSpy).toHaveBeenCalledWith('membership-invitation', {
       acceptUrl: 'http://localhost:5173/accept-invitation?token=invite123',
     });
-    expect(sendSpy).toHaveBeenCalledWith('re_test', {
+    expect(send).toHaveBeenCalledWith({
       from: 'GoFunIo <no-reply@test.com>',
       to: 'invitee@example.com',
       subject: 'You were invited to a GoFunIo workspace',
@@ -129,8 +127,8 @@ describe('MailService', () => {
     });
   });
 
-  it('sendVerificationEmail logs and swallows Resend errors', async () => {
-    sendSpy.mockRejectedValue(new Error('Resend API 500: server error'));
+  it('sendVerificationEmail logs and swallows transport errors', async () => {
+    send.mockRejectedValue(new Error('secret user@example.com server error'));
     const errorSpy = jest.spyOn(service['logger'], 'error');
 
     await expect(
@@ -145,10 +143,10 @@ describe('MailService', () => {
     expect(log).toMatchObject({
       event: 'mail.delivery_failed',
       template: 'verify-email',
-      to: 'user@example.com',
-      error: 'Resend API 500: server error',
+      errorType: 'Error',
     });
-    expect(typeof log.stack).toBe('string');
+    expect(JSON.stringify(log)).not.toContain('user@example.com');
+    expect(JSON.stringify(log)).not.toContain('secret');
   });
 
   it('does not swallow template rendering errors', async () => {
@@ -162,6 +160,6 @@ describe('MailService', () => {
         token: 'abc123',
       }),
     ).rejects.toThrow('broken template');
-    expect(sendSpy).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
   });
 });

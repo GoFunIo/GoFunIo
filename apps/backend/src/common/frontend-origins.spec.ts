@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   AttachmentStorageDriver,
   EnvVars,
+  MailTransportDriver,
   NodeEnv,
 } from '../config/env.validation';
 import { ConfiguredFrontendOrigins } from './frontend-origins';
@@ -13,6 +14,7 @@ function origins(overrides: Partial<EnvVars> = {}) {
     COOKIE_KEY: 'a'.repeat(32),
     FRONTEND_URL: 'https://app.example.com/base/',
     RESEND_API_KEY: 'resend',
+    MAIL_TRANSPORT: MailTransportDriver.Resend,
     MAIL_FROM: 'mail@example.com',
     DATABASE_URL: 'postgres://localhost/database',
     DATABASE_SSL: 'false',
