@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CalendarCog, CarFront, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
-import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { VehicleData, VehicleFuelType, ServiceData } from '@/features/dashboard/types';
 
@@ -21,6 +21,7 @@ import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceCo
 import { getVehicle } from '@/features/dashboard/api/vehicles.api';
 import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
 import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
+import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
 
 const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
   if (!fuelValue) return 'Nieokreślone';
@@ -49,6 +50,9 @@ export const Route = createFileRoute('/dashboard/my-cars/$carId')({
 });
 
 function RouteComponent() {
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const { data: selectedService } = useService(selectedServiceId);
+
   const navigate = useNavigate();
 
   const initialCarData = Route.useLoaderData() as VehicleData | null;
@@ -59,7 +63,6 @@ function RouteComponent() {
   const { canEditVehicle, canDeleteVehicle } = usePermissions();
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
 
   const currentCar = car ?? initialCarData;
@@ -93,23 +96,22 @@ function RouteComponent() {
   };
 
   const handleAddServiceClick = () => {
-    setSelectedService(null);
     setActiveModal('add_service');
   };
 
   const handleEditServiceClick = (item: ServiceData) => {
-    setSelectedService(item);
+    setSelectedServiceId(item.id);
     setActiveModal('edit_service');
   };
 
   const handleDeleteServiceClick = (item: ServiceData) => {
-    setSelectedService(item);
+    setSelectedServiceId(item.id);
     setActiveModal('delete_service');
   };
 
   const closeModal = () => {
     setActiveModal(null);
-    setSelectedService(null);
+    setSelectedServiceId(null);
   };
 
   const getModalConfig = () => {
@@ -142,7 +144,7 @@ function RouteComponent() {
         return {
           title: 'Dodaj wpis serwisowy',
           subtitle: `Zapisz nową czynność serwisową dla pojazdu ${currentCar.brand}.`,
-          content: <AddVehicleServiceForm onClose={closeModal} />,
+          content: <VehiclesServiceForm mode="create" onClose={closeModal} />,
         };
 
       case 'edit_service':
@@ -152,11 +154,7 @@ function RouteComponent() {
           title: 'Edytuj wpis serwisowy',
           subtitle: 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.',
           content: (
-            <AddVehicleServiceForm
-              key={selectedService.id}
-              initialData={selectedService}
-              onClose={closeModal}
-            />
+            <VehiclesServiceForm mode="edit" service={selectedService} onClose={closeModal} />
           ),
         };
 
