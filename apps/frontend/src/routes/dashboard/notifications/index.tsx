@@ -17,20 +17,22 @@ export const Route = createFileRoute('/dashboard/notifications/')({
 });
 
 function RouteComponent() {
+  const { data: vehiclesResponse, isLoading: isVehiclesLoading } = useVehicles();
+
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<AlertFilterType>('all');
-
   const [renewCarId, setRenewCarId] = useState<string | null>(null);
-  const [isRenewModalOpen, setIsRenewModalOpen] = useState<boolean>(false);
 
-  const { data: vehiclesResponse, isLoading: isVehiclesLoading } = useVehicles();
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
 
   const selectedRenewCar = vehicles.find((c) => c.id === renewCarId);
 
   const handleRenewCar = (id: string) => {
     setRenewCarId(id);
-    setIsRenewModalOpen(true);
+  };
+
+  const closeRenewModal = () => {
+    setRenewCarId(null);
   };
 
   const carOptions = useMemo(() => {
@@ -108,8 +110,8 @@ function RouteComponent() {
 
       {/* MODAL: ODNOWIENIE / EDYCJA TERMINÓW POJAZDU */}
       <Modal
-        isOpen={isRenewModalOpen}
-        setIsOpen={setIsRenewModalOpen}
+        isOpen={renewCarId !== null}
+        setIsOpen={(isOpen) => !isOpen && closeRenewModal()}
         title={
           selectedRenewCar
             ? `Edytuj pojazd ${selectedRenewCar.brand} ${selectedRenewCar.model}`
@@ -119,7 +121,7 @@ function RouteComponent() {
       >
         <AddVehicleForm
           initialData={selectedRenewCar}
-          onClose={() => setIsRenewModalOpen(false)}
+          onClose={closeRenewModal}
           isRenewalMode={true}
         />
       </Modal>

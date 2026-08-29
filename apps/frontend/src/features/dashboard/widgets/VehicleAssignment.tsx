@@ -124,7 +124,7 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
               availableDrivers.length === 0
                 ? 'Brak dostępnych kierowców'
                 : assignedDrivers.length > 0
-                  ? '-- Zmień kierowcę --'
+                  ? '-- Dodaj kolejnego kierowcę --'
                   : '-- Przypisz kierowcę --'
             }
           />
@@ -151,16 +151,14 @@ export const VehicleAssignments = ({ vehicle }: Props) => {
                 className="flex items-center gap-2 px-[10px] py-[6px] rounded-[3px] bg-bg-section text-[13px] text-content-primary"
               >
                 {manager.firstName} {manager.lastName}
-                {canManageVehicleManagers && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveManager(manager.id)}
-                    disabled={assignManager.isPending || removeManager.isPending}
-                    className="text-content-secondary hover:text-alert custom-transition"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveManager(manager.id)}
+                  disabled={assignManager.isPending || removeManager.isPending}
+                  className="text-content-secondary hover:text-alert custom-transition"
+                >
+                  <X size={12} />
+                </button>
               </span>
             ))}
           </div>

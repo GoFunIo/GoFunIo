@@ -54,7 +54,7 @@ function RouteComponent() {
                   </div>
 
                   <div>
-                    <p className="text-[12px]">Warsztat</p>
+                    <p className="text-[12px]">Miejsce usługi</p>
                     <p className="text-[14px] text-dark">{item.providerName}</p>
                   </div>
 
