@@ -38,9 +38,6 @@ function RouteComponent() {
     to: undefined,
   });
 
-  const shouldFetchService =
-    selectedServiceId !== null && (activeModal === 'edit' || activeModal === 'attachments');
-
   const { data: servicesResponse, isPending: allServicesLoading } = useServices({
     page,
     pageSize: SERVICES_PAGE_SIZE,
@@ -49,12 +46,8 @@ function RouteComponent() {
     from: formatDate(filters.from),
     to: formatDate(filters.to),
   });
-  const { data: activeService, isPending: isServiceLoading } = useService(
-    shouldFetchService ? selectedServiceId : null,
-  );
+  const { data: activeService, isPending: isServiceLoading } = useService(selectedServiceId);
 
-  console.log(servicesResponse);
-  console.log(filters);
   const services: ServiceData[] = servicesResponse?.items ?? [];
 
   const handleFilterChange = (filters: ServicesFiltersType) => {
@@ -101,11 +94,12 @@ function RouteComponent() {
           title: 'Usuń wpis serwisowy',
           subtitle:
             'Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna.',
-          content: (
-            <DeleteServiceConfirm
-              service={services.find((service) => service.id === selectedServiceId)!}
-              onClose={closeServiceModal}
-            />
+          content: isServiceLoading ? (
+            <LoadingIcon className="m-auto my-16" />
+          ) : activeService ? (
+            <DeleteServiceConfirm service={activeService} onClose={closeServiceModal} />
+          ) : (
+            <EmptyPlaceholder title="Wpis nie został znaleziony." />
           ),
         };
 

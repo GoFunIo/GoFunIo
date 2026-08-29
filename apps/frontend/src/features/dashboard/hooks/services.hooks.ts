@@ -32,7 +32,7 @@ export const useServices = (params?: ServiceListParams) => {
 
 export const useService = (id?: string | null) => {
   return useQuery({
-    queryKey: ['services', id],
+    queryKey: ['service', id],
     queryFn: () => getService(id!),
     enabled: !!id,
     retry: false,
