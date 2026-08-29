@@ -12,6 +12,7 @@ interface DataTableProps<T> {
   footerLabel?: string;
   disabled?: (item: T) => boolean;
   hide?: (item: T) => boolean;
+  totalLength?: string | number;
 }
 
 export const DataTable = <T extends { id: string | number }>({
@@ -23,6 +24,7 @@ export const DataTable = <T extends { id: string | number }>({
   footerLabel,
   disabled,
   hide,
+  totalLength = String(data.length),
 }: DataTableProps<T>) => {
   return (
     <div className="w-full rounded-[6px] border border-icon bg-bg-page">
@@ -117,7 +119,7 @@ export const DataTable = <T extends { id: string | number }>({
 
       {footer && (
         <div className="border-t border-icon flex items-center justify-between py-[16px] md:px-[25px] px-[20px] w-full">
-          <p className="text-content-primary font-semibold">{data.length} wpisów</p>
+          <p className="text-content-primary font-semibold">{totalLength} wpisów</p>
           {footerLabel && <p className="text-content-primary font-semibold block">{footerLabel}</p>}
         </div>
       )}

@@ -1,23 +1,22 @@
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { ServiceData } from '../types';
+import { SingleServiceData } from '../types';
 import { serviceTypeLabels } from '../constants/serviceOptions';
 import { useDeleteService } from '@/features/dashboard/hooks/services.hooks';
 import { useError } from '@/hooks/useError';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 
 export type ServiceEntryType = Pick<
-  ServiceData,
+  SingleServiceData,
   'id' | 'type' | 'providerName' | 'cost' | 'serviceDate' | 'vehicle'
 >;
 
 type Props = {
   service: ServiceEntryType;
   onClose: () => void;
-  onDeleted?: () => void;
 };
 
-export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => {
-  const deleteServiceMutation = useDeleteService();
+export const DeleteServiceConfirm = ({ service, onClose }: Props) => {
+  const { mutateAsync: deleteServiceMutation, isPending: isDeleting } = useDeleteService();
   const { error, setError } = useError();
 
   const costValue = Number(service.cost);
@@ -28,11 +27,14 @@ export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => 
   const handleDelete = async () => {
     setError(null);
     try {
-      await deleteServiceMutation.mutateAsync(String(service.id));
-      onDeleted?.();
+      await deleteServiceMutation(service.id);
       onClose();
     } catch (err) {
-      setError(getErrorMessage(err, { 404: 'Ten wpis nie istnieje lub został już usunięty.' }));
+      setError(
+        getErrorMessage(err, {
+          404: 'Ten wpis nie istnieje lub został już usunięty.',
+        }),
+      );
     }
   };
 
@@ -42,10 +44,10 @@ export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => 
 
       <div className="mb-[24px] p-[16px] rounded-[7px] border border-icon/50 bg-background-secondary space-y-1">
         <p className="text-[14px] font-bold text-content-primary">{typeLabel}</p>
-        {carName || service.vehicle?.registrationNumber ? (
+        {carName || service?.vehicle?.registrationNumber ? (
           <p className="text-[12px] text-content-secondary">
             Pojazd: {carName || 'Nieokreślony'}{' '}
-            {service.vehicle?.registrationNumber ? `(${service.vehicle.registrationNumber})` : ''}
+            {service?.vehicle?.registrationNumber ? `(${service.vehicle.registrationNumber})` : ''}
           </p>
         ) : null}
         {hasCost ? (
@@ -61,7 +63,7 @@ export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => 
           variant="outline"
           size="medium"
           onClick={onClose}
-          disabled={deleteServiceMutation.isPending}
+          disabled={isDeleting}
         >
           Anuluj
         </BoardButton>
@@ -70,9 +72,10 @@ export const DeleteServiceConfirm = ({ service, onClose, onDeleted }: Props) => 
           variant="danger"
           size="medium"
           onClick={handleDelete}
-          disabled={deleteServiceMutation.isPending}
+          loading={isDeleting}
+          disabled={isDeleting}
         >
-          {deleteServiceMutation.isPending ? 'Usuwanie...' : 'Usuń wpis'}
+          Usuń wpis
         </BoardButton>
       </div>
     </div>

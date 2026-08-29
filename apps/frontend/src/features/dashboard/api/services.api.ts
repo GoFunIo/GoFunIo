@@ -1,5 +1,10 @@
-import { AddServiceFormData } from '../lib/formValidationRules';
-import { PaginatedServices, ServiceData, ServiceListParams } from '../types/ServiceTypes';
+import {
+  CreateServiceData,
+  PaginatedServices,
+  ServiceData,
+  ServiceListParams,
+  SingleServiceData,
+} from '../types/ServiceTypes';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -7,7 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
 // WSPÓLNY PAYLOAD
 // =========================================================================
 
-const buildServicePayload = (form: AddServiceFormData) => ({
+const buildServicePayload = (form: CreateServiceData) => ({
   vehicleId: form.vehicleId,
   serviceDate: form.serviceDate,
   type: form.serviceType,
@@ -24,17 +29,13 @@ const buildServicePayload = (form: AddServiceFormData) => ({
 export const getAllServices = async (params?: ServiceListParams) => {
   const query = new URLSearchParams();
 
-  if (params?.page) {
-    query.set('page', String(params.page));
-  }
-
-  if (params?.pageSize) {
-    query.set('pageSize', String(params.pageSize));
-  }
-
-  if (params?.type) {
-    query.set('type', params.type);
-  }
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+  if (params?.vehicleId) query.set('vehicleId', params.vehicleId);
+  if (params?.type) query.set('type', params.type);
+  if (params?.providerName) query.set('providerName', params.providerName);
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
 
   const queryString = query.toString();
 
@@ -60,7 +61,7 @@ export const getAllServices = async (params?: ServiceListParams) => {
 // TWORZENIE USŁUGI
 // =========================================================================
 
-export const createService = async (form: AddServiceFormData) => {
+export const createService = async (form: CreateServiceData) => {
   const payload = buildServicePayload(form);
 
   const res = await fetch(`${API_URL}/services`, {
@@ -104,7 +105,7 @@ export const getService = async (id: string) => {
     };
   }
 
-  return data as ServiceData;
+  return data as SingleServiceData;
 };
 
 // =========================================================================
@@ -112,7 +113,7 @@ export const getService = async (id: string) => {
 // AKTUALIZACJA USŁUGI
 // =========================================================================
 
-export const updateService = async (id: string, form: AddServiceFormData) => {
+export const updateService = async (id: string, form: CreateServiceData) => {
   const payload = buildServicePayload(form);
 
   const res = await fetch(`${API_URL}/services/${id}`, {

@@ -1,3 +1,6 @@
+import { AddServiceFormData } from '../lib/formValidationRules';
+import { AttachmentData } from './AttachmentTypes';
+
 export type ServiceType = 'FULL' | 'OIL_CHANGE' | 'TECHNICAL_INSPECTION' | 'OC' | 'AC' | 'OTHER';
 
 export type ServiceVehicle = {
@@ -6,6 +9,8 @@ export type ServiceVehicle = {
   model: string;
   registrationNumber: string;
 };
+
+export type CreateServiceData = Omit<AddServiceFormData, 'attachments'>;
 
 export type ServiceData = {
   id: string;
@@ -17,6 +22,18 @@ export type ServiceData = {
   notes: string;
   vehicle: ServiceVehicle;
   hasAttachment: boolean;
+};
+
+export type SingleServiceData = {
+  id: string;
+  vehicleId: string;
+  serviceDate: string;
+  type: ServiceType;
+  cost: string;
+  providerName: string;
+  notes: string;
+  vehicle: ServiceVehicle;
+  attachments: AttachmentData[];
 };
 
 export type PaginatedServices = {
@@ -31,5 +48,16 @@ export type PaginatedServices = {
 export type ServiceListParams = {
   page?: number;
   pageSize?: number;
+  vehicleId?: string;
   type?: ServiceType;
+  providerName?: string;
+  from?: string;
+  to?: string;
+};
+
+export type ServicesFiltersType = {
+  vehicleId: string | null;
+  type: ServiceType | null;
+  from: Date | undefined;
+  to: Date | undefined;
 };

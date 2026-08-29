@@ -29,14 +29,14 @@ import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket'
 import { Banner } from '@/features/dashboard/widgets/Banner';
 import { History } from '@/features/dashboard/widgets/History';
 import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
 import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
 import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { VehicleData } from '@/features/dashboard/types';
 import { ServiceData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
+import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
 
 type DashboardAction = {
   id: number;
@@ -98,17 +98,20 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 });
 
 function RouteComponent() {
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const { data: selectedService } = useService(selectedServiceId);
+
   const navigate = useNavigate();
 
   const { data: user } = useUser();
   const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
   const { data: servicesResponse } = useServices();
+
   const { data: team, isPending: isTeamPending } = useTeam();
   const { canInviteUsers, canManageUsers } = usePermissions();
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
 
   const HISTORY_PAGE_SIZE = 5;
@@ -131,12 +134,12 @@ function RouteComponent() {
   };
 
   const handleEditServiceClick = (item: ServiceData) => {
-    setSelectedService(item);
+    setSelectedServiceId(item.id);
     setActiveModal('edit_service');
   };
 
   const handleDeleteServiceClick = (item: ServiceData) => {
-    setSelectedService(item);
+    setSelectedServiceId(item.id);
     setActiveModal('delete_service');
   };
 
@@ -280,7 +283,7 @@ function RouteComponent() {
           subtitle: 'Wprowadź szczegóły wykonanej naprawy lub serwisu.',
           content: (
             <div className="text-center text-content-secondary">
-              <AddVehicleServiceForm onClose={() => setActiveModal(null)} />
+              <VehiclesServiceForm mode="create" onClose={() => setActiveModal(null)} />
             </div>
           ),
         };
@@ -292,12 +295,12 @@ function RouteComponent() {
           title: 'Edytuj wpis serwisowy',
           subtitle: 'Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi.',
           content: (
-            <AddVehicleServiceForm
-              key={selectedService.id}
-              initialData={selectedService}
+            <VehiclesServiceForm
+              mode="edit"
+              service={selectedService}
               onClose={() => {
                 setActiveModal(null);
-                setSelectedService(null);
+                setSelectedServiceId(null);
               }}
             />
           ),
@@ -315,7 +318,7 @@ function RouteComponent() {
               service={selectedService}
               onClose={() => {
                 setActiveModal(null);
-                setSelectedService(null);
+                setSelectedServiceId(null);
               }}
             />
           ),
@@ -518,7 +521,7 @@ function RouteComponent() {
           if (!isOpen) {
             setActiveModal(null);
             setSelectedCarId(null);
-            setSelectedService(null);
+            setSelectedServiceId(null);
           }
         }}
         title={modalConfig.title}

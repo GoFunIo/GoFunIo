@@ -7,7 +7,12 @@ import {
   deleteService,
 } from '../api/services.api';
 import { AddServiceFormData } from '../lib/formValidationRules';
-import { ServiceListParams } from '../types/ServiceTypes';
+import { ServiceListParams, SingleServiceData } from '../types/ServiceTypes';
+import {
+  createServiceAttachment,
+  deleteServiceAttachment,
+  updateServiceAttachment,
+} from '../api/attachments.api';
 
 // =========================================================================
 // POBIERANIE LISTY USŁUG  GET /services
@@ -25,10 +30,10 @@ export const useServices = (params?: ServiceListParams) => {
 // POBIERANIE POJEDYNCZEJ USŁUGI   GET /services/{id}
 // =========================================================================
 
-export const useService = (id: string) => {
+export const useService = (id?: string | null) => {
   return useQuery({
-    queryKey: ['services', id],
-    queryFn: () => getService(id),
+    queryKey: ['service', id],
+    queryFn: () => getService(id!),
     enabled: !!id,
     retry: false,
   });
@@ -42,7 +47,21 @@ export const useCreateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (form: AddServiceFormData) => createService(form),
+    mutationFn: async (formData: AddServiceFormData) => {
+      const { attachments, ...serviceData } = formData;
+
+      const service = await createService(serviceData);
+
+      if (attachments?.length) {
+        await Promise.all(
+          attachments
+            .filter((attachment) => attachment.file)
+            .map((attachment) => createServiceAttachment(service.id, attachment.file!)),
+        );
+      }
+
+      return service;
+    },
 
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -60,17 +79,41 @@ export const useUpdateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, form }: { id: string; form: AddServiceFormData }) => updateService(id, form),
+    mutationFn: async ({
+      service,
+      formData,
+    }: {
+      service: SingleServiceData;
+      formData: AddServiceFormData;
+    }) => {
+      const { attachments, ...serviceData } = formData;
 
-    onSuccess: async (_data, variables) => {
-      await Promise.all([
-        queryClient.refetchQueries({
-          queryKey: ['services'],
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['services', variables.id],
-        }),
-      ]);
+      const updatedService = await updateService(service.id, serviceData);
+
+      const currentIds = new Set(attachments?.filter((a) => a.id).map((a) => a.id));
+
+      await Promise.all(
+        service.attachments
+          .filter((a) => a.id && !currentIds.has(a.id))
+          .map((a) => deleteServiceAttachment(updatedService.id, a.id!)),
+      );
+
+      await Promise.all(
+        attachments
+          ?.filter((a) => a.file)
+          .map((a) =>
+            a.id
+              ? updateServiceAttachment(updatedService.id, a.id, a.file!)
+              : createServiceAttachment(updatedService.id, a.file!),
+          ) ?? [],
+      );
+
+      return updatedService;
+    },
+
+    onSuccess: (_, { service }) => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['service', service.id] });
     },
   });
 };
@@ -83,7 +126,7 @@ export const useDeleteService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteService(id),
+    mutationFn: deleteService,
 
     onSuccess: () => {
       queryClient.invalidateQueries({

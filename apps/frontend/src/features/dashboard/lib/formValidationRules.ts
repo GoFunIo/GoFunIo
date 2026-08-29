@@ -1,5 +1,6 @@
 import * as yup from 'yup';
 import { isPasswordValid } from '@/features/auth/lib/passwordRules';
+import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 
 // =========================================================================
 // 1. SCHEMAT DLA DODAWANIA POJAZDU
@@ -72,8 +73,22 @@ export const AddServiceSchema = yup.object().shape({
     .positive('Koszt musi być większy od 0')
     .required('Podaj koszt usługi'),
   servicePlace: yup.string().required('Nazwa warsztatu jest wymagana'),
-  notes: yup.string().nullable(),
-  attachment: yup.mixed<File>().optional(),
+  notes: yup.string().default(''),
+  attachments: yup
+    .array()
+    .of(
+      yup.object({
+        id: yup.string().optional(),
+        file: yup.mixed<File>().optional(),
+        name: yup.string().required(),
+        mimeType: yup.string().required(),
+        size: yup.number().required(),
+        createdAt: yup.string().required(),
+      }),
+    )
+    .required()
+    .max(MAX_FILES_PER_UPLOAD, `Maksymalnie można dodać ${MAX_FILES_PER_UPLOAD} plików`)
+    .default([]),
 });
 
 // =========================================================================
@@ -201,9 +216,7 @@ export const DriverManagementSchema = yup.object({
 
 // Eksport typów TypeScript dla inferencji danych
 export type AddVehicleFormData = yup.InferType<typeof AddVehicleSchema>;
-export type AddServiceFormData = Omit<yup.InferType<typeof AddServiceSchema>, 'cost'> & {
-  cost: number | undefined;
-};
+export type AddServiceFormData = yup.InferType<typeof AddServiceSchema>;
 export type PersonalDataFormData = yup.InferType<typeof PersonalDataSchema>;
 export type CompanyDataFormData = yup.InferType<typeof CompanyDataSchema>;
 export type ChangeEmailFormData = yup.InferType<typeof ChangeEmailSchema>;

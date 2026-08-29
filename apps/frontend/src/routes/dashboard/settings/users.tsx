@@ -16,7 +16,6 @@ import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { Car } from 'lucide-react';
-import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { AssignedVehiclesList } from '@/features/dashboard/widgets/AssignedVehiclesList';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
@@ -34,12 +33,6 @@ function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-
-  const { data } = useVehicles({
-    managerId: selectedUser?.id || undefined,
-  });
-  const vehicles = data?.items ?? [];
-  console.log(vehicles);
 
   // Dynamiczne filtrowanie użytkowników
   const filteredTeam = useMemo(() => {

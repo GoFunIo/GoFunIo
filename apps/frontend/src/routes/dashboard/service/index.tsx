@@ -1,75 +1,130 @@
-import { AddVehicleServiceForm } from '@/features/dashboard/forms/AddVehiclesServicesForm';
-import { AddServiceFormData } from '@/features/dashboard/lib/formValidationRules';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
-import { Modal } from '@/features/dashboard/ui/Modal';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { Filters } from '@/features/dashboard/widgets/Filters';
-import { serviceColumns, serviceData } from '@/store/serviceTable';
+import { getServiceColumns } from '@/store/serviceTable';
 import { createFileRoute } from '@tanstack/react-router';
+import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
+import { ServiceData, ServicesFiltersType } from '@/features/dashboard/types';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { Modal } from '@/features/dashboard/ui/Modal';
+import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
+import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
+import { MAX_FILES_PER_UPLOAD } from '@/features/dashboard/constants/fileOptions';
+import { AttachmentsForm } from '@/features/dashboard/forms/AttachmentsForm';
 import { useState } from 'react';
+import { SERVICES_PAGE_SIZE } from '@/features/dashboard/constants/serviceOptions';
+import { Pagination } from '@/features/dashboard/ui/Pagination';
+import { ServicesFilters } from '@/features/dashboard/widgets/ServicesFilters';
+import { formatDate } from '@/utils/formatFile';
 
 export const Route = createFileRoute('/dashboard/service/')({
   component: RouteComponent,
 });
 
-type ServiceEntryType = Partial<AddServiceFormData> & {
-  id: string | number;
-  serviceType: string;
-  cost: number;
-  servicePlace: string;
-  serviceDate: string;
-  vehicleId: string;
+type ServiceIdType = string | null;
 
-  carBrand?: string;
-  carModel?: string;
-  registrationNumber?: string;
-};
-
-type ModalState = boolean | ServiceEntryType | null;
-type DeleteModalState = ServiceEntryType | null;
+type ModalType = 'create' | 'edit' | 'delete' | 'attachments' | null;
 
 function RouteComponent() {
-  const [modalState, setModalState] = useState<ModalState>(null);
-  const [deleteModalState, setDeleteModalState] = useState<DeleteModalState>(null);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<ServiceIdType>(null);
 
-  const isModalOpen = !!modalState;
-  const isEditMode = typeof modalState === 'object' && modalState !== null;
-  const isDeleteModalOpen = !!deleteModalState;
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<ServicesFiltersType>({
+    vehicleId: null,
+    type: null,
+    from: undefined,
+    to: undefined,
+  });
 
-  const modalTitle = isEditMode ? 'Edytuj wpis serwisowy' : 'Dodaj wpis serwisowy';
-  const modalSubtitle = isEditMode
-    ? 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.'
-    : 'Zapisz każdą czynność serwisową, by mieć pełną historię pojazdu.';
+  const { data: servicesResponse, isPending: allServicesLoading } = useServices({
+    page,
+    pageSize: SERVICES_PAGE_SIZE,
+    vehicleId: filters.vehicleId ?? undefined,
+    type: filters.type ?? undefined,
+    from: formatDate(filters.from),
+    to: formatDate(filters.to),
+  });
+  const { data: activeService, isPending: isServiceLoading } = useService(selectedServiceId);
 
-  const handleCloseModal = () => setModalState(null);
-  const handleCloseDeleteModal = () => setDeleteModalState(null);
+  const services: ServiceData[] = servicesResponse?.items ?? [];
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteModalState) return;
-    try {
-      console.log('Usuwanie wpisu serwisowego o ID:', deleteModalState.id);
-      // Miejsce na API: await axios.delete(`/api/services/${deleteModalState.id}`);
-      handleCloseDeleteModal();
-    } catch (error) {
-      console.error('Błąd podczas usuwania wpisu:', error);
+  const handleFilterChange = (filters: ServicesFiltersType) => {
+    setFilters(filters);
+    setPage(1);
+  };
+
+  const openServiceModal = (modal: ModalType, serviceId?: string) => {
+    setActiveModal(modal);
+
+    if (serviceId) {
+      setSelectedServiceId(serviceId);
     }
   };
 
-  // Dane testowe
-  const mockServiceEntry: ServiceEntryType = {
-    id: 104,
-    serviceType: 'Wymiana oleju',
-    cost: 450,
-    servicePlace: 'Auto-Serwis Kowalski',
-    serviceDate: '2026-03-19',
-    vehicleId: '1',
-    carBrand: 'Toyota',
-    carModel: 'Corolla',
-    registrationNumber: 'WA 12345',
+  const closeServiceModal = () => {
+    setSelectedServiceId(null);
+    setActiveModal(null);
   };
+
+  const getModalConfig = () => {
+    switch (activeModal) {
+      case 'create':
+        return {
+          title: 'Dodaj wpis serwisowy',
+          subtitle: 'Zapisz każdą czynność serwisową, by mieć pełną historię pojazdu.',
+          content: <VehiclesServiceForm mode="create" onClose={closeServiceModal} />,
+        };
+
+      case 'edit':
+        return {
+          title: 'Edytuj wpis serwisowy',
+          subtitle: 'Zaktualizuj szczegóły czynności serwisowej dla tego pojazdu.',
+          content: isServiceLoading ? (
+            <LoadingIcon className="m-auto my-16" />
+          ) : activeService ? (
+            <VehiclesServiceForm mode="edit" service={activeService} onClose={closeServiceModal} />
+          ) : (
+            <EmptyPlaceholder title="Wpis nie został znaleziony." />
+          ),
+        };
+      case 'delete':
+        return {
+          title: 'Usuń wpis serwisowy',
+          subtitle:
+            'Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna.',
+          content: isServiceLoading ? (
+            <LoadingIcon className="m-auto my-16" />
+          ) : activeService ? (
+            <DeleteServiceConfirm service={activeService} onClose={closeServiceModal} />
+          ) : (
+            <EmptyPlaceholder title="Wpis nie został znaleziony." />
+          ),
+        };
+
+      case 'attachments':
+        return {
+          title: `Załączniki ${activeService?.attachments.length}/${MAX_FILES_PER_UPLOAD}`,
+          subtitle: `Pełny serwis · ${activeService?.vehicle.brand} ${activeService?.vehicle.model} · ${activeService?.vehicle.registrationNumber}`,
+          content: isServiceLoading ? (
+            <LoadingIcon className="m-auto my-16" />
+          ) : activeService ? (
+            <AttachmentsForm
+              mode="api"
+              serviceId={activeService.id}
+              attachments={activeService.attachments}
+            />
+          ) : (
+            <EmptyPlaceholder title="Wpis nie został znaleziony." />
+          ),
+        };
+      default:
+        return { title: '', subtitle: '', content: null };
+    }
+  };
+
+  const modalConfig = getModalConfig();
 
   return (
     <>
@@ -78,54 +133,46 @@ function RouteComponent() {
         subtitle="Pełna historia serwisowa Twojej floty"
         button={{
           label: 'Dodaj wpis serwisowy',
-          onClick: () => setModalState(true),
+          onClick: () => openServiceModal('create'),
         }}
       />
 
-      <Filters />
+      <ServicesFilters filters={filters} onChange={handleFilterChange} />
 
-      {serviceData.length === 0 || !serviceData ? (
+      {allServicesLoading ? (
         <BlockWrapper>
-          <EmptyPlaceholder title="Brak wpisów spełniających filtry." />
+          <LoadingIcon className="m-auto my-[24px]" />
+        </BlockWrapper>
+      ) : services.length === 0 ? (
+        <BlockWrapper>
+          <EmptyPlaceholder title="Brak wpisów serwisowych" />
         </BlockWrapper>
       ) : (
-        <DataTable
-          columns={serviceColumns}
-          data={serviceData}
-          onEdit={() => setModalState(mockServiceEntry)}
-          onDelete={() => setDeleteModalState(mockServiceEntry)}
-          footerLabel="Łącznie: 419.00 zł"
-        />
+        <div className="flex flex-col flex-1">
+          <DataTable
+            columns={getServiceColumns((service) => openServiceModal('attachments', service.id))}
+            data={services}
+            onEdit={(service) => openServiceModal('edit', service.id)}
+            onDelete={(service) => openServiceModal('delete', service.id)}
+            footerLabel={`Łącznie: ${servicesResponse?.totalCost} zł`}
+            totalLength={servicesResponse?.total}
+          />
+          <Pagination
+            className="mt-auto pt-6"
+            currentPage={servicesResponse?.page ?? page}
+            totalPages={servicesResponse?.totalPages ?? 1}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
-      {/* MODAL 1: DODAWANIE / EDYCJA WPISU */}
       <Modal
-        isOpen={isModalOpen}
-        setIsOpen={handleCloseModal}
-        title={modalTitle}
-        subtitle={modalSubtitle}
+        isOpen={activeModal !== null}
+        setIsOpen={(isOpen) => !isOpen && setActiveModal(null)}
+        title={modalConfig.title}
+        subtitle={modalConfig.subtitle}
       >
-        <AddVehicleServiceForm
-          onClose={handleCloseModal}
-          key={typeof modalState === 'object' && modalState !== null ? modalState.id : 'new'}
-          initialData={isEditMode ? modalState : undefined}
-        />
-      </Modal>
-
-      {/* MODAL 2: POTWIERDZENIE USUWANIA WPISU */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        setIsOpen={handleCloseDeleteModal}
-        title="Usuń wpis serwisowy"
-        subtitle="Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna."
-      >
-        {deleteModalState && (
-          <DeleteServiceConfirm
-            service={deleteModalState}
-            onConfirm={handleDeleteConfirm}
-            onClose={handleCloseDeleteModal}
-          />
-        )}
+        {modalConfig.content}
       </Modal>
     </>
   );
