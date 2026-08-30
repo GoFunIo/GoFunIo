@@ -1,7 +1,14 @@
 import { AddServiceFormData } from '../lib/formValidationRules';
 import { AttachmentData } from './AttachmentTypes';
 
+export type ServiceActions =
+  | 'add_service'
+  | 'edit_service'
+  | 'delete_service'
+  | 'attachments'
+  | null;
 export type ServiceType = 'FULL' | 'OIL_CHANGE' | 'TECHNICAL_INSPECTION' | 'OC' | 'AC' | 'OTHER';
+export type ServiceIdType = string | null;
 
 export type ServiceVehicle = {
   id: string;
