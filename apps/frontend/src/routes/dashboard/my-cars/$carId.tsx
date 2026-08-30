@@ -6,6 +6,7 @@ import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { VehicleData, VehicleFuelType, ServiceData } from '@/features/dashboard/types';
+import { useVehicleAlertsForCar } from '@/features/dashboard/hooks/useVehicleAlerts';
 
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
@@ -22,6 +23,7 @@ import { getVehicle } from '@/features/dashboard/api/vehicles.api';
 import { VehicleAssignments } from '@/features/dashboard/widgets/VehicleAssignment';
 import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
 import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
+import { getDeadlineCardVisual } from '@/utils/formatDeadline';
 
 const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
   if (!fuelValue) return 'Nieokreślone';
@@ -50,10 +52,10 @@ export const Route = createFileRoute('/dashboard/my-cars/$carId')({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
+
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const { data: selectedService } = useService(selectedServiceId);
-
-  const navigate = useNavigate();
 
   const initialCarData = Route.useLoaderData() as VehicleData | null;
   const { carId } = Route.useParams();
@@ -67,9 +69,39 @@ function RouteComponent() {
 
   const currentCar = car ?? initialCarData;
 
+  // ============================================================
+  // ALERTY TERMINÓW (BE)
+  // ============================================================
+  const { byKind: alertsByKind } = useVehicleAlertsForCar(carId);
+
+  const inspectionCard = useMemo(
+    () =>
+      getDeadlineCardVisual(
+        'przegląd',
+        'TECHNICAL_INSPECTION',
+        currentCar?.technicalInspectionExpiry,
+        alertsByKind.get('TECHNICAL_INSPECTION'),
+      ),
+    [currentCar?.technicalInspectionExpiry, alertsByKind],
+  );
+
+  const ocCard = useMemo(
+    () =>
+      getDeadlineCardVisual('Ubezpieczenie OC', 'OC', currentCar?.ocExpiry, alertsByKind.get('OC')),
+    [currentCar?.ocExpiry, alertsByKind],
+  );
+
+  const acCard = useMemo(
+    () =>
+      getDeadlineCardVisual('Ubezpieczenie AC', 'AC', currentCar?.acExpiry, alertsByKind.get('AC')),
+    [currentCar?.acExpiry, alertsByKind],
+  );
+
   const singleCarHistory = useMemo(() => {
     if (!currentCar) return [];
+
     const allServices = servicesResponse?.items ?? [];
+
     return allServices.filter(
       (item) => item.vehicleId === currentCar.id || item.vehicle?.id === currentCar.id,
     );
@@ -82,6 +114,7 @@ function RouteComponent() {
 
   const paginatedHistory = useMemo(() => {
     const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+
     return singleCarHistory.slice(start, start + HISTORY_PAGE_SIZE);
   }, [singleCarHistory, historyPage]);
 
@@ -240,20 +273,23 @@ function RouteComponent() {
       {/* 3. SIATKA TRZECH  KAFELKÓW  */}
       <GridWrapper layout={'3-equal'}>
         <DashboardCard
-          title="przegląd"
-          value={currentCar.technicalInspectionExpiry || ''}
+          title={inspectionCard.title}
+          value={inspectionCard.value}
+          variant={inspectionCard.variant}
           icon={<CalendarCog size={20} />}
         />
 
         <DashboardCard
-          title="Ubezpieczenie OC"
-          value={currentCar.ocExpiry || ''}
+          title={ocCard.title}
+          value={ocCard.value}
+          variant={ocCard.variant}
           icon={<ShieldAlert size={20} />}
         />
 
         <DashboardCard
-          title="Ubezpieczenie AC"
-          value={currentCar.acExpiry || ''}
+          title={acCard.title}
+          value={acCard.value}
+          variant={acCard.variant}
           icon={<ShieldCheck size={20} />}
         />
       </GridWrapper>

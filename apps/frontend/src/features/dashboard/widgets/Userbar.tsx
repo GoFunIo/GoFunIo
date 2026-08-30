@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { BurgerButton } from '../ui/BurgerButton';
-import { Logo } from '../ui/Logo';
+import { useEffect, useRef, useState } from 'react';
 import { useMediaQuery } from 'react-responsive';
-import { UserbarMenu } from './UserbarMenu';
 import { Bell, LogOut, Settings } from 'lucide-react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import classNames from 'classnames';
+import { ThemeToggle } from '@/hooks/useTheme';
+import { useUser } from '../hooks/user.hooks';
+import { useNotificationCenterSummary } from '@/features/dashboard/hooks/notificationCenter.hooks';
+
+import { BurgerButton } from '../ui/BurgerButton';
+import { Logo } from '../ui/Logo';
+import { UserbarMenu } from './UserbarMenu';
 import { signOut } from '@/features/auth/auth.api';
 import { queryClient } from '@/lib/queryClient';
-import { ThemeToggle } from '@/hooks/useTheme';
 import { getInitials } from '@/utils/getInitials';
 import { RemindersDropdown } from './RemindersDropdown';
-import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
-import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import { getUserFullName } from '@/utils/getUserFullName';
-import { useUser } from '../hooks/user.hooks';
 
 export const Userbar = () => {
   const navigate = useNavigate();
@@ -22,24 +22,16 @@ export const Userbar = () => {
   const alertsRef = useRef<HTMLDivElement>(null);
 
   const { data: user } = useUser();
-  const { data: vehiclesResponse } = useVehicles();
+  const { data: summary } = useNotificationCenterSummary();
 
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [dropdown, setDropdown] = useState<'settings' | 'alerts' | null>(null);
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-  const vehicles = vehiclesResponse?.items ?? [];
+  //  const hasUnreadNotifications = (summary?.unreadNotificationCount ?? 0) > 0;
 
-  const hasUrgentAlerts = useMemo(() => {
-    return vehicles.some((car) => {
-      const dates = [car.technicalInspectionExpiry, car.ocExpiry, car.acExpiry];
-      return dates.some((dateStr) => {
-        if (!dateStr) return false;
-        const { days, isPast } = calculateDaysToDate(dateStr);
-        return isPast || days <= 30;
-      });
-    });
-  }, [vehicles]);
+  const unreadCount = summary?.unreadNotificationCount ?? 0;
+  const unreadBadgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 
   const logout = async () => {
     try {
@@ -105,9 +97,18 @@ export const Userbar = () => {
               onClick={() => setDropdown(dropdown === 'alerts' ? null : 'alerts')}
               aria-label="Alerts"
             >
-              <div className="relative flex items-center justify-center">
-                {hasUrgentAlerts && (
+              {/* <div className="relative flex items-center justify-center">
+                {hasUnreadNotifications && (
                   <div className="absolute -top-[2px] -right-[2px] w-[8px] h-[8px] bg-alert rounded-full animate-pulse" />
+                )}
+                <Bell className="text-content-primary" size={20} />
+              </div> */}
+
+              <div className="relative flex items-center justify-center">
+                {unreadBadgeText && (
+                  <span className="absolute -top-[6px] -right-[6px] min-w-[16px] h-[16px] px-[3px] bg-alert text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {unreadBadgeText}
+                  </span>
                 )}
                 <Bell className="text-content-primary" size={20} />
               </div>

@@ -1,18 +1,19 @@
+import { useMemo } from 'react';
 import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
 import { useUser } from '../hooks/user.hooks';
+import { VehicleData, VehicleDeadlineAlert } from '@/features/dashboard/types';
+import { getAlertBadgeText, getAlertVariant, pickMostUrgentAlert } from '@/utils/formatDeadline';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { VehicleData } from '@/features/dashboard/types';
 import { fuelTypeLabels } from '../constants/fuelOptions';
 import { Tooltip } from '../ui/Tooltip ';
-import { useMemo } from 'react';
 
 type VehicleCardProps = {
   vehicle: VehicleData;
+  alerts?: VehicleDeadlineAlert[];
   onDetailsClick: (id: string) => void;
 };
 
@@ -30,32 +31,25 @@ const formatNames = (people?: PersonWithName[]): string => {
   return `${firstPerson} + ${people.length - 1}`;
 };
 
-const getBadgeConfig = (daysLeft: number) => {
-  if (daysLeft < 0) {
-    return {
-      text: 'Termin minął',
-      className: 'bg-alert text-white',
-    };
+const getBadgeConfig = (mostUrgentAlert?: VehicleDeadlineAlert) => {
+  if (!mostUrgentAlert) {
+    return { text: 'OK', className: 'bg-success text-white' };
   }
-  if (daysLeft <= 7) {
-    return {
-      text: 'Termin ≤ 7 dni',
-      className: 'bg-alert text-white',
-    };
+
+  if (mostUrgentAlert.overdue) {
+    return { text: 'Termin minął', className: 'bg-alert text-white' };
   }
-  if (daysLeft <= 30) {
-    return {
-      text: 'Termin ≤ 30 dni',
-      className: 'bg-warning text-white',
-    };
+
+  const variant = getAlertVariant(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue);
+
+  if (variant === 'alert') {
+    return { text: 'Termin ≤ 7 dni', className: 'bg-alert text-white' };
   }
-  return {
-    text: 'OK',
-    className: 'bg-success text-white',
-  };
+
+  return { text: 'Termin ≤ 30 dni', className: 'bg-warning text-white' };
 };
 
-export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
+export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProps) => {
   const { data: currentUser } = useUser();
 
   const orderedManagers = useMemo(() => {
@@ -72,15 +66,8 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
   const driverNames = formatNames(vehicle.drivers);
   const managerNames = formatNames(orderedManagers);
 
-  const inspectionDays = vehicle.technicalInspectionExpiry
-    ? calculateDaysToDate(vehicle.technicalInspectionExpiry).days
-    : Infinity;
-  const ocDays = vehicle.ocExpiry ? calculateDaysToDate(vehicle.ocExpiry).days : Infinity;
-  const acDays = vehicle.acExpiry ? calculateDaysToDate(vehicle.acExpiry).days : Infinity;
-
-  const minDays = Math.min(inspectionDays, ocDays, acDays);
-
-  const badge = getBadgeConfig(minDays);
+  const mostUrgentAlert = useMemo(() => pickMostUrgentAlert(alerts), [alerts]);
+  const badge = getBadgeConfig(mostUrgentAlert);
 
   return (
     <BlockWrapper className="flex flex-col justify-between h-full">
@@ -105,6 +92,11 @@ export const VehicleCard = ({ vehicle, onDetailsClick }: VehicleCardProps) => {
               'px-[10px] py-[4px] rounded-[3px] text-[10px] font-semibold tracking-wide whitespace-nowrap shrink-0',
               badge.className,
             )}
+            title={
+              mostUrgentAlert
+                ? getAlertBadgeText(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
+                : undefined
+            }
           >
             {badge.text}
           </div>

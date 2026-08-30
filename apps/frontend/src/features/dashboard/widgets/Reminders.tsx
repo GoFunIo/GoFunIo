@@ -9,79 +9,34 @@ import {
 } from 'lucide-react';
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
-import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
-import { VehicleData } from '../types';
+import { DeadlineKind, VehicleDeadlineAlert } from '../types';
+import { deadlineKindLabels, getAlertBadgeText, getAlertVariant } from '@/utils/formatDeadline';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
 type Props = {
-  data?: VehicleData[];
-  onRenewCar?: (id: string) => void;
+  alerts?: VehicleDeadlineAlert[];
+  onRenewCar?: (vehicleId: string) => void;
   filterType?: AlertFilterType;
-  maxDays?: number;
 };
 
-const activityIcons: Record<'inspection' | 'insurance_ac' | 'insurance_oc', LucideIcon> = {
-  inspection: CalendarCog,
-  insurance_ac: ShieldCheck,
-  insurance_oc: ShieldAlert,
+const activityIcons: Record<DeadlineKind, LucideIcon> = {
+  TECHNICAL_INSPECTION: CalendarCog,
+  AC: ShieldCheck,
+  OC: ShieldAlert,
 };
 
-export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays = 60 }: Props) => {
-  const activeReminders = data
-    .flatMap((car) => {
-      const inspection = car.technicalInspectionExpiry
-        ? calculateDaysToDate(car.technicalInspectionExpiry)
-        : null;
-      const oc = car.ocExpiry ? calculateDaysToDate(car.ocExpiry) : null;
-      const ac = car.acExpiry ? calculateDaysToDate(car.acExpiry) : null;
+const matchesFilter = (kind: DeadlineKind, filterType: AlertFilterType) => {
+  if (filterType === 'all') return true;
+  if (filterType === 'inspection') return kind === 'TECHNICAL_INSPECTION';
+  return kind === 'OC' || kind === 'AC';
+};
 
-      const carAlerts = [
-        {
-          typeKey: 'inspection' as const,
-          typeLabel: 'Przegląd techniczny',
-          expiryDate: car.technicalInspectionExpiry,
-          days: inspection?.days ?? 0,
-          isPast: inspection?.isPast ?? false,
-        },
-        {
-          typeKey: 'insurance_oc' as const,
-          typeLabel: 'Ubezpieczenie OC',
-          expiryDate: car.ocExpiry,
-          days: oc?.days ?? 0,
-          isPast: oc?.isPast ?? false,
-        },
-        {
-          typeKey: 'insurance_ac' as const,
-          typeLabel: 'Ubezpieczenie AC',
-          expiryDate: car.acExpiry,
-          days: ac?.days ?? 0,
-          isPast: ac?.isPast ?? false,
-        },
-      ];
-
-      return carAlerts
-        .filter((alert) => alert.expiryDate && (alert.days <= maxDays || alert.isPast))
-        .filter((alert) => {
-          if (!filterType || filterType === 'all') return true;
-          if (filterType === 'inspection') return alert.typeKey === 'inspection';
-          if (filterType === 'insurance')
-            return alert.typeKey === 'insurance_oc' || alert.typeKey === 'insurance_ac';
-          return true;
-        })
-        .map((alert) => ({
-          id: `${car.id}-${alert.typeKey}`,
-          carId: car.id,
-          carName: `${car.brand} ${car.model}`,
-          plate: car.registrationNumber,
-          typeKey: alert.typeKey,
-          typeLabel: alert.typeLabel,
-          expiryDate: alert.expiryDate,
-          days: alert.days,
-          isPast: alert.isPast,
-        }));
-    })
-    .sort((a, b) => a.days - b.days);
+export const Reminders = ({ alerts = [], onRenewCar, filterType = 'all' }: Props) => {
+  const activeReminders = alerts
+    .filter((item) => matchesFilter(item.deadlineKind, filterType))
+    .slice()
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
   if (activeReminders.length === 0) {
     return (
@@ -96,24 +51,20 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
   return (
     <div className="flex flex-col gap-4">
       {activeReminders.map((item) => {
-        const Icon = activityIcons[item.typeKey];
+        const Icon = activityIcons[item.deadlineKind];
+        const variant = getAlertVariant(item.daysRemaining, item.overdue);
 
-        const isExpired = item.isPast;
-        const isCritical = item.days <= 7 || isExpired;
-        const isWarning = !isCritical && item.days <= 30;
-        const isInfo = !isCritical && !isWarning;
+        const isCritical = variant === 'alert';
+        const isWarning = variant === 'warning';
+        const isInfo = variant === 'info';
 
-        let badgeText = 'Nadchodzące < 60d';
-
-        if (isCritical) {
-          badgeText = isExpired ? 'Po terminie' : 'Krytyczne ≤ 7d';
-        } else if (isWarning) {
-          badgeText = 'Nadchodzące < 30d';
-        }
+        const badgeText = isInfo
+          ? 'Nadchodzące < 60d'
+          : getAlertBadgeText(item.daysRemaining, item.overdue);
 
         return (
           <div
-            key={item.id}
+            key={item.alertKey}
             className={classNames(
               'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 p-5 border-l-[5px] rounded-[7px] transition-colors shadow-sm',
               {
@@ -121,7 +72,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
                 'border-l-warning': isWarning,
                 'border-l-info': isInfo,
               },
-              isExpired ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card',
+              item.overdue ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card',
             )}
           >
             <div className="flex items-center gap-4">
@@ -140,22 +91,22 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
 
               <div className="flex flex-col gap-0.5">
                 <p className="text-[14px] text-content-primary font-bold">
-                  {item.carName}
+                  {item.vehicle.brand} {item.vehicle.model}
                   <span className="text-[14px] text-content-secondary font-normal">
                     {' · '}
-                    {item.plate}
+                    {item.vehicle.registrationNumber}
                   </span>
                 </p>
                 <p className="text-[12px] text-content-secondary">
-                  {item.typeLabel} {' — '}
-                  {isExpired ? 'termin minął' : 'termin mija'}{' '}
-                  <span className="font-medium">{item.expiryDate}</span>
+                  {deadlineKindLabels[item.deadlineKind]} {' — '}
+                  {item.overdue ? 'termin minął' : 'termin mija'}{' '}
+                  <span className="font-medium">{item.deadlineDate}</span>
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col min-[425px]:flex-row min-[425px]:items-center gap-3 shrink-0 justify-start sm:justify-end">
-              {isExpired && <TriangleAlert className="text-alert shrink-0" size={25} />}
+              {item.overdue && <TriangleAlert className="text-alert shrink-0" size={25} />}
 
               <span
                 className={classNames(
@@ -171,7 +122,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
               </span>
 
               <BoardButton
-                onClick={() => onRenewCar?.(item.carId)}
+                onClick={() => onRenewCar?.(item.vehicleId)}
                 size="small"
                 variant="default"
                 icon="refresh"

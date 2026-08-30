@@ -11,7 +11,7 @@ import {
   markNotificationAsRead,
   updateAlertPolicy,
   updateNotificationPreferences,
-} from '@/features/dashboard/api/NotificationCenter.api';
+} from '@/features/dashboard/api/notificationCenter.api';
 import {
   NotificationsListParams,
   ReadAllPayload,
@@ -21,8 +21,6 @@ import {
 } from '@/features/dashboard/types';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 
-// companyId wchodzi do query keys, żeby dane różnych workspace'ów
-// (po POST /auth/switch-company) nigdy się nie mieszały w cache'u.
 const useCompanyId = () => {
   const { data: user } = useUser();
   return user?.companyId ?? null;
@@ -57,9 +55,7 @@ export const useVehicleDeadlineAlerts = (params?: Omit<VehicleDeadlineAlertsPara
       getVehicleDeadlineAlerts({ ...params, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    // jeśli caller jawnie filtruje po vehicleId, poczekaj aż będzie dostępne
-    // (np. currentCar?.id na starcie ładowania strony) zamiast pobierać
-    // w międzyczasie alerty wszystkich pojazdów firmy
+
     enabled: !!companyId && (!hasVehicleIdKey || !!params?.vehicleId),
   });
 };
@@ -175,7 +171,7 @@ export const useMarkAllNotificationsAsRead = () => {
 };
 
 // =========================================================================
-// PREFERENCJE UŻYTKOWNIKA (globalne, nie per-workspace)
+// PREFERENCJE UŻYTKOWNIKA (globalne)
 // GET /notification-preferences/me
 // =========================================================================
 export const useNotificationPreferences = () => {
