@@ -381,7 +381,7 @@ function RouteComponent() {
           />
         </Link>
 
-        <Link to="/dashboard/notifications" className="block no-underline">
+        <Link to="/dashboard/alerts" className="block no-underline">
           <DashboardCard
             title="Pilne przypomnienia"
             value={isVehiclesPending ? '...' : adminStats.urgentReminders}

@@ -16,8 +16,8 @@ import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/s
 import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index'
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index'
 import { Route as DashboardServiceIndexRouteImport } from './routes/dashboard/service/index'
-import { Route as DashboardNotificationsIndexRouteImport } from './routes/dashboard/notifications/index'
 import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-cars/index'
+import { Route as DashboardAlertsIndexRouteImport } from './routes/dashboard/alerts/index'
 import { Route as DashboardhomeIndexRouteImport } from './routes/dashboard/(home)/index'
 import { Route as publichomeIndexRouteImport } from './routes/(public)/(home)/index'
 import { Route as authVerifyEmailIndexRouteImport } from './routes/(auth)/verify-email/index'
@@ -67,15 +67,14 @@ const DashboardServiceIndexRoute = DashboardServiceIndexRouteImport.update({
   path: '/service/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardNotificationsIndexRoute =
-  DashboardNotificationsIndexRouteImport.update({
-    id: '/notifications/',
-    path: '/notifications/',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
 const DashboardMyCarsIndexRoute = DashboardMyCarsIndexRouteImport.update({
   id: '/my-cars/',
   path: '/my-cars/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAlertsIndexRoute = DashboardAlertsIndexRouteImport.update({
+  id: '/alerts/',
+  path: '/alerts/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardhomeIndexRoute = DashboardhomeIndexRouteImport.update({
@@ -178,8 +177,8 @@ export interface FileRoutesByFullPath {
   '/verify-email/': typeof authVerifyEmailIndexRoute
   '/': typeof publichomeIndexRoute
   '/dashboard/': typeof DashboardhomeIndexRoute
+  '/dashboard/alerts/': typeof DashboardAlertsIndexRoute
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute
-  '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute
   '/dashboard/service/': typeof DashboardServiceIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
@@ -200,8 +199,8 @@ export interface FileRoutesByTo {
   '/verify-email': typeof authVerifyEmailIndexRoute
   '/': typeof publichomeIndexRoute
   '/dashboard': typeof DashboardhomeIndexRoute
+  '/dashboard/alerts': typeof DashboardAlertsIndexRoute
   '/dashboard/my-cars': typeof DashboardMyCarsIndexRoute
-  '/dashboard/notifications': typeof DashboardNotificationsIndexRoute
   '/dashboard/service': typeof DashboardServiceIndexRoute
   '/dashboard/settings': typeof DashboardSettingsIndexRoute
   '/dashboard/timeline': typeof DashboardTimelineIndexRoute
@@ -227,8 +226,8 @@ export interface FileRoutesById {
   '/(auth)/verify-email/': typeof authVerifyEmailIndexRoute
   '/(public)/(home)/': typeof publichomeIndexRoute
   '/dashboard/(home)/': typeof DashboardhomeIndexRoute
+  '/dashboard/alerts/': typeof DashboardAlertsIndexRoute
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute
-  '/dashboard/notifications/': typeof DashboardNotificationsIndexRoute
   '/dashboard/service/': typeof DashboardServiceIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
   '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
@@ -253,8 +252,8 @@ export interface FileRouteTypes {
     | '/verify-email/'
     | '/'
     | '/dashboard/'
+    | '/dashboard/alerts/'
     | '/dashboard/my-cars/'
-    | '/dashboard/notifications/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
@@ -275,8 +274,8 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/'
     | '/dashboard'
+    | '/dashboard/alerts'
     | '/dashboard/my-cars'
-    | '/dashboard/notifications'
     | '/dashboard/service'
     | '/dashboard/settings'
     | '/dashboard/timeline'
@@ -301,8 +300,8 @@ export interface FileRouteTypes {
     | '/(auth)/verify-email/'
     | '/(public)/(home)/'
     | '/dashboard/(home)/'
+    | '/dashboard/alerts/'
     | '/dashboard/my-cars/'
-    | '/dashboard/notifications/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
     | '/dashboard/timeline/'
@@ -365,18 +364,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardServiceIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/notifications/': {
-      id: '/dashboard/notifications/'
-      path: '/notifications'
-      fullPath: '/dashboard/notifications/'
-      preLoaderRoute: typeof DashboardNotificationsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/my-cars/': {
       id: '/dashboard/my-cars/'
       path: '/my-cars'
       fullPath: '/dashboard/my-cars/'
       preLoaderRoute: typeof DashboardMyCarsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/alerts/': {
+      id: '/dashboard/alerts/'
+      path: '/alerts'
+      fullPath: '/dashboard/alerts/'
+      preLoaderRoute: typeof DashboardAlertsIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/(home)/': {
@@ -551,8 +550,8 @@ interface DashboardRouteRouteChildren {
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
   DashboardMyCarsCarIdRoute: typeof DashboardMyCarsCarIdRoute
   DashboardhomeIndexRoute: typeof DashboardhomeIndexRoute
+  DashboardAlertsIndexRoute: typeof DashboardAlertsIndexRoute
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute
-  DashboardNotificationsIndexRoute: typeof DashboardNotificationsIndexRoute
   DashboardServiceIndexRoute: typeof DashboardServiceIndexRoute
   DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute
 }
@@ -561,8 +560,8 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
   DashboardMyCarsCarIdRoute: DashboardMyCarsCarIdRoute,
   DashboardhomeIndexRoute: DashboardhomeIndexRoute,
+  DashboardAlertsIndexRoute: DashboardAlertsIndexRoute,
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
-  DashboardNotificationsIndexRoute: DashboardNotificationsIndexRoute,
   DashboardServiceIndexRoute: DashboardServiceIndexRoute,
   DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
 }

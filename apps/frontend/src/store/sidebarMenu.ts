@@ -31,7 +31,7 @@ export const sidebar = [
     {
       id: 5,
       title: 'Alerty',
-      href: `${baseRoute}/notifications`,
+      href: `${baseRoute}/alerts`,
       icon: Bell,
     },
   ],

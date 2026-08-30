@@ -12,7 +12,7 @@ import { LoadingIcon } from '@/components/ui/LoadingIcon';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
-export const Route = createFileRoute('/dashboard/notifications/')({
+export const Route = createFileRoute('/dashboard/alerts/')({
   component: RouteComponent,
 });
 

@@ -158,7 +158,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
       <div className="pt-3 border-t border-icon">
         <Link
           onClick={onClose}
-          to="/dashboard/notifications"
+          to="/dashboard/alerts"
           className="text-[14px] font-bold text-secondary hover:underline flex items-center justify-between w-full"
         >
           <span>Zobacz wszystkie powiadomienia</span>
