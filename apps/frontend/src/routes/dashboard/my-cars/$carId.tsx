@@ -310,10 +310,10 @@ function RouteComponent() {
           }}
         />
 
-        <GridWrapper>
+        <div className="flex flex-col gap-4 sm:gap-6">
           <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
           <VehicleAssignments vehicle={currentCar} />
-        </GridWrapper>
+        </div>
       </GridWrapper>
 
       <Modal

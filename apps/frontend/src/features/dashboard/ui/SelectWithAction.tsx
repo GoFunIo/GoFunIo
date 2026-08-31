@@ -47,7 +47,7 @@ export const SelectWithAction = ({
 
   return (
     <div
-      className={classNames('relative w-full min-w-[250px] max-w-[320px]', className)}
+      className={classNames('relative w-full min-w-[220px] max-w-[320px]', className)}
       ref={selectRef}
     >
       <button

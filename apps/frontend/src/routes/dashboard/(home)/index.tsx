@@ -27,7 +27,7 @@ import { Modal } from '@/features/dashboard/ui/Modal';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { Reminders } from '@/features/dashboard/widgets/Reminders';
+import { Reminders } from '@/features/dashboard/widgets/ReminderRow';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { Banner } from '@/features/dashboard/widgets/Banner';

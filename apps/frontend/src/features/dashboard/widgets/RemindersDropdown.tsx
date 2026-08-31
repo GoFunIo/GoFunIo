@@ -1,12 +1,10 @@
-// ZMIANA UX: dropdown dzwonka pokazuje teraz log Notifications (GET /notifications), a nie żywe alerty liczone z pojazdów.
-// Klik na pozycję = oznacz jako przeczytane + nawigacja przez `action`
-
 import { Link, useNavigate } from '@tanstack/react-router';
 import { CalendarCog, ChevronRight, LucideIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
 import classNames from 'classnames';
 import {
   useNotifications,
   useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
   useNotificationCenterSummary,
 } from '@/features/dashboard/hooks/notificationCenter.hooks';
 import { DeadlineKind, NotificationItem } from '@/features/dashboard/types';
@@ -47,6 +45,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
   const { data, isLoading } = useNotifications({ archived: false, limit: 20 });
   const { data: summary } = useNotificationCenterSummary();
   const markAsReadMutation = useMarkNotificationAsRead();
+  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
 
   const items: NotificationItem[] = data?.pages[0]?.items ?? [];
   const unreadCount = summary?.unreadNotificationCount ?? 0;
@@ -66,16 +65,32 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
     onClose();
   };
 
+  const handleMarkAllAsRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    markAllAsReadMutation.mutate(undefined);
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="shadow-sm flex flex-col p-4 sm:absolute min-[426px]:top-[64px] top-[50px] right-0 bg-bg-card min-w-[320px] sm:w-[460px] w-screen fixed z-50 border border-icon">
-      {/* NAGŁÓWEK */}
-      <div className="border-b border-icon pb-3">
-        <h3 className="text-[14px] font-bold text-content-primary">Powiadomienia</h3>
-        <p className="text-[12px] text-content-secondary font-normal mt-0.5">
-          {getDropdownSubtitleText(unreadCount)}
-        </p>
+      {/* NAGŁÓWEK + PRZYCISK "OZNACZ WSZYSTKIE" */}
+      <div className="border-b border-icon pb-3 flex flex-col sm:flex-row items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[14px] font-bold text-content-primary">Powiadomienia</h3>
+          <p className="text-[12px] text-content-secondary font-normal mt-0.5">
+            {getDropdownSubtitleText(unreadCount)}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleMarkAllAsRead}
+          disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
+          className="text-[12px] font-semibold text-secondary hover:underline shrink-0 whitespace-nowrap bg-transparent border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline"
+        >
+          Oznacz wszystkie jako przeczytane
+        </button>
       </div>
 
       {/* LISTA */}

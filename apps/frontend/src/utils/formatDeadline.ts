@@ -74,14 +74,18 @@ export const deadlineKindShortLabels: Record<DeadlineKind, string> = {
 
 // Etykiety kategorii Notifications — współdzielone między /dashboard/alerts
 //  i /dashboard/settings/notification (preferencje).
-export const notificationCategoryLabels: Record<
-  'FLEET_DEADLINES' | 'VEHICLE_ACCESS' | 'MEMBERSHIP' | 'SERVICE' | 'PRODUCT',
-  string
-> = {
+export type NotificationCategory =
+  | 'FLEET_DEADLINES'
+  | 'VEHICLE_ACCESS'
+  | 'MEMBERSHIP'
+  | 'SERVICE'
+  | 'PRODUCT';
+
+export const notificationCategoryLabels: Record<NotificationCategory, string> = {
   FLEET_DEADLINES: 'Terminy floty',
-  VEHICLE_ACCESS: 'Dostęp do pojazdów',
-  MEMBERSHIP: 'Zespół i workspace',
-  SERVICE: 'Serwis i naprawy',
+  VEHICLE_ACCESS: 'Przypisanie pojazdów do użytkowników',
+  MEMBERSHIP: 'Zespół i uprawnienia',
+  SERVICE: 'Serwis, przeglądy i ubezpieczenia',
   PRODUCT: 'Nowości produktowe',
 };
 

@@ -28,8 +28,6 @@ export const Userbar = () => {
   const [dropdown, setDropdown] = useState<'settings' | 'alerts' | null>(null);
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-  //  const hasUnreadNotifications = (summary?.unreadNotificationCount ?? 0) > 0;
-
   const unreadCount = summary?.unreadNotificationCount ?? 0;
   const unreadBadgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 
@@ -78,7 +76,7 @@ export const Userbar = () => {
         )}
 
         {/* PRAWA  STRONA user+ ikonki  */}
-        <div className="ml-[auto] h-full flex items-center gap-4">
+        <div className="ml-[auto] h-full flex items-center gap-1 sm:gap-4">
           {user?.role && (
             <span className="text-[10px] text-content-primary font-semibold px-4 py-2 rounded-md uppercase tracking-wider bg-bg-section shrink-0">
               {user.role}
@@ -97,13 +95,6 @@ export const Userbar = () => {
               onClick={() => setDropdown(dropdown === 'alerts' ? null : 'alerts')}
               aria-label="Alerts"
             >
-              {/* <div className="relative flex items-center justify-center">
-                {hasUnreadNotifications && (
-                  <div className="absolute -top-[2px] -right-[2px] w-[8px] h-[8px] bg-alert rounded-full animate-pulse" />
-                )}
-                <Bell className="text-content-primary" size={20} />
-              </div> */}
-
               <div className="relative flex items-center justify-center">
                 {unreadBadgeText && (
                   <span className="absolute -top-[6px] -right-[6px] min-w-[16px] h-[16px] px-[3px] bg-alert text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
