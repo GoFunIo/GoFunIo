@@ -16,7 +16,7 @@ export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
 type Props = {
   data?: VehicleData[];
-  onRenewCar?: (id: string) => void;
+  onRenewCar?: (vehicle: VehicleData) => void;
   filterType?: AlertFilterType;
   maxDays?: number;
 };
@@ -82,6 +82,14 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
         }));
     })
     .sort((a, b) => a.days - b.days);
+
+  const handleRenewCar = (carId: string) => {
+    const vehicle = data.find((car) => car.id === carId);
+
+    if (vehicle) {
+      onRenewCar?.(vehicle);
+    }
+  };
 
   if (activeReminders.length === 0) {
     return (
@@ -171,7 +179,7 @@ export const Reminders = ({ data = [], onRenewCar, filterType = 'all', maxDays =
               </span>
 
               <BoardButton
-                onClick={() => onRenewCar?.(item.carId)}
+                onClick={() => handleRenewCar(item.carId)}
                 size="small"
                 variant="default"
                 icon="refresh"

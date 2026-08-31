@@ -34,6 +34,7 @@ import { useServices } from '@/features/dashboard/hooks/services.hooks';
 import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
 import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
 import { useUsersModal } from '@/features/dashboard/hooks/useUsersModal';
+import { Reminders } from '@/features/dashboard/widgets/Reminders';
 
 type DashboardAction = {
   id: number;
@@ -112,6 +113,7 @@ function RouteComponent() {
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
+  console.log(vehicles);
 
   // ============================================================
   // PRZEGLĄDY TECHNICZNE
@@ -292,12 +294,12 @@ function RouteComponent() {
                 icon={Wrench}
                 stats={inspectionStats}
               />
-              {/* <Reminders
+              <Reminders
                 data={vehicles}
                 filterType="inspection"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 maxDays={30}
-              /> */}
+              />
             </div>
 
             <div className="flex flex-col gap-4">
@@ -306,12 +308,12 @@ function RouteComponent() {
                 icon={ShieldAlert}
                 stats={insuranceStats}
               />
-              {/* <Reminders
+              <Reminders
                 data={vehicles}
                 filterType="insurance"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 maxDays={30}
-              /> */}
+              />
             </div>
           </div>
         )}
