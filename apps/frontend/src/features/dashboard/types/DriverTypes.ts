@@ -1,3 +1,5 @@
+export type DriversActions = 'add' | 'edit' | 'delete' | 'showCars' | null;
+
 // Pojazd aktualnie przypisany do kierowcy.
 export interface DriverActiveVehicle {
   id: string;

@@ -1,3 +1,6 @@
+export type UserActions = 'personal' | 'company' | 'email' | 'password' | null;
+export type UsersActions = 'add' | 'edit' | 'delete' | 'showCars' | null;
+
 export interface UserType {
   address: string | null;
   city: string | null;

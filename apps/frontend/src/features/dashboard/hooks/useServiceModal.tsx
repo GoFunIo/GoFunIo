@@ -1,21 +1,28 @@
-import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { VehiclesServiceForm } from '../forms/VehiclesServicesForm';
-import { useService } from '../hooks/services.hooks';
+import { useState } from 'react';
 import { ServiceActions, ServiceIdType } from '../types';
-import { AttachmentsForm } from '../forms/AttachmentsForm';
+import { useService } from './services.hooks';
+import { VehiclesServiceForm } from '../forms/VehiclesServicesForm';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { EmptyPlaceholder } from '../widgets/EmptyPlaceholder';
 import { DeleteServiceConfirm } from '../forms/DeleteServiceConfirm';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
+import { AttachmentsForm } from '../forms/AttachmentsForm';
 import { Modal } from '../ui/Modal';
 
-type Props = {
-  activeModal: ServiceActions;
-  closeModal: () => void;
-  serviceId?: ServiceIdType;
-};
+export const useServiceModal = () => {
+  const [activeModal, setActiveModal] = useState<ServiceActions>(null);
+  const [serviceId, setServiceId] = useState<ServiceIdType>();
+  const { data: service, isLoading } = useService(serviceId);
 
-export const ServiceModalContent = ({ activeModal, closeModal, serviceId }: Props) => {
-  const { data: service, isLoading: isLoading } = useService(serviceId);
+  const openModal = (modal: ServiceActions, id?: ServiceIdType) => {
+    setActiveModal(modal);
+    setServiceId(id);
+  };
+
+  const closeModal = () => {
+    setServiceId(null);
+    setActiveModal(null);
+  };
 
   const getModalConfig = () => {
     switch (activeModal) {
@@ -71,14 +78,18 @@ export const ServiceModalContent = ({ activeModal, closeModal, serviceId }: Prop
 
   const modalConfig = getModalConfig();
 
-  return (
-    <Modal
-      isOpen={activeModal !== null}
-      setIsOpen={(isOpen) => !isOpen && closeModal()}
-      title={modalConfig.title}
-      subtitle={modalConfig.subtitle}
-    >
-      {modalConfig.content}
-    </Modal>
-  );
+  return {
+    openModal,
+    closeModal,
+    ServiceModal: (
+      <Modal
+        isOpen={activeModal !== null}
+        setIsOpen={(isOpen) => !isOpen && closeModal()}
+        title={modalConfig.title}
+        subtitle={modalConfig.subtitle}
+      >
+        {modalConfig.content}
+      </Modal>
+    ),
+  };
 };
