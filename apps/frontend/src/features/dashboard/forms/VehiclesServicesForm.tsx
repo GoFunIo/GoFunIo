@@ -14,7 +14,7 @@ import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useCreateService, useUpdateService } from '../hooks/services.hooks';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
-import { SingleServiceData } from '../types';
+import { SingleServiceData, VehicleData } from '../types';
 import { handlePriceInput } from '@/utils/handlePhoneInput';
 import { AttachmentsForm } from './AttachmentsForm';
 import { formatDate } from '@/utils/formatFile';
@@ -22,6 +22,7 @@ import { formatDate } from '@/utils/formatFile';
 type BaseFormProps = {
   className?: string;
   onClose: () => void;
+  currentVehicle?: VehicleData | null;
 };
 
 type FormProps = BaseFormProps &
@@ -36,7 +37,13 @@ type FormProps = BaseFormProps &
       }
   );
 
-export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormProps) => {
+export const VehiclesServiceForm = ({
+  className,
+  onClose,
+  service,
+  mode,
+  currentVehicle,
+}: FormProps) => {
   const { mutateAsync: createService, isPending: isCreating } = useCreateService();
   const { mutateAsync: updateService, isPending: isUpdating } = useUpdateService();
   const { data: vehiclesData, isLoading: isVehiclesLoading } = useVehicles();
@@ -70,7 +77,7 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
     mode: 'onTouched',
     shouldFocusError: false,
     defaultValues: {
-      vehicleId: service?.vehicleId ?? '',
+      vehicleId: currentVehicle?.id ?? service?.vehicleId ?? '',
       serviceDate: service?.serviceDate ?? '',
       serviceType: service?.type ?? '',
       servicePlace: service?.providerName ?? '',
@@ -141,7 +148,7 @@ export const VehiclesServiceForm = ({ className, onClose, service, mode }: FormP
                 placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
                 className="w-full !h-[45px] "
                 error={errors.vehicleId?.message}
-                disabled={isPending}
+                disabled={isPending || !!currentVehicle || mode === 'edit'}
               />
             )}
           />

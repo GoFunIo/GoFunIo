@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ServiceActions, ServiceIdType } from '../types';
+import { ServiceActions, ServiceIdType, VehicleData } from '../types';
 import { useService } from './services.hooks';
 import { VehiclesServiceForm } from '../forms/VehiclesServicesForm';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
@@ -11,17 +11,20 @@ import { Modal } from '../ui/Modal';
 
 export const useServiceModal = () => {
   const [activeModal, setActiveModal] = useState<ServiceActions>(null);
-  const [serviceId, setServiceId] = useState<ServiceIdType>();
+  const [serviceId, setServiceId] = useState<ServiceIdType>(null);
+  const [currentVehicle, setCurrentVehicle] = useState<VehicleData | null>(null);
   const { data: service, isLoading } = useService(serviceId);
 
-  const openModal = (modal: ServiceActions, id?: ServiceIdType) => {
+  const openModal = (modal: ServiceActions, id?: ServiceIdType, vehicle?: VehicleData) => {
     setActiveModal(modal);
-    setServiceId(id);
+    setServiceId(id ?? null);
+    setCurrentVehicle(vehicle ?? null);
   };
 
   const closeModal = () => {
     setServiceId(null);
     setActiveModal(null);
+    setCurrentVehicle(null);
   };
 
   const getModalConfig = () => {
@@ -30,7 +33,13 @@ export const useServiceModal = () => {
         return {
           title: 'Dodaj wpis serwisowy',
           subtitle: 'Zapisz każdą czynność serwisową, by mieć pełną historię pojazdu.',
-          content: <VehiclesServiceForm mode="create" onClose={closeModal} />,
+          content: (
+            <VehiclesServiceForm
+              currentVehicle={currentVehicle}
+              mode="create"
+              onClose={closeModal}
+            />
+          ),
         };
 
       case 'edit_service':
@@ -40,7 +49,12 @@ export const useServiceModal = () => {
           content: isLoading ? (
             <LoadingIcon className="m-auto my-16" />
           ) : service ? (
-            <VehiclesServiceForm mode="edit" service={service} onClose={closeModal} />
+            <VehiclesServiceForm
+              currentVehicle={currentVehicle}
+              mode="edit"
+              service={service}
+              onClose={closeModal}
+            />
           ) : (
             <EmptyPlaceholder title="Wpis nie został znaleziony." />
           ),
