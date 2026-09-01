@@ -74,7 +74,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
 
   return (
     <div className="shadow-sm flex flex-col p-4 sm:absolute min-[426px]:top-[64px] top-[50px] right-0 bg-bg-card min-w-[320px] sm:w-[460px] w-screen fixed z-50 border border-icon">
-      {/* NAGŁÓWEK + PRZYCISK "OZNACZ WSZYSTKIE" */}
       <div className="border-b border-icon pb-3 flex flex-col sm:flex-row items-start justify-between gap-3">
         <div>
           <h3 className="text-[14px] font-bold text-content-primary">Powiadomienia</h3>
@@ -115,7 +114,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                 onClick={() => handleItemClick(item)}
                 className="flex items-center justify-between gap-3 py-3 text-left w-full cursor-pointer bg-transparent border-none"
               >
-                {/* IKONA + DANE */}
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={classNames(
@@ -149,7 +147,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                   </div>
                 </div>
 
-                {/* PRÓG (leadDay), nie licznik dni — to zdarzenie z przeszłości */}
                 <span
                   className={classNames(
                     'text-[11px] font-semibold px-2.5 py-1 rounded-[3px] shrink-0 text-center whitespace-nowrap',

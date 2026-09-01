@@ -231,7 +231,6 @@ function RouteComponent() {
 
   return (
     <>
-      {/* 1. LINK POWROTNY */}
       <Link
         to="/dashboard/my-cars"
         className="w-fit flex items-center gap-[8px] text-[12px] text-content-secondary"
@@ -240,7 +239,6 @@ function RouteComponent() {
         Wróć do pojazdów
       </Link>
 
-      {/* 2. NAGŁÓWEK Z DANYMI AUTA  */}
       <div className="grid sm:grid-cols-2 grid-cols-1 gap-[16px]">
         <div className="flex gap-[16px] items-center shrink-0">
           <IconWrapper className="xl:w-[60px] xl:h-[60px] w-[50px] h-[50px]  bg-secondary">

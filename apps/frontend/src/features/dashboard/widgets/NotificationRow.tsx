@@ -69,7 +69,6 @@ export function NotificationRow({
             : 'bg-bg-card border-icon',
       )}
     >
-      {/* 1. CHECKBOX + IKONA — zwarty blok, stałej szerokości */}
       <div className="flex items-center gap-3 shrink-0">
         <input
           type="checkbox"
@@ -92,8 +91,6 @@ export function NotificationRow({
         </div>
       </div>
 
-      {/* 2. TEKST — pełna dostępna szerokość dla siebie (flex-1), żeby
-          zawijał się swobodnie zamiast dzielić rząd z checkboxem/ikoną */}
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
         <p
           className={classNames(
@@ -116,9 +113,6 @@ export function NotificationRow({
         </p>
       </div>
 
-      {/* 3. PRZYCISKI — na końcu; `sm:ml-auto` dosuwa je do prawej na
-          desktopie niezależnie od szerokości bloku tekstu (zamiast
-          justify-between na kontenerze, które działałoby tylko dla 2 grup) */}
       <div className="flex flex-col min-[425px]:flex-row min-[425px]:items-center gap-2 shrink-0 sm:ml-auto">
         {isUnread && !isArchived && (
           <BoardButton
