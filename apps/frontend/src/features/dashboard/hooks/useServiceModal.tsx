@@ -15,10 +15,26 @@ export const useServiceModal = () => {
   const [currentVehicle, setCurrentVehicle] = useState<VehicleData | null>(null);
   const { data: service, isLoading } = useService(serviceId);
 
-  const openModal = (modal: ServiceActions, id?: ServiceIdType, vehicle?: VehicleData) => {
+  const openModal = (
+    ...args:
+      | [modal: 'add_service', vehicle?: VehicleData]
+      | [
+          modal: 'edit_service' | 'delete_service' | 'attachments',
+          serviceId: ServiceIdType,
+          vehicle?: VehicleData,
+        ]
+  ) => {
+    const [modal] = args;
+
     setActiveModal(modal);
-    setServiceId(id ?? null);
-    setCurrentVehicle(vehicle ?? null);
+
+    if (modal === 'add_service') {
+      setServiceId(null);
+      setCurrentVehicle(args[1] ?? null);
+    } else {
+      setServiceId(args[1]);
+      setCurrentVehicle(args[2] ?? null);
+    }
   };
 
   const closeModal = () => {

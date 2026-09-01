@@ -162,7 +162,7 @@ function RouteComponent() {
           link={{ label: 'Zobacz pełną historię', href: '/dashboard/service' }}
           button={{
             label: 'Dodaj wpis',
-            onClick: () => openServiceModal('add_service', null, car),
+            onClick: () => openServiceModal('add_service', car),
           }}
           onEditClick={(service) => openServiceModal('edit_service', service.id, car)}
           onDeleteClick={(service) => openServiceModal('delete_service', service.id)}
