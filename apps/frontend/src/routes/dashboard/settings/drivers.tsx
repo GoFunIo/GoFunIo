@@ -64,7 +64,7 @@ function RouteComponent() {
           variant="default"
           size="big"
           icon="add"
-          onClick={() => openModal('add')}
+          onClick={() => openModal('add_driver')}
           className="w-full sm:w-auto sm:min-w-[180px]"
         >
           Dodaj kierowcę
@@ -78,10 +78,10 @@ function RouteComponent() {
           <EmptyPlaceholder title="Brak kierowców" />
         ) : (
           <DataTable
-            columns={getDriverColumns((driver) => openModal('showCars', driver))}
+            columns={getDriverColumns((driver) => openModal('showCars_driver', driver))}
             data={filteredDrivers}
-            onEdit={(driver) => openModal('delete', driver)}
-            onDelete={canDeleteDrivers ? (driver) => openModal('delete', driver) : undefined}
+            onEdit={(driver) => openModal('delete_driver', driver)}
+            onDelete={canDeleteDrivers ? (driver) => openModal('delete_driver', driver) : undefined}
             footer={false}
           />
         )}

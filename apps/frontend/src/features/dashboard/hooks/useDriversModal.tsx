@@ -14,9 +14,15 @@ export const useDriversModal = () => {
   const [activeModal, setActiveModal] = useState<DriversActions>(null);
   const [selectedDriver, setSelectedDriver] = useState<DriverType | null>(null);
 
-  const openModal = (modal: DriversActions, user?: DriverType | null) => {
+  const openModal = (
+    ...args:
+      | [modal: 'add_driver']
+      | [modal: 'edit_driver' | 'delete_driver' | 'showCars_driver', driver: DriverType]
+  ) => {
+    const [modal, driver] = args;
+
     setActiveModal(modal);
-    setSelectedDriver(user ?? null);
+    setSelectedDriver(driver ?? null);
   };
 
   const closeModal = () => {
@@ -26,14 +32,14 @@ export const useDriversModal = () => {
 
   const getModalConfig = () => {
     switch (activeModal) {
-      case 'add':
+      case 'add_driver':
         return {
           title: 'Dodaj kierowcę',
           subtitle: 'Utwórz nowego kierowcę.',
           content: <AddDriverForm onClose={() => setActiveModal(null)} />,
         };
 
-      case 'edit':
+      case 'edit_driver':
         if (!selectedDriver) return { title: '', subtitle: '', content: null };
 
         return {
@@ -49,7 +55,7 @@ export const useDriversModal = () => {
             />
           ),
         };
-      case 'delete':
+      case 'delete_driver':
         if (!canDeleteDrivers || !selectedDriver) {
           return { title: '', subtitle: '', content: null };
         }
@@ -69,13 +75,15 @@ export const useDriversModal = () => {
           ),
         };
 
-      case 'showCars':
+      case 'showCars_driver':
+        if (!selectedDriver) return { title: '', subtitle: '', content: null };
+
         return {
           title: 'Pojazdu kierowcy.',
           subtitle: `Wszystkie pojazdy przypisane do ${selectedDriver?.firstName} ${selectedDriver?.lastName}`,
           content: (
             <div className="flex flex-col gap-7">
-              {selectedDriver?.activeVehicles.map((item) => {
+              {selectedDriver.activeVehicles.map((item) => {
                 return (
                   <VehicleCardCompact
                     key={item.id}
