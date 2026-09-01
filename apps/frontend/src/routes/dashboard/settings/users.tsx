@@ -67,7 +67,7 @@ function RouteComponent() {
             variant="default"
             size="big"
             icon="add"
-            onClick={() => openModal('add')}
+            onClick={() => openModal('add_user')}
             className="w-full sm:w-auto sm:min-w-[180px]"
           >
             Dodaj użytkownika
@@ -82,10 +82,10 @@ function RouteComponent() {
           <EmptyPlaceholder title="Brak użytkowników" />
         ) : (
           <DataTable
-            columns={getUserColumns((user) => openModal('showCars', user))}
+            columns={getUserColumns((user) => openModal('showCars_user', user))}
             data={filteredTeam}
-            onEdit={canManageUsers ? (user) => openModal('edit', user) : undefined}
-            onDelete={canManageUsers ? (user) => openModal('delete', user) : undefined}
+            onEdit={canManageUsers ? (user) => openModal('edit_user', user) : undefined}
+            onDelete={canManageUsers ? (user) => openModal('delete_user', user) : undefined}
             footer={false}
             disabled={(item) => item.id === user?.id}
             hide={(item) => !isOwner && item.role === 'OWNER'}
@@ -93,7 +93,7 @@ function RouteComponent() {
         )}
       </BlockWrapper>
 
-      {canManageUsers && UsersModal}
+      {UsersModal}
     </>
   );
 }

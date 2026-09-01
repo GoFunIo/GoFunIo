@@ -210,7 +210,7 @@ function RouteComponent() {
     }
     if (actionType === 'modal_user') {
       if (!canInviteUsers) return;
-      openUsersModal('add');
+      openUsersModal('add_user');
       return;
     }
     if (actionType === 'modal_service') {

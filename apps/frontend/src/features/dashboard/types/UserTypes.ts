@@ -1,5 +1,5 @@
 export type UserActions = 'personal' | 'company' | 'email' | 'password' | null;
-export type UsersActions = 'add' | 'edit' | 'delete' | 'showCars' | null;
+export type UsersActions = 'add_user' | 'edit_user' | 'delete_user' | 'showCars_user' | null;
 
 export interface UserType {
   address: string | null;
