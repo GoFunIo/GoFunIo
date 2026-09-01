@@ -5,7 +5,7 @@ import {
   CalendarCog,
   ShieldAlert,
   ShieldCheck,
-  BellRing,
+  CalendarCheck,
 } from 'lucide-react';
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
@@ -18,6 +18,7 @@ type Props = {
   alerts?: VehicleDeadlineAlert[];
   onRenewCar?: (vehicleId: string) => void;
   filterType?: AlertFilterType;
+  limit?: number;
 };
 
 const activityIcons: Record<DeadlineKind, LucideIcon> = {
@@ -32,18 +33,20 @@ const matchesFilter = (kind: DeadlineKind, filterType: AlertFilterType) => {
   return kind === 'OC' || kind === 'AC';
 };
 
-export const Reminders = ({ alerts = [], onRenewCar, filterType = 'all' }: Props) => {
-  const activeReminders = alerts
+export const ReminderRow = ({ alerts = [], onRenewCar, filterType = 'all', limit }: Props) => {
+  const sortedReminders = alerts
     .filter((item) => matchesFilter(item.deadlineKind, filterType))
     .slice()
     .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+  const activeReminders = limit ? sortedReminders.slice(0, limit) : sortedReminders;
 
   if (activeReminders.length === 0) {
     return (
       <EmptyPlaceholder
         title="Brak pilnych alertów"
         className="bg-bg-card min-h-[250px]"
-        icon={<BellRing size={24} className="text-primary" />}
+        icon={<CalendarCheck size={24} className="text-primary" />}
       />
     );
   }

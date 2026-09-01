@@ -27,7 +27,7 @@ import { Modal } from '@/features/dashboard/ui/Modal';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { Reminders } from '@/features/dashboard/widgets/ReminderRow';
+import { ReminderRow } from '@/features/dashboard/widgets/ReminderRow';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { Banner } from '@/features/dashboard/widgets/Banner';
@@ -40,6 +40,7 @@ import { ServiceData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 
 type DashboardAction = {
   id: number;
@@ -404,11 +405,25 @@ function RouteComponent() {
           NADCHODZĄCE TERMINY
           ======================================================== */}
       <BlockWrapper>
-        <div className="mb-6">
-          <p className="text-[18px] text-content-primary font-semibold mb-2">Nadchodzące terminy</p>
-          <p className="text-[14px] text-content-secondary">
-            Liczba pojazdów wymagających uwagi w najbliższym czasie
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[18px] text-content-primary font-semibold mb-2">
+              Nadchodzące terminy
+            </p>
+            <p className="text-[14px] text-content-secondary">
+              Liczba pojazdów wymagających uwagi w najbliższym czasie
+            </p>
+          </div>
+
+          <BoardButton
+            variant="default"
+            size="medium"
+            type="button"
+            onClick={() => navigate({ to: '/dashboard/alerts' })}
+            className="shrink-0"
+          >
+            Zobacz wszystkie alerty →
+          </BoardButton>
         </div>
 
         {isAlertsPending ? (
@@ -425,10 +440,11 @@ function RouteComponent() {
                   ...(hasExtendedThreshold ? { days60: inspectionStats.days60 } : {}),
                 }}
               />
-              <Reminders
+              <ReminderRow
                 alerts={remindersAlerts}
                 filterType="inspection"
                 onRenewCar={handleRenewCar}
+                limit={5}
               />
             </div>
 
@@ -442,10 +458,11 @@ function RouteComponent() {
                   ...(hasExtendedThreshold ? { days60: insuranceStats.days60 } : {}),
                 }}
               />
-              <Reminders
+              <ReminderRow
                 alerts={remindersAlerts}
                 filterType="insurance"
                 onRenewCar={handleRenewCar}
+                limit={5}
               />
             </div>
           </div>

@@ -156,8 +156,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                     {
                       'bg-alert text-white': getLeadDayVariant(item.leadDay) === 'alert',
                       'bg-warning text-white': getLeadDayVariant(item.leadDay) === 'warning',
-                      'bg-bg-section text-content-secondary':
-                        getLeadDayVariant(item.leadDay) === 'info',
+                      'bg-info text-white': getLeadDayVariant(item.leadDay) === 'info',
                     },
                   )}
                 >

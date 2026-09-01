@@ -3,7 +3,7 @@ import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleData } from '@/features/dashboard/types';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Modal } from '@/features/dashboard/ui/Modal';
-import { Reminders } from '@/features/dashboard/widgets/ReminderRow';
+import { ReminderRow } from '@/features/dashboard/widgets/ReminderRow';
 import { useVehicle, useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useAllVehicleAlerts } from '@/features/dashboard/hooks/useVehicleAlerts';
 import { Select } from '@/features/dashboard/ui/Select';
@@ -106,7 +106,7 @@ export function DeadlineAlertsSection() {
           <LoadingIcon className="m-auto my-6" />
         ) : (
           <>
-            <Reminders alerts={alerts} filterType={filterType} onRenewCar={handleRenewCar} />
+            <ReminderRow alerts={alerts} filterType={filterType} onRenewCar={handleRenewCar} />
 
             {hasNextPage && (
               <div className="flex justify-center mt-6">
