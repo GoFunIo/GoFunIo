@@ -10,7 +10,11 @@ export const useVehiclesModal = () => {
   const [activeModal, setActiveModal] = useState<VehicleActions>(null);
   const [vehicle, setVehicle] = useState<VehicleData | null>(null);
 
-  const openModal = (modal: VehicleActions, vehicle?: VehicleData) => {
+  const openModal = (
+    ...args: [modal: 'add_car'] | [modal: 'edit_car' | 'delete_car', vehicle: VehicleData]
+  ) => {
+    const [modal, vehicle] = args;
+
     setActiveModal(modal);
     setVehicle(vehicle ?? null);
   };

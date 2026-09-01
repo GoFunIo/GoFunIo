@@ -116,13 +116,17 @@ function RouteComponent() {
         </div>
         <div className="sm:ml-auto order-1 flex gap-[16px]">
           {canEditVehicle && (
-            <BoardButton onClick={() => openVehicleModal('edit_car', car)} icon="edit" size="small">
+            <BoardButton
+              onClick={() => openVehicleModal('edit_car', currentCar)}
+              icon="edit"
+              size="small"
+            >
               Edytuj
             </BoardButton>
           )}
           {canDeleteVehicle && (
             <BoardButton
-              onClick={() => openVehicleModal('delete_car', car)}
+              onClick={() => openVehicleModal('delete_car', currentCar)}
               icon="delete"
               variant="danger"
               size="small"
