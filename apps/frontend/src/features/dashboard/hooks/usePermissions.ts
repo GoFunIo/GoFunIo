@@ -32,5 +32,8 @@ export const usePermissions = () => {
 
     // tylko admin zarządza listą managerów przypisanych do pojazdu
     canManageVehicleManagers: isOwner || isAdmin,
+
+    // PATCH /alert-policy jest zastrzeżony dla OWNER i ADMIN (kontrakt Notification Center)
+    canManageAlertPolicy: isOwner || isAdmin,
   };
 };

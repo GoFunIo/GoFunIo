@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 type Value = string | number | null;
 
 type Option = {
-  id: number;
+  id: string | number;
   value: Value;
   label: string;
   disabled?: boolean;

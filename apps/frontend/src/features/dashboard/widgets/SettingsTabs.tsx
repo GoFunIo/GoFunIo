@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import classNames from 'classnames';
-import { Bell, Building2, CreditCard, Users } from 'lucide-react';
+import { CalendarClock, Building2, CreditCard, Users } from 'lucide-react';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
 
@@ -42,7 +42,7 @@ export const SettingTabs = () => {
       to: '/dashboard/settings/notification',
       title: 'Powiadomienia',
       subtitle: 'Ustawienia alertów',
-      icon: <Bell size={20} />,
+      icon: <CalendarClock size={20} />,
     },
     {
       to: '/dashboard/settings/payments',

@@ -1,5 +1,6 @@
 import { getUser } from '@/features/dashboard/api/user.api';
 import { useDelayedLoading } from '@/features/dashboard/hooks/useDelayedLoading';
+import { useNotificationStream } from '@/features/dashboard/hooks/useNotificationStream';
 import { PageLoading } from '@/features/dashboard/widgets/PageLoading';
 import { Sidebar } from '@/features/dashboard/widgets/Sidebar';
 import { Userbar } from '@/features/dashboard/widgets/Userbar';
@@ -35,6 +36,8 @@ function RouteComponent() {
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 768px)' });
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+
+  useNotificationStream();
 
   useEffect(() => {
     setScrollRoot(scrollRef);

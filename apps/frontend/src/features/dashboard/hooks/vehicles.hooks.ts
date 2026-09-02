@@ -76,6 +76,10 @@ export const useUpdateVehicle = () => {
       queryClient.invalidateQueries({
         queryKey: ['vehicles', variables.id],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ['vehicle-deadline-alerts'],
+      });
     },
   });
 };

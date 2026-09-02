@@ -4,6 +4,7 @@ import { CarFront, Search } from 'lucide-react';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useVehicleAlertsByVehicle } from '@/features/dashboard/hooks/useVehicleAlerts';
 
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
@@ -23,6 +24,7 @@ export const Route = createFileRoute('/dashboard/my-cars/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
+
   const { canManageVehicleManagers } = usePermissions();
   const { openModal, VehiclesModal } = useVehiclesModal();
   const { data: team } = useTeam();
@@ -58,6 +60,8 @@ function RouteComponent() {
     managerId: managerId || undefined,
   });
   const vehicles = data?.items ?? [];
+
+  const { byVehicle: alertsByVehicle } = useVehicleAlertsByVehicle({ limit: 100 });
 
   const hasActiveFilters = Boolean(search || managerId);
 
@@ -133,6 +137,7 @@ function RouteComponent() {
               <VehicleCard
                 key={item.id}
                 vehicle={item}
+                alerts={alertsByVehicle.get(item.id)}
                 onDetailsClick={(id) =>
                   navigate({
                     to: '/dashboard/my-cars/$carId',

@@ -1,155 +1,165 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { CalendarCog, ChevronRight, LucideIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
-import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
 import classNames from 'classnames';
+import {
+  useNotifications,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+  useNotificationCenterSummary,
+} from '@/features/dashboard/hooks/notificationCenter.hooks';
+import { DeadlineKind, NotificationItem } from '@/features/dashboard/types';
+import {
+  deadlineKindLabels,
+  formatPlDate,
+  getLeadDayLabel,
+  getLeadDayVariant,
+} from '@/utils/formatDeadline';
 
 interface RemindersDropdownProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const activityIcons: Record<'inspection' | 'insurance_ac' | 'insurance_oc', LucideIcon> = {
-  inspection: CalendarCog,
-  insurance_ac: ShieldCheck,
-  insurance_oc: ShieldAlert,
+const activityIcons: Record<DeadlineKind, LucideIcon> = {
+  TECHNICAL_INSPECTION: CalendarCog,
+  AC: ShieldCheck,
+  OC: ShieldAlert,
 };
 
-// Funkcja pomocnicza do aktywnego odmieniania slowa "termin"
-const getAlertsSubtitleText = (count: number) => {
-  if (count === 0) return 'Brak pilnych terminów';
-  if (count === 1) return '1 termin w ciągu 30 dni';
+const getDropdownSubtitleText = (count: number) => {
+  if (count === 0) return 'Brak nowych powiadomień';
+  if (count === 1) return '1 nowe powiadomienie';
 
   const lastDigit = count % 10;
   const lastTwoDigits = count % 100;
 
   if (lastDigit >= 2 && lastDigit <= 4 && !(lastTwoDigits >= 12 && lastTwoDigits <= 14)) {
-    return `${count} terminy w ciągu 30 dni`;
+    return `${count} nowe powiadomienia`;
   }
 
-  return `${count} terminów w ciągu 30 dni`;
-};
-
-// Funkcja pomocnicza do odmiany dni w badgu (1 dzień / 2 dni / 5 dni)
-const getDaysBadgeText = (days: number, isPast: boolean) => {
-  if (isPast || days < 0) return 'Po terminie';
-  if (days === 1) return '1 dzień';
-  return `${days} dni`;
+  return `${count} nowych powiadomień`;
 };
 
 export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) => {
-  const { data: vehiclesResponse, isLoading } = useVehicles();
-  const vehicles = vehiclesResponse?.items ?? [];
+  const navigate = useNavigate();
+  const { data, isLoading } = useNotifications({ archived: false, limit: 20 });
+  const { data: summary } = useNotificationCenterSummary();
+  const markAsReadMutation = useMarkNotificationAsRead();
+  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
 
-  const urgentAlerts = vehicles
-    .flatMap((car) => {
-      const inspection = car.technicalInspectionExpiry
-        ? calculateDaysToDate(car.technicalInspectionExpiry)
-        : null;
-      const oc = car.ocExpiry ? calculateDaysToDate(car.ocExpiry) : null;
-      const ac = car.acExpiry ? calculateDaysToDate(car.acExpiry) : null;
+  const items: NotificationItem[] = data?.pages[0]?.items ?? [];
+  const unreadCount = summary?.unreadNotificationCount ?? 0;
 
-      const alerts = [
-        {
-          typeKey: 'inspection' as const,
-          label: 'Przegląd techniczny',
-          expiry: car.technicalInspectionExpiry,
-          days: inspection?.days ?? Infinity,
-          isPast: inspection?.isPast ?? false,
-        },
-        {
-          typeKey: 'insurance_oc' as const,
-          label: 'Ubezpieczenie OC',
-          expiry: car.ocExpiry,
-          days: oc?.days ?? Infinity,
-          isPast: oc?.isPast ?? false,
-        },
-        {
-          typeKey: 'insurance_ac' as const,
-          label: 'Ubezpieczenie AC',
-          expiry: car.acExpiry,
-          days: ac?.days ?? Infinity,
-          isPast: ac?.isPast ?? false,
-        },
-      ];
+  const handleItemClick = (item: NotificationItem) => {
+    if (!item.readAt) {
+      markAsReadMutation.mutate(item.id);
+    }
 
-      return alerts
-        .filter((alert) => alert.expiry && (alert.days <= 30 || alert.isPast))
-        .map((alert) => ({
-          id: `${car.id}-${alert.typeKey}`,
-          carName: `${car.brand} ${car.model}`,
-          plate: car.registrationNumber,
-          label: alert.label,
-          typeKey: alert.typeKey,
-          expiryDate: alert.expiry,
-          days: alert.days,
-          isPast: alert.isPast,
-        }));
-    })
-    .sort((a, b) => a.days - b.days)
-    .slice(0, 4);
+    if (item.action.type === 'OPEN_VEHICLE') {
+      navigate({
+        to: '/dashboard/my-cars/$carId',
+        params: { carId: item.action.vehicleId },
+      });
+    }
+
+    onClose();
+  };
+
+  const handleMarkAllAsRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    markAllAsReadMutation.mutate(undefined);
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className="shadow-sm flex flex-col p-4 sm:absolute min-[426px]:top-[64px] top-[50px] right-0 bg-bg-card min-w-[320px] sm:w-[460px] w-screen fixed z-50 border border-icon">
-      {/* NAGŁÓWEK */}
-      <div className="border-b border-icon pb-3">
-        <h3 className="text-[14px] font-bold text-content-primary">Alerty floty</h3>
-        <p className="text-[12px] text-content-secondary font-normal mt-0.5">
-          {getAlertsSubtitleText(urgentAlerts.length)}
-        </p>
+      <div className="border-b border-icon pb-3 flex flex-col sm:flex-row items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[14px] font-bold text-content-primary">Powiadomienia</h3>
+          <p className="text-[12px] text-content-secondary font-normal mt-0.5">
+            {getDropdownSubtitleText(unreadCount)}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleMarkAllAsRead}
+          disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
+          className="text-[12px] font-semibold text-secondary hover:underline shrink-0 whitespace-nowrap bg-transparent border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline"
+        >
+          Oznacz wszystkie jako przeczytane
+        </button>
       </div>
 
-      {/* LISTA ALERTÓW */}
-      <div className="flex flex-col divide-y  divide-icon my-1 max-h-[300px] overflow-y-auto">
+      {/* LISTA */}
+      <div className="flex flex-col divide-y divide-icon my-1 max-h-[300px] overflow-y-auto">
         {isLoading ? (
-          <p className="text-[12px] text-content-secondary p-4 text-center">Ładowanie alertów…</p>
-        ) : urgentAlerts.length === 0 ? (
           <p className="text-[12px] text-content-secondary p-4 text-center">
-            Wszystkie ubezpieczenia i przeglądy są aktualne!
+            Ładowanie powiadomień…
+          </p>
+        ) : items.length === 0 ? (
+          <p className="text-[12px] text-content-secondary p-4 text-center">
+            Brak powiadomień do wyświetlenia.
           </p>
         ) : (
-          urgentAlerts.map((item) => {
-            const Icon = activityIcons[item.typeKey];
-            const isCritical = item.isPast || item.days <= 7;
+          items.map((item) => {
+            const Icon = activityIcons[item.deadlineKind];
+            const isUnread = !item.readAt;
 
             return (
-              <div key={item.id} className="flex items-center justify-between gap-3 py-3">
-                {/* IKONA + DANE POJAZDU */}
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleItemClick(item)}
+                className="flex items-center justify-between gap-3 py-3 text-left w-full cursor-pointer bg-transparent border-none"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={classNames(
-                      'flex items-center justify-center w-[36px] h-[36px] rounded-[3px] shrink-0',
-                      isCritical ? 'bg-alert-bg text-alert' : 'bg-warning-bg text-warning',
+                      'relative flex items-center justify-center w-[36px] h-[36px] rounded-[3px] shrink-0',
+                      isUnread ? 'bg-alert-bg text-alert' : 'bg-info-bg text-info',
                     )}
                   >
+                    {isUnread && (
+                      <span className="absolute -top-[2px] -right-[2px] w-[8px] h-[8px] bg-alert rounded-full" />
+                    )}
                     <Icon size={18} />
                   </div>
 
                   <div className="flex flex-col min-w-0">
-                    <p className="text-[14px] font-bold text-content-primary truncate">
-                      {item.label}
+                    <p
+                      className={classNames(
+                        'text-[14px] truncate',
+                        isUnread
+                          ? 'font-bold text-content-primary'
+                          : 'font-medium text-content-secondary',
+                      )}
+                    >
+                      {deadlineKindLabels[item.deadlineKind]}
                     </p>
                     <p className="text-[12px] text-content-secondary font-normal truncate">
-                      {item.carName} · {item.plate}
+                      {item.registrationNumber}
                     </p>
                     <p className="text-[12px] text-content-secondary font-normal">
-                      {item.expiryDate}
+                      {formatPlDate(item.deadlineDate)}
                     </p>
                   </div>
                 </div>
 
-                {/* BADGE  */}
                 <span
                   className={classNames(
-                    'text-[13px] font-bold text-white px-2.5 py-1 rounded-[3px] shrink-0 text-center min-w-[55px]',
-                    isCritical ? 'bg-alert' : 'bg-warning',
+                    'text-[11px] font-semibold px-2.5 py-1 rounded-[3px] shrink-0 text-center whitespace-nowrap',
+                    {
+                      'bg-alert text-white': getLeadDayVariant(item.leadDay) === 'alert',
+                      'bg-warning text-white': getLeadDayVariant(item.leadDay) === 'warning',
+                      'bg-info text-white': getLeadDayVariant(item.leadDay) === 'info',
+                    },
                   )}
                 >
-                  {getDaysBadgeText(item.days, item.isPast)}
+                  {getLeadDayLabel(item.leadDay)}
                 </span>
-              </div>
+              </button>
             );
           })
         )}
@@ -158,7 +168,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
       <div className="pt-3 border-t border-icon">
         <Link
           onClick={onClose}
-          to="/dashboard/notifications"
+          to="/dashboard/alerts"
           className="text-[14px] font-bold text-secondary hover:underline flex items-center justify-between w-full"
         >
           <span>Zobacz wszystkie powiadomienia</span>

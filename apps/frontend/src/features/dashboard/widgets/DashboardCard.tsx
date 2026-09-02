@@ -1,14 +1,16 @@
 import React from 'react';
 import classNames from 'classnames';
 import { TriangleAlert } from 'lucide-react';
-import { calculateDaysToDate, isDateString } from '@/utils/calculateDaysToDate';
+
+export type DashboardCardVariant = 'neutral' | 'warning' | 'alert';
 
 interface DashboardCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
   icon: React.ReactNode;
-  isAlert?: boolean;
+  variant?: DashboardCardVariant;
+  showAlertIcon?: boolean;
 }
 
 export const DashboardCard = ({
@@ -16,54 +18,12 @@ export const DashboardCard = ({
   value,
   subtitle,
   icon,
-  isAlert = false,
+  variant = 'neutral',
+  showAlertIcon,
 }: DashboardCardProps) => {
   const isEmpty = value === '' || value == null;
-
-  let displayValue = value;
-  let displayTitle = title;
-  let variant: 'neutral' | 'warning' | 'alert' = 'neutral';
-  let showAlertIcon = false;
-
-  if (isEmpty) {
-    displayValue = 'Brak danych';
-    displayTitle = title;
-  } else if (isDateString(value)) {
-    const { days, isPast, text } = calculateDaysToDate(String(value));
-    displayValue = text;
-
-    if (isPast) {
-      const lowerTitle = title.toLowerCase();
-
-      if (lowerTitle.includes('przegląd')) {
-        displayTitle = 'Termin przeglądu minął:';
-      } else if (lowerTitle.includes('oc')) {
-        displayTitle = 'Termin OC minął:';
-      } else if (lowerTitle.includes('ac')) {
-        displayTitle = 'Termin AC minął:';
-      } else {
-        displayTitle = `Termin ${lowerTitle} minął:`;
-      }
-
-      variant = 'alert';
-      showAlertIcon = true;
-    } else {
-      if (title.toLowerCase().includes('przegląd')) {
-        displayTitle = 'Następny przegląd za:';
-      } else {
-        displayTitle = `${title} za:`;
-      }
-
-      if (days <= 7) {
-        variant = 'alert';
-        showAlertIcon = true;
-      } else if (days <= 30) {
-        variant = 'warning';
-      }
-    }
-  } else if (isAlert) {
-    variant = 'alert';
-  }
+  const displayValue = isEmpty ? 'Brak danych' : value;
+  const resolvedShowAlertIcon = showAlertIcon ?? variant === 'alert';
 
   return (
     <div
@@ -78,13 +38,11 @@ export const DashboardCard = ({
       )}
     >
       <div className="flex flex-col justify-between h-full flex-1 pr-2">
-        <span className="text-[14px] text-content-secondary font-medium block mb-1.5">
-          {displayTitle}
-        </span>
+        <span className="text-[14px] text-content-secondary font-medium block mb-1.5">{title}</span>
 
         <div className="flex items-center gap-6 mb-1.5">
           <span className="text-[28px] font-bold leading-none tracking-tight">{displayValue}</span>
-          {showAlertIcon && (
+          {resolvedShowAlertIcon && !isEmpty && (
             <TriangleAlert size={22} className="text-alert shrink-0" strokeWidth={2} />
           )}
         </div>

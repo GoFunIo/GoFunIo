@@ -17,7 +17,7 @@ export const getServiceColumns = (
     render: (_, item) => `${item.vehicle.registrationNumber}`,
   },
   { header: 'Typ', accessor: 'type' },
-  { header: 'Warsztat', accessor: 'providerName' },
+  { header: 'Miejsce usługi', accessor: 'providerName' },
   {
     header: 'Załącznik',
     accessor: 'hasAttachment',

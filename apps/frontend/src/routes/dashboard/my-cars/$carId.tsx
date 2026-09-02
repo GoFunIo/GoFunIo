@@ -6,6 +6,7 @@ import { useVehicle } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useServices } from '@/features/dashboard/hooks/services.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { VehicleData, VehicleFuelType } from '@/features/dashboard/types';
+import { useVehicleAlertsForCar } from '@/features/dashboard/hooks/useVehicleAlerts';
 
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
@@ -19,6 +20,7 @@ import { fuelTypeLabels } from '@/features/dashboard/constants/fuelOptions';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
 import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
+import { getDeadlineCardVisual } from '@/utils/formatDeadline';
 
 const getFuelLabel = (fuelValue?: VehicleFuelType | null) => {
   if (!fuelValue) return 'Nieokreślone';
@@ -52,9 +54,39 @@ function RouteComponent() {
 
   const currentCar = car ?? initialCarData;
 
+  // ============================================================
+  // ALERTY TERMINÓW (BE)
+  // ============================================================
+  const { byKind: alertsByKind } = useVehicleAlertsForCar(carId);
+
+  const inspectionCard = useMemo(
+    () =>
+      getDeadlineCardVisual(
+        'przegląd',
+        'TECHNICAL_INSPECTION',
+        currentCar?.technicalInspectionExpiry,
+        alertsByKind.get('TECHNICAL_INSPECTION'),
+      ),
+    [currentCar?.technicalInspectionExpiry, alertsByKind],
+  );
+
+  const ocCard = useMemo(
+    () =>
+      getDeadlineCardVisual('Ubezpieczenie OC', 'OC', currentCar?.ocExpiry, alertsByKind.get('OC')),
+    [currentCar?.ocExpiry, alertsByKind],
+  );
+
+  const acCard = useMemo(
+    () =>
+      getDeadlineCardVisual('Ubezpieczenie AC', 'AC', currentCar?.acExpiry, alertsByKind.get('AC')),
+    [currentCar?.acExpiry, alertsByKind],
+  );
+
   const singleCarHistory = useMemo(() => {
     if (!currentCar) return [];
+
     const allServices = servicesResponse?.items ?? [];
+
     return allServices.filter(
       (item) => item.vehicleId === currentCar.id || item.vehicle?.id === currentCar.id,
     );
@@ -67,6 +99,7 @@ function RouteComponent() {
 
   const paginatedHistory = useMemo(() => {
     const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+
     return singleCarHistory.slice(start, start + HISTORY_PAGE_SIZE);
   }, [singleCarHistory, historyPage]);
 
@@ -89,7 +122,6 @@ function RouteComponent() {
 
   return (
     <>
-      {/* 1. LINK POWROTNY */}
       <Link
         to="/dashboard/my-cars"
         className="w-fit flex items-center gap-[8px] text-[12px] text-content-secondary"
@@ -98,7 +130,6 @@ function RouteComponent() {
         Wróć do pojazdów
       </Link>
 
-      {/* 2. NAGŁÓWEK Z DANYMI AUTA  */}
       <div className="grid sm:grid-cols-2 grid-cols-1 gap-[16px]">
         <div className="flex gap-[16px] items-center shrink-0">
           <IconWrapper className="xl:w-[60px] xl:h-[60px] w-[50px] h-[50px]  bg-secondary">
@@ -140,20 +171,23 @@ function RouteComponent() {
       {/* 3. SIATKA TRZECH  KAFELKÓW  */}
       <GridWrapper layout={'3-equal'}>
         <DashboardCard
-          title="przegląd"
-          value={currentCar.technicalInspectionExpiry || ''}
+          title={inspectionCard.title}
+          value={inspectionCard.value}
+          variant={inspectionCard.variant}
           icon={<CalendarCog size={20} />}
         />
 
         <DashboardCard
-          title="Ubezpieczenie OC"
-          value={currentCar.ocExpiry || ''}
+          title={ocCard.title}
+          value={ocCard.value}
+          variant={ocCard.variant}
           icon={<ShieldAlert size={20} />}
         />
 
         <DashboardCard
-          title="Ubezpieczenie AC"
-          value={currentCar.acExpiry || ''}
+          title={acCard.title}
+          value={acCard.value}
+          variant={acCard.variant}
           icon={<ShieldCheck size={20} />}
         />
       </GridWrapper>
@@ -177,10 +211,10 @@ function RouteComponent() {
           }}
         />
 
-        <GridWrapper>
+        <div className="flex flex-col gap-4 sm:gap-6">
           <VehicleSpecs car={currentCar} totalExpenses={totalExpenses} />
           <VehicleAssignments vehicle={currentCar} />
-        </GridWrapper>
+        </div>
       </GridWrapper>
 
       {ServiceModal}
