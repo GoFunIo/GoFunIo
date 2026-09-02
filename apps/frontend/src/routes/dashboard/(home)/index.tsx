@@ -15,15 +15,19 @@ import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
-
-import { calculateDaysToDate } from '@/utils/calculateDaysToDate';
+import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
+import {
+  useAlertPolicy,
+  useNotificationCenterSummary,
+} from '@/features/dashboard/hooks/notificationCenter.hooks';
+import { useAllVehicleAlerts } from '@/features/dashboard/hooks/useVehicleAlerts';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { Modal } from '@/features/dashboard/ui/Modal';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { Reminders } from '@/features/dashboard/widgets/Reminders';
+import { ReminderRow } from '@/features/dashboard/widgets/ReminderRow';
 import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { Banner } from '@/features/dashboard/widgets/Banner';
@@ -35,8 +39,8 @@ import { VehicleData } from '@/features/dashboard/types';
 import { ServiceData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
 import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 
 type DashboardAction = {
   id: number;
@@ -86,10 +90,10 @@ export const dashboardActions: DashboardAction[] = [
 type DayBucketKey = 'days7' | 'days30' | 'days60';
 type DayBuckets = Record<DayBucketKey, number>;
 
-const bucketKey = (days: number): DayBucketKey | null => {
-  if (days <= 7) return 'days7';
-  if (days <= 30) return 'days30';
-  if (days <= 60) return 'days60';
+const bucketKey = (daysRemaining: number): DayBucketKey | null => {
+  if (daysRemaining <= 7) return 'days7';
+  if (daysRemaining <= 30) return 'days30';
+  if (daysRemaining <= 60) return 'days60';
   return null;
 };
 
@@ -98,10 +102,10 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
+
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const { data: selectedService } = useService(selectedServiceId);
-
-  const navigate = useNavigate();
 
   const { data: user } = useUser();
   const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
@@ -109,6 +113,12 @@ function RouteComponent() {
 
   const { data: team, isPending: isTeamPending } = useTeam();
   const { canInviteUsers, canManageUsers } = usePermissions();
+
+  const { data: summary } = useNotificationCenterSummary();
+  const { data: alertPolicy } = useAlertPolicy();
+  const { items: vehicleAlerts, isPending: isAlertsPending } = useAllVehicleAlerts({ limit: 100 });
+
+  const hasExtendedThreshold = (alertPolicy?.leadDays ?? []).some((day) => day > 30);
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
@@ -148,16 +158,17 @@ function RouteComponent() {
   // ============================================================
   const inspectionStats = useMemo(
     () =>
-      vehicles.reduce<DayBuckets>(
-        (acc, car) => {
-          if (!car.technicalInspectionExpiry) return acc;
-          const key = bucketKey(calculateDaysToDate(car.technicalInspectionExpiry).days);
-          if (key) acc[key]++;
-          return acc;
-        },
-        { days7: 0, days30: 0, days60: 0 },
-      ),
-    [vehicles],
+      vehicleAlerts
+        .filter((alert) => alert.deadlineKind === 'TECHNICAL_INSPECTION')
+        .reduce<DayBuckets>(
+          (acc, alert) => {
+            const key = bucketKey(alert.daysRemaining);
+            if (key) acc[key]++;
+            return acc;
+          },
+          { days7: 0, days30: 0, days60: 0 },
+        ),
+    [vehicleAlerts],
   );
 
   // ============================================================
@@ -165,31 +176,29 @@ function RouteComponent() {
   // ============================================================
   const insuranceStats = useMemo(
     () =>
-      vehicles.reduce<DayBuckets>(
-        (acc, car) => {
-          if (car.ocExpiry) {
-            const key = bucketKey(calculateDaysToDate(car.ocExpiry).days);
+      vehicleAlerts
+        .filter((alert) => alert.deadlineKind === 'OC' || alert.deadlineKind === 'AC')
+        .reduce<DayBuckets>(
+          (acc, alert) => {
+            const key = bucketKey(alert.daysRemaining);
             if (key) acc[key]++;
-          }
-          if (car.acExpiry) {
-            const key = bucketKey(calculateDaysToDate(car.acExpiry).days);
-            if (key) acc[key]++;
-          }
-          return acc;
-        },
-        { days7: 0, days30: 0, days60: 0 },
-      ),
-    [vehicles],
+            return acc;
+          },
+          { days7: 0, days30: 0, days60: 0 },
+        ),
+    [vehicleAlerts],
   );
-
-  const totalUrgentReminders =
-    inspectionStats.days7 + inspectionStats.days30 + insuranceStats.days7 + insuranceStats.days30;
 
   const adminStats = {
     totalFleetVehicles: vehiclesResponse?.total ?? vehicles.length,
     activeUsersCount,
-    urgentReminders: totalUrgentReminders,
+    urgentReminders: summary?.activeAlertCount ?? 0,
   };
+
+  const remindersAlerts = useMemo(
+    () => vehicleAlerts.filter((alert) => alert.overdue || alert.daysRemaining <= 30),
+    [vehicleAlerts],
+  );
 
   // ============================================================
   // PODSUMOWANIE WYDATKÓW
@@ -381,13 +390,13 @@ function RouteComponent() {
           />
         </Link>
 
-        <Link to="/dashboard/notifications" className="block no-underline">
+        <Link to="/dashboard/alerts" className="block no-underline">
           <DashboardCard
             title="Pilne przypomnienia"
-            value={isVehiclesPending ? '...' : adminStats.urgentReminders}
-            subtitle="działania wymagane w ciągu 30 dni"
+            value={isAlertsPending ? '...' : adminStats.urgentReminders}
+            subtitle="aktualnych alertów"
             icon={<TriangleAlert size={20} />}
-            isAlert={true}
+            variant="alert"
           />
         </Link>
       </GridWrapper>
@@ -396,14 +405,28 @@ function RouteComponent() {
           NADCHODZĄCE TERMINY
           ======================================================== */}
       <BlockWrapper>
-        <div className="mb-6">
-          <p className="text-[18px] text-content-primary font-semibold mb-2">Nadchodzące terminy</p>
-          <p className="text-[14px] text-content-secondary">
-            Liczba pojazdów wymagających uwagi w najbliższym czasie
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[18px] text-content-primary font-semibold mb-2">
+              Nadchodzące terminy
+            </p>
+            <p className="text-[14px] text-content-secondary">
+              Liczba pojazdów wymagających uwagi w najbliższym czasie
+            </p>
+          </div>
+
+          <BoardButton
+            variant="default"
+            size="medium"
+            type="button"
+            onClick={() => navigate({ to: '/dashboard/alerts' })}
+            className="shrink-0"
+          >
+            Zobacz wszystkie alerty →
+          </BoardButton>
         </div>
 
-        {isVehiclesPending ? (
+        {isAlertsPending ? (
           <LoadingIcon className="m-auto" />
         ) : (
           <div className="grid lg:grid-cols-2 grid-cols-1 gap-6">
@@ -411,13 +434,17 @@ function RouteComponent() {
               <AdminAlertBucket
                 title="Przeglądy techniczne"
                 icon={Wrench}
-                stats={inspectionStats}
+                stats={{
+                  days7: inspectionStats.days7,
+                  days30: inspectionStats.days30,
+                  ...(hasExtendedThreshold ? { days60: inspectionStats.days60 } : {}),
+                }}
               />
-              <Reminders
-                data={vehicles}
+              <ReminderRow
+                alerts={remindersAlerts}
                 filterType="inspection"
                 onRenewCar={handleRenewCar}
-                maxDays={30}
+                limit={5}
               />
             </div>
 
@@ -425,13 +452,17 @@ function RouteComponent() {
               <AdminAlertBucket
                 title="Ubezpieczenia (OC / AC)"
                 icon={ShieldAlert}
-                stats={insuranceStats}
+                stats={{
+                  days7: insuranceStats.days7,
+                  days30: insuranceStats.days30,
+                  ...(hasExtendedThreshold ? { days60: insuranceStats.days60 } : {}),
+                }}
               />
-              <Reminders
-                data={vehicles}
+              <ReminderRow
+                alerts={remindersAlerts}
                 filterType="insurance"
                 onRenewCar={handleRenewCar}
-                maxDays={30}
+                limit={5}
               />
             </div>
           </div>

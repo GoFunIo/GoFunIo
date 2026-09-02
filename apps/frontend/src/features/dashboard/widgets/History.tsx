@@ -76,7 +76,7 @@ export const History = ({
           <h4>{title}</h4>
         </div>
 
-        <div className="flex items-center gap-[16px]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[16px]">
           {link && (
             <BoardButton size="small" variant="outline" onClick={() => navigate({ to: link.href })}>
               {link.label}
