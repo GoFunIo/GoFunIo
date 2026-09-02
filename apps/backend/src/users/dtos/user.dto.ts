@@ -41,4 +41,10 @@ export class UserDto {
     obj.companyId === undefined ? undefined : Boolean(obj.hasPassword),
   )
   hasPassword!: boolean;
+
+  @Expose()
+  @Transform(({ obj }: { obj: { carsCount?: number } }) =>
+    obj.carsCount === undefined ? undefined : Number(obj.carsCount),
+  )
+  carsCount?: number;
 }

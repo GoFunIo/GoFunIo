@@ -33,6 +33,7 @@ import { NotificationChangeRelay } from '../notification-changes/notification-ch
 export type CompanyUser = User & {
   companyId: string;
   role: MembershipRole;
+  carsCount?: number;
 };
 
 type CompanyUserCatalogEntry = Pick<
@@ -66,11 +67,21 @@ export class CompanyUsersService {
         { companyId, status: 'active' },
       )
       .addSelect('membership.role', 'contextRole')
+      .addSelect(
+        `(SELECT COUNT(*)::int FROM "manager_vehicle_assignments" mva
+           WHERE mva."managerId" = user.id
+             AND mva."companyId" = :companyId
+             AND mva."assignedTo" IS NULL)`,
+        'carsCount',
+      )
       .orderBy('membership.createdAt', 'ASC')
       .addOrderBy('user.id', 'ASC')
-      .getRawAndEntities<{ contextRole: MembershipRole }>();
+      .getRawAndEntities<{ contextRole: MembershipRole; carsCount: number }>();
     const users = entities.map((user, index) =>
-      this.contextualUser(user, companyId, raw[index].contextRole),
+      Object.assign(
+        this.contextualUser(user, companyId, raw[index].contextRole),
+        { carsCount: Number(raw[index].carsCount) },
+      ),
     );
     if (!users.some(({ id, role }) => id === actor.id && role === actor.role)) {
       throw new ForbiddenException();
