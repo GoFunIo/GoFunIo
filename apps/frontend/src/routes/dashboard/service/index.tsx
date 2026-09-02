@@ -40,7 +40,7 @@ function RouteComponent() {
   });
 
   const services: ServiceData[] = servicesResponse?.items ?? [];
-  console.log(services);
+
   const handleFilterChange = (filters: ServicesFiltersType) => {
     setFilters(filters);
     setPage(1);
