@@ -9,14 +9,15 @@ import {
 } from 'lucide-react';
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
-import { DeadlineKind, VehicleDeadlineAlert } from '../types';
+import { DeadlineKind, VehicleData, VehicleDeadlineAlert } from '../types';
 import { deadlineKindLabels, getAlertBadgeText, getAlertVariant } from '@/utils/formatDeadline';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
 type Props = {
   alerts?: VehicleDeadlineAlert[];
-  onRenewCar?: (vehicleId: string) => void;
+  vehicles: VehicleData[];
+  onRenewCar?: (vehicle: VehicleData) => void;
   filterType?: AlertFilterType;
   limit?: number;
 };
@@ -33,7 +34,13 @@ const matchesFilter = (kind: DeadlineKind, filterType: AlertFilterType) => {
   return kind === 'OC' || kind === 'AC';
 };
 
-export const ReminderRow = ({ alerts = [], onRenewCar, filterType = 'all', limit }: Props) => {
+export const ReminderRow = ({
+  alerts = [],
+  vehicles = [],
+  onRenewCar,
+  filterType = 'all',
+  limit,
+}: Props) => {
   const sortedReminders = alerts
     .filter((item) => matchesFilter(item.deadlineKind, filterType))
     .slice()
@@ -50,6 +57,14 @@ export const ReminderRow = ({ alerts = [], onRenewCar, filterType = 'all', limit
       />
     );
   }
+
+  const handleRenewCar = (vehicleId: string) => {
+    const vehicle = vehicles.find((vehicle) => vehicle.id === vehicleId);
+
+    if (vehicle) {
+      onRenewCar?.(vehicle);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -125,7 +140,7 @@ export const ReminderRow = ({ alerts = [], onRenewCar, filterType = 'all', limit
               </span>
 
               <BoardButton
-                onClick={() => onRenewCar?.(item.vehicleId)}
+                onClick={() => handleRenewCar(item.vehicleId)}
                 size="small"
                 variant="default"
                 icon="refresh"

@@ -2,6 +2,8 @@
    WSPÓLNE TYPY DLA FLOTY POJAZDÓW (ODPOWIEDNIKI BAZOWYCH DTO Z BACKENDU)
    ========================================================================== */
 
+export type VehicleActions = 'add_car' | 'edit_car' | 'delete_car' | null;
+export type VehicleIdType = string | null;
 export type VehicleFuelType = 'DIESEL' | 'PETROL' | 'LPG' | 'HYBRID' | 'ELECTRIC';
 
 export interface VehicleManager {

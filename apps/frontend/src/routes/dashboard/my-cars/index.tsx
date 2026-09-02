@@ -10,11 +10,10 @@ import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { VehicleCard } from '@/features/dashboard/widgets/VehicleCard';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { Pagination } from '@/features/dashboard/ui/Pagination';
 import { Select } from '@/features/dashboard/ui/Select';
-import { Modal } from '@/features/dashboard/ui/Modal';
+import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
 
 const VEHICLES_PAGE_SIZE = 9;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -27,9 +26,9 @@ function RouteComponent() {
   const navigate = useNavigate();
 
   const { canManageVehicleManagers } = usePermissions();
+  const { openModal, VehiclesModal } = useVehiclesModal();
   const { data: team } = useTeam();
 
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -73,7 +72,7 @@ function RouteComponent() {
         subtitle="Zarządzaj wszystkimi pojazdami w jednym miejscu."
         button={{
           label: 'Dodaj pojazd',
-          onClick: () => setIsModalOpen(true),
+          onClick: () => openModal('add_car'),
         }}
       />
 
@@ -158,14 +157,7 @@ function RouteComponent() {
         </div>
       )}
 
-      <Modal
-        isOpen={isModalOpen}
-        setIsOpen={setIsModalOpen}
-        title="Dodaj pojazd"
-        subtitle="Wprowadź dane pojazdu. Pola oznaczone * są wymagane."
-      >
-        <AddVehicleForm onClose={() => setIsModalOpen(false)} />
-      </Modal>
+      {VehiclesModal}
     </>
   );
 }

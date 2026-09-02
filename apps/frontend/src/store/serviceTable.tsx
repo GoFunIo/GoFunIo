@@ -27,25 +27,6 @@ export const getServiceColumns = (
       </button>
     ),
   },
-  // {
-  //   header: 'Załącznik',
-  //   accessor: 'hasAttachment',
-  //   render: (has, item) =>
-  //     has ? (
-  //       <button
-  //         type="button"
-  //         className="cursor-pointer"
-  //         onClick={() => onAttachments(item)}
-  //       >
-  //         <Paperclip
-  //           size={18}
-  //           className="text-gray-400 inline"
-  //         />
-  //       </button>
-  //     ) : (
-  //       '-'
-  //     ),
-  // },
   {
     header: 'Koszt',
     accessor: 'cost',

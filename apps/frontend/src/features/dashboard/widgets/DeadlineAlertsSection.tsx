@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
 import { VehicleData } from '@/features/dashboard/types';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
-import { Modal } from '@/features/dashboard/ui/Modal';
 import { ReminderRow } from '@/features/dashboard/widgets/ReminderRow';
-import { useVehicle, useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
+import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useAllVehicleAlerts } from '@/features/dashboard/hooks/useVehicleAlerts';
 import { Select } from '@/features/dashboard/ui/Select';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { useVehiclesModal } from '../hooks/useVehiclesModal';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
@@ -15,11 +14,10 @@ export function DeadlineAlertsSection() {
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<AlertFilterType>('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
-  const [renewCarId, setRenewCarId] = useState<string | null>(null);
 
   const { data: vehiclesResponse } = useVehicles();
+  const { openModal: openVehicleModal, VehiclesModal } = useVehiclesModal();
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
-  const { data: selectedRenewCar } = useVehicle(renewCarId ?? '');
 
   const carOptions = useMemo(
     () =>
@@ -46,9 +44,6 @@ export function DeadlineAlertsSection() {
     isFetchingNextPage,
     fetchNextPage,
   } = useAllVehicleAlerts(alertsParams);
-
-  const handleRenewCar = (id: string) => setRenewCarId(id);
-  const closeRenewModal = () => setRenewCarId(null);
 
   return (
     <>
@@ -106,7 +101,12 @@ export function DeadlineAlertsSection() {
           <LoadingIcon className="m-auto my-6" />
         ) : (
           <>
-            <ReminderRow alerts={alerts} filterType={filterType} onRenewCar={handleRenewCar} />
+            <ReminderRow
+              vehicles={vehicles}
+              alerts={alerts}
+              filterType={filterType}
+              onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+            />
 
             {hasNextPage && (
               <div className="flex justify-center mt-6">
@@ -124,22 +124,7 @@ export function DeadlineAlertsSection() {
         )}
       </div>
 
-      <Modal
-        isOpen={renewCarId !== null}
-        setIsOpen={(isOpen) => !isOpen && closeRenewModal()}
-        title={
-          selectedRenewCar
-            ? `Edytuj pojazd ${selectedRenewCar.brand} ${selectedRenewCar.model}`
-            : 'Edytuj dane pojazdu'
-        }
-        subtitle="Zaktualizuj ubezpieczenia lub badania techniczne pojazdu."
-      >
-        <AddVehicleForm
-          initialData={selectedRenewCar}
-          onClose={closeRenewModal}
-          isRenewalMode={true}
-        />
-      </Modal>
+      {VehiclesModal}
     </>
   );
 }

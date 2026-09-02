@@ -19,10 +19,10 @@ import { AddVehicleFormData } from '@/features/dashboard/lib/formValidationRules
 // POBIERANIE POJEDYNCZEGO POJAZDU
 // GET /vehicles/{id}
 // =========================================================================
-export const useVehicle = (id: string) => {
+export const useVehicle = (id?: string | null) => {
   return useQuery({
     queryKey: ['vehicles', id],
-    queryFn: () => getVehicle(id),
+    queryFn: () => getVehicle(id!),
     enabled: !!id,
     retry: false,
   });

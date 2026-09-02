@@ -15,7 +15,6 @@ import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { useTeam } from '@/features/dashboard/hooks/team.hooks';
 import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
-import { useService, useServices } from '@/features/dashboard/hooks/services.hooks';
 import {
   useAlertPolicy,
   useNotificationCenterSummary,
@@ -23,7 +22,6 @@ import {
 import { useAllVehicleAlerts } from '@/features/dashboard/hooks/useVehicleAlerts';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { Modal } from '@/features/dashboard/ui/Modal';
 import { GridWrapper } from '@/features/dashboard/ui/GridWrapper';
 import { ActionButton } from '@/features/dashboard/ui/ActionButton';
 import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
@@ -32,14 +30,14 @@ import { DashboardCard } from '@/features/dashboard/widgets/DashboardCard';
 import { AdminAlertBucket } from '@/features/dashboard/widgets/AdminAlertBucket';
 import { Banner } from '@/features/dashboard/widgets/Banner';
 import { History } from '@/features/dashboard/widgets/History';
-import { AddVehicleForm } from '@/features/dashboard/forms/AddVehicleForm';
-import { AddEditUserForm } from '@/features/dashboard/forms/AddEditUserForm';
-import { DeleteServiceConfirm } from '@/features/dashboard/forms/DeleteServiceConfirm';
 import { VehicleData } from '@/features/dashboard/types';
 import { ServiceData } from '@/features/dashboard/types';
 import { getUserFullName } from '@/utils/getUserFullName';
 import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { VehiclesServiceForm } from '@/features/dashboard/forms/VehiclesServicesForm';
+import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
+import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
+import { useUsersModal } from '@/features/dashboard/hooks/useUsersModal';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 
 type DashboardAction = {
@@ -49,15 +47,6 @@ type DashboardAction = {
   actionType: 'modal_car' | 'modal_user' | 'modal_service' | 'link';
   href?: string;
 };
-
-type ModalType =
-  | 'add_car'
-  | 'edit_car'
-  | 'add_service'
-  | 'edit_service'
-  | 'delete_service'
-  | 'add_user'
-  | null;
 
 export const dashboardActions: DashboardAction[] = [
   {
@@ -104,8 +93,9 @@ export const Route = createFileRoute('/dashboard/(home)/')({
 function RouteComponent() {
   const navigate = useNavigate();
 
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const { data: selectedService } = useService(selectedServiceId);
+  const { openModal: openServiceModal, ServiceModal } = useServiceModal();
+  const { openModal: openVehicleModal, VehiclesModal } = useVehiclesModal();
+  const { openModal: openUsersModal, UsersModal } = useUsersModal();
 
   const { data: user } = useUser();
   const { data: vehiclesResponse, isPending: isVehiclesPending } = useVehicles();
@@ -120,8 +110,6 @@ function RouteComponent() {
 
   const hasExtendedThreshold = (alertPolicy?.leadDays ?? []).some((day) => day > 30);
 
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
 
   const HISTORY_PAGE_SIZE = 5;
@@ -135,23 +123,6 @@ function RouteComponent() {
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
-
-  const selectedCar = vehicles.find((c) => c.id === selectedCarId);
-
-  const handleRenewCar = (id: string) => {
-    setSelectedCarId(id);
-    setActiveModal('edit_car');
-  };
-
-  const handleEditServiceClick = (item: ServiceData) => {
-    setSelectedServiceId(item.id);
-    setActiveModal('edit_service');
-  };
-
-  const handleDeleteServiceClick = (item: ServiceData) => {
-    setSelectedServiceId(item.id);
-    setActiveModal('delete_service');
-  };
 
   // ============================================================
   // PRZEGLĄDY TECHNICZNE
@@ -242,110 +213,19 @@ function RouteComponent() {
       return;
     }
     if (actionType === 'modal_car') {
-      setActiveModal('add_car');
+      openVehicleModal('add_car');
       return;
     }
     if (actionType === 'modal_user') {
       if (!canInviteUsers) return;
-      setActiveModal('add_user');
+      openUsersModal('add_user');
       return;
     }
     if (actionType === 'modal_service') {
-      setActiveModal('add_service');
+      openServiceModal('add_service');
       return;
     }
   };
-
-  // ============================================================
-  // CONFIG DLA MODALI
-  // ============================================================
-  const getModalConfig = () => {
-    switch (activeModal) {
-      case 'add_car':
-        return {
-          title: 'Dodaj pojazd',
-          subtitle: 'Wprowadź dane pojazdu. Pola oznaczone * są wymagane.',
-          content: <AddVehicleForm onClose={() => setActiveModal(null)} />,
-        };
-
-      case 'edit_car':
-        if (!selectedCar) return { title: '', subtitle: '', content: null };
-
-        return {
-          title: `Edytuj pojazd ${selectedCar.brand} ${selectedCar.model}`,
-          subtitle: 'Zaktualizuj ubezpieczenia lub badania techniczne pojazdu.',
-          content: (
-            <AddVehicleForm
-              initialData={selectedCar}
-              onClose={() => {
-                setActiveModal(null);
-                setSelectedCarId(null);
-              }}
-              isRenewalMode={true}
-            />
-          ),
-        };
-
-      case 'add_service':
-        return {
-          title: 'Dodaj wpis serwisowy',
-          subtitle: 'Wprowadź szczegóły wykonanej naprawy lub serwisu.',
-          content: (
-            <div className="text-center text-content-secondary">
-              <VehiclesServiceForm mode="create" onClose={() => setActiveModal(null)} />
-            </div>
-          ),
-        };
-
-      case 'edit_service':
-        if (!selectedService) return { title: '', subtitle: '', content: null };
-
-        return {
-          title: 'Edytuj wpis serwisowy',
-          subtitle: 'Zaktualizuj szczegóły, koszt lub miejsce wykonania usługi.',
-          content: (
-            <VehiclesServiceForm
-              mode="edit"
-              service={selectedService}
-              onClose={() => {
-                setActiveModal(null);
-                setSelectedServiceId(null);
-              }}
-            />
-          ),
-        };
-
-      case 'delete_service':
-        if (!selectedService) return { title: '', subtitle: '', content: null };
-
-        return {
-          title: 'Usuń wpis serwisowy',
-          subtitle:
-            'Czy na pewno chcesz usunąć ten wpis z historii serwisowej? Ta operacja jest nieodwracalna.',
-          content: (
-            <DeleteServiceConfirm
-              service={selectedService}
-              onClose={() => {
-                setActiveModal(null);
-                setSelectedServiceId(null);
-              }}
-            />
-          ),
-        };
-
-      case 'add_user':
-        return {
-          title: 'Dodaj użytkownika',
-          subtitle: 'Wprowadź dane nowego kierowcy lub administratora systemu.',
-          content: <AddEditUserForm onClose={() => setActiveModal(null)} />,
-        };
-
-      default:
-        return { title: '', subtitle: '', content: null };
-    }
-  };
-
-  const modalConfig = getModalConfig();
 
   if (!user) return null;
 
@@ -442,8 +322,9 @@ function RouteComponent() {
               />
               <ReminderRow
                 alerts={remindersAlerts}
+                vehicles={vehicles}
                 filterType="inspection"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 limit={5}
               />
             </div>
@@ -460,8 +341,9 @@ function RouteComponent() {
               />
               <ReminderRow
                 alerts={remindersAlerts}
+                vehicles={vehicles}
                 filterType="insurance"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 limit={5}
               />
             </div>
@@ -481,8 +363,8 @@ function RouteComponent() {
             label: 'Zobacz pełną historię',
             href: '/dashboard/service',
           }}
-          onEditClick={handleEditServiceClick}
-          onDeleteClick={handleDeleteServiceClick}
+          onEditClick={(service) => openServiceModal('edit_service', service.id)}
+          onDeleteClick={(service) => openServiceModal('delete_service', service.id)}
           pagination={{
             currentPage: historyServicesResponse?.page ?? historyPage,
             totalPages: historyServicesResponse?.totalPages ?? 1,
@@ -544,22 +426,11 @@ function RouteComponent() {
       </GridWrapper>
 
       {/* ========================================================
-          MODAL
+          MODALS
           ======================================================== */}
-      <Modal
-        isOpen={activeModal !== null}
-        setIsOpen={(isOpen) => {
-          if (!isOpen) {
-            setActiveModal(null);
-            setSelectedCarId(null);
-            setSelectedServiceId(null);
-          }
-        }}
-        title={modalConfig.title}
-        subtitle={modalConfig.subtitle}
-      >
-        {modalConfig.content}
-      </Modal>
+      {ServiceModal}
+      {VehiclesModal}
+      {UsersModal}
     </>
   );
 }
