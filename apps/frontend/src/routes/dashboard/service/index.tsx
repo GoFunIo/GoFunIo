@@ -24,6 +24,7 @@ function RouteComponent() {
   const [filters, setFilters] = useState<ServicesFiltersType>({
     vehicleId: null,
     type: null,
+    providerName: null,
     from: undefined,
     to: undefined,
   });
@@ -33,12 +34,13 @@ function RouteComponent() {
     pageSize: SERVICES_PAGE_SIZE,
     vehicleId: filters.vehicleId ?? undefined,
     type: filters.type ?? undefined,
+    providerName: filters.providerName ?? undefined,
     from: formatDate(filters.from),
     to: formatDate(filters.to),
   });
 
   const services: ServiceData[] = servicesResponse?.items ?? [];
-
+  console.log(services);
   const handleFilterChange = (filters: ServicesFiltersType) => {
     setFilters(filters);
     setPage(1);

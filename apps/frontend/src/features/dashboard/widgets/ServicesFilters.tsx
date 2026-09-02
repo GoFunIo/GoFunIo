@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useVehicles } from '../hooks/vehicles.hooks';
 import { Select } from '../ui/Select';
 import { Filters } from './Filters';
 import { ServicesFiltersType, ServiceType } from '../types';
 import { serviceTypeOptions } from '../constants/serviceOptions';
-import { DatePicker } from '../ui/DatePicker';
+import { useServices } from '../hooks/services.hooks';
+import { DateRangePicker } from '../ui/DateRangePicker';
 
 type Props = {
   filters: ServicesFiltersType;
@@ -13,6 +14,7 @@ type Props = {
 
 export const ServicesFilters = ({ filters, onChange }: Props) => {
   const { data: vehiclesData } = useVehicles();
+  const { data: servicesData } = useServices();
 
   const carOptions = useMemo(() => {
     if (!vehiclesData) return [];
@@ -25,6 +27,37 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
       label: `${car.brand} ${car.model} (${car.registrationNumber})`,
     }));
   }, [vehiclesData]);
+
+  const providerOptions = useMemo(() => {
+    if (!servicesData) return [];
+
+    const servicesList = Array.isArray(servicesData) ? servicesData : (servicesData.items ?? []);
+
+    const uniqueProviders = new Map(
+      servicesList.map((service) => [
+        service.providerName,
+        {
+          id: service.id,
+          value: service.providerName,
+          label: service.providerName,
+        },
+      ]),
+    );
+
+    return Array.from(uniqueProviders.values());
+  }, [servicesData]);
+
+  useEffect(() => {
+    if (
+      filters.providerName &&
+      !providerOptions.some((option) => option.value === filters.providerName)
+    ) {
+      onChange({
+        ...filters,
+        providerName: null,
+      });
+    }
+  }, [filters, providerOptions, onChange]);
 
   return (
     <Filters>
@@ -54,28 +87,34 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
         className="w-full"
       />
 
-      <DatePicker
-        value={filters.from}
+      <Select
+        value={filters.providerName}
         onChange={(value) =>
           onChange({
             ...filters,
-            from: value,
+            providerName: value as string | null,
           })
         }
+        placeholder="Wszystki warsztaty"
+        options={providerOptions}
         className="w-full"
-        clearable
       />
 
-      <DatePicker
-        value={filters.to}
-        onChange={(value) =>
+      <DateRangePicker
+        value={{
+          from: filters.from,
+          to: filters.to,
+        }}
+        onChange={(range) =>
           onChange({
             ...filters,
-            to: value,
+            from: range?.from,
+            to: range?.to,
           })
         }
-        className="w-full"
+        placeholder="Od - Do"
         clearable
+        className="w-full"
       />
     </Filters>
   );

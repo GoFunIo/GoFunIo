@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { ChevronDown } from 'lucide-react';
 import { DropdownProps } from '@daypicker/react';
@@ -96,44 +95,42 @@ export const SelectDatePicker = ({
         <ChevronDown size={14} />
       </button>
 
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            style={{
-              position: 'fixed',
-              top: position.top,
-              left: position.left,
-              minWidth: position.width,
-              zIndex: 9999,
-            }}
-            className="max-h-50 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg"
-          >
-            {options?.map((item) => {
-              const isSelected = String(item.value) === String(value);
+      {isOpen && (
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: position.top,
+            left: position.left,
+            minWidth: position.width,
+            zIndex: 9999,
+          }}
+          className="scrollbar-dashboard max-h-50 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg"
+        >
+          {options?.map((item) => {
+            const isSelected = String(item.value) === String(value);
 
-              return (
-                <button
-                  key={item.value}
-                  ref={isSelected ? selectedOptionRef : null}
-                  type="button"
-                  disabled={item.disabled}
-                  onClick={() => handleSelect(item.value)}
-                  className={classNames(
-                    'block w-full px-3 py-2 text-left text-[12px] hover:bg-bg-section',
-                    {
-                      'bg-bg-section font-semibold text-content-primary': isSelected,
-                      'cursor-not-allowed opacity-50': item.disabled,
-                    },
-                  )}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>,
-          document.body,
-        )}
+            return (
+              <button
+                key={item.value}
+                ref={isSelected ? selectedOptionRef : null}
+                type="button"
+                disabled={item.disabled}
+                onClick={() => handleSelect(item.value)}
+                className={classNames(
+                  'block w-full px-3 py-2 text-left text-[12px] hover:bg-bg-section',
+                  {
+                    'bg-bg-section font-semibold text-content-primary': isSelected,
+                    'cursor-not-allowed opacity-50': item.disabled,
+                  },
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

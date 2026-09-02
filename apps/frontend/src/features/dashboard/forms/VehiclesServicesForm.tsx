@@ -179,6 +179,8 @@ export const VehiclesServiceForm = ({
                   }}
                   placeholder="Wybierz datę serwisu"
                   className="!w-full h-[45px]"
+                  clearable
+                  maxDate
                 />
               )}
             />
