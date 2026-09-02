@@ -123,7 +123,6 @@ function RouteComponent() {
 
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
-  console.log(vehicles);
 
   // ============================================================
   // PRZEGLĄDY TECHNICZNE
@@ -323,8 +322,9 @@ function RouteComponent() {
               />
               <ReminderRow
                 alerts={remindersAlerts}
+                vehicles={vehicles}
                 filterType="inspection"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 limit={5}
               />
             </div>
@@ -341,8 +341,9 @@ function RouteComponent() {
               />
               <ReminderRow
                 alerts={remindersAlerts}
+                vehicles={vehicles}
                 filterType="insurance"
-                onRenewCar={handleRenewCar}
+                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
                 limit={5}
               />
             </div>
