@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import { join } from 'path';
 import { DataSource } from 'typeorm';
 import { CreateInitialSchema1748000000000 } from '../src/migrations/1748000000000-CreateInitialSchema';
 import { NormalizeUserIdentity1749000000000 } from '../src/migrations/1749000000000-NormalizeUserIdentity';
@@ -18,6 +19,108 @@ import { NormalizeServiceAttachments1763000000000 } from '../src/migrations/1763
 import { MembershipRole } from '../src/users/membership-role';
 
 describe('database migrations', () => {
+  it('restores multiple active Driver Allocations after the single-driver migration', async () => {
+    const schema = `migration_${randomBytes(4).toString('hex')}`;
+    const admin = new DataSource({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+    });
+    const options = {
+      type: 'postgres' as const,
+      url: process.env.DATABASE_URL,
+      schema,
+      extra: { options: `-c search_path=${schema},public` },
+    };
+    const legacyDatabase = new DataSource({
+      ...options,
+      migrations: [
+        CreateInitialSchema1748000000000,
+        NormalizeUserIdentity1749000000000,
+        AddProfileFields1750000000000,
+        CreateVehicles1751000000000,
+        CreateDrivers1752000000000,
+        CreateMemberships1753000000000,
+        AddMembershipInvitations1754000000000,
+        AllowUsersWithoutCompany1755000000000,
+        ReferenceManagerMembership1756000000000,
+        AllowRemovedMemberships1757000000000,
+        DropUserCompanyRole1758000000000,
+        AddWorkspaceOwner1759000000000,
+        LinkDriverMembership1760000000000,
+      ],
+    });
+    const currentDatabase = new DataSource({
+      ...options,
+      migrations: [join(__dirname, '../src/migrations', '*.{js,ts}')],
+    });
+
+    await admin.initialize();
+    try {
+      await admin.query(`CREATE SCHEMA "${schema}"`);
+      await legacyDatabase.initialize();
+      await legacyDatabase.runMigrations();
+
+      const [{ id: companyId }] = await legacyDatabase.query<{ id: string }[]>(
+        `INSERT INTO "companies" (name) VALUES ('Legacy driver allocation') RETURNING id`,
+      );
+      const [{ id: vehicleId }] = await legacyDatabase.query<{ id: string }[]>(
+        `INSERT INTO "vehicles" ("companyId", brand, model, "registrationNumber")
+         VALUES ($1, 'Legacy', 'Allocation', 'LEGDRV1') RETURNING id`,
+        [companyId],
+      );
+      const drivers = await legacyDatabase.query<{ id: string }[]>(
+        `INSERT INTO "drivers" ("companyId", "firstName", "lastName")
+         VALUES ($1, 'First', 'Driver'), ($1, 'Second', 'Driver') RETURNING id`,
+        [companyId],
+      );
+      await legacyDatabase.query(
+        `INSERT INTO "driver_vehicle_assignments" ("companyId", "driverId", "vehicleId")
+         VALUES ($1, $2, $3)`,
+        [companyId, drivers[0].id, vehicleId],
+      );
+      await legacyDatabase.query(
+        `DROP INDEX "IDX_driver_assignments_active_pair"`,
+      );
+      await legacyDatabase.query(
+        `CREATE UNIQUE INDEX "IDX_driver_assignments_active_vehicle"
+         ON "driver_vehicle_assignments" ("vehicleId")
+         WHERE "assignedTo" IS NULL`,
+      );
+      await legacyDatabase.query(
+        `INSERT INTO "migrations" (timestamp, name)
+         VALUES (1761000000000, 'EnforceSingleActiveDriver1761000000000')`,
+      );
+      await legacyDatabase.destroy();
+
+      await currentDatabase.initialize();
+      await currentDatabase.runMigrations();
+
+      await expect(
+        currentDatabase.query(
+          `INSERT INTO "driver_vehicle_assignments" ("companyId", "driverId", "vehicleId")
+           VALUES ($1, $2, $3)`,
+          [companyId, drivers[1].id, vehicleId],
+        ),
+      ).resolves.toBeDefined();
+      await expect(
+        currentDatabase.query(
+          `INSERT INTO "driver_vehicle_assignments" ("companyId", "driverId", "vehicleId")
+           VALUES ($1, $2, $3)`,
+          [companyId, drivers[1].id, vehicleId],
+        ),
+      ).rejects.toMatchObject({ code: '23505' });
+    } finally {
+      if (currentDatabase.isInitialized) {
+        await currentDatabase.destroy();
+      }
+      if (legacyDatabase.isInitialized) {
+        await legacyDatabase.destroy();
+      }
+      await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await admin.destroy();
+    }
+  });
+
   it('rejects legacy Service attachment metadata before dropping its columns', async () => {
     const schema = `migration_${randomBytes(4).toString('hex')}`;
     const admin = new DataSource({
