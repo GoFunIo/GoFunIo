@@ -69,7 +69,7 @@ export class CompanyUsersService {
       .addSelect('membership.role', 'contextRole')
       .addSelect(
         `(SELECT COUNT(*)::int FROM "manager_vehicle_assignments" mva
-           WHERE mva."managerId" = user.id
+           WHERE mva."managerId" = "user"."id"
              AND mva."companyId" = :companyId
              AND mva."assignedTo" IS NULL)`,
         'carsCount',
