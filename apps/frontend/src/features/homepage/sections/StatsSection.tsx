@@ -1,7 +1,9 @@
 import { Mail, Car, Calendar, Smartphone } from 'lucide-react';
-import carBg from '@/assets/img/carBg.png';
 import { StatItem } from '@/features/homepage/ui/StatsItem';
 import { RingsIcon } from '@/features/homepage/ui/Icons';
+import { getImage } from '@/utils/getImage';
+
+const carBg = getImage('carBg.png');
 
 const stats = [
   {

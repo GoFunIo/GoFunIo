@@ -1,14 +1,17 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import { MobileMenu } from './MobileMenu';
-import LogoLight from '@/assets/logo/logo_autokeep.svg';
-import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
 import { Menu, X } from 'lucide-react';
+import { MobileMenu } from './MobileMenu';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { useLogoAction } from '@/hooks/useLogoAction';
 import { useScrollY } from '@/hooks/useScrollY';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
+
+import { getImage } from '@/utils/getImage';
+
+const LogoLight = getImage('logo_autokeep.svg');
+const LogoDark = getImage('logo_autokeep_darktheme.svg');
 
 const navLinks = [
   { label: 'FUNKCJE', href: '#funkcje' },
