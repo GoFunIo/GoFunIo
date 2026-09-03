@@ -2,11 +2,13 @@ import { Download, Paperclip, Pencil, Trash2, Upload } from 'lucide-react';
 
 import { AttachmentData } from '../types/AttachmentTypes';
 
-import { formatFileSize, formatFileType } from '@/utils/formatFile';
+import { formatFileDate, formatFileSize, formatFileType } from '@/utils/formatFile';
 
 import classNames from 'classnames';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 import { useRef } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 type Props = {
   attachments: AttachmentData[];
@@ -60,16 +62,38 @@ export const Attachments = ({
       )}
       {attachments.map((item, index) => {
         const isExisting = 'id' in item;
+        const mimeType = formatFileType(item.mimeType);
+        const attachmentPreviewSize = 'w-10 h-10';
 
         return (
           <div key={`${item.name}-${item.size}-${index}`} className="flex items-center gap-3">
-            <Paperclip size={21} className="text-content-secondary shrink-0" />
+            {mimeType === 'JPEG' || mimeType === 'PNG' ? (
+              <a
+                href={`${API_URL}${item.previewUrl}`}
+                className={classNames(attachmentPreviewSize)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={`${API_URL}${item.previewUrl}`}
+                  alt={item.name}
+                  className="object-cover w-full h-full"
+                />
+              </a>
+            ) : (
+              <div
+                className={classNames('flex items-center justify-center', attachmentPreviewSize)}
+              >
+                <Paperclip size={21} className="text-content-secondary shrink-0" />
+              </div>
+            )}
 
             <div>
               <p className="text-[14px] text-content-secondary">{item.name}</p>
 
               <p className="text-[14px] text-content-secondary">
-                {formatFileSize(item.size)} · {formatFileType(item.mimeType)} · {item.createdAt}
+                {formatFileSize(item.size)} · {formatFileType(item.mimeType)} ·{' '}
+                {formatFileDate(item.createdAt)}
               </p>
             </div>
 

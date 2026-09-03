@@ -32,7 +32,7 @@ export const AttachmentsForm = (props: Props) => {
   const { mutateAsync: createAttachment } = useCreateServiceAttachment();
   const { mutateAsync: replaceAttachment } = useUpdateServiceAttachment();
   const { mutateAsync: deleteAttachment } = useDeleteServiceAttachment();
-
+  console.log(attachments);
   const handleAddFile = async (file: File) => {
     if (attachments.length >= MAX_FILES_PER_UPLOAD) {
       return;

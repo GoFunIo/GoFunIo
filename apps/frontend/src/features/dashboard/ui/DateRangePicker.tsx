@@ -5,6 +5,7 @@ import { ChevronUp } from 'lucide-react';
 import { DayPicker, DateRange } from '@daypicker/react';
 import { pl } from '@daypicker/react/locale';
 import { SelectDatePicker } from '../ui/SelectDatePicker';
+import { formatFileDate } from '@/utils/formatFile';
 
 type Props = {
   value: DateRange | undefined;
@@ -117,8 +118,8 @@ export const DateRangePicker = ({
   }, [isOpen]);
 
   const formattedValue = value?.from
-    ? `${value.from.toLocaleDateString('pl-PL')}${
-        value.to ? ` - ${value.to.toLocaleDateString('pl-PL')}` : ''
+    ? `${formatFileDate(value.from.toISOString())}${
+        value.to ? ` - ${formatFileDate(value.to.toISOString())}` : ''
       }`
     : '';
 
