@@ -132,7 +132,7 @@ export const DateRangePicker = ({
           value={formattedValue}
           placeholder={placeholder}
           className={classNames(
-            'caret-transparent text-[14px] focus:outline-none placeholder:text-icon z-9 cursor-pointer px-[8px] w-full h-full',
+            'caret-transparent text-[14px] focus:outline-none placeholder:text-icon cursor-pointer px-[8px] w-full h-full',
             {
               'text-content-primary font-medium': !!value?.from,
               'text-content-secondary': !value?.from,
