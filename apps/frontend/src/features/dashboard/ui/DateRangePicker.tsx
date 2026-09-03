@@ -13,6 +13,7 @@ type Props = {
   placeholder?: string;
   className?: string;
   clearable?: boolean;
+  maxDate?: boolean;
 };
 
 const formatWeekdayName = (date: Date) => {
@@ -46,6 +47,7 @@ export const DateRangePicker = ({
   placeholder = 'Od - Do',
   className,
   clearable = false,
+  maxDate = false,
 }: Props) => {
   const OFFSET = 6;
 
@@ -60,6 +62,9 @@ export const DateRangePicker = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const currentYear = new Date().getFullYear();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const updatePosition = () => {
     if (!selectRef.current) return;
@@ -132,7 +137,7 @@ export const DateRangePicker = ({
           value={formattedValue}
           placeholder={placeholder}
           className={classNames(
-            'caret-transparent text-[14px] focus:outline-none placeholder:text-icon z-9 cursor-pointer px-[8px] w-full h-full',
+            'caret-transparent text-[14px] focus:outline-none placeholder:text-icon cursor-pointer px-[8px] w-full h-full',
             {
               'text-content-primary font-medium': !!value?.from,
               'text-content-secondary': !value?.from,
@@ -182,6 +187,7 @@ export const DateRangePicker = ({
               onSelect={(range) => {
                 onChange(range);
               }}
+              disabled={maxDate ? { after: today } : undefined}
               captionLayout="dropdown"
               navLayout="after"
               startMonth={new Date(currentYear - 20, 0)}

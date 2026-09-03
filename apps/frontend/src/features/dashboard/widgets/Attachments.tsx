@@ -64,21 +64,22 @@ export const Attachments = ({
         const isExisting = 'id' in item;
         const mimeType = formatFileType(item.mimeType);
         const attachmentPreviewSize = 'w-10 h-10';
+        const previewUrl = item.previewUrl
+          ? `${API_URL}${item.previewUrl}`
+          : item.file
+            ? URL.createObjectURL(item.file)
+            : undefined;
 
         return (
           <div key={`${item.name}-${item.size}-${index}`} className="flex items-center gap-3">
             {mimeType === 'JPEG' || mimeType === 'PNG' ? (
               <a
-                href={`${API_URL}${item.previewUrl}`}
+                href={previewUrl}
                 className={classNames(attachmentPreviewSize)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <img
-                  src={`${API_URL}${item.previewUrl}`}
-                  alt={item.name}
-                  className="object-cover w-full h-full"
-                />
+                <img src={previewUrl} alt={item.name} className="object-cover w-full h-full" />
               </a>
             ) : (
               <div

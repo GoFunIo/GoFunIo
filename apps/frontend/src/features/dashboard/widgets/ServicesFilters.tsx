@@ -95,7 +95,7 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
             providerName: value as string | null,
           })
         }
-        placeholder="Wszystki warsztaty"
+        placeholder="Miejsce usługi"
         options={providerOptions}
         className="w-full"
       />
@@ -115,6 +115,7 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
         placeholder="Od - Do"
         clearable
         className="w-full"
+        maxDate
       />
     </Filters>
   );
