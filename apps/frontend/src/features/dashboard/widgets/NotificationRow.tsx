@@ -101,7 +101,15 @@ export function NotificationRow({
           {deadlineKindLabels[item.deadlineKind]}
           <span className="text-content-secondary font-normal">
             {' · '}
-            {item.registrationNumber}
+            {item.vehicle ? (
+              <>
+                {item.vehicle.brand} {item.vehicle.model} · {item.vehicle.registrationNumber}
+              </>
+            ) : item.registrationNumber ? (
+              item.registrationNumber
+            ) : (
+              'Brak danych pojazdu'
+            )}
           </span>
         </p>
         <p className="text-[12px] text-content-secondary">

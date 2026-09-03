@@ -103,6 +103,7 @@ export type NotificationItem = {
   deadlineDate: string; // Data terminu
   leadDay: number; // Próg, dla którego utworzono Notification
   registrationNumber: string;
+  vehicle: AlertVehicleInfo;
   action: NotificationAction; // Autoryzowana akcja po kliknięciu
 };
 
