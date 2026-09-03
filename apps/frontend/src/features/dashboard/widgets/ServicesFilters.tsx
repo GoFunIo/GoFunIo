@@ -115,6 +115,7 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
         placeholder="Od - Do"
         clearable
         className="w-full"
+        maxDate
       />
     </Filters>
   );
