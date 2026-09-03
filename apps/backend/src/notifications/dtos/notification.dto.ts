@@ -9,6 +9,12 @@ export class NotificationActionDto {
   @ApiProperty({ format: 'uuid' }) @Expose() vehicleId!: string;
 }
 
+export class NotificationVehicleDto {
+  @ApiProperty({ example: 'Toyota' }) @Expose() brand!: string;
+  @ApiProperty({ example: 'Corolla' }) @Expose() model!: string;
+  @ApiProperty({ example: 'WA12345' }) @Expose() registrationNumber!: string;
+}
+
 export class VehicleDeadlineNotificationDto {
   @ApiProperty({ format: 'uuid' }) @Expose() id!: string;
   @ApiProperty({ enum: NotificationType }) @Expose() type!: NotificationType;
@@ -37,7 +43,10 @@ export class VehicleDeadlineNotificationDto {
   deadlineKind!: VehicleDeadlineKind;
   @ApiProperty({ format: 'date' }) @Expose() deadlineDate!: string;
   @ApiProperty({ example: 7 }) @Expose() leadDay!: number;
-  @ApiProperty({ example: 'WA12345' }) @Expose() registrationNumber!: string;
+  @ApiProperty({ type: NotificationVehicleDto })
+  @Expose()
+  @Type(() => NotificationVehicleDto)
+  vehicle!: NotificationVehicleDto;
   @ApiProperty({ type: NotificationActionDto })
   @Expose()
   @Type(() => NotificationActionDto)

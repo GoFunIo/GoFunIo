@@ -291,8 +291,8 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .expect(200);
     expect(
       first.body.items.map(
-        ({ registrationNumber }: { registrationNumber: string }) =>
-          registrationNumber,
+        ({ vehicle }: { vehicle: { registrationNumber: string } }) =>
+          vehicle.registrationNumber,
       ),
     ).toEqual(['PAGE003', 'PAGE002']);
     expect(first.body.nextCursor).toEqual(expect.any(String));
@@ -321,8 +321,8 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .expect(200);
     expect(
       second.body.items.map(
-        ({ registrationNumber }: { registrationNumber: string }) =>
-          registrationNumber,
+        ({ vehicle }: { vehicle: { registrationNumber: string } }) =>
+          vehicle.registrationNumber,
       ),
     ).toEqual(['PAGE001']);
     expect(second.body.nextCursor).toBeNull();
@@ -369,7 +369,7 @@ describe('Vehicle deadline Notifications (e2e)', () => {
       .expect(200);
     expect(
       [first, second, third].map(
-        ({ body }) => body.items[0].registrationNumber,
+        ({ body }) => body.items[0].vehicle.registrationNumber,
       ),
     ).toEqual(['MICRO03', 'MICRO02', 'MICRO01']);
     expect(third.body.nextCursor).toBeNull();
@@ -389,12 +389,12 @@ describe('Vehicle deadline Notifications (e2e)', () => {
         .expect(201);
     }
     const items = (await actor.get('/notifications').query({ limit: 100 })).body
-      .items as Array<{ id: string; registrationNumber: string }>;
+      .items as Array<{ id: string; vehicle: { registrationNumber: string } }>;
     const read = items.find(
-      ({ registrationNumber }) => registrationNumber === 'FILTER1',
+      ({ vehicle }) => vehicle.registrationNumber === 'FILTER1',
     )!;
     const archived = items.find(
-      ({ registrationNumber }) => registrationNumber === 'FILTER2',
+      ({ vehicle }) => vehicle.registrationNumber === 'FILTER2',
     )!;
     await actor.patch(`/notifications/${read.id}/read`).expect(200);
     await actor.patch(`/notifications/${archived.id}/archive`).expect(200);
@@ -1002,12 +1002,12 @@ describe('Vehicle deadline Notifications (e2e)', () => {
         .expect(201);
     }
     const items = (await actor.get('/notifications').query({ limit: 100 })).body
-      .items as Array<{ id: string; registrationNumber: string }>;
+      .items as Array<{ id: string; vehicle: { registrationNumber: string } }>;
     const archived = items.find(
-      ({ registrationNumber }) => registrationNumber === 'READA03',
+      ({ vehicle }) => vehicle.registrationNumber === 'READA03',
     )!;
     const invalid = items.find(
-      ({ registrationNumber }) => registrationNumber === 'READA04',
+      ({ vehicle }) => vehicle.registrationNumber === 'READA04',
     )!;
     await actor.patch(`/notifications/${archived.id}/archive`).expect(200);
     await dataSource.query(

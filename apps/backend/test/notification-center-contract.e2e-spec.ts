@@ -372,6 +372,7 @@ async function expectWorkspaceState(
         showLiveToasts: expected.showLiveToasts,
       });
     });
+  let alertVehicle: unknown;
   await actor
     .get('/vehicle-deadline-alerts')
     .expect(200)
@@ -380,15 +381,14 @@ async function expectWorkspaceState(
       expect(body.items[0].vehicle.registrationNumber).toBe(
         expected.registrationNumber,
       );
+      alertVehicle = body.items[0].vehicle;
     });
   await actor
     .get('/notifications')
     .expect(200)
     .expect(({ body }) => {
       expect(body.items).toHaveLength(1);
-      expect(body.items[0].registrationNumber).toBe(
-        expected.registrationNumber,
-      );
+      expect(body.items[0].vehicle).toEqual(alertVehicle);
     });
   await actor
     .get('/notification-center/summary')
