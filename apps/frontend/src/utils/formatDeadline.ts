@@ -48,13 +48,14 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
 export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
   if (overdue) {
     const daysOverdue = Math.abs(daysRemaining);
+
     if (daysOverdue === 0) return 'Dzisiaj';
-    if (daysOverdue === 1) return '1 dzień temu';
-    return `${daysOverdue} dni temu`;
+    return `${daysOverdue} ${formatDays(daysOverdue)} temu`;
   }
+
   if (daysRemaining === 0) return 'Dzisiaj';
-  if (daysRemaining === 1) return '1 dzień';
-  return `${daysRemaining} dni`;
+
+  return `${daysRemaining} ${formatDays(daysRemaining)}`;
 };
 
 // =========================================================================

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayPicker } from '@daypicker/react';
 import { pl } from '@daypicker/react/locale';
 import { SelectDatePicker } from '../ui/SelectDatePicker';
@@ -14,6 +14,7 @@ type Props = {
   isRenewalMode?: boolean;
   clearable?: boolean;
   maxDate?: boolean;
+  error?: string;
 };
 
 const formatWeekdayName = (date: Date) => {
@@ -48,6 +49,7 @@ export const DatePicker = ({
   isRenewalMode = false,
   clearable = false,
   maxDate = false,
+  error,
 }: Props) => {
   const OFFSET = 6;
 
@@ -118,7 +120,12 @@ export const DatePicker = ({
 
   return (
     <div className={classNames('relative w-full h-[45px]', className)} ref={selectRef}>
-      <div className="relative flex items-center justify-between bg-bg-card rounded-[5px] border border-icon w-full h-full">
+      <div
+        className={classNames(
+          'relative flex items-center justify-between bg-bg-card rounded-[5px] border w-full h-full',
+          error ? 'border-alert' : 'border-icon',
+        )}
+      >
         <input
           readOnly
           type="text"
@@ -183,6 +190,13 @@ export const DatePicker = ({
               defaultMonth={value || new Date()}
               components={{
                 Dropdown: SelectDatePicker,
+
+                Chevron: ({ orientation, ...chevronProps }) =>
+                  orientation === 'left' ? (
+                    <ChevronLeft size={16} {...chevronProps} />
+                  ) : (
+                    <ChevronRight size={16} {...chevronProps} />
+                  ),
               }}
               formatters={{
                 formatWeekdayName,
@@ -193,11 +207,11 @@ export const DatePicker = ({
                 month_grid: 'w-full',
                 month_caption: 'flex items-center justify-between gap-2 mb-3',
                 dropdowns: 'flex items-center gap-2',
-                nav: 'absolute top-1 right-1 flex items-center gap-1 ml-auto ',
+                nav: 'absolute top-1 right-1 flex items-center text-content-secondary gap-1 ml-auto ',
                 button_previous:
-                  'flex h-5 w-5 items-center justify-center rounded-md  hover:bg-bg-section',
+                  'flex h-5 w-5 items-center justify-center rounded-md text-content-secondary  hover:bg-bg-section',
                 button_next:
-                  'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
+                  'flex h-5 w-5 items-center justify-center rounded-md text-content-secondary hover:bg-bg-section',
                 weekdays: 'flex w-full',
                 weekday:
                   'flex h-8 w-full items-center justify-center text-[12px] font-medium uppercase text-content-secondary',

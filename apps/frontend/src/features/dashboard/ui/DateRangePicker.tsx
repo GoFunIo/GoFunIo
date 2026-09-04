@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
-import { ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import { DayPicker, DateRange } from '@daypicker/react';
 import { pl } from '@daypicker/react/locale';
 import { SelectDatePicker } from '../ui/SelectDatePicker';
@@ -195,6 +195,12 @@ export const DateRangePicker = ({
               defaultMonth={value?.from || new Date()}
               components={{
                 Dropdown: SelectDatePicker,
+                Chevron: ({ orientation, ...chevronProps }) =>
+                  orientation === 'left' ? (
+                    <ChevronLeft size={16} {...chevronProps} />
+                  ) : (
+                    <ChevronRight size={16} {...chevronProps} />
+                  ),
               }}
               formatters={{
                 formatWeekdayName,
@@ -205,7 +211,7 @@ export const DateRangePicker = ({
                 month_grid: 'w-full',
                 month_caption: 'flex items-center justify-between gap-2 mb-3',
                 dropdowns: 'flex items-center gap-2',
-                nav: 'absolute top-1 right-1 flex items-center gap-1 ml-auto',
+                nav: 'absolute top-1 right-1 flex items-center text-content-secondary gap-1 ml-auto',
                 button_previous:
                   'flex h-5 w-5 items-center justify-center rounded-md hover:bg-bg-section',
                 button_next:

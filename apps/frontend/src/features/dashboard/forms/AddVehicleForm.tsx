@@ -201,6 +201,7 @@ export const AddVehicleForm = ({
           label="Data zakupu"
           error={errors.purchaseDate?.message}
           disabled={isRenewalMode || loading}
+          maxDate
         />
       </div>
 

@@ -39,6 +39,7 @@ import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
 import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
 import { useUsersModal } from '@/features/dashboard/hooks/useUsersModal';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { pluralize } from '@/utils/pluralize';
 
 type DashboardAction = {
   id: number;
@@ -256,7 +257,11 @@ function RouteComponent() {
           <DashboardCard
             title="Pojazdy we flocie"
             value={isVehiclesPending ? '...' : adminStats.totalFleetVehicles}
-            subtitle="aktywne"
+            subtitle={
+              isVehiclesPending
+                ? '...'
+                : pluralize(adminStats.totalFleetVehicles, 'aktywny', 'aktywne', 'aktywnych')
+            }
             icon={<CarFront size={20} />}
           />
         </Link>
@@ -265,7 +270,16 @@ function RouteComponent() {
           <DashboardCard
             title="Aktywni użytkownicy"
             value={isTeamLoading ? '...' : adminStats.activeUsersCount}
-            subtitle="osoby mają pojazdy w systemie"
+            subtitle={
+              isTeamLoading
+                ? '...'
+                : pluralize(
+                    adminStats.activeUsersCount,
+                    'osoba ma pojazd w systemie',
+                    'osoby mają pojazdy w systemie',
+                    'osób ma pojazdy w systemie',
+                  )
+            }
             icon={<Users size={20} />}
           />
         </Link>
@@ -274,7 +288,16 @@ function RouteComponent() {
           <DashboardCard
             title="Pilne przypomnienia"
             value={isAlertsPending ? '...' : adminStats.urgentReminders}
-            subtitle="aktualnych alertów"
+            subtitle={
+              isAlertsPending
+                ? '...'
+                : pluralize(
+                    adminStats.urgentReminders,
+                    'aktualny alert',
+                    'aktualne alerty',
+                    'aktualnych alertów',
+                  )
+            }
             icon={<TriangleAlert size={20} />}
             variant="alert"
           />

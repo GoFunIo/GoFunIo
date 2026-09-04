@@ -11,6 +11,7 @@ import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { DeadlineKind, VehicleData, VehicleDeadlineAlert } from '../types';
 import { deadlineKindLabels, getAlertBadgeText, getAlertVariant } from '@/utils/formatDeadline';
+import { useMemo } from 'react';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
 
@@ -41,12 +42,14 @@ export const ReminderRow = ({
   filterType = 'all',
   limit,
 }: Props) => {
-  const sortedReminders = alerts
-    .filter((item) => matchesFilter(item.deadlineKind, filterType))
-    .slice()
-    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+  const activeReminders = useMemo(() => {
+    const sorted = alerts
+      .filter((item) => matchesFilter(item.deadlineKind, filterType))
+      .slice()
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
-  const activeReminders = limit ? sortedReminders.slice(0, limit) : sortedReminders;
+    return limit ? sorted.slice(0, limit) : sorted;
+  }, [alerts, filterType, limit]);
 
   if (activeReminders.length === 0) {
     return (

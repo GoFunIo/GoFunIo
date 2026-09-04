@@ -16,6 +16,8 @@ type FormDatePickerProps<T extends FieldValues> = {
   error?: string;
   disabled?: boolean;
   className?: string;
+  maxDate?: boolean;
+  clearable?: boolean;
 };
 
 export function FormDatePicker<T extends FieldValues>({
@@ -25,6 +27,8 @@ export function FormDatePicker<T extends FieldValues>({
   error,
   disabled,
   className,
+  maxDate,
+  clearable,
 }: FormDatePickerProps<T>) {
   return (
     <div
@@ -44,6 +48,9 @@ export function FormDatePicker<T extends FieldValues>({
             value={field.value ? new Date(field.value) : undefined}
             onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
             className={classNames('!w-full h-[40px]', className)}
+            maxDate={maxDate}
+            clearable={clearable}
+            error={error}
           />
         )}
       />

@@ -4,20 +4,19 @@ import { useMemo } from 'react';
 import classNames from 'classnames';
 
 import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
+import { useCreateService, useUpdateService } from '../hooks/services.hooks';
+import { useVehicles } from '../hooks/vehicles.hooks';
+import { SingleServiceData, VehicleData } from '../types';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+import { handlePriceInput } from '@/utils/handlePhoneInput';
+import { serviceTypeOptions } from '../constants/serviceOptions';
+import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
+
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
 import { Select } from '../ui/Select';
-import { DatePicker } from '../ui/DatePicker';
-
-import { serviceTypeOptions } from '../constants/serviceOptions';
-import { useVehicles } from '@/features/dashboard/hooks/vehicles.hooks';
-import { useCreateService, useUpdateService } from '../hooks/services.hooks';
-import { getErrorMessage } from '@/utils/getErrorMessage';
-import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
-import { SingleServiceData, VehicleData } from '../types';
-import { handlePriceInput } from '@/utils/handlePhoneInput';
+import { FormDatePicker } from '../ui/FormDatePicker';
 import { AttachmentsForm } from './AttachmentsForm';
-import { formatDate } from '@/utils/formatFile';
 
 type BaseFormProps = {
   className?: string;
@@ -158,35 +157,15 @@ export const VehiclesServiceForm = ({
 
         {/* DATA SERWISU I TYP */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <div className="flex flex-col gap-1 relative pb-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
-                Data serwisu *
-              </label>
-              {errors.serviceDate?.message && (
-                <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
-                  {errors.serviceDate.message}
-                </p>
-              )}
-            </div>
-            <Controller
-              control={control}
-              name="serviceDate"
-              render={({ field }) => (
-                <DatePicker
-                  value={field.value ? new Date(field.value) : undefined}
-                  onChange={(date) => {
-                    field.onChange(formatDate(date));
-                    clearErrors('serviceDate');
-                  }}
-                  placeholder="Wybierz datę serwisu"
-                  className="!w-full h-[45px]"
-                  clearable
-                  maxDate
-                />
-              )}
-            />
-          </div>
+          <FormDatePicker
+            control={control}
+            name="serviceDate"
+            label="Data serwisu *"
+            error={errors.serviceDate?.message}
+            disabled={isPending}
+            maxDate
+            clearable
+          />
 
           {/* TYP SERWISU */}
           <div className="flex flex-col gap-1 relative pb-2">
