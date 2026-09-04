@@ -6,6 +6,7 @@ type ApiError = {
 };
 
 type ErrorMessages = Record<string, string>;
+type CustomErrorMessages = Partial<Record<string | number, string>>;
 
 const ERROR_MESSAGES: ErrorMessages = {
   VEHICLE_REGISTRATION_IN_USE: 'Pojazd o takim numerze rejestracyjnym już istnieje.',
@@ -27,25 +28,26 @@ const ERROR_MESSAGES: ErrorMessages = {
   GOOGLE_LINK_CHANGED_CONCURRENTLY:
     'Połączenie z kontem Google zostało zmienione. Spróbuj ponownie.',
   SERVICE_ATTACHMENT_LIMIT_REACHED: 'Osiągnięto limit załączników.',
+  ATTACHMENT_TYPE_NOT_ALLOWED: 'Niedozwolony typ pliku.',
+  ATTACHMENT_PREVIEW_NOT_AVAILABLE: 'Podgląd pliku jest niedostępny.',
 };
 
 const DEFAULT_ERROR_MESSAGE = 'Wystąpił nieprzewidziany błąd. Spróbuj ponownie później.';
 
 const NO_CONNECTION_ERROR_MESSAGE = 'Brak połączenia z internetem.';
 
-export function getErrorMessage(error: unknown, customMessage?: string): string {
-  console.log(error);
-  const apiError = error as ApiError;
+export function getErrorMessage(error: unknown, customMessages: CustomErrorMessages = {}): string {
+  const { code, statusCode } = error as ApiError;
 
-  if (apiError.code && ERROR_MESSAGES[apiError.code]) {
-    return ERROR_MESSAGES[apiError.code];
+  if (code && ERROR_MESSAGES[code]) {
+    return ERROR_MESSAGES[code];
   }
 
-  if (customMessage) {
-    return customMessage;
+  if (statusCode !== undefined && customMessages[statusCode]) {
+    return customMessages[statusCode];
   }
 
-  if (apiError.statusCode === 0) {
+  if (statusCode === 0) {
     return NO_CONNECTION_ERROR_MESSAGE;
   }
 

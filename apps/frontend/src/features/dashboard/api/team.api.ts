@@ -25,7 +25,6 @@ export const getTeam = async () => {
 // invite user to your team
 
 export const inviteTeamMember = async (form: UserFormData) => {
-  console.log(form);
   try {
     const res = await fetch(`${API_URL}/users`, {
       method: 'POST',
