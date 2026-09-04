@@ -21,7 +21,7 @@ import {
   type FleetVehiclePage,
   type VehicleAccess,
 } from '../fleet/vehicle-access';
-import { isWorkspaceAdmin } from '../users/membership-role';
+import { isWorkspaceAdmin, MembershipRole } from '../users/membership-role';
 import {
   requireCompanyId,
   type SessionPrincipal,
@@ -90,7 +90,12 @@ export class VehiclesService {
     try {
       const companyId = requireCompanyId(actor);
       return await this.fleet.transact(async (fleet) => {
-        if (!isWorkspaceAdmin(actor.role)) throw new ForbiddenException();
+        if (
+          !isWorkspaceAdmin(actor.role) &&
+          actor.role !== MembershipRole.MANAGER
+        ) {
+          throw new ForbiddenException();
+        }
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         const created = await fleet.vehicles.create({
           ...body,
@@ -105,6 +110,9 @@ export class VehiclesService {
           technicalInspectionExpiry: body.technicalInspectionExpiry ?? null,
           notes: body.notes ?? null,
         });
+        if (actor.role === MembershipRole.MANAGER) {
+          await fleet.vehicleAccess.assign(companyId, created.id, actor.id);
+        }
         await fleet.notifications.persistVehicleDeadlineStages(
           created,
           Object.values(VehicleDeadlineKind),

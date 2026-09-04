@@ -94,7 +94,7 @@ export class VehiclesController {
   @ApiOperation({
     summary: 'Create vehicle',
     description:
-      'Requires an ADMIN session. Copy the returned id for assignments and services.',
+      'Requires an OWNER, ADMIN or MANAGER session. A MANAGER is automatically assigned to the created vehicle. Copy the returned id for assignments and services.',
   })
   @ApiAllowedOrigin()
   @ApiCreatedResponse({ type: VehicleDto })
@@ -106,7 +106,7 @@ export class VehiclesController {
   })
   @Post()
   @Serialize(VehicleDto)
-  @UseGuards(AllowedOriginGuard, AdminGuard)
+  @UseGuards(AllowedOriginGuard)
   create(
     @CurrentPrincipal() principal: SessionPrincipal,
     @Body() body: CreateVehicleDto,

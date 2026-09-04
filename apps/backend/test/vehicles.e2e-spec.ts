@@ -213,30 +213,36 @@ describe('Vehicles (e2e)', () => {
     });
   });
 
-  it('allows MANAGER to modify only assigned vehicles, but not create them', async () => {
+  it('allows MANAGER to create a vehicle with automatic assignment and modify it', async () => {
     const admin = await signedIn('vehicle-manager-admin@example.com');
     const { manager, user } = await inviteManager(
       admin,
       'vehicle-manager@example.com',
     );
-    await manager
-      .post('/vehicles')
-      .send(
-        vehicle({
-          vin: null,
-          registrationNumber: 'BLOCKED1',
-        }),
-      )
-      .expect(403);
-    const created = await createVehicle(admin, {
+    const created = await createVehicle(manager, {
       vin: null,
       registrationNumber: 'MAN123',
     });
+    expect(created.body.managers.map(({ id }: { id: string }) => id)).toEqual([
+      user.id,
+    ]);
+    await manager
+      .get('/vehicles')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items.map(({ id }: { id: string }) => id)).toEqual([
+          created.body.id,
+        ]);
+      });
+    await manager.get(`/vehicles/${created.body.id}`).expect(200);
     await admin
-      .post(`/vehicles/${created.body.id}/managers`)
-      .send({ managerId: user.id })
-      .expect(201);
-    await manager.get('/vehicles').expect(200);
+      .get(`/vehicles/${created.body.id}/manager-assignments`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual([
+          expect.objectContaining({ managerId: user.id, assignedTo: null }),
+        ]);
+      });
     await manager
       .patch(`/vehicles/${created.body.id}`)
       .send({ notes: 'Managed' })

@@ -50,7 +50,7 @@ Uwierzytelnienie Usera przez zweryfikowaną tożsamość Google. Może zalogowa�
 
 ## Vehicle
 
-Pojazd należący do jednego Workspace.
+Pojazd należący do jednego Workspace. OWNER, ADMIN i MANAGER mogą tworzyć Vehicle w Active Workspace. Utworzenie Vehicle przez MANAGERa automatycznie nadaje mu Vehicle Access w tej samej transakcji.
 
 ## Service
 
