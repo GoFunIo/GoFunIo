@@ -325,7 +325,7 @@ function RouteComponent() {
             onClick={() => navigate({ to: '/dashboard/alerts' })}
             className="shrink-0"
           >
-            Zobacz wszystkie alerty →
+            Zobacz wszystkie alerty
           </BoardButton>
         </div>
 

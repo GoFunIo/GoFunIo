@@ -80,7 +80,7 @@ export const ReminderRow = ({
         const isInfo = variant === 'info';
 
         const badgeText = isInfo
-          ? 'Nadchodzące < 60d'
+          ? 'Wkrótce < 60 dni'
           : getAlertBadgeText(item.daysRemaining, item.overdue);
 
         return (

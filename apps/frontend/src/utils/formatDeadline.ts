@@ -46,16 +46,22 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
 // TEKSTY BADGE (na podstawie gotowych daysRemaining/overdue)
 // =========================================================================
 export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
-  if (overdue) {
-    const daysOverdue = Math.abs(daysRemaining);
-
-    if (daysOverdue === 0) return 'Dzisiaj';
-    return `${daysOverdue} ${formatDays(daysOverdue)} temu`;
+  if (overdue || daysRemaining < 0) {
+    const overdueDays = Math.abs(daysRemaining);
+    return `Po terminie ${overdueDays} ${formatDays(overdueDays)}`;
   }
 
-  if (daysRemaining === 0) return 'Dzisiaj';
+  if (daysRemaining === 0) {
+    return 'Dzisiaj';
+  }
 
-  return `${daysRemaining} ${formatDays(daysRemaining)}`;
+  const formattedDays = `${daysRemaining} ${formatDays(daysRemaining)}`;
+
+  if (daysRemaining <= ALERT_THRESHOLD_DAYS) {
+    return `Pilne ≤ ${formattedDays}`;
+  }
+
+  return `Wkrótce ≤ ${formattedDays}`;
 };
 
 // =========================================================================
