@@ -44,10 +44,7 @@ export const inviteTeamMember = async (form: UserFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
@@ -83,10 +80,7 @@ export const changeTeamMember = async (form: UserFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;

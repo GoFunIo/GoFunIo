@@ -43,10 +43,7 @@ export const AddUserForm = ({ onClose }: Props) => {
       onClose();
     } catch (error) {
       setError('root', {
-        message: getErrorMessage(error, {
-          403: 'Brak uprawnień.',
-          409: 'Użytkownik z takim email adresem już istnieje.',
-        }),
+        message: getErrorMessage(error),
       });
     }
   };
