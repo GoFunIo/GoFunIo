@@ -3,7 +3,12 @@ import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
 import { useUser } from '../hooks/user.hooks';
 import { VehicleData, VehicleDeadlineAlert } from '@/features/dashboard/types';
-import { getAlertBadgeText, getAlertVariant, pickMostUrgentAlert } from '@/utils/formatDeadline';
+import {
+  getAlertBadgeText,
+  getAlertVariant,
+  getVehicleCardBadgeText,
+  pickMostUrgentAlert,
+} from '@/utils/formatDeadline';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
@@ -31,24 +36,6 @@ const formatNames = (people?: PersonWithName[]): string => {
   return `${firstPerson} + ${people.length - 1}`;
 };
 
-const getBadgeConfig = (mostUrgentAlert?: VehicleDeadlineAlert) => {
-  if (!mostUrgentAlert) {
-    return { text: 'OK', className: 'bg-success text-white' };
-  }
-
-  if (mostUrgentAlert.overdue) {
-    return { text: 'Termin minął', className: 'bg-alert text-white' };
-  }
-
-  const variant = getAlertVariant(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue);
-
-  if (variant === 'alert') {
-    return { text: 'Termin ≤ 7 dni', className: 'bg-alert text-white' };
-  }
-
-  return { text: 'Termin ≤ 30 dni', className: 'bg-warning text-white' };
-};
-
 export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProps) => {
   const { data: currentUser } = useUser();
 
@@ -67,7 +54,19 @@ export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProp
   const managerNames = formatNames(orderedManagers);
 
   const mostUrgentAlert = useMemo(() => pickMostUrgentAlert(alerts), [alerts]);
-  const badge = getBadgeConfig(mostUrgentAlert);
+  const badgeText = getVehicleCardBadgeText(mostUrgentAlert);
+  const variant = mostUrgentAlert
+    ? getAlertVariant(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
+    : 'info';
+
+  const badgeClassName = classNames(
+    'px-[10px] py-[4px] rounded-[3px] text-[10px] font-semibold tracking-wide whitespace-nowrap shrink-0 text-white',
+    {
+      'bg-success': !mostUrgentAlert,
+      'bg-alert': mostUrgentAlert && (mostUrgentAlert.overdue || variant === 'alert'),
+      'bg-warning': mostUrgentAlert && !mostUrgentAlert.overdue && variant === 'warning',
+    },
+  );
 
   return (
     <BlockWrapper className="flex flex-col justify-between h-full">
@@ -88,17 +87,14 @@ export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProp
           </div>
 
           <div
-            className={classNames(
-              'px-[10px] py-[4px] rounded-[3px] text-[10px] font-semibold tracking-wide whitespace-nowrap shrink-0',
-              badge.className,
-            )}
+            className={badgeClassName}
             title={
               mostUrgentAlert
                 ? getAlertBadgeText(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
                 : undefined
             }
           >
-            {badge.text}
+            {badgeText}
           </div>
         </div>
 

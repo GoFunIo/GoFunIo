@@ -46,13 +46,23 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
 // TEKSTY BADGE (na podstawie gotowych daysRemaining/overdue)
 // =========================================================================
 export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
+  if (daysRemaining === 0) return 'Dzisiaj';
+
   if (overdue || daysRemaining < 0) {
     const overdueDays = Math.abs(daysRemaining);
     return `Po terminie ${overdueDays} ${formatDays(overdueDays)}`;
   }
 
-  if (daysRemaining === 0) {
-    return 'Dzisiaj';
+  return `${daysRemaining} ${formatDays(daysRemaining)}`;
+};
+
+// reminderRow
+export const getAlertRowBadgeText = (daysRemaining: number, overdue: boolean): string => {
+  if (daysRemaining === 0) return 'Dzisiaj';
+
+  if (overdue || daysRemaining < 0) {
+    const overdueDays = Math.abs(daysRemaining);
+    return `Po terminie ${overdueDays} ${formatDays(overdueDays)}`;
   }
 
   const formattedDays = `${daysRemaining} ${formatDays(daysRemaining)}`;
@@ -62,6 +72,16 @@ export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): stri
   }
 
   return `Wkrótce ≤ ${formattedDays}`;
+};
+
+// vehicleCard
+export const getVehicleCardBadgeText = (mostUrgentAlert?: VehicleDeadlineAlert): string => {
+  if (!mostUrgentAlert) return 'OK';
+  if (mostUrgentAlert.daysRemaining === 0) return 'Dziś';
+  if (mostUrgentAlert.overdue || mostUrgentAlert.daysRemaining < 0) return 'Po terminie';
+
+  const formattedDays = `${mostUrgentAlert.daysRemaining} ${formatDays(mostUrgentAlert.daysRemaining)}`;
+  return `Termin ≤ ${formattedDays}`;
 };
 
 // =========================================================================

@@ -10,7 +10,7 @@ import {
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { DeadlineKind, VehicleData, VehicleDeadlineAlert } from '../types';
-import { deadlineKindLabels, getAlertBadgeText, getAlertVariant } from '@/utils/formatDeadline';
+import { deadlineKindLabels, getAlertRowBadgeText, getAlertVariant } from '@/utils/formatDeadline';
 import { useMemo } from 'react';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
@@ -79,9 +79,7 @@ export const ReminderRow = ({
         const isWarning = variant === 'warning';
         const isInfo = variant === 'info';
 
-        const badgeText = isInfo
-          ? 'Wkrótce < 60 dni'
-          : getAlertBadgeText(item.daysRemaining, item.overdue);
+        const badgeText = getAlertRowBadgeText(item.daysRemaining, item.overdue);
 
         return (
           <div
