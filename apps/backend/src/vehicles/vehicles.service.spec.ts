@@ -173,8 +173,38 @@ describe('VehiclesService create workflow', () => {
     );
   });
 
-  it('rejects vehicle creation by a manager before writing', async () => {
+  it('creates a vehicle for a manager and automatically assigns its creator', async () => {
     const { fleet, service } = setup();
+
+    const vehicle = await service.create(
+      { id: managerId, companyId, role: MembershipRole.MANAGER },
+      { brand: 'Ford', model: 'Transit', registrationNumber: 'WA1234' },
+    );
+
+    expect(vehicle.managers).toEqual([
+      {
+        id: managerId,
+        firstName: 'Jan',
+        lastName: null,
+        email: 'manager@example.com',
+      },
+    ]);
+    expect(fleet.managerAssignments).toEqual([
+      expect.objectContaining({
+        companyId,
+        vehicleId: vehicle.id,
+        managerId,
+        assignedTo: null,
+      }),
+    ]);
+    expect(fleet.vehicles).toHaveLength(1);
+    expect(fleet.driverAssignments).toEqual([]);
+  });
+
+  it('rejects vehicle creation when the manager membership is inactive', async () => {
+    const { fleet, service } = setup();
+    fleet.memberships.find(({ userId }) => userId === managerId)!.status =
+      'inactive';
 
     await expect(
       service.create(

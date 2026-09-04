@@ -7,7 +7,7 @@ import {
 import { ConflictCode, conflictException } from '../common/conflict';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { MembershipRole } from './membership-role';
 import { Company } from '../companies/companies.entity';
 import {
@@ -16,7 +16,7 @@ import {
 } from '../fleet/transactional-vehicle-access';
 import { Membership } from './membership.entity';
 import { User } from './users.entity';
-import { generateToken, hashToken } from './token.util';
+import { generateToken, hashToken, type GeneratedToken } from './token.util';
 import {
   MEMBERSHIP_INVITATION_REQUESTED_EVENT,
   MembershipInvitationRequestedEvent,
@@ -66,56 +66,17 @@ export class MembershipInvitationsService {
           'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
           [email],
         );
-        let user = await manager
-          .createQueryBuilder(User, 'user')
-          .withDeleted()
-          .addSelect('user.password')
-          .where('user.email = :email', { email })
-          .setLock('pessimistic_write')
-          .getOne();
-        if (user?.deletedAt) {
-          throw conflictException(
-            'Account is unavailable',
-            ConflictCode.ACCOUNT_UNAVAILABLE,
-          );
-        }
-        const firstPassword = user
-          ? user.password === null &&
-            user.googleId === null &&
-            user.emailVerifiedAt === null
-          : true;
-        if (!user) {
-          user = await manager.save(
-            manager.create(User, {
-              email,
-              password: null,
-              googleId: null,
-              emailVerifiedAt: null,
-            }),
-          );
-        }
-
-        let membership = await manager.findOne(Membership, {
-          where: { userId: user.id, companyId },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (membership?.status === 'active') {
-          throw conflictException(
-            'User is already a workspace member',
-            ConflictCode.ALREADY_WORKSPACE_MEMBER,
-          );
-        }
-        membership ??= manager.create(Membership, {
-          userId: user.id,
+        const { user, firstPassword } = await this.resolveInvitedUser(
+          manager,
+          email,
+        );
+        const membership = await this.resolveInvitedMembership(
+          manager,
+          user.id,
           companyId,
-        });
-        Object.assign(membership, {
           role,
-          status: 'pending',
-          tokenHash: generated.tokenHash,
-          tokenExpiresAt: generated.expiresAt,
-        });
-        await manager.save(membership);
+          generated,
+        );
         await this.notificationRecipients.reconcileRecipients(manager, {
           companyId,
           userIds: [user.id],
@@ -146,6 +107,71 @@ export class MembershipInvitationsService {
         origin,
       }),
     );
+  }
+
+  private async resolveInvitedUser(
+    manager: EntityManager,
+    email: string,
+  ): Promise<{ user: User; firstPassword: boolean }> {
+    const existing = await manager
+      .createQueryBuilder(User, 'user')
+      .withDeleted()
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .setLock('pessimistic_write')
+      .getOne();
+    if (existing?.deletedAt) {
+      throw conflictException(
+        'Account is unavailable',
+        ConflictCode.ACCOUNT_UNAVAILABLE,
+      );
+    }
+    if (existing) {
+      return {
+        user: existing,
+        firstPassword:
+          existing.password === null &&
+          existing.googleId === null &&
+          existing.emailVerifiedAt === null,
+      };
+    }
+    const user = await manager.save(
+      manager.create(User, {
+        email,
+        password: null,
+        googleId: null,
+        emailVerifiedAt: null,
+      }),
+    );
+    return { user, firstPassword: true };
+  }
+
+  private async resolveInvitedMembership(
+    manager: EntityManager,
+    userId: string,
+    companyId: string,
+    role: MembershipRole,
+    generated: GeneratedToken,
+  ): Promise<Membership> {
+    let membership = await manager.findOne(Membership, {
+      where: { userId, companyId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (membership?.status === 'active') {
+      throw conflictException(
+        'User is already a workspace member',
+        ConflictCode.ALREADY_WORKSPACE_MEMBER,
+      );
+    }
+    membership ??= manager.create(Membership, { userId, companyId });
+    Object.assign(membership, {
+      role,
+      status: 'pending',
+      tokenHash: generated.tokenHash,
+      tokenExpiresAt: generated.expiresAt,
+    });
+    await manager.save(membership);
+    return membership;
   }
 
   listPending(userId: string): Promise<PendingMembershipInvitation[]> {

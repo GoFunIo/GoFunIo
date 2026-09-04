@@ -27,14 +27,17 @@ Use separate private buckets and bucket-scoped credentials for staging and produ
 
 ## Private reads and image previews
 
-Both read endpoints require a session and authorize the active Workspace, Service, and Vehicle Access before storage is contacted:
+All read endpoints require a session and authorize the active Workspace, Service, and Vehicle Access before storage is contacted:
 
 ```text
 GET /services/:serviceId/attachments/:attachmentId
+GET /services/:serviceId/attachments/:attachmentId/download-url
 GET /services/:serviceId/attachments/:attachmentId/preview
 ```
 
 Download returns `302` to a presigned URL valid for 300 seconds with `Content-Disposition: attachment`. Preview supports only JPEG and PNG and returns `302` with `Content-Disposition: inline`; its redirect response uses `Cache-Control: private, no-store`. An authorized PDF preview request returns `415` with the stable code `ATTACHMENT_PREVIEW_NOT_AVAILABLE`. Authorization runs before the MIME-type check, so inaccessible attachments remain masked by the normal access response.
+
+For downloads initiated by the frontend, fetch `download-url` with `credentials: 'include'`. It returns `200` JSON `{ "url": "..." }` with `Cache-Control: private, no-store`, using the same authorization, object verification, 300-second expiry, and attachment disposition as the redirect endpoint. Handle API errors (`401`, `403`, `404`, `503`) before navigating with `window.location.href = url`. Fetch only the API URL; browser navigation to the returned storage URL avoids needing storage CORS for the download. Later transfer failures cannot be observed by this frontend flow. The original `302` endpoint remains available.
 
 `previewUrl` always points to the application preview endpoint, never to an object key, bucket URL, or final presigned URL. Entering that stable path performs authorization again and creates a fresh short-lived URL.
 

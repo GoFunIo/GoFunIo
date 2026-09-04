@@ -43,6 +43,7 @@ import type { SessionPrincipal } from '../users/session-principal';
 import { MAX_ATTACHMENT_SIZE } from './attachment-file';
 import { AttachmentHttpErrorInterceptor } from './attachment-http-error.interceptor';
 import { AttachmentDto } from './dtos/attachment.dto';
+import { AttachmentDownloadUrlDto } from './dtos/attachment-download-url.dto';
 import type { ServiceAttachmentView } from './service-attachment-query';
 import { ServiceAttachmentsService } from './service-attachments.service';
 
@@ -142,6 +143,31 @@ export class ServiceAttachmentsController {
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
     @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
   ): Promise<{ url: string }> {
+    const url = await this.attachments.download(
+      principal,
+      serviceId,
+      attachmentId,
+    );
+    return { url: url.toString() };
+  }
+
+  @ApiOperation({
+    summary: 'Get a Service Attachment download URL',
+    description:
+      'Authorizes access and verifies the private object, then returns a five-minute presigned download URL as JSON. Fetch this endpoint to handle API errors, then navigate the browser to the returned URL.',
+  })
+  @ApiOkResponse({ type: AttachmentDownloadUrlDto })
+  @ApiBadRequestResponse({ description: 'Invalid Service or Attachment UUID' })
+  @ApiServiceUnavailableResponse({
+    description: 'Attachment storage unavailable or inconsistent',
+  })
+  @Get(':attachmentId/download-url')
+  @Header('Cache-Control', 'private, no-store')
+  async downloadUrl(
+    @CurrentPrincipal() principal: SessionPrincipal,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<AttachmentDownloadUrlDto> {
     const url = await this.attachments.download(
       principal,
       serviceId,
