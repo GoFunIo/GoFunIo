@@ -13,15 +13,15 @@ export const AddVehicleSchema = yup
       .string()
       .nullable()
       .optional()
-      .test('is-valid-year', 'Rok musi składać się z 4 cyfr.', (value) => {
+      .test('is-valid-year', 'Rok musi składać się z 4 cyfr', (value) => {
         if (!value || value === '') return true;
         return /^\d{4}$/.test(value);
       })
-      .test('not-too-old', 'Rok produkcji nie może być starszy niż 1900.', (value) => {
+      .test('not-too-old', 'Rok produkcji nie może być starszy niż 1900', (value) => {
         if (!value || value === '') return true;
         return Number(value) >= 1900;
       })
-      .test('not-in-future', 'Rok produkcji nie może być z przyszłości.', (value) => {
+      .test('not-in-future', 'Rok produkcji nie może być z przyszłości', (value) => {
         if (!value || value === '') return true;
         return Number(value) <= new Date().getFullYear();
       }),
