@@ -4,6 +4,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { ATTACHMENT_OBJECT_STORE } from '../src/attachment-storage/attachment-object-store';
 import { InMemoryAttachmentObjectStore } from '../src/attachment-storage/in-memory-attachment-object-store';
+import {
+  FRONTEND_ORIGINS,
+  type FrontendOrigins,
+} from '../src/common/frontend-origins';
 import { AttachmentObjectCleanup } from '../src/service-attachments/attachment-object-cleanup.entity';
 import { MAX_ATTACHMENT_SIZE } from '../src/service-attachments/attachment-file';
 import { ServiceAttachment } from '../src/service-attachments/service-attachment.entity';
@@ -147,7 +151,7 @@ describe('Service Attachments (e2e)', () => {
       });
   });
 
-  it('redirects preview inline for 300 seconds and keeps download as attachment', async () => {
+  it('returns a download URL as JSON and preserves both redirect endpoints', async () => {
     const { agent, serviceId } = await serviceOwner(
       'attachment-preview@example.com',
     );
@@ -189,9 +193,102 @@ describe('Service Attachments (e2e)', () => {
           disposition: 'attachment',
         }),
       );
+
+      await agent
+        .get(
+          `/services/${serviceId}/attachments/${created.body.id}/download-url`,
+        )
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect('Cache-Control', 'private, no-store')
+        .expect(({ body, headers }) => {
+          expect(body).toEqual({
+            url: expect.stringMatching(/^memory:\/\/attachment\//),
+          });
+          expect(headers).not.toHaveProperty('location');
+        });
+      expect(createReadUrl).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fileName: 'preview.png',
+          expiresInSeconds: 300,
+          disposition: 'attachment',
+        }),
+      );
     } finally {
       createReadUrl.mockRestore();
     }
+  });
+
+  it('rejects unauthorized download URL requests before contacting storage', async () => {
+    const owner = await serviceOwner('download-url-owner@example.com');
+    const outsider = await serviceOwner('download-url-outsider@example.com');
+    const manager = await inviteManager(
+      owner.agent,
+      'download-url-manager@example.com',
+    );
+    const created = await owner.agent
+      .post(`/services/${owner.serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-private'), {
+        filename: 'private.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const endpoint = `/services/${owner.serviceId}/attachments/${created.body.id}/download-url`;
+    const storage = app.get<InMemoryAttachmentObjectStore>(
+      ATTACHMENT_OBJECT_STORE,
+    );
+    const createReadUrl = jest.spyOn(storage, 'createReadUrl');
+    const allowsMutation = jest.spyOn(
+      app.get<FrontendOrigins>(FRONTEND_ORIGINS),
+      'allowsMutation',
+    );
+
+    try {
+      await request(app.getHttpServer()).get(endpoint).expect(401);
+      await outsider.agent.get(endpoint).expect(404);
+      await manager.get(endpoint).expect(404);
+      allowsMutation.mockReturnValueOnce(false);
+      await owner.agent.get(endpoint).expect(403);
+      await owner.agent
+        .get(`/services/${owner.serviceId}/attachments/not-a-uuid/download-url`)
+        .expect(400);
+      expect(createReadUrl).not.toHaveBeenCalled();
+
+      await owner.agent
+        .delete(endpoint.replace('/download-url', ''))
+        .expect(204);
+      await owner.agent.get(endpoint).expect(404);
+      expect(createReadUrl).not.toHaveBeenCalled();
+    } finally {
+      createReadUrl.mockRestore();
+      allowsMutation.mockRestore();
+    }
+  });
+
+  it('returns a JSON error when download URL storage verification is unavailable', async () => {
+    const { agent, serviceId } = await serviceOwner(
+      'download-url-failure@example.com',
+    );
+    const created = await agent
+      .post(`/services/${serviceId}/attachments`)
+      .attach('attachment', Buffer.from('%PDF-file'), {
+        filename: 'file.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    app
+      .get<InMemoryAttachmentObjectStore>(ATTACHMENT_OBJECT_STORE)
+      .failNext('head');
+
+    await agent
+      .get(`/services/${serviceId}/attachments/${created.body.id}/download-url`)
+      .expect(503)
+      .expect('Content-Type', /json/)
+      .expect(({ body, headers }) => {
+        expect(body).toMatchObject({ code: 'ATTACHMENT_STORAGE_UNAVAILABLE' });
+        expect(body).not.toHaveProperty('url');
+        expect(headers).not.toHaveProperty('location');
+      });
   });
 
   it('authorizes preview before rejecting PDF and isolates Workspace and Vehicle access', async () => {
@@ -467,6 +564,12 @@ describe('Service Attachments (e2e)', () => {
           code: 'ATTACHMENT_STORAGE_INCONSISTENT',
           field: 'attachment',
         }),
+      );
+    await agent
+      .get(`/services/${serviceId}/attachments/${created.body.id}/download-url`)
+      .expect(503)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'ATTACHMENT_STORAGE_INCONSISTENT' }),
       );
   });
 
