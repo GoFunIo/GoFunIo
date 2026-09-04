@@ -62,6 +62,8 @@ interface NotificationRow {
   deadlineDate: string;
   leadDay: number;
   registrationNumber: string;
+  brand: string;
+  model: string;
   leadDays: number[];
   timeZone: string;
 }
@@ -189,7 +191,7 @@ export class NotificationsService {
               to_char(notification."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "cursorCreatedAt",
               recipient.id AS "recipientId", recipient."readAt", recipient."archivedAt",
               detail."vehicleId", detail."deadlineKind", to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate", detail."leadDay",
-              detail."registrationNumberSnapshot" AS "registrationNumber",
+              vehicle.brand, vehicle.model, vehicle."registrationNumber",
               policy."leadDays", policy."timeZone"
        FROM notifications notification
        JOIN vehicle_deadline_notification_details detail
@@ -332,6 +334,11 @@ export class NotificationsService {
       readAt: row.readAt,
       archivedAt: row.archivedAt,
       ...rendered,
+      vehicle: {
+        brand: row.brand,
+        model: row.model,
+        registrationNumber: row.registrationNumber,
+      },
       action: { type: 'OPEN_VEHICLE' as const, vehicleId: row.vehicleId },
     };
   }

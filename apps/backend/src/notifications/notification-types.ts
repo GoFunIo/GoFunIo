@@ -49,11 +49,7 @@ export interface VehicleDeadlineDetail {
 
 export type VehicleDeadlineNotificationContent = Pick<
   VehicleDeadlineDetail,
-  | 'vehicleId'
-  | 'deadlineKind'
-  | 'deadlineDate'
-  | 'leadDay'
-  | 'registrationNumber'
+  'vehicleId' | 'deadlineKind' | 'deadlineDate' | 'leadDay'
 >;
 
 const vehicleDeadlineReached: NotificationTypeContract<
@@ -74,7 +70,6 @@ const vehicleDeadlineReached: NotificationTypeContract<
     deadlineKind: detail.deadlineKind,
     deadlineDate: detail.deadlineDate,
     leadDay: detail.leadDay,
-    registrationNumber: detail.registrationNumber,
   }),
   emailRenderer: (detail, context) =>
     renderVehicleDeadlineNotificationEmail({
