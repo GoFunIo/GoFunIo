@@ -39,9 +39,9 @@ export const Pagination = ({ currentPage, totalPages, onPageChange, className }:
             type="button"
             onClick={() => onPageChange(item)}
             className={classNames(
-              'custom-transition text-semibold flex items-center justify-center text-[14px] cursor-pointer border border-icon h-[32px] w-[32px] rounded-[6px] hover:bg-info-bg-icon hover:border-info-bg-icon',
+              'custom-transition text-semibold flex items-center justify-center text-[14px] cursor-pointer border border-icon h-[32px] w-[32px] rounded-[6px] bg-bg-section text-content-primary hover:bg-info-bg-icon hover:border-info-bg-icon hover:dark:text-dark',
               {
-                'bg-info-bg-icon border-info-bg-icon': item === currentPage,
+                'bg-info-bg-icon border-info-bg-icon text-dark': item === currentPage,
               },
             )}
           >
