@@ -43,7 +43,9 @@ export const AddUserForm = ({ onClose }: Props) => {
       onClose();
     } catch (error) {
       setError('root', {
-        message: getErrorMessage(error),
+        message: getErrorMessage(error, {
+          403: 'Wymagana jest rola administratora.',
+        }),
       });
     }
   };

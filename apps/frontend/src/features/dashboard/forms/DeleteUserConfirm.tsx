@@ -24,9 +24,8 @@ export const DeleteUserConfirm = ({ user, onClose }: Props) => {
     } catch (error) {
       setError(
         getErrorMessage(error, {
-          403: 'Brak uprawnień.',
+          403: 'Wymagana jest rola administratora.',
           404: 'Nie znaleziono użytkownika.',
-          409: 'Nie możesz usunąć własnego konta.',
         }),
       );
     }
