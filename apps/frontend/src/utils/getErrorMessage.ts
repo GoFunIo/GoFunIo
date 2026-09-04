@@ -30,6 +30,7 @@ const ERROR_MESSAGES: ErrorMessages = {
   SERVICE_ATTACHMENT_LIMIT_REACHED: 'Osiągnięto limit załączników.',
   ATTACHMENT_TYPE_NOT_ALLOWED: 'Niedozwolony typ pliku.',
   ATTACHMENT_PREVIEW_NOT_AVAILABLE: 'Podgląd pliku jest niedostępny.',
+  ATTACHMENT_TOO_LARGE: 'Załącznik przekracza limit 10 MB.',
 };
 
 const DEFAULT_ERROR_MESSAGE = 'Wystąpił nieprzewidziany błąd. Spróbuj ponownie później.';

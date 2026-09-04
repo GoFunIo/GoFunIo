@@ -107,6 +107,7 @@ export const VehiclesServiceForm = ({
         message: getErrorMessage(err, {
           403: 'Brak uprawnień do tego zasobu lub operacji.',
           404: 'Pojazd lub serwis nie został znaleziony.',
+          503: 'Magazyn załączników jest niedostępny',
         }),
       });
     }
@@ -275,10 +276,10 @@ export const VehiclesServiceForm = ({
         <div className="flex flex-col gap-1">
           <div className="flex justify-between w-full">
             <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
-              Załaczniki (.PDF, .JPEG lub .PNG, do 10 MB każdy)
+              Załączniki (.PDF, .JPEG lub .PNG, do 10 MB każdy)
             </label>
             <label className="text-[14px] text-content-secondary font-medium mb-[4px]">
-              Dostępna ilość {currentAttachments.length}/{MAX_FILES_PER_UPLOAD}
+              Załączono {currentAttachments.length}/{MAX_FILES_PER_UPLOAD}
             </label>
           </div>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import classNames from 'classnames';
 import { Column } from '@/types/table';
+import { formatPolishCount } from '@/utils/formatPolishCount';
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -119,7 +120,9 @@ export const DataTable = <T extends { id: string | number }>({
 
       {footer && (
         <div className="border-t border-icon flex items-center justify-between py-[16px] md:px-[25px] px-[20px] w-full">
-          <p className="text-content-primary font-semibold">{totalLength} wpisów</p>
+          <p className="text-content-primary font-semibold">
+            {formatPolishCount(totalLength, 'wpis', 'wpisy', 'wpisów')}
+          </p>
           {footerLabel && <p className="text-content-primary font-semibold block">{footerLabel}</p>}
         </div>
       )}

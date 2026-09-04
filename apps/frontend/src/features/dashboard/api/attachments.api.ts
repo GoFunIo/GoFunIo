@@ -21,20 +21,33 @@ export const getServiceAttachments = async (id: string) => {
 };
 
 export const createServiceAttachment = async (id: string, file: File) => {
-  const body = new FormData();
-  body.append('attachment', file);
+  try {
+    const body = new FormData();
+    body.append('attachment', file);
 
-  const response = await fetch(`${API_URL}/services/${id}/attachments`, {
-    method: 'POST',
-    credentials: 'include',
-    body,
-  });
+    const res = await fetch(`${API_URL}/services/${id}/attachments`, {
+      method: 'POST',
+      credentials: 'include',
+      body,
+    });
 
-  if (!response.ok) {
-    throw new Error('Nie udało się dodać załącznika');
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return response.json();
 };
 
 export const updateServiceAttachment = async (
@@ -42,41 +55,56 @@ export const updateServiceAttachment = async (
   attachmentId: string,
   file: File,
 ) => {
-  const body = new FormData();
-  body.append('attachment', file);
+  try {
+    const body = new FormData();
+    body.append('attachment', file);
 
-  const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
-    method: 'PUT',
-    credentials: 'include',
-    body,
-  });
+    const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
+      method: 'PUT',
+      credentials: 'include',
+      body,
+    });
 
-  const data = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw {
-      status: response.status,
-      message: data?.message ?? 'Nie udało się zastąpić załącznika.',
-    };
+    if (!response.ok) {
+      throw data;
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data;
 };
-
 export const deleteServiceAttachment = async (serviceId: string, attachmentId: string) => {
-  const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(`${API_URL}/services/${serviceId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-  const data = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw {
-      status: response.status,
-      message: data?.message ?? 'Nie udało się usunąć załącznika.',
-    };
+    if (!response.ok) {
+      throw data;
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data;
 };

@@ -7,6 +7,7 @@ import { formatFileDate, formatFileSize, formatFileType } from '@/utils/formatFi
 import classNames from 'classnames';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 import { useRef } from 'react';
+import { FormError } from '@/features/auth/ui/FormError';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -17,6 +18,7 @@ type Props = {
   onDelete: (index: number) => void;
   onDownload?: (index: number) => void;
   className?: string;
+  error?: string | null;
 };
 
 export const Attachments = ({
@@ -26,6 +28,7 @@ export const Attachments = ({
   onDelete,
   onDownload,
   onEdit,
+  error,
 }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +43,8 @@ export const Attachments = ({
   };
 
   return (
-    <div className={classNames('flex flex-col gap-3', className)}>
+    <div className={classNames('flex flex-col gap-3 relative', className)}>
+      {error && <FormError message={error} />}
       {onAdd && attachments.length < MAX_FILES_PER_UPLOAD && (
         <div className="">
           <input

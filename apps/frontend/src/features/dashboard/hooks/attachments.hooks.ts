@@ -24,37 +24,6 @@ export const useCreateServiceAttachment = () => {
   });
 };
 
-// export const useDownloadServiceAttachment = () => {
-//   return useMutation({
-//     mutationFn: async ({
-//       serviceId,
-//       attachmentId,
-//       fileName,
-//     }: {
-//       serviceId: string;
-//       attachmentId: string;
-//       fileName: string;
-//     }) => {
-//       const blob = await downloadServiceAttachment(
-//         serviceId,
-//         attachmentId,
-//       );
-
-//       const url = window.URL.createObjectURL(blob);
-
-//       const link = document.createElement('a');
-//       link.href = url;
-//       link.download = fileName;
-
-//       document.body.appendChild(link);
-//       link.click();
-//       link.remove();
-
-//       window.URL.revokeObjectURL(url);
-//     },
-//   });
-// };
-
 export const useUpdateServiceAttachment = () => {
   const queryClient = useQueryClient();
 
