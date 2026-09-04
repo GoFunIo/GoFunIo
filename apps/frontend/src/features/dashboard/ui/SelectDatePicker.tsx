@@ -105,7 +105,7 @@ export const SelectDatePicker = ({
             minWidth: position.width,
             zIndex: 9999,
           }}
-          className="scrollbar-dashboard max-h-50 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg"
+          className="scrollbar-dashboard max-h-50 overflow-y-auto rounded-md border border-icon bg-bg-card shadow-lg text-content-secondary"
         >
           {options?.map((item) => {
             const isSelected = String(item.value) === String(value);
