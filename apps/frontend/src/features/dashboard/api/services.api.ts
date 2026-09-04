@@ -62,27 +62,35 @@ export const getAllServices = async (params?: ServiceListParams) => {
 // =========================================================================
 
 export const createService = async (form: CreateServiceData) => {
-  const payload = buildServicePayload(form);
+  try {
+    const payload = buildServicePayload(form);
 
-  const res = await fetch(`${API_URL}/services`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
+    const res = await fetch(`${API_URL}/services`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się dodać wpisu serwisowego.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as ServiceData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as ServiceData;
 };
 
 // =========================================================================
@@ -114,27 +122,35 @@ export const getService = async (id: string) => {
 // =========================================================================
 
 export const updateService = async (id: string, form: CreateServiceData) => {
-  const payload = buildServicePayload(form);
+  try {
+    const payload = buildServicePayload(form);
 
-  const res = await fetch(`${API_URL}/services/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
+    const res = await fetch(`${API_URL}/services/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się zaktualizować wpisu serwisowego.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as ServiceData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as ServiceData;
 };
 
 // =========================================================================
@@ -143,17 +159,25 @@ export const updateService = async (id: string, form: CreateServiceData) => {
 // =========================================================================
 
 export const deleteService = async (id: string) => {
-  const res = await fetch(`${API_URL}/services/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/services/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-  if (!res.ok) {
     const data = await res.json().catch(() => null);
 
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się usunąć wpisu serwisowego.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
 };

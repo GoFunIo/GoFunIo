@@ -105,7 +105,8 @@ export const VehiclesServiceForm = ({
       setError('root', {
         type: 'server',
         message: getErrorMessage(err, {
-          409: 'Wystąpił konflikt danych — sprawdź wprowadzone informacje.',
+          403: 'Brak uprawnień do tego zasobu lub operacji.',
+          404: 'Pojazd lub serwis nie został znaleziony.',
         }),
       });
     }
