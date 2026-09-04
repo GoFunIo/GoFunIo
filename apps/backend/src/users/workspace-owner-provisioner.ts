@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { Company } from '../companies/companies.entity';
 import { assertEmailClaimable } from './email-claim.util';
 import { Membership } from './membership.entity';
@@ -43,6 +43,93 @@ export interface WorkspaceOwnerProvisioner {
   provision(input: WorkspaceOwnerProvisioning): Promise<UserAccount>;
 }
 
+function isEmailProvisioning(
+  input: WorkspaceOwnerProvisioning,
+): input is EmailWorkspaceOwnerProvisioning {
+  return 'passwordHash' in input;
+}
+
+function isUnclaimedAccount(existing: User | null): existing is User {
+  return (
+    existing?.deletedAt === null &&
+    existing.password === null &&
+    existing.googleId === null &&
+    existing.emailVerifiedAt === null
+  );
+}
+
+async function findReusableReservation(
+  manager: EntityManager,
+  input: WorkspaceOwnerProvisioning,
+  existing: User | null,
+): Promise<User | null> {
+  if (!isEmailProvisioning(input) || !isUnclaimedAccount(existing)) {
+    return null;
+  }
+  const hasPendingInvite = await manager.exists(Membership, {
+    where: { userId: existing.id, status: 'pending' },
+  });
+  if (!hasPendingInvite) return null;
+  const hasActiveMembership = await manager.exists(Membership, {
+    where: { userId: existing.id, status: 'active' },
+  });
+  return hasActiveMembership ? null : existing;
+}
+
+function userPatch(input: WorkspaceOwnerProvisioning) {
+  return {
+    email: input.email,
+    password: isEmailProvisioning(input) ? input.passwordHash : null,
+    googleId: isEmailProvisioning(input) ? null : input.googleId,
+    firstName: isEmailProvisioning(input) ? null : input.firstName,
+    lastName: isEmailProvisioning(input) ? null : input.lastName,
+    emailVerifiedAt: isEmailProvisioning(input) ? null : input.emailVerifiedAt,
+    verificationTokenHash: isEmailProvisioning(input)
+      ? input.verificationTokenHash
+      : null,
+    verificationTokenExpiresAt: isEmailProvisioning(input)
+      ? input.verificationTokenExpiresAt
+      : null,
+    passwordResetTokenHash: null,
+    passwordResetTokenExpiresAt: null,
+  };
+}
+
+function toUserAccount(
+  user: User,
+  input: WorkspaceOwnerProvisioning,
+): UserAccount {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    address: user.address,
+    postalCode: user.postalCode,
+    city: user.city,
+    pendingEmail: user.pendingEmail,
+    hasPassword: isEmailProvisioning(input),
+  };
+}
+
+function translateWorkspaceOwnerError(error: unknown): unknown {
+  if (error instanceof WorkspaceOwnerConflictError) {
+    return error;
+  }
+  if (
+    error instanceof QueryFailedError &&
+    (error.driverError as { code?: string; constraint?: string } | undefined)
+      ?.code === '23505' &&
+    ['IDX_users_email', 'IDX_users_googleId'].includes(
+      (error.driverError as { constraint?: string }).constraint ?? '',
+    )
+  ) {
+    return new WorkspaceOwnerConflictError();
+  }
+  return error;
+}
+
 @Injectable()
 export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvisioner {
   constructor(
@@ -63,20 +150,11 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           .addSelect('user.password')
           .where('user.email = :email', { email: input.email })
           .getOne();
-        const reservation =
-          'passwordHash' in input &&
-          existing?.deletedAt === null &&
-          existing.password === null &&
-          existing.googleId === null &&
-          existing.emailVerifiedAt === null &&
-          (await manager.exists(Membership, {
-            where: { userId: existing.id, status: 'pending' },
-          })) &&
-          !(await manager.exists(Membership, {
-            where: { userId: existing.id, status: 'active' },
-          }))
-            ? existing
-            : null;
+        const reservation = await findReusableReservation(
+          manager,
+          input,
+          existing ?? null,
+        );
         await assertEmailClaimable(
           manager,
           input.email,
@@ -92,24 +170,7 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
           this.clock.now(),
         );
         const user = await manager.save(
-          Object.assign(reservation ?? manager.create(User), {
-            email: input.email,
-            password: 'passwordHash' in input ? input.passwordHash : null,
-            googleId: 'googleId' in input ? input.googleId : null,
-            firstName: 'googleId' in input ? input.firstName : null,
-            lastName: 'googleId' in input ? input.lastName : null,
-            emailVerifiedAt: 'googleId' in input ? input.emailVerifiedAt : null,
-            verificationTokenHash:
-              'verificationTokenHash' in input
-                ? input.verificationTokenHash
-                : null,
-            verificationTokenExpiresAt:
-              'verificationTokenExpiresAt' in input
-                ? input.verificationTokenExpiresAt
-                : null,
-            passwordResetTokenHash: null,
-            passwordResetTokenExpiresAt: null,
-          }),
+          Object.assign(reservation ?? manager.create(User), userPatch(input)),
         );
         await manager.save(
           manager.create(Membership, {
@@ -118,35 +179,10 @@ export class TypeOrmWorkspaceOwnerProvisioner implements WorkspaceOwnerProvision
             role: MembershipRole.OWNER,
           }),
         );
-        return {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          address: user.address,
-          postalCode: user.postalCode,
-          city: user.city,
-          pendingEmail: user.pendingEmail,
-          hasPassword: 'passwordHash' in input,
-        };
+        return toUserAccount(user, input);
       });
     } catch (error) {
-      if (
-        error instanceof WorkspaceOwnerConflictError ||
-        (error instanceof QueryFailedError &&
-          (
-            error.driverError as
-              | { code?: string; constraint?: string }
-              | undefined
-          )?.code === '23505' &&
-          ['IDX_users_email', 'IDX_users_googleId'].includes(
-            (error.driverError as { constraint?: string }).constraint ?? '',
-          ))
-      ) {
-        throw new WorkspaceOwnerConflictError();
-      }
-      throw error;
+      throw translateWorkspaceOwnerError(error);
     }
   }
 }

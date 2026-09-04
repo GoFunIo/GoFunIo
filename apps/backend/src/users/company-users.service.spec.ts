@@ -138,7 +138,316 @@ describe('CompanyUsersService membership rules', () => {
     expect(manager.save).toHaveBeenNthCalledWith(2, admin);
   });
 
-  function setup(activeMemberships: Membership[], target: User) {
+  it('updates profile fields without a role change or notification reconciliation', async () => {
+    const target = user(managerId);
+    const {
+      service,
+      notificationRecipients,
+      notificationChanges,
+      vehicleAccess,
+    } = setup(
+      [
+        membership(adminId, MembershipRole.ADMIN),
+        membership(managerId, MembershipRole.MANAGER),
+      ],
+      target,
+    );
+
+    const result = await service.update(
+      { id: adminId, companyId, role: MembershipRole.ADMIN },
+      managerId,
+      { firstName: 'Updated' },
+    );
+
+    expect(result.firstName).toBe('Updated');
+    expect(result.role).toBe(MembershipRole.MANAGER);
+    expect(notificationRecipients.reconcileRecipients).not.toHaveBeenCalled();
+    expect(notificationChanges.record).not.toHaveBeenCalled();
+    expect(vehicleAccess.closeManager).not.toHaveBeenCalled();
+  });
+
+  it('promotes a manager to admin and closes their manager vehicle access', async () => {
+    const managerMembership = membership(managerId, MembershipRole.MANAGER);
+    const {
+      service,
+      manager,
+      notificationRecipients,
+      notificationChanges,
+      vehicleAccess,
+    } = setup(
+      [membership(adminId, MembershipRole.ADMIN), managerMembership],
+      user(managerId),
+    );
+
+    const result = await service.update(
+      { id: adminId, companyId, role: MembershipRole.ADMIN },
+      managerId,
+      { role: MembershipRole.ADMIN },
+    );
+
+    expect(result.role).toBe(MembershipRole.ADMIN);
+    expect(managerMembership.role).toBe(MembershipRole.ADMIN);
+    expect(manager.save).toHaveBeenCalledWith(managerMembership);
+    expect(vehicleAccess.closeManager).toHaveBeenCalledWith(
+      manager,
+      companyId,
+      managerId,
+    );
+    expect(notificationRecipients.reconcileRecipients).toHaveBeenCalledWith(
+      manager,
+      { companyId, userIds: [managerId] },
+    );
+    expect(notificationChanges.record).toHaveBeenCalledWith(manager, {
+      companyId,
+      userId: managerId,
+    });
+  });
+
+  it('changes a role without manager cleanup when the member was not a manager', async () => {
+    const targetMembership = membership(managerId, MembershipRole.ADMIN);
+    const {
+      service,
+      notificationRecipients,
+      notificationChanges,
+      vehicleAccess,
+    } = setup(
+      [membership(adminId, MembershipRole.ADMIN), targetMembership],
+      user(managerId),
+    );
+
+    await service.update(
+      { id: adminId, companyId, role: MembershipRole.ADMIN },
+      managerId,
+      { role: MembershipRole.MANAGER },
+    );
+
+    expect(targetMembership.role).toBe(MembershipRole.MANAGER);
+    expect(vehicleAccess.closeManager).not.toHaveBeenCalled();
+    expect(notificationRecipients.reconcileRecipients).toHaveBeenCalledWith(
+      expect.anything(),
+      { companyId, userIds: [managerId] },
+    );
+    expect(notificationChanges.record).toHaveBeenCalled();
+  });
+
+  it('allows the owner to update their own profile without a role change', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [membership(ownerId, MembershipRole.OWNER)],
+      user(ownerId),
+    );
+
+    const result = await service.update(
+      { id: ownerId, companyId, role: MembershipRole.OWNER },
+      ownerId,
+      { firstName: 'Owner' },
+    );
+
+    expect(result.firstName).toBe('Owner');
+    expect(result.role).toBe(MembershipRole.OWNER);
+  });
+
+  it('removes another member and keeps the company when members remain', async () => {
+    const { manager, service, vehicleAccess } = setup(
+      [
+        membership(adminId, MembershipRole.ADMIN),
+        membership(managerId, MembershipRole.MANAGER),
+      ],
+      user(managerId),
+      { companyStillActive: true },
+    );
+
+    await service.remove(
+      { id: adminId, companyId, role: MembershipRole.ADMIN },
+      managerId,
+    );
+
+    expect(manager.save).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: managerId, status: 'removed' }),
+    );
+    expect(vehicleAccess.closeManager).toHaveBeenCalledWith(
+      manager,
+      companyId,
+      managerId,
+    );
+    expect(manager.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('blocks removing the owner', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [
+        membership(ownerId, MembershipRole.OWNER),
+        membership(adminId, MembershipRole.ADMIN),
+      ],
+      user(ownerId),
+    );
+
+    await expect(
+      service.remove(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        ownerId,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('removes a non-manager without touching vehicle access', async () => {
+    const targetMembership = membership(adminId, MembershipRole.ADMIN);
+    const { vehicleAccess, service } = setup(
+      [
+        membership('actor-admin', MembershipRole.ADMIN),
+        targetMembership,
+      ],
+      user(adminId),
+      { companyStillActive: true },
+    );
+
+    await service.remove(
+      { id: 'actor-admin', companyId, role: MembershipRole.ADMIN },
+      adminId,
+    );
+
+    expect(vehicleAccess.closeManager).not.toHaveBeenCalled();
+  });
+
+  it('leaves the company active when a non-manager leaves', async () => {
+    const { vehicleAccess, manager, service } = setup(
+      [membership(adminId, MembershipRole.ADMIN)],
+      user(adminId),
+      { companyStillActive: true },
+    );
+
+    await service.leave({ id: adminId, companyId, role: MembershipRole.ADMIN });
+
+    expect(vehicleAccess.closeManager).not.toHaveBeenCalled();
+    expect(manager.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('rejects a target id with no active membership', async () => {
+    const { service } = setup(
+      [membership(adminId, MembershipRole.ADMIN)],
+      user(adminId),
+    );
+
+    await expect(
+      service.update(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        'missing-user',
+        { firstName: 'X' },
+      ),
+    ).rejects.toThrow('User not found');
+  });
+
+  it('rejects when the membership exists but the user record is gone', async () => {
+    const { service } = setup(
+      [
+        membership(adminId, MembershipRole.ADMIN),
+        membership(managerId, MembershipRole.MANAGER),
+      ],
+      null,
+    );
+
+    await expect(
+      service.update(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        managerId,
+        { firstName: 'X' },
+      ),
+    ).rejects.toThrow('User not found');
+  });
+
+  it('rejects an actor with an active but non-admin membership', async () => {
+    const { service } = setup(
+      [
+        membership(managerId, MembershipRole.MANAGER),
+        membership(adminId, MembershipRole.ADMIN),
+      ],
+      user(adminId),
+    );
+
+    await expect(
+      service.update(
+        { id: managerId, companyId, role: MembershipRole.MANAGER },
+        adminId,
+        { firstName: 'X' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects transferOwnership when the actor has no active membership', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [membership(adminId, MembershipRole.ADMIN)],
+      user(adminId),
+    );
+
+    await expect(
+      service.transferOwnership(
+        { id: ownerId, companyId, role: MembershipRole.OWNER },
+        adminId,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects transferOwnership from a non-owner actor', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [
+        membership(ownerId, MembershipRole.OWNER),
+        membership(adminId, MembershipRole.ADMIN),
+      ],
+      user(adminId),
+    );
+
+    await expect(
+      service.transferOwnership(
+        { id: adminId, companyId, role: MembershipRole.ADMIN },
+        ownerId,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects transferOwnership to a target who is not an active admin', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [
+        membership(ownerId, MembershipRole.OWNER),
+        membership(managerId, MembershipRole.MANAGER),
+      ],
+      user(managerId),
+    );
+
+    await expect(
+      service.transferOwnership(
+        { id: ownerId, companyId, role: MembershipRole.OWNER },
+        managerId,
+      ),
+    ).rejects.toThrow(
+      new ConflictException('Ownership requires an active admin'),
+    );
+  });
+
+  it('rejects an owner role change attempted with a stale session role', async () => {
+    const ownerId = 'owner-1';
+    const { service } = setup(
+      [membership(ownerId, MembershipRole.OWNER)],
+      user(ownerId),
+    );
+
+    await expect(
+      service.update(
+        { id: ownerId, companyId, role: MembershipRole.ADMIN },
+        ownerId,
+        { role: MembershipRole.ADMIN },
+      ),
+    ).rejects.toThrow(new ConflictException('Transfer ownership first'));
+  });
+
+  function setup(
+    activeMemberships: Membership[],
+    target: User | null,
+    options: { companyStillActive?: boolean } = {},
+  ) {
     const query = {
       innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -151,7 +460,7 @@ describe('CompanyUsersService membership rules', () => {
       createQueryBuilder: jest.fn().mockReturnValue(query),
       findOne: jest.fn().mockResolvedValue(target),
       save: jest.fn().mockImplementation((value) => Promise.resolve(value)),
-      exists: jest.fn().mockResolvedValue(false),
+      exists: jest.fn().mockResolvedValue(options.companyStillActive ?? false),
       softDelete: jest.fn().mockResolvedValue(undefined),
       update: jest.fn().mockResolvedValue(undefined),
     };
@@ -165,14 +474,22 @@ describe('CompanyUsersService membership rules', () => {
     };
     const closeManager = jest.fn();
     const vehicleAccess = { closeManager };
+    const notificationRecipients = { reconcileRecipients: jest.fn() };
+    const notificationChanges = { record: jest.fn() };
     const service = new CompanyUsersService(
       repository as unknown as Repository<User>,
       { issueFirstPassword: jest.fn() } as unknown as PasswordRecoveryService,
       vehicleAccess as unknown as TransactionalVehicleAccess,
-      { reconcileRecipients: jest.fn() },
-      { record: jest.fn() } as unknown as NotificationChangeRelay,
+      notificationRecipients,
+      notificationChanges as unknown as NotificationChangeRelay,
     );
-    return { manager, service, vehicleAccess };
+    return {
+      manager,
+      service,
+      vehicleAccess,
+      notificationRecipients,
+      notificationChanges,
+    };
   }
 
   function membership(userId: string, role: MembershipRole): Membership {

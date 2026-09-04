@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { User } from './users.entity';
 import { Membership } from './membership.entity';
 import {
@@ -88,55 +88,95 @@ export class TypeOrmPasswordRecoveryStore implements PasswordRecoveryStore {
     now: Date,
   ): Promise<boolean> {
     return this.users.manager.transaction(async (manager) => {
-      const user = await manager
-        .createQueryBuilder(User, 'user')
-        .addSelect('user.password')
-        .where('user.passwordResetTokenHash = :tokenHash', { tokenHash })
-        .andWhere('user.passwordResetTokenExpiresAt > :now', { now })
-        .andWhere('user.deletedAt IS NULL')
-        .setLock('pessimistic_write')
-        .getOne();
+      const user = await this.lockResettableUser(manager, tokenHash, now);
       if (!user) return false;
 
       const firstPassword = user.password === null;
       const invitation = firstPassword
-        ? await manager
-            .createQueryBuilder(Membership, 'membership')
-            .where('membership.userId = :userId', { userId: user.id })
-            .andWhere('membership.status = :status', { status: 'pending' })
-            .andWhere('membership.tokenHash = :tokenHash', { tokenHash })
-            .andWhere('membership.tokenExpiresAt > :now', { now })
-            .setLock('pessimistic_write')
-            .getOne()
+        ? await this.lockPendingInvitation(manager, user.id, tokenHash, now)
         : null;
-      const result = await manager.update(
-        User,
-        { id: user.id, passwordResetTokenHash: tokenHash },
-        {
-          password: passwordHash,
-          emailVerifiedAt: firstPassword
-            ? (user.emailVerifiedAt ?? now)
-            : user.emailVerifiedAt,
-          passwordResetTokenHash: null,
-          passwordResetTokenExpiresAt: null,
-          passwordVersion: () => '"passwordVersion" + 1',
-        },
+      const passwordSet = await this.applyNewPassword(
+        manager,
+        user,
+        tokenHash,
+        passwordHash,
+        firstPassword ? (user.emailVerifiedAt ?? now) : user.emailVerifiedAt,
       );
-      if (result.affected !== 1) return false;
-      if (invitation) {
-        const activation = await manager.update(
-          Membership,
-          { id: invitation.id, status: 'pending', tokenHash },
-          { status: 'active', tokenHash: null, tokenExpiresAt: null },
-        );
-        if (activation.affected !== 1) return false;
-        await this.notificationRecipients.reconcileRecipients(manager, {
-          companyId: invitation.companyId,
-          userIds: [user.id],
-        });
-      }
-      return true;
+      if (!passwordSet) return false;
+      if (!invitation) return true;
+      return this.activateInvitation(manager, invitation, tokenHash, user.id);
     });
+  }
+
+  private lockResettableUser(
+    manager: EntityManager,
+    tokenHash: string,
+    now: Date,
+  ): Promise<User | null> {
+    return manager
+      .createQueryBuilder(User, 'user')
+      .addSelect('user.password')
+      .where('user.passwordResetTokenHash = :tokenHash', { tokenHash })
+      .andWhere('user.passwordResetTokenExpiresAt > :now', { now })
+      .andWhere('user.deletedAt IS NULL')
+      .setLock('pessimistic_write')
+      .getOne();
+  }
+
+  private lockPendingInvitation(
+    manager: EntityManager,
+    userId: string,
+    tokenHash: string,
+    now: Date,
+  ): Promise<Membership | null> {
+    return manager
+      .createQueryBuilder(Membership, 'membership')
+      .where('membership.userId = :userId', { userId })
+      .andWhere('membership.status = :status', { status: 'pending' })
+      .andWhere('membership.tokenHash = :tokenHash', { tokenHash })
+      .andWhere('membership.tokenExpiresAt > :now', { now })
+      .setLock('pessimistic_write')
+      .getOne();
+  }
+
+  private async applyNewPassword(
+    manager: EntityManager,
+    user: User,
+    tokenHash: string,
+    passwordHash: string,
+    emailVerifiedAt: Date | null,
+  ): Promise<boolean> {
+    const result = await manager.update(
+      User,
+      { id: user.id, passwordResetTokenHash: tokenHash },
+      {
+        password: passwordHash,
+        emailVerifiedAt,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
+        passwordVersion: () => '"passwordVersion" + 1',
+      },
+    );
+    return result.affected === 1;
+  }
+
+  private async activateInvitation(
+    manager: EntityManager,
+    invitation: Membership,
+    tokenHash: string,
+    userId: string,
+  ): Promise<boolean> {
+    const activation = await manager.update(
+      Membership,
+      { id: invitation.id, status: 'pending', tokenHash },
+      { status: 'active', tokenHash: null, tokenExpiresAt: null },
+    );
+    if (activation.affected !== 1) return false;
+    await this.notificationRecipients.reconcileRecipients(manager, {
+      companyId: invitation.companyId,
+      userIds: [userId],
+    });
+    return true;
   }
 
   private assign(

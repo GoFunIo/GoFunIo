@@ -21,12 +21,14 @@ import {
 import {
   evaluateDeliveryEligibility,
   type DeliveryCancellationReason,
+  type DeliveryEligibilityInput,
 } from './notification-delivery-policy';
 import { NotificationType } from './notification.entity';
 import { NOTIFICATION_TYPES } from './notification-types';
 import {
   NOTIFICATION_DELIVERY_TYPE_ADAPTERS,
   type NotificationDeliveryTypeAdapter,
+  type NotificationDeliveryTypePreparation,
 } from './notification-delivery-type-adapter';
 
 interface DeliveryPreparationRow {
@@ -46,6 +48,35 @@ interface DeliveryPreparationRow {
   emailVerifiedAt: Date | null;
   userDeletedAt: Date | null;
   emailMode: NotificationEmailMode | null;
+}
+
+function resolveRecipientAddress(row: DeliveryPreparationRow): string | null {
+  const currentVerifiedAddress =
+    row.emailVerifiedAt !== null && row.userDeletedAt === null
+      ? row.email
+      : null;
+  return row.recipientAddress ?? currentVerifiedAddress;
+}
+
+function buildEligibilityInput(
+  row: DeliveryPreparationRow,
+  now: Date,
+  source: NotificationDeliveryTypePreparation,
+  address: string | null,
+): DeliveryEligibilityInput {
+  return {
+    notificationValid:
+      row.invalidatedAt === null &&
+      (row.expiresAt === null || row.expiresAt > now) &&
+      source.sourceValid,
+    membershipActive: row.membershipStatus === 'active' && row.userId !== null,
+    sourceAuthorized: source.sourceAuthorized && row.revokedAt === null,
+    emailPolicy: NOTIFICATION_TYPES[row.notificationType].emailPolicy,
+    optionalEmailEnabled:
+      (row.emailMode ?? DEFAULT_NOTIFICATION_EMAIL_MODE) ===
+      NotificationEmailMode.IMMEDIATE,
+    hasRecipientAddress: address !== null,
+  };
 }
 
 @Injectable()
@@ -107,7 +138,6 @@ export class TypeOrmNotificationDeliveryStore implements NotificationDeliverySto
     return this.dataSource.transaction(async (manager) => {
       const row = await this.preparationRow(manager, id, claimedAt);
       if (!row) return null;
-      const contract = NOTIFICATION_TYPES[row.notificationType];
       const adapter = this.typeAdapters.find(
         (candidate) => candidate.type === row.notificationType,
       );
@@ -122,44 +152,21 @@ export class TypeOrmNotificationDeliveryStore implements NotificationDeliverySto
         rendererVersion: row.rendererVersion,
         frontendBaseUrl: this.frontendOrigins.resolveLinkBase(),
       });
-      const notificationValid =
-        row.invalidatedAt === null &&
-        (row.expiresAt === null || row.expiresAt > now) &&
-        source.sourceValid;
-      const membershipActive =
-        row.membershipStatus === 'active' && row.userId !== null;
-      const currentVerifiedAddress =
-        row.emailVerifiedAt !== null && row.userDeletedAt === null
-          ? row.email
-          : null;
-      const address = row.recipientAddress ?? currentVerifiedAddress;
-      const eligibility = evaluateDeliveryEligibility({
-        notificationValid,
-        membershipActive,
-        sourceAuthorized: source.sourceAuthorized && row.revokedAt === null,
-        emailPolicy: contract.emailPolicy,
-        optionalEmailEnabled:
-          (row.emailMode ?? DEFAULT_NOTIFICATION_EMAIL_MODE) ===
-          NotificationEmailMode.IMMEDIATE,
-        hasRecipientAddress: address !== null,
-      });
+      const address = resolveRecipientAddress(row);
+      const eligibility = evaluateDeliveryEligibility(
+        buildEligibilityInput(row, now, source, address),
+      );
       if (!eligibility.eligible) {
         return { kind: 'cancel', reason: eligibility.reason };
       }
       if (!row.recipientAddress) {
-        const captured = await manager
-          .createQueryBuilder()
-          .update(NotificationDelivery)
-          .set({ recipientAddress: address })
-          .where('id = :id', { id })
-          .andWhere('status = :status', {
-            status: NotificationDeliveryStatus.SENDING,
-          })
-          .andWhere('lockedAt = :claimedAt', { claimedAt })
-          .andWhere('recipientAddress IS NULL')
-          .andWhere('completedAt IS NULL')
-          .execute();
-        if (captured.affected !== 1) return null;
+        const captured = await this.captureRecipientAddress(
+          manager,
+          id,
+          claimedAt,
+          address,
+        );
+        if (!captured) return null;
       }
       if (!source.rendered) {
         throw new Error(
@@ -273,6 +280,27 @@ export class TypeOrmNotificationDeliveryStore implements NotificationDeliverySto
       [id, claimedAt],
     );
     return rows[0];
+  }
+
+  private async captureRecipientAddress(
+    manager: EntityManager,
+    id: string,
+    claimedAt: Date,
+    address: string | null,
+  ): Promise<boolean> {
+    const captured = await manager
+      .createQueryBuilder()
+      .update(NotificationDelivery)
+      .set({ recipientAddress: address })
+      .where('id = :id', { id })
+      .andWhere('status = :status', {
+        status: NotificationDeliveryStatus.SENDING,
+      })
+      .andWhere('lockedAt = :claimedAt', { claimedAt })
+      .andWhere('recipientAddress IS NULL')
+      .andWhere('completedAt IS NULL')
+      .execute();
+    return captured.affected === 1;
   }
 
   private async ownedUpdate(
