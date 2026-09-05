@@ -1,4 +1,4 @@
-export type VehicleActions = 'add_car' | 'edit_car' | 'delete_car' | null;
+export type VehicleActions = 'add_car' | 'edit_car' | 'delete_car' | 'renew_car' | null;
 export type VehicleIdType = string | null;
 export type VehicleFuelType = 'DIESEL' | 'PETROL' | 'LPG' | 'HYBRID' | 'ELECTRIC';
 
