@@ -1,11 +1,10 @@
-import { SubmitHandler, useForm, Controller, Resolver } from 'react-hook-form';
+import { SubmitHandler, useForm, Resolver, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import classNames from 'classnames';
 
 import { AddVehicleFormData, AddVehicleSchema } from '../lib/formValidationRules';
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
-import { Select } from '../ui/Select';
 import { useCreateVehicle, useUpdateVehicle } from '../hooks/vehicles.hooks';
 import { VehicleData } from '@/features/dashboard/types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
@@ -17,6 +16,7 @@ import {
 } from '@/utils/formFieldTransforms';
 import { FormDatePicker } from '../ui/FormDatePicker';
 import { FUEL_OPTIONS } from '../constants/fuelOptions';
+import { FormSelect } from '../ui/FormSelect';
 
 type FormProps = {
   className?: string;
@@ -136,34 +136,15 @@ export const AddVehicleForm = ({
           disabled={isRenewalMode || loading}
         />
 
-        <div
-          className={classNames('flex flex-col gap-1 transition-opacity', {
-            'opacity-60 select-none pointer-events-none': isRenewalMode,
-          })}
-        >
-          <div className="flex justify-between items-center">
-            <label className="text-[14px] font-medium text-content-secondary">Rodzaj paliwa</label>
-            {errors.fuelType?.message && (
-              <span className="text-[12px] font-medium text-alert">{errors.fuelType.message}</span>
-            )}
-          </div>
-          <Controller
-            control={control}
-            name="fuelType"
-            render={({ field }) => (
-              <Select
-                options={FUEL_OPTIONS}
-                value={field.value || null}
-                onChange={(val) => field.onChange(val)}
-                placeholder="Wybierz rodzaj paliwa"
-                clearOption={false}
-                className="!w-full h-[40px]"
-                error={errors.fuelType?.message}
-                disabled={isRenewalMode || loading}
-              />
-            )}
-          />
-        </div>
+        <FormSelect
+          control={control}
+          name="fuelType"
+          label="Rodzaj paliwa"
+          options={FUEL_OPTIONS}
+          placeholder="Wybierz rodzaj paliwa"
+          error={errors.fuelType?.message}
+          disabled={isRenewalMode || loading}
+        />
 
         <Input
           label="VIN"
@@ -182,16 +163,27 @@ export const AddVehicleForm = ({
           onFocus={() => clearErrors('registrationNumber')}
           disabled={isRenewalMode || loading}
         />
-        <Input
-          label="Aktualny przebieg (km)"
-          placeholder="Podaj liczbę km"
-          type="number"
-          error={errors.currentMileage?.message}
-          className={inputStyles}
-          {...register('currentMileage', { valueAsNumber: true })}
-          disabled={isRenewalMode || loading}
-        />
+        <Controller
+          name="currentMileage"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Aktualny przebieg (km)"
+              placeholder="Podaj liczbę km"
+              inputMode="decimal"
+              type="text"
+              error={errors.currentMileage?.message}
+              className={inputStyles}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '');
 
+                field.onChange(value === '' ? undefined : Number(value));
+              }}
+              disabled={isRenewalMode || loading}
+            />
+          )}
+        />
         <FormDatePicker
           control={control}
           name="purchaseDate"

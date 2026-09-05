@@ -1,4 +1,4 @@
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMemo } from 'react';
 import classNames from 'classnames';
@@ -157,25 +157,29 @@ export const VehiclesServiceForm = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="Koszt *"
-            placeholder="0.00"
-            type="text"
-            inputMode="decimal"
-            min="0"
-            error={errors.cost?.message}
-            className={inputStyles}
-            {...register('cost', {
-              setValueAs: (value) => {
-                if (value === '') return undefined;
+          <Controller
+            name="cost"
+            control={control}
+            render={({ field }) => (
+              <Input
+                label="Koszt *"
+                placeholder="0.00"
+                type="text"
+                inputMode="decimal"
+                error={errors.cost?.message}
+                className={inputStyles}
+                value={field.value ?? ''}
+                onChange={(e) => {
+                  const value = handlePriceInput(e.target.value);
 
-                return Number(String(value).replace(',', '.'));
-              },
-              onChange: (e) => {
-                e.target.value = handlePriceInput(e.target.value);
-              },
-            })}
-            disabled={isPending}
+                  field.onChange(value);
+                }}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                disabled={isPending}
+              />
+            )}
           />
 
           <Input

@@ -37,7 +37,7 @@ export function FormSelect<T extends FieldValues>({
   onValueChange,
 }: FormSelectProps<T>) {
   return (
-    <div className="flex flex-col gap-1 relative pb-2">
+    <div className="flex flex-col gap-1 relative">
       <div className="flex justify-between items-center">
         <label
           className={classNames(
