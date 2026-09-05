@@ -126,7 +126,6 @@ export const AddVehicleForm = ({
           disabled={isRenewalMode || loading}
         />
 
-        {/* Rok Produkcji */}
         <Input
           label="Rok Produkcji"
           placeholder="Np. 2024"
@@ -137,7 +136,6 @@ export const AddVehicleForm = ({
           disabled={isRenewalMode || loading}
         />
 
-        {/* Rodzaj paliwa */}
         <div
           className={classNames('flex flex-col gap-1 transition-opacity', {
             'opacity-60 select-none pointer-events-none': isRenewalMode,
@@ -194,7 +192,6 @@ export const AddVehicleForm = ({
           disabled={isRenewalMode || loading}
         />
 
-        {/* Data zakupu */}
         <FormDatePicker
           control={control}
           name="purchaseDate"
@@ -206,7 +203,6 @@ export const AddVehicleForm = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
-        {/* Ważność przeglądu technicznego */}
         <FormDatePicker
           control={control}
           name="technicalInspectionExpiry"
@@ -214,7 +210,6 @@ export const AddVehicleForm = ({
           error={errors.technicalInspectionExpiry?.message}
         />
 
-        {/* Ważność OC */}
         <FormDatePicker
           control={control}
           name="ocExpiry"
@@ -222,7 +217,6 @@ export const AddVehicleForm = ({
           error={errors.ocExpiry?.message}
         />
 
-        {/* Ważność AC */}
         <FormDatePicker
           control={control}
           name="acExpiry"

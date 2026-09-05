@@ -4,9 +4,7 @@ import { formatDays } from './formatDays';
 const ALERT_THRESHOLD_DAYS = 7;
 const WARNING_THRESHOLD_DAYS = 30;
 
-// =========================================================================
-// FORMATOWANIE DATY (tylko display)
-// =========================================================================
+// FORMATOWANIE DATY
 export const formatPlDate = (dateString?: string | null): string => {
   if (!dateString) return '';
 
@@ -16,9 +14,7 @@ export const formatPlDate = (dateString?: string | null): string => {
   return `${day}.${month}.${year}`;
 };
 
-// =========================================================================
 // MAPOWANIE LICZBY DNI Z BE na wariant alertu UI
-// =========================================================================
 export type AlertVariant = 'alert' | 'warning' | 'info';
 
 export const getAlertVariant = (daysRemaining: number, overdue: boolean): AlertVariant => {
@@ -36,9 +32,7 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
   return variant === 'info' ? 'warning' : variant;
 };
 
-// =========================================================================
 // TEKSTY BADGE (na podstawie gotowych daysRemaining/overdue)
-// =========================================================================
 export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
   if (daysRemaining === 0) return 'Dzisiaj';
 
@@ -65,9 +59,7 @@ export const getAlertBadgeLabel = (daysRemaining: number, overdue: boolean): str
   return `Za: ${formattedDays}`;
 };
 
-// =========================================================================
 // ETYKIETY RODZAJU TERMINU — wspólne dla Reminders / RemindersDropdown / VehicleCard
-// =========================================================================
 export const deadlineKindLabels: Record<DeadlineKind, string> = {
   TECHNICAL_INSPECTION: 'Przegląd techniczny',
   OC: 'Ubezpieczenie OC',
@@ -97,9 +89,7 @@ export const notificationCategoryLabels: Record<NotificationCategory, string> = 
   PRODUCT: 'Nowości produktowe',
 };
 
-// =========================================================================
 // TYTUŁ + WARTOŚĆ KAFELKA DashboardCard NA STRONIE POJEDYNCZEGO POJAZDU
-// =========================================================================
 export type DeadlineCardVisual = {
   title: string;
   value: string;
@@ -144,10 +134,7 @@ export const getDeadlineCardVisual = (
   return { title, value, variant };
 };
 
-// =========================================================================
 // NAJPILNIEJSZY ALERT Z LISTY (do badge'a na VehicleCard w gridzie my-cars)
-// "Najpilniejszy" = ten, który wymaga reakcji najszybciej
-// =========================================================================
 export const pickMostUrgentAlert = (
   alerts?: VehicleDeadlineAlert[],
 ): VehicleDeadlineAlert | undefined => {
@@ -160,9 +147,7 @@ export const pickMostUrgentAlert = (
   })[0];
 };
 
-// =========================================================================
 // ETYKIETA/BADGE PROGU DNI (leadDay)  NA DZWONECZKU
-// =========================================================================
 export const getLeadDayLabel = (leadDay: number): string => {
   if (leadDay === 0) return 'Dzień terminu';
   return `Zostało: ${leadDay} ${formatDays(leadDay)}`;

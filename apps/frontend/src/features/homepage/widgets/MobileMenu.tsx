@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { Button } from '@/components/ui/Button';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 

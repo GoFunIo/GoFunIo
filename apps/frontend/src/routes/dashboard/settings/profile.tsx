@@ -39,7 +39,6 @@ function RouteComponent() {
   return (
     <>
       <GridWrapper layout="2-equal" className="gap-[20px]">
-        {/* 1. DANE UŻYTKOWNIKA  */}
         <BlockWrapper className="flex justify-between gap-[12px] order-1">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Dane użytkownika</p>
@@ -64,7 +63,6 @@ function RouteComponent() {
           </BoardButton>
         </BlockWrapper>
 
-        {/* 2. DANE FIRMOWE  */}
         <BlockWrapper className="flex justify-between gap-[12px] order-2 ">
           {pendingCompany ? (
             <LoadingIcon className="m-auto" />
@@ -100,7 +98,6 @@ function RouteComponent() {
           )}
         </BlockWrapper>
 
-        {/* 3. ADRES E-MAIL  */}
         <BlockWrapper className="flex justify-between gap-[12px] order-3 ">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Adres e-mail</p>
@@ -111,7 +108,6 @@ function RouteComponent() {
           </BoardButton>
         </BlockWrapper>
 
-        {/* 4. HASŁO */}
         <BlockWrapper className="flex justify-between gap-[12px] order-4 ">
           <div>
             <p className="font-bold text-[14px] text-content-primary pb-[12px]">Hasło</p>

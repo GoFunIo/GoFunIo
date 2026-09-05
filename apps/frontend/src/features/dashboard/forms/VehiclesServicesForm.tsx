@@ -1,4 +1,4 @@
-import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMemo } from 'react';
 import classNames from 'classnames';
@@ -14,9 +14,9 @@ import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 
 import { Input } from '@/components/ui/Input';
 import { BoardButton } from '../ui/BoardButton';
-import { Select } from '../ui/Select';
 import { FormDatePicker } from '../ui/FormDatePicker';
 import { AttachmentsForm } from './AttachmentsForm';
+import { FormSelect } from '../ui/FormSelect';
 
 type BaseFormProps = {
   className?: string;
@@ -122,40 +122,17 @@ export const VehiclesServiceForm = ({
       )}
 
       <div className="flex flex-col gap-y-4">
-        {/* POJAZD */}
-        <div className="flex flex-col gap-1 relative pb-2">
-          <div className="flex justify-between items-center">
-            <label className="text-[14px]  text-content-secondary font-medium mb-[4px]">
-              Pojazd *
-            </label>
-            {errors.vehicleId?.message && (
-              <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
-                {errors.vehicleId.message}
-              </p>
-            )}
-          </div>
-          <Controller
-            control={control}
-            name="vehicleId"
-            render={({ field }) => (
-              <Select
-                options={carOptions}
-                value={field.value ?? ''}
-                clearOption={false}
-                onChange={(val) => {
-                  field.onChange(val);
-                  clearErrors('vehicleId');
-                }}
-                placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
-                className="w-full !h-[45px] "
-                error={errors.vehicleId?.message}
-                disabled={isPending || !!currentVehicle || mode === 'edit'}
-              />
-            )}
-          />
-        </div>
+        <FormSelect
+          control={control}
+          name="vehicleId"
+          label="Pojazd *"
+          options={carOptions}
+          placeholder={isVehiclesLoading ? 'Wczytywanie pojazdów...' : 'Wybierz z listy'}
+          error={errors.vehicleId?.message}
+          disabled={isPending || !!currentVehicle || mode === 'edit'}
+          onValueChange={() => clearErrors('vehicleId')}
+        />
 
-        {/* DATA SERWISU I TYP */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <FormDatePicker
             control={control}
@@ -167,41 +144,18 @@ export const VehiclesServiceForm = ({
             clearable
           />
 
-          {/* TYP SERWISU */}
-          <div className="flex flex-col gap-1 relative pb-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[14px] font-medium text-content-secondary font-medium mb-[4px]">
-                Typ *
-              </label>
-              {errors.serviceType?.message && (
-                <p className="text-[12px] text-alert font-medium absolute right-0 top-0">
-                  {errors.serviceType.message}
-                </p>
-              )}
-            </div>
-            <Controller
-              control={control}
-              name="serviceType"
-              render={({ field }) => (
-                <Select
-                  options={serviceTypeOptions}
-                  value={field.value ?? ''}
-                  clearOption={false}
-                  onChange={(val) => {
-                    field.onChange(val ?? undefined);
-                    clearErrors('serviceType');
-                  }}
-                  placeholder="Podaj rodzaj serwisu"
-                  className="w-full !h-[45px]"
-                  error={errors.serviceType?.message}
-                  disabled={isPending}
-                />
-              )}
-            />
-          </div>
+          <FormSelect
+            control={control}
+            name="serviceType"
+            label="Typ *"
+            options={serviceTypeOptions}
+            placeholder="Podaj rodzaj serwisu"
+            error={errors.serviceType?.message}
+            disabled={isPending}
+            onValueChange={() => clearErrors('serviceType')}
+          />
         </div>
 
-        {/* KOSZT I WARSZTAT */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <Input
             label="Koszt *"
@@ -223,6 +177,7 @@ export const VehiclesServiceForm = ({
             })}
             disabled={isPending}
           />
+
           <Input
             label="Warsztat *"
             placeholder="Nazwa warsztatu"
@@ -233,7 +188,6 @@ export const VehiclesServiceForm = ({
           />
         </div>
 
-        {/* NOTATKI */}
         <div className="flex flex-col gap-1">
           <label className="text-[14px] font-medium text-content-secondary mb-[4px]">Opis</label>
           <textarea
@@ -251,7 +205,6 @@ export const VehiclesServiceForm = ({
           )}
         </div>
 
-        {/* ZAŁĄCZNIK */}
         <div className="flex flex-col gap-1">
           <div className="flex justify-between w-full">
             <label className="text-[14px] text-content-secondary font-medium mb-[4px]">

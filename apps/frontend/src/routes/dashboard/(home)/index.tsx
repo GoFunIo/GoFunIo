@@ -125,9 +125,6 @@ function RouteComponent() {
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
 
-  // ============================================================
-  // PRZEGLĄDY TECHNICZNE
-  // ============================================================
   const inspectionStats = useMemo(
     () =>
       vehicleAlerts
@@ -143,9 +140,6 @@ function RouteComponent() {
     [vehicleAlerts],
   );
 
-  // ============================================================
-  // OC / AC
-  // ============================================================
   const insuranceStats = useMemo(
     () =>
       vehicleAlerts
@@ -172,9 +166,6 @@ function RouteComponent() {
     [vehicleAlerts],
   );
 
-  // ============================================================
-  // PODSUMOWANIE WYDATKÓW
-  // ============================================================
   const expensesSummary = useMemo(() => {
     let servicesAndRepairs = 0;
     let insurance = 0;
@@ -196,9 +187,6 @@ function RouteComponent() {
     };
   }, [services]);
 
-  // ============================================================
-  // QUICK ACTIONS
-  // ============================================================
   const visibleActions = useMemo(
     () =>
       dashboardActions.filter((action) => {
@@ -249,9 +237,6 @@ function RouteComponent() {
         </div>
       </div>
 
-      {/* ========================================================
-          KARTY STATYSTYK
-          ======================================================== */}
       <GridWrapper layout={'3-equal'}>
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
@@ -304,9 +289,6 @@ function RouteComponent() {
         </Link>
       </GridWrapper>
 
-      {/* ========================================================
-          NADCHODZĄCE TERMINY
-          ======================================================== */}
       <BlockWrapper>
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -374,10 +356,6 @@ function RouteComponent() {
         )}
       </BlockWrapper>
 
-      {/* ========================================================
-          HISTORIA + QUICK ACTIONS
-          ======================================================== */}
-
       <GridWrapper layout="2-unequal">
         <History
           title="Ostatnia aktywność"
@@ -395,7 +373,6 @@ function RouteComponent() {
           }}
         />
 
-        {/* SZYBKIE AKCJE PRAWA STRONA */}
         <div className=" flex flex-col gap-6">
           <BlockWrapper className="lg:col-span-1 h-fit">
             <h4 className="text-content-primary ">Szybkie akcje</h4>
@@ -448,9 +425,6 @@ function RouteComponent() {
         </div>
       </GridWrapper>
 
-      {/* ========================================================
-          MODALS
-          ======================================================== */}
       {ServiceModal}
       {VehiclesModal}
       {UsersModal}

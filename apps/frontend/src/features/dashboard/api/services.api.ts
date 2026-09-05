@@ -21,11 +21,7 @@ const buildServicePayload = (form: CreateServiceData) => ({
   notes: form.notes || null,
 });
 
-// =========================================================================
 // GET /services
-// POBIERANIE LISTY USŁUG
-// =========================================================================
-
 export const getAllServices = async (params?: ServiceListParams) => {
   const query = new URLSearchParams();
 
@@ -56,11 +52,7 @@ export const getAllServices = async (params?: ServiceListParams) => {
   return data as PaginatedServices;
 };
 
-// =========================================================================
-// POST /services
 // TWORZENIE USŁUGI
-// =========================================================================
-
 export const createService = async (form: CreateServiceData) => {
   try {
     const payload = buildServicePayload(form);
@@ -93,11 +85,7 @@ export const createService = async (form: CreateServiceData) => {
   }
 };
 
-// =========================================================================
 // GET /services/{id}
-// POBIERANIE POJEDYNCZEJ USŁUGI
-// =========================================================================
-
 export const getService = async (id: string) => {
   const res = await fetch(`${API_URL}/services/${id}`, {
     method: 'GET',
@@ -116,11 +104,7 @@ export const getService = async (id: string) => {
   return data as SingleServiceData;
 };
 
-// =========================================================================
 // PATCH /services/{id}
-// AKTUALIZACJA USŁUGI
-// =========================================================================
-
 export const updateService = async (id: string, form: CreateServiceData) => {
   try {
     const payload = buildServicePayload(form);
@@ -153,11 +137,7 @@ export const updateService = async (id: string, form: CreateServiceData) => {
   }
 };
 
-// =========================================================================
 // DELETE /services/{id}
-// USUWANIE USŁUGI
-// =========================================================================
-
 export const deleteService = async (id: string) => {
   try {
     const res = await fetch(`${API_URL}/services/${id}`, {

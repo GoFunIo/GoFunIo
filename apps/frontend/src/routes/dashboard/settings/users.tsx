@@ -25,7 +25,6 @@ function RouteComponent() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Dynamiczne filtrowanie użytkowników
   const filteredTeam = useMemo(() => {
     if (!team) return [];
 

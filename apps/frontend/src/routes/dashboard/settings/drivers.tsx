@@ -23,7 +23,6 @@ function RouteComponent() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Dynamiczne filtrowanie kierowcow
   const filteredDrivers = useMemo(() => {
     if (!drivers) return [];
 

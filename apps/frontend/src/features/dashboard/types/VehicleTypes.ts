@@ -1,7 +1,3 @@
-/* ==========================================================================
-   WSPÓLNE TYPY DLA FLOTY POJAZDÓW (ODPOWIEDNIKI BAZOWYCH DTO Z BACKENDU)
-   ========================================================================== */
-
 export type VehicleActions = 'add_car' | 'edit_car' | 'delete_car' | null;
 export type VehicleIdType = string | null;
 export type VehicleFuelType = 'DIESEL' | 'PETROL' | 'LPG' | 'HYBRID' | 'ELECTRIC';
@@ -19,7 +15,6 @@ export interface VehicleDriver {
   lastName: string;
 }
 
-// GET /vehicles oraz GET /vehicles/{id}.
 export interface VehicleData {
   id: string;
   managers: VehicleManager[];
@@ -38,7 +33,6 @@ export interface VehicleData {
   notes: string | null;
 }
 
-// Paginacja GET /vehicles
 export interface VehicleListResponse {
   items: VehicleData[];
 
@@ -48,8 +42,6 @@ export interface VehicleListResponse {
   totalPages: number;
 }
 
-// Historia przypisań managerów do pojazdu.
-// GET /vehicles/{id}/manager-assignments
 export interface VehicleManagerAssignment {
   id: string;
   managerId: string;
@@ -59,8 +51,6 @@ export interface VehicleManagerAssignment {
   createdAt: string;
 }
 
-// Historia przypisań kierowców do pojazdu.
-// GET /vehicles/{vehicleId}/driver-assignments.
 export interface VehicleDriverAssignment {
   id: string;
   driverId: string;
