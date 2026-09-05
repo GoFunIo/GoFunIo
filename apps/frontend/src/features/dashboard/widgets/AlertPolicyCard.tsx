@@ -118,7 +118,9 @@ export function AlertPolicyCard() {
           )}
         </div>
         <p className="text-[16px] text-content-secondary mb-6">
-          Ustaw, ile dni przed terminem OC/AC/przeglądu ma powstać powiadomienie.
+          {canManageAlertPolicy
+            ? 'Ustaw, ile dni przed terminem OC/AC/przeglądu ma powstać powiadomienie.'
+            : 'Aktywne ustawienia powiadomień o terminach OC/AC/przeglądu w Twojej firmie.'}
         </p>
 
         <div className="mb-6">
