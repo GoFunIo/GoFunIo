@@ -2,6 +2,7 @@ import { LoadingIcon } from '@/components/ui/LoadingIcon';
 import { useVehicles } from '../hooks/vehicles.hooks';
 import { VehicleCardCompact } from './VehicleCardCompact';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
+import { Car } from 'lucide-react';
 
 type Props = {
   managerId?: string;
@@ -19,7 +20,10 @@ export const AssignedVehiclesList = ({ managerId, onDetailsClick }: Props) => {
       {isPending ? (
         <LoadingIcon className="m-auto my-[24px]" />
       ) : vehicles.length === 0 ? (
-        <EmptyPlaceholder title="Brak użytkowników" />
+        <EmptyPlaceholder
+          title="Brak przypisanych samochodów do managera"
+          icon={<Car size={24} className="text-primary" />}
+        />
       ) : (
         vehicles.map((vehicle) => (
           <VehicleCardCompact key={vehicle.id} vehicle={vehicle} onDetailsClick={onDetailsClick} />
