@@ -3,12 +3,7 @@ import { CarFront, Fuel, Gauge, User, Users } from 'lucide-react';
 import classNames from 'classnames';
 import { useUser } from '../hooks/user.hooks';
 import { VehicleData, VehicleDeadlineAlert } from '@/features/dashboard/types';
-import {
-  getAlertBadgeLabel,
-  getAlertBadgeText,
-  getAlertVariant,
-  pickMostUrgentAlert,
-} from '@/utils/formatDeadline';
+import { getAlertBadgeLabel, getAlertVariant, pickMostUrgentAlert } from '@/utils/formatDeadline';
 
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { IconWrapper } from '@/features/dashboard/ui/IconWrapper';
@@ -90,16 +85,7 @@ export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProp
             </div>
           </div>
 
-          <div
-            className={badgeClassName}
-            title={
-              mostUrgentAlert
-                ? getAlertBadgeText(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
-                : undefined
-            }
-          >
-            {badgeText}
-          </div>
+          <div className={badgeClassName}>{badgeText}</div>
         </div>
 
         <div className="flex flex-row gap-2 justify-between items-end">

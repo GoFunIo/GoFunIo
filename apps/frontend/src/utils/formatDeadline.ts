@@ -32,19 +32,7 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
   return variant === 'info' ? 'warning' : variant;
 };
 
-// TEKSTY BADGE (na podstawie gotowych daysRemaining/overdue)
-export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
-  if (daysRemaining === 0) return 'Dzisiaj';
-
-  if (overdue || daysRemaining < 0) {
-    const overdueDays = Math.abs(daysRemaining);
-    return `Po terminie ${overdueDays} ${formatDays(overdueDays)}`;
-  }
-
-  return `${daysRemaining} ${formatDays(daysRemaining)}`;
-};
-
-// Główna funkcja do etykiet badge'y w całej aplikacji (dzwonek, wiersze, karty)
+// ETYKIETA BADGY  (REMIDERROW, VEHICLECARD)
 export const getAlertBadgeLabel = (daysRemaining: number, overdue: boolean): string => {
   if (daysRemaining === 0) return 'Dziś';
 
@@ -57,6 +45,19 @@ export const getAlertBadgeLabel = (daysRemaining: number, overdue: boolean): str
 
   const formattedDays = `${daysRemaining} ${formatDays(daysRemaining)}`;
   return `Za: ${formattedDays}`;
+};
+
+// ETYKIETA/BADGE PROGU DNI DROPDOWN(leadDay)
+export const getLeadDayLabel = (leadDay: number): string => {
+  if (leadDay === 0) return 'Dzień terminu';
+  return `Za ≤ ${leadDay} ${formatDays(leadDay)}`;
+};
+
+// Kolor badge'a progu
+export const getLeadDayVariant = (leadDay: number): AlertVariant => {
+  if (leadDay <= ALERT_THRESHOLD_DAYS) return 'alert';
+  if (leadDay <= WARNING_THRESHOLD_DAYS) return 'warning';
+  return 'info';
 };
 
 // ETYKIETY RODZAJU TERMINU — wspólne dla Reminders / RemindersDropdown / VehicleCard
@@ -145,17 +146,4 @@ export const pickMostUrgentAlert = (
 
     return a.daysRemaining - b.daysRemaining;
   })[0];
-};
-
-// ETYKIETA/BADGE PROGU DNI (leadDay)  NA DZWONECZKU
-export const getLeadDayLabel = (leadDay: number): string => {
-  if (leadDay === 0) return 'Dzień terminu';
-  return `Zostało: ${leadDay} ${formatDays(leadDay)}`;
-};
-
-// Kolor badge'a progu
-export const getLeadDayVariant = (leadDay: number): AlertVariant => {
-  if (leadDay <= ALERT_THRESHOLD_DAYS) return 'alert';
-  if (leadDay <= WARNING_THRESHOLD_DAYS) return 'warning';
-  return 'info';
 };

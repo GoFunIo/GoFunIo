@@ -11,7 +11,7 @@ import { DeadlineKind, NotificationItem } from '@/features/dashboard/types';
 import {
   deadlineKindLabels,
   formatPlDate,
-  getAlertBadgeLabel,
+  getLeadDayLabel,
   getLeadDayVariant,
 } from '@/utils/formatDeadline';
 
@@ -143,8 +143,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                           {item.vehicle.brand} {item.vehicle.model} ·{' '}
                           {item.vehicle.registrationNumber}
                         </>
-                      ) : item.registrationNumber ? (
-                        item.registrationNumber
                       ) : (
                         'Brak danych pojazdu'
                       )}
@@ -165,7 +163,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                     },
                   )}
                 >
-                  {getAlertBadgeLabel(item.leadDay, false)}
+                  {getLeadDayLabel(item.leadDay)}
                 </span>
               </button>
             );
