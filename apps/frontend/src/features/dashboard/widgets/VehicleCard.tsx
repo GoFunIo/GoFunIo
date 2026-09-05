@@ -4,9 +4,9 @@ import classNames from 'classnames';
 import { useUser } from '../hooks/user.hooks';
 import { VehicleData, VehicleDeadlineAlert } from '@/features/dashboard/types';
 import {
+  getAlertBadgeLabel,
   getAlertBadgeText,
   getAlertVariant,
-  getVehicleCardBadgeText,
   pickMostUrgentAlert,
 } from '@/utils/formatDeadline';
 
@@ -54,7 +54,11 @@ export const VehicleCard = ({ vehicle, alerts, onDetailsClick }: VehicleCardProp
   const managerNames = formatNames(orderedManagers);
 
   const mostUrgentAlert = useMemo(() => pickMostUrgentAlert(alerts), [alerts]);
-  const badgeText = getVehicleCardBadgeText(mostUrgentAlert);
+
+  const badgeText = mostUrgentAlert
+    ? getAlertBadgeLabel(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
+    : 'OK';
+
   const variant = mostUrgentAlert
     ? getAlertVariant(mostUrgentAlert.daysRemaining, mostUrgentAlert.overdue)
     : 'info';

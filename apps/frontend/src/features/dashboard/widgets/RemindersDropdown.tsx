@@ -11,7 +11,7 @@ import { DeadlineKind, NotificationItem } from '@/features/dashboard/types';
 import {
   deadlineKindLabels,
   formatPlDate,
-  getLeadDayLabel,
+  getAlertBadgeLabel,
   getLeadDayVariant,
 } from '@/utils/formatDeadline';
 
@@ -92,7 +92,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
         </button>
       </div>
 
-      {/* LISTA */}
       <div className="flex flex-col divide-y divide-icon my-1 max-h-[300px] overflow-y-auto">
         {isLoading ? (
           <p className="text-[12px] text-content-secondary p-4 text-center">
@@ -166,7 +165,7 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                     },
                   )}
                 >
-                  {getLeadDayLabel(item.leadDay)}
+                  {getAlertBadgeLabel(item.leadDay, false)}
                 </span>
               </button>
             );

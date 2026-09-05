@@ -10,7 +10,7 @@ import {
 import { BoardButton } from '../ui/BoardButton';
 import { EmptyPlaceholder } from './EmptyPlaceholder';
 import { DeadlineKind, VehicleData, VehicleDeadlineAlert } from '../types';
-import { deadlineKindLabels, getAlertRowBadgeText, getAlertVariant } from '@/utils/formatDeadline';
+import { deadlineKindLabels, getAlertBadgeLabel, getAlertVariant } from '@/utils/formatDeadline';
 import { useMemo } from 'react';
 
 export type AlertFilterType = 'all' | 'inspection' | 'insurance';
@@ -74,12 +74,7 @@ export const ReminderRow = ({
       {activeReminders.map((item) => {
         const Icon = activityIcons[item.deadlineKind];
         const variant = getAlertVariant(item.daysRemaining, item.overdue);
-
-        const isCritical = variant === 'alert';
-        const isWarning = variant === 'warning';
-        const isInfo = variant === 'info';
-
-        const badgeText = getAlertRowBadgeText(item.daysRemaining, item.overdue);
+        const badgeText = getAlertBadgeLabel(item.daysRemaining, item.overdue);
 
         return (
           <div
@@ -87,9 +82,9 @@ export const ReminderRow = ({
             className={classNames(
               'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 p-5 border-l-[5px] rounded-[7px] transition-colors shadow-sm',
               {
-                'border-l-alert': isCritical,
-                'border-l-warning': isWarning,
-                'border-l-info': isInfo,
+                'border-l-alert': variant === 'alert',
+                'border-l-warning': variant === 'warning',
+                'border-l-info': variant === 'info',
               },
               item.overdue ? 'bg-alert-bg dark:bg-bg-card' : 'bg-bg-card',
             )}
@@ -99,9 +94,9 @@ export const ReminderRow = ({
                 className={classNames(
                   'w-[40px] h-[40px] rounded-[6px] flex items-center justify-center shrink-0',
                   {
-                    'bg-alert-bg-icon text-alert': isCritical,
-                    'bg-warning-bg-icon text-warning': isWarning,
-                    'bg-info-bg-icon text-info': isInfo,
+                    'bg-alert-bg-icon text-alert': variant === 'alert',
+                    'bg-warning-bg-icon text-warning': variant === 'warning',
+                    'bg-info-bg-icon text-info': variant === 'info',
                   },
                 )}
               >
@@ -131,9 +126,9 @@ export const ReminderRow = ({
                 className={classNames(
                   'text-[12px] font-semibold text-white rounded-[3px] h-[35px] min-w-30 px-3 flex items-center justify-center shrink-0 tracking-wide',
                   {
-                    'bg-alert': isCritical,
-                    'bg-warning': isWarning,
-                    'bg-info': isInfo,
+                    'bg-alert': variant === 'alert',
+                    'bg-warning': variant === 'warning',
+                    'bg-info': variant === 'info',
                   },
                 )}
               >

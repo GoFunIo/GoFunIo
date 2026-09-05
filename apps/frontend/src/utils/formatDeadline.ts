@@ -1,9 +1,3 @@
-// UWAGA: ten plik NIE liczy dni.
-// Wszystkie liczby (`daysRemaining`, `overdue`) pochodzą z BE (GET /vehicle-deadline-alerts).
-// Funkcje tutaj tylko:
-//  - formatują to, co już przyszło z API (data → czytelny string),
-//  - klasyfikują gotową liczbę dni na wariant UI (kolor/badge), co jest formatowaniem prezentacyjnym, a nie wyliczaniem terminu.
-
 import type { DeadlineKind, VehicleDeadlineAlert } from '@/features/dashboard/types';
 import { formatDays } from './formatDays';
 
@@ -56,32 +50,19 @@ export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): stri
   return `${daysRemaining} ${formatDays(daysRemaining)}`;
 };
 
-// reminderRow
-export const getAlertRowBadgeText = (daysRemaining: number, overdue: boolean): string => {
-  if (daysRemaining === 0) return 'Dzisiaj';
+// Główna funkcja do etykiet badge'y w całej aplikacji (dzwonek, wiersze, karty)
+export const getAlertBadgeLabel = (daysRemaining: number, overdue: boolean): string => {
+  if (daysRemaining === 0) return 'Dziś';
 
   if (overdue || daysRemaining < 0) {
     const overdueDays = Math.abs(daysRemaining);
-    return `Po terminie ${overdueDays} ${formatDays(overdueDays)}`;
+    return overdueDays > 0
+      ? `Po terminie ${overdueDays} ${formatDays(overdueDays)}`
+      : 'Po terminie';
   }
 
   const formattedDays = `${daysRemaining} ${formatDays(daysRemaining)}`;
-
-  if (daysRemaining <= ALERT_THRESHOLD_DAYS) {
-    return `Pilne ≤ ${formattedDays}`;
-  }
-
-  return `Wkrótce ≤ ${formattedDays}`;
-};
-
-// vehicleCard
-export const getVehicleCardBadgeText = (mostUrgentAlert?: VehicleDeadlineAlert): string => {
-  if (!mostUrgentAlert) return 'OK';
-  if (mostUrgentAlert.daysRemaining === 0) return 'Dziś';
-  if (mostUrgentAlert.overdue || mostUrgentAlert.daysRemaining < 0) return 'Po terminie';
-
-  const formattedDays = `${mostUrgentAlert.daysRemaining} ${formatDays(mostUrgentAlert.daysRemaining)}`;
-  return `Termin ≤ ${formattedDays}`;
+  return `Za: ${formattedDays}`;
 };
 
 // =========================================================================
@@ -131,27 +112,34 @@ export const getDeadlineCardVisual = (
   rawDate: string | null | undefined,
   alert?: VehicleDeadlineAlert,
 ): DeadlineCardVisual => {
+  const isInspection = kind === 'TECHNICAL_INSPECTION';
+  const formattedBaseTitle = isInspection ? 'Przegląd techniczny' : baseTitle;
   const shortLabel = deadlineKindShortLabels[kind];
+  const variant = getCardVariant(alert);
 
   if (!rawDate) {
-    return { title: baseTitle, value: '', variant: 'neutral' };
+    return { title: formattedBaseTitle, value: '', variant: 'neutral' };
   }
 
   if (!alert) {
-    return { title: baseTitle, value: formatPlDate(rawDate), variant: 'neutral' };
+    return { title: formattedBaseTitle, value: formatPlDate(rawDate), variant: 'neutral' };
   }
 
-  const variant = getCardVariant(alert);
-  const value = getAlertBadgeText(alert.daysRemaining, alert.overdue);
+  if (alert.daysRemaining === 0) {
+    const title = isInspection ? 'Termin przeglądu:' : `Termin ${shortLabel}:`;
+    return { title, value: 'Dzisiaj', variant };
+  }
 
   if (alert.overdue) {
-    const title =
-      kind === 'TECHNICAL_INSPECTION' ? 'Termin przeglądu minął:' : `Termin ${shortLabel} minął:`;
+    const title = isInspection ? 'Termin przeglądu minął:' : `Termin ${shortLabel} minął:`;
+    const days = Math.abs(alert.daysRemaining);
+    const value = `${days} ${formatDays(days)} temu`;
 
     return { title, value, variant };
   }
 
-  const title = kind === 'TECHNICAL_INSPECTION' ? 'Następny przegląd za:' : `${baseTitle} za:`;
+  const title = isInspection ? 'Następny przegląd za:' : `${baseTitle} za:`;
+  const value = `${alert.daysRemaining} ${formatDays(alert.daysRemaining)}`;
 
   return { title, value, variant };
 };

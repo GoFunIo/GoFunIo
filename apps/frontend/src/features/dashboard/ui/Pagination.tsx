@@ -10,7 +10,7 @@ type Props = {
 
 export const Pagination = ({ currentPage, totalPages, onPageChange, className }: Props) => {
   const arrowStyles =
-    'md:absolute cursor-pointer flex items-center gap-[8px] text-[14px] font-normal text-dark disabled:opacity-40 disabled:cursor-not-allowed';
+    'md:absolute cursor-pointer flex items-center gap-[8px] text-[14px] font-normal text-content-primary disabled:opacity-40 disabled:cursor-not-allowed';
 
   if (totalPages <= 1) return null;
 
