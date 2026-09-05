@@ -39,7 +39,14 @@ export function FormSelect<T extends FieldValues>({
   return (
     <div className="flex flex-col gap-1 relative pb-2">
       <div className="flex justify-between items-center">
-        <label className="text-[14px] text-content-secondary font-medium mb-[4px]">{label}</label>
+        <label
+          className={classNames(
+            'text-[14px] font-medium mb-[4px]',
+            error ? 'text-alert' : 'text-content-secondary',
+          )}
+        >
+          {label}
+        </label>
         {error && (
           <p className="text-[12px] text-alert font-medium absolute right-0 top-0">{error}</p>
         )}

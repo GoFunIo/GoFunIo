@@ -81,8 +81,10 @@ export const DatePicker = ({
   };
 
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      const target = e.target as Node;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target;
+
+      if (!(target instanceof Node)) return;
 
       if (selectRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
@@ -91,10 +93,10 @@ export const DatePicker = ({
       setIsOpen(false);
     };
 
-    document.addEventListener('mousedown', close, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
 
     return () => {
-      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
     };
   }, []);
 
@@ -122,7 +124,7 @@ export const DatePicker = ({
     <div className={classNames('relative w-full h-[45px]', className)} ref={selectRef}>
       <div
         className={classNames(
-          'relative flex items-center justify-between bg-bg-card rounded-[5px] border w-full h-full',
+          'relative flex items-center justify-between bg-bg-card rounded-[7px] border w-full h-full',
           error ? 'border-alert' : 'border-icon',
         )}
       >
@@ -143,9 +145,12 @@ export const DatePicker = ({
         {!isRenewalMode && (
           <ChevronUp
             size={20}
-            className={classNames('absolute right-2 text-content-secondary transition-transform', {
-              'rotate-180': isOpen,
-            })}
+            className={classNames(
+              'pointer-events-none absolute right-2 text-content-secondary transition-transform',
+              {
+                'rotate-180': isOpen,
+              },
+            )}
           />
         )}
       </div>
