@@ -108,3 +108,32 @@ export const deleteServiceAttachment = async (serviceId: string, attachmentId: s
     throw error;
   }
 };
+
+export const downloadServiceAttachment = async (serviceId: string, attachmentId: string) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/services/${serviceId}/attachments/${attachmentId}/download-url`,
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw data;
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
+  }
+};

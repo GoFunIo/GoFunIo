@@ -8,6 +8,7 @@ import {
 import { AttachmentData } from '../types/AttachmentTypes';
 import { Attachments } from '../widgets/Attachments';
 import { getErrorMessage } from '@/utils/getErrorMessage';
+import { downloadServiceAttachment } from '../api/attachments.api';
 
 type BaseProps = {
   attachments: AttachmentData[];
@@ -25,8 +26,6 @@ type Props = BaseProps &
         mode: 'api';
       }
   );
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export const AttachmentsForm = (props: Props) => {
   const { attachments, className, mode, serviceId } = props;
@@ -73,12 +72,23 @@ export const AttachmentsForm = (props: Props) => {
     }
   };
 
-  const handleDownloadFile = (index: number) => {
+  const handleDownloadFile = async (index: number) => {
     const attachment = attachments[index];
 
     if (!attachment.id || !serviceId) return;
 
-    window.location.href = `${API_URL}/services/${serviceId}/attachments/${attachment.id}`;
+    try {
+      await downloadServiceAttachment(serviceId, attachment.id);
+    } catch (error) {
+      setError(
+        getErrorMessage(error, {
+          400: 'Brak załącznika lub nieprawidłowa zawartość',
+          403: 'Brak uprawnień do tego zasobu lub operacji.',
+          404: 'Załącznik nie został znaleziony.',
+          503: 'Magazyn załączników jest niedostępny',
+        }),
+      );
+    }
   };
 
   const handleUpdateFile = async (index: number, file: File) => {
