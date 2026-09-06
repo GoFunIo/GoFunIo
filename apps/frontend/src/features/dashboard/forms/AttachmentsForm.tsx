@@ -78,7 +78,9 @@ export const AttachmentsForm = (props: Props) => {
     if (!attachment.id || !serviceId) return;
 
     try {
-      await downloadServiceAttachment(serviceId, attachment.id);
+      const { url } = await downloadServiceAttachment(serviceId, attachment.id);
+
+      window.location.href = url;
     } catch (error) {
       setError(
         getErrorMessage(error, {
