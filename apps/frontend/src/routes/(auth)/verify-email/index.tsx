@@ -3,6 +3,8 @@ import { resendVerification, verifyEmail } from '@/features/auth/auth.api';
 import { AuthWrapper } from '@/features/auth/ui/AuthWrapper';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { CheckEmail } from '@/features/auth/ui/CheckEmail';
 
 export const Route = createFileRoute('/(auth)/verify-email/')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -21,7 +23,7 @@ export const Route = createFileRoute('/(auth)/verify-email/')({
 function RouteComponent() {
   const navigate = useNavigate();
   const { token } = Route.useSearch();
-  const email = 'test@gmail.com';
+  const [isResend, setIsResend] = useState(false);
 
   const { isPending, isError } = useQuery({
     queryKey: ['verify-email', token],
@@ -32,13 +34,22 @@ function RouteComponent() {
   });
 
   const resendEmail = async () => {
-    // pobrac email z cache na potem
     try {
-      await resendVerification(email);
+      await resendVerification(token);
+      setIsResend(true);
     } catch (err) {
-      console.error(err);
+      console.log(err);
     }
   };
+
+  if (isResend) {
+    return (
+      <CheckEmail
+        title="Sprawdź swoją skrzynkę e-mail"
+        subtitle="Wysłaliśmy link weryfikacyjny na Twój adres e-mail. Kliknij w link, aby zweryfikować swoje konto."
+      />
+    );
+  }
 
   if (isPending) {
     return <AuthWrapper title="Weryfikuję..." subtitle="Proszę czekać..." children={undefined} />;

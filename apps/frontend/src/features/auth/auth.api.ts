@@ -111,14 +111,14 @@ export const acceptMembershipInvitation = async (token: string) => {
  * Zgłasza prośbę o ponowne wygenerowanie i wysłanie linku weryfikacyjnego na podany e-mail.
  */
 
-export const resendVerification = async (email: string) => {
+export const resendVerification = async (token: string) => {
   const res = await fetch(`${API_URL}/auth/resend-verification`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ token }),
   });
 
   if (!res.ok) {
