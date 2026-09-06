@@ -329,7 +329,7 @@ function RouteComponent() {
                 alerts={remindersAlerts}
                 vehicles={vehicles}
                 filterType="inspection"
-                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+                onRenewCar={(vehicle) => openVehicleModal('renew_car', vehicle)}
                 limit={5}
               />
             </div>
@@ -348,7 +348,7 @@ function RouteComponent() {
                 alerts={remindersAlerts}
                 vehicles={vehicles}
                 filterType="insurance"
-                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+                onRenewCar={(vehicle) => openVehicleModal('renew_car', vehicle)}
                 limit={5}
               />
             </div>

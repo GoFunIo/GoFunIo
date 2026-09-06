@@ -12,6 +12,14 @@ type Props = {
   onChange: (filters: ServicesFiltersType) => void;
 };
 
+const EMPTY_FILTERS: ServicesFiltersType = {
+  vehicleId: null,
+  type: null,
+  providerName: null,
+  from: undefined,
+  to: undefined,
+};
+
 export const ServicesFilters = ({ filters, onChange }: Props) => {
   const { data: vehiclesData } = useVehicles();
   const { data: servicesData } = useServices();
@@ -59,8 +67,16 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
     }
   }, [filters, providerOptions, onChange]);
 
+  const hasActiveFilters = Boolean(
+    filters.vehicleId || filters.type || filters.providerName || filters.from || filters.to,
+  );
+
+  const handleClearAll = () => {
+    onChange(EMPTY_FILTERS);
+  };
+
   return (
-    <Filters>
+    <Filters hasActiveFilters={hasActiveFilters} onClearAll={handleClearAll}>
       <Select
         value={filters.vehicleId}
         onChange={(value) =>
