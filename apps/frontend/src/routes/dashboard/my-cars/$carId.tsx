@@ -54,9 +54,6 @@ function RouteComponent() {
 
   const currentCar = car ?? initialCarData;
 
-  // ============================================================
-  // ALERTY TERMINÓW (BE)
-  // ============================================================
   const { byKind: alertsByKind } = useVehicleAlertsForCar(carId);
 
   const inspectionCard = useMemo(
@@ -168,7 +165,6 @@ function RouteComponent() {
         </div>
       </div>
 
-      {/* 3. SIATKA TRZECH  KAFELKÓW  */}
       <GridWrapper layout={'3-equal'}>
         <DashboardCard
           title={inspectionCard.title}
@@ -192,7 +188,6 @@ function RouteComponent() {
         />
       </GridWrapper>
 
-      {/* 4. HISTORIA SERWISÓW POJEDYŃCZEGO AUTA   + SPECYFIKACJA  */}
       <GridWrapper layout="2-unequal">
         <History
           title="Historia serwisowa"

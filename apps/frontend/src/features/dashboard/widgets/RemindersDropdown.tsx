@@ -92,7 +92,6 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
         </button>
       </div>
 
-      {/* LISTA */}
       <div className="flex flex-col divide-y divide-icon my-1 max-h-[300px] overflow-y-auto">
         {isLoading ? (
           <p className="text-[12px] text-content-secondary p-4 text-center">
@@ -139,7 +138,14 @@ export const RemindersDropdown = ({ isOpen, onClose }: RemindersDropdownProps) =
                       {deadlineKindLabels[item.deadlineKind]}
                     </p>
                     <p className="text-[12px] text-content-secondary font-normal truncate">
-                      {item.registrationNumber}
+                      {item.vehicle ? (
+                        <>
+                          {item.vehicle.brand} {item.vehicle.model} ·{' '}
+                          {item.vehicle.registrationNumber}
+                        </>
+                      ) : (
+                        'Brak danych pojazdu'
+                      )}
                     </p>
                     <p className="text-[12px] text-content-secondary font-normal">
                       {formatPlDate(item.deadlineDate)}

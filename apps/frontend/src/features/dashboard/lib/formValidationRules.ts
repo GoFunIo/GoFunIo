@@ -13,11 +13,17 @@ export const AddVehicleSchema = yup
       .string()
       .nullable()
       .optional()
-      .test('not-in-future', 'Rok produkcji nie może być z przyszłości.', (value) => {
+      .test('is-valid-year', 'Rok musi składać się z 4 cyfr', (value) => {
         if (!value || value === '') return true;
-        const year = Number(value);
-        const currentYear = new Date().getFullYear();
-        return year >= 1900 && year <= currentYear;
+        return /^\d{4}$/.test(value);
+      })
+      .test('not-too-old', 'Rok produkcji nie może być starszy niż 1900', (value) => {
+        if (!value || value === '') return true;
+        return Number(value) >= 1900;
+      })
+      .test('not-in-future', 'Rok produkcji nie może być z przyszłości', (value) => {
+        if (!value || value === '') return true;
+        return Number(value) <= new Date().getFullYear();
       }),
 
     fuelType: yup.string().nullable().optional(),
@@ -32,8 +38,12 @@ export const AddVehicleSchema = yup
     registrationNumber: yup.string().trim().required('Numer rejestracyjny jest wymagany.'),
     currentMileage: yup
       .number()
-      .transform((value, originalValue) => (originalValue === '' ? undefined : value))
-      .nullable()
+      .transform((value, originalValue) => {
+        if (originalValue === '') return undefined;
+
+        return Number(String(originalValue).replace(',', '.'));
+      })
+      .typeError('Przebieg musi być liczbą.')
       .optional()
       .integer('Przebieg musi być liczbą całkowitą.')
       .min(0, 'Przebieg musi być liczbą dodatnią.'),
@@ -69,9 +79,14 @@ export const AddServiceSchema = yup.object().shape({
   serviceType: yup.string().required('Podaj rodzaj serwisu'),
   cost: yup
     .number()
-    .typeError('Koszt musi być liczbą')
-    .positive('Koszt musi być większy od 0')
-    .required('Podaj koszt usługi'),
+    .transform((value, originalValue) => {
+      if (originalValue === '') return undefined;
+
+      return Number(String(originalValue).replace(',', '.'));
+    })
+    .typeError('Koszt musi być liczbą.')
+    .required('Koszt jest wymagany.')
+    .min(0, 'Koszt nie może być ujemny.'),
   servicePlace: yup.string().required('Nazwa warsztatu jest wymagana'),
   notes: yup.string().default(''),
   attachments: yup

@@ -1,4 +1,5 @@
-import { ServiceData } from '@/features/dashboard/types';
+import { serviceTypeLabels } from '@/features/dashboard/constants/serviceOptions';
+import { ServiceData, ServiceType } from '@/features/dashboard/types';
 import { Column } from '@/types/table';
 import { Paperclip } from 'lucide-react';
 
@@ -16,7 +17,11 @@ export const getServiceColumns = (
     accessor: 'vehicle',
     render: (_, item) => `${item.vehicle.registrationNumber}`,
   },
-  { header: 'Typ', accessor: 'type' },
+  {
+    header: 'Typ',
+    accessor: 'type',
+    render: (value) => serviceTypeLabels[value as ServiceType],
+  },
   { header: 'Miejsce usługi', accessor: 'providerName' },
   {
     header: 'Załącznik',

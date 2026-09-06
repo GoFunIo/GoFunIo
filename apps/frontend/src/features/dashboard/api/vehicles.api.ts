@@ -45,9 +45,7 @@ const buildVehiclePayload = (form: AddVehicleFormData) => ({
   notes: form.notes || null,
 });
 
-// =========================================================================
-// TWORZENIE POJAZDU  POST /vehicles
-// =========================================================================
+// POST /vehicles
 export const createVehicle = async (form: AddVehicleFormData) => {
   const payload = buildVehiclePayload(form);
 
@@ -70,9 +68,7 @@ export const createVehicle = async (form: AddVehicleFormData) => {
   return data as VehicleData;
 };
 
-// =========================================================================
 // AKTUALIZACJA POJAZDU  PATCH /vehicles/{id}
-// =========================================================================
 export const updateVehicle = async (id: string, form: AddVehicleFormData) => {
   const payload = buildVehiclePayload(form);
 
@@ -95,9 +91,7 @@ export const updateVehicle = async (id: string, form: AddVehicleFormData) => {
   return data as VehicleData;
 };
 
-// =========================================================================
-// USUWANIE POJAZDU  DELETE /vehicles/{id}
-// =========================================================================
+//   DELETE /vehicles/{id}
 export const deleteVehicle = async (id: string) => {
   const res = await fetch(`${API_URL}/vehicles/${id}`, {
     method: 'DELETE',
@@ -114,9 +108,7 @@ export const deleteVehicle = async (id: string) => {
   }
 };
 
-// =========================================================================
-// POBIERANIE WSZYSTKICH POJAZDÓW   GET /vehicles
-// =========================================================================
+//   GET /vehicles
 export const getAllVehicles = async (params?: VehicleListParams) => {
   const query = new URLSearchParams();
 
@@ -148,9 +140,7 @@ export const getAllVehicles = async (params?: VehicleListParams) => {
   return data as VehicleListResponse;
 };
 
-// =========================================================================
-// POBIERANIE POJEDYNCZEGO POJAZDU   GET /vehicles/{id}
-// =========================================================================
+//   GET /vehicles/{id}
 export const getVehicle = async (id: string) => {
   const res = await fetch(`${API_URL}/vehicles/${id}`, {
     method: 'GET',
@@ -169,9 +159,7 @@ export const getVehicle = async (id: string) => {
   return data as VehicleData;
 };
 
-// =========================================================================
 // PRZYPISANIE MANAGERA DO SAMOCHODU  POST /vehicles/{id}/managers
-// =========================================================================
 export const assignManagerToVehicle = async (vehicleId: string, managerId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers`, {
     method: 'POST',
@@ -196,11 +184,7 @@ export const assignManagerToVehicle = async (vehicleId: string, managerId: strin
   return data as VehicleData;
 };
 
-// =========================================================================
-// USUNIĘCIE MANAGERA Z POJAZDU
 // DELETE /vehicles/{id}/managers/{managerId}
-// =========================================================================
-
 export const removeManagerFromVehicle = async (vehicleId: string, managerId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers/${managerId}`, {
     method: 'DELETE',
@@ -217,11 +201,7 @@ export const removeManagerFromVehicle = async (vehicleId: string, managerId: str
   }
 };
 
-// =========================================================================
-// HISTORIA PRZYPISAŃ MANAGERÓW
 // GET /vehicles/{id}/manager-assignments
-// =========================================================================
-
 export const getVehicleManagerAssignments = async (vehicleId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/manager-assignments`, {
     method: 'GET',
@@ -240,10 +220,7 @@ export const getVehicleManagerAssignments = async (vehicleId: string) => {
   return data as VehicleManagerAssignment[];
 };
 
-// =========================================================================
-// PRZYPISANIE KIEROWCY DO SAMOCHODU
 // POST /vehicles/{vehicleId}/drivers
-// =========================================================================
 export const addDriverToVehicle = async (vehicleId: string, driverId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers`, {
     method: 'POST',
@@ -266,10 +243,7 @@ export const addDriverToVehicle = async (vehicleId: string, driverId: string) =>
   return data as VehicleDriverAssignment;
 };
 
-// =========================================================================
-// USUNIĘCIE  KIEROWCY Z  SAMOCHODU
 // DELETE /vehicles/{vehicleId}/drivers/{driverId}
-// =========================================================================
 export const removeDriverFromVehicle = async (vehicleId: string, driverId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers/${driverId}`, {
     method: 'DELETE',
@@ -286,11 +260,7 @@ export const removeDriverFromVehicle = async (vehicleId: string, driverId: strin
   }
 };
 
-// =========================================================================
-// HISTORIA PRZYPISAŃ KIEROWCÓW DO POJAZDU
 // GET /vehicles/{vehicleId}/driver-assignments
-// =========================================================================
-
 export const getVehicleDriverAssignments = async (vehicleId: string) => {
   const res = await fetch(`${API_URL}/vehicles/${vehicleId}/driver-assignments`, {
     method: 'GET',

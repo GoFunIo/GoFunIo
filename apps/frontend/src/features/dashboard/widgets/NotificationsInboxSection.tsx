@@ -75,10 +75,8 @@ export function NotificationsInboxSection({ onNavigateToVehicle }: Props) {
     [data],
   );
 
-  // Badge z liczbą na tabie "Nieprzeczytane"
   const unreadCount = summary?.unreadNotificationCount ?? 0;
 
-  // Opcje do Selecta kategorii
   const categoryOptions = useMemo(
     () =>
       ALL_CATEGORIES.map((cat) => ({
@@ -89,7 +87,6 @@ export function NotificationsInboxSection({ onNavigateToVehicle }: Props) {
     [],
   );
 
-  // ZMIANA FILTRÓW — zawsze też czyści zaznaczenie
   const changeStatusFilter = (next: InboxStatusFilter) => {
     setStatusFilter(next);
     setSelectedIds(new Set());
@@ -100,7 +97,6 @@ export function NotificationsInboxSection({ onNavigateToVehicle }: Props) {
     setSelectedIds(new Set());
   };
 
-  // ZAZNACZANIE ZBIORCZE
   const allVisibleSelected = items.length > 0 && items.every((item) => selectedIds.has(item.id));
 
   const toggleSelectAllVisible = () => {
@@ -125,7 +121,6 @@ export function NotificationsInboxSection({ onNavigateToVehicle }: Props) {
     });
   };
 
-  // KLIK NA WIERSZ — oznacz jako przeczytane + nawiguj do pojazdu
   const handleRowClick = (item: NotificationItem) => {
     if (!item.readAt) {
       markAsReadMutation.mutate(item.id);
@@ -134,8 +129,6 @@ export function NotificationsInboxSection({ onNavigateToVehicle }: Props) {
       onNavigateToVehicle(item.action.vehicleId);
     }
   };
-
-  // POJEDYNCZE AKCJE Z PRZYCISKÓW NA WIERSZU
 
   const handleArchive = (id: string) => {
     archiveMutation.mutate(id);

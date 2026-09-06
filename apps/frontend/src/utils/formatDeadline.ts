@@ -1,18 +1,10 @@
-// UWAGA: ten plik NIE liczy dni.
-// Wszystkie liczby (`daysRemaining`, `overdue`) pochodzą z BE (GET /vehicle-deadline-alerts).
-// Funkcje tutaj tylko:
-//  - formatują to, co już przyszło z API (data → czytelny string),
-//  - klasyfikują gotową liczbę dni na wariant UI (kolor/badge), co jest formatowaniem prezentacyjnym, a nie wyliczaniem terminu.
-
 import type { DeadlineKind, VehicleDeadlineAlert } from '@/features/dashboard/types';
 import { formatDays } from './formatDays';
 
 const ALERT_THRESHOLD_DAYS = 7;
 const WARNING_THRESHOLD_DAYS = 30;
 
-// =========================================================================
-// FORMATOWANIE DATY (tylko display)
-// =========================================================================
+// FORMATOWANIE DATY
 export const formatPlDate = (dateString?: string | null): string => {
   if (!dateString) return '';
 
@@ -22,9 +14,7 @@ export const formatPlDate = (dateString?: string | null): string => {
   return `${day}.${month}.${year}`;
 };
 
-// =========================================================================
 // MAPOWANIE LICZBY DNI Z BE na wariant alertu UI
-// =========================================================================
 export type AlertVariant = 'alert' | 'warning' | 'info';
 
 export const getAlertVariant = (daysRemaining: number, overdue: boolean): AlertVariant => {
@@ -42,24 +32,35 @@ export const getCardVariant = (alert?: VehicleDeadlineAlert): CardVariant => {
   return variant === 'info' ? 'warning' : variant;
 };
 
-// =========================================================================
-// TEKSTY BADGE (na podstawie gotowych daysRemaining/overdue)
-// =========================================================================
-export const getAlertBadgeText = (daysRemaining: number, overdue: boolean): string => {
-  if (overdue) {
-    const daysOverdue = Math.abs(daysRemaining);
-    if (daysOverdue === 0) return 'Dzisiaj';
-    if (daysOverdue === 1) return '1 dzień temu';
-    return `${daysOverdue} dni temu`;
+// ETYKIETA BADGY  (REMIDERROW, VEHICLECARD)
+export const getAlertBadgeLabel = (daysRemaining: number, overdue: boolean): string => {
+  if (daysRemaining === 0) return 'Dziś';
+
+  if (overdue || daysRemaining < 0) {
+    const overdueDays = Math.abs(daysRemaining);
+    return overdueDays > 0
+      ? `Po terminie ${overdueDays} ${formatDays(overdueDays)}`
+      : 'Po terminie';
   }
-  if (daysRemaining === 0) return 'Dzisiaj';
-  if (daysRemaining === 1) return '1 dzień';
-  return `${daysRemaining} dni`;
+
+  const formattedDays = `${daysRemaining} ${formatDays(daysRemaining)}`;
+  return `Za: ${formattedDays}`;
 };
 
-// =========================================================================
+// ETYKIETA/BADGE PROGU DNI DROPDOWN(leadDay)
+export const getLeadDayLabel = (leadDay: number): string => {
+  if (leadDay === 0) return 'Dzień terminu';
+  return `Za ≤ ${leadDay} ${formatDays(leadDay)}`;
+};
+
+// Kolor badge'a progu
+export const getLeadDayVariant = (leadDay: number): AlertVariant => {
+  if (leadDay <= ALERT_THRESHOLD_DAYS) return 'alert';
+  if (leadDay <= WARNING_THRESHOLD_DAYS) return 'warning';
+  return 'info';
+};
+
 // ETYKIETY RODZAJU TERMINU — wspólne dla Reminders / RemindersDropdown / VehicleCard
-// =========================================================================
 export const deadlineKindLabels: Record<DeadlineKind, string> = {
   TECHNICAL_INSPECTION: 'Przegląd techniczny',
   OC: 'Ubezpieczenie OC',
@@ -89,9 +90,7 @@ export const notificationCategoryLabels: Record<NotificationCategory, string> = 
   PRODUCT: 'Nowości produktowe',
 };
 
-// =========================================================================
 // TYTUŁ + WARTOŚĆ KAFELKA DashboardCard NA STRONIE POJEDYNCZEGO POJAZDU
-// =========================================================================
 export type DeadlineCardVisual = {
   title: string;
   value: string;
@@ -104,35 +103,39 @@ export const getDeadlineCardVisual = (
   rawDate: string | null | undefined,
   alert?: VehicleDeadlineAlert,
 ): DeadlineCardVisual => {
+  const isInspection = kind === 'TECHNICAL_INSPECTION';
+  const formattedBaseTitle = isInspection ? 'Przegląd techniczny' : baseTitle;
   const shortLabel = deadlineKindShortLabels[kind];
+  const variant = getCardVariant(alert);
 
   if (!rawDate) {
-    return { title: baseTitle, value: '', variant: 'neutral' };
+    return { title: formattedBaseTitle, value: '', variant: 'neutral' };
   }
 
   if (!alert) {
-    return { title: baseTitle, value: formatPlDate(rawDate), variant: 'neutral' };
+    return { title: formattedBaseTitle, value: formatPlDate(rawDate), variant: 'neutral' };
   }
 
-  const variant = getCardVariant(alert);
-  const value = getAlertBadgeText(alert.daysRemaining, alert.overdue);
+  if (alert.daysRemaining === 0) {
+    const title = isInspection ? 'Termin przeglądu:' : `Termin ${shortLabel}:`;
+    return { title, value: 'Dzisiaj', variant };
+  }
 
   if (alert.overdue) {
-    const title =
-      kind === 'TECHNICAL_INSPECTION' ? 'Termin przeglądu minął:' : `Termin ${shortLabel} minął:`;
+    const title = isInspection ? 'Termin przeglądu minął:' : `Termin ${shortLabel} minął:`;
+    const days = Math.abs(alert.daysRemaining);
+    const value = `${days} ${formatDays(days)} temu`;
 
     return { title, value, variant };
   }
 
-  const title = kind === 'TECHNICAL_INSPECTION' ? 'Następny przegląd za:' : `${baseTitle} za:`;
+  const title = isInspection ? 'Następny przegląd za:' : `${baseTitle} za:`;
+  const value = `${alert.daysRemaining} ${formatDays(alert.daysRemaining)}`;
 
   return { title, value, variant };
 };
 
-// =========================================================================
 // NAJPILNIEJSZY ALERT Z LISTY (do badge'a na VehicleCard w gridzie my-cars)
-// "Najpilniejszy" = ten, który wymaga reakcji najszybciej
-// =========================================================================
 export const pickMostUrgentAlert = (
   alerts?: VehicleDeadlineAlert[],
 ): VehicleDeadlineAlert | undefined => {
@@ -143,19 +146,4 @@ export const pickMostUrgentAlert = (
 
     return a.daysRemaining - b.daysRemaining;
   })[0];
-};
-
-// =========================================================================
-// ETYKIETA/BADGE PROGU DNI (leadDay)  NA DZWONECZKU
-// =========================================================================
-export const getLeadDayLabel = (leadDay: number): string => {
-  if (leadDay === 0) return 'Dzień terminu';
-  return `Zostało: ${leadDay} ${formatDays(leadDay)}`;
-};
-
-// Kolor badge'a progu
-export const getLeadDayVariant = (leadDay: number): AlertVariant => {
-  if (leadDay <= ALERT_THRESHOLD_DAYS) return 'alert';
-  if (leadDay <= WARNING_THRESHOLD_DAYS) return 'warning';
-  return 'info';
 };

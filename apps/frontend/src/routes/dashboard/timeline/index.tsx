@@ -55,14 +55,14 @@ function RouteComponent() {
 
                   <div>
                     <p className="text-[12px]">Miejsce usługi</p>
-                    <p className="text-[14px] text-dark">{item.providerName}</p>
+                    <p className="text-[14px] text-content-primary">{item.providerName}</p>
                   </div>
 
                   <div>
                     {item.notes && item.notes.length !== 0 && (
                       <>
                         <p className="text-[12px]">Notatki</p>
-                        <p className="text-[14px] text-dark">{item.notes}</p>
+                        <p className="text-[14px] text-content-primary">{item.notes}</p>
                       </>
                     )}
                   </div>

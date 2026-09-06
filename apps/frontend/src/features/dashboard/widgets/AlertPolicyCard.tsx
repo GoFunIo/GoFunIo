@@ -118,10 +118,11 @@ export function AlertPolicyCard() {
           )}
         </div>
         <p className="text-[16px] text-content-secondary mb-6">
-          Ustaw, ile dni przed terminem OC/AC/przeglądu ma powstać powiadomienie.
+          {canManageAlertPolicy
+            ? 'Ustaw, ile dni przed terminem OC/AC/przeglądu ma powstać powiadomienie.'
+            : 'Aktywne ustawienia powiadomień o terminach OC/AC/przeglądu w Twojej firmie.'}
         </p>
 
-        {/* PROGI DNI (leadDays) */}
         <div className="mb-6">
           <p className="text-[14px] text-content-secondary mb-[10px]">Aktywne progi</p>
           {isPolicyLoading ? (
@@ -182,7 +183,6 @@ export function AlertPolicyCard() {
               </div>
             </div>
 
-            {/* RODZAJE TERMINÓW */}
             <div className="mb-8">
               <p className="text-[14px] text-content-secondary mb-[10px]">
                 Aktywne rodzaje terminów
@@ -210,7 +210,6 @@ export function AlertPolicyCard() {
               </div>
             </div>
 
-            {/* STREFA CZASOWA */}
             <div className="mb-6 max-w-[280px]">
               <p className="text-[14px] text-content-secondary mb-[10px]">
                 Strefa czasowa naliczania terminów

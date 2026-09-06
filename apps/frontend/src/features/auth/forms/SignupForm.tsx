@@ -87,7 +87,7 @@ export const SignupForm = ({ className, setSuccess }: FormProps) => {
         />
         <Input
           type="password"
-          label="Hasło"
+          label="Powtórz hasło"
           placeholder="• • • • • • • •"
           error={errors.passwordConfirm?.message}
           {...register('passwordConfirm')}

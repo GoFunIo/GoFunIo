@@ -24,8 +24,8 @@ export const DeleteDriverConfirm = ({ driver, onClose }: Props) => {
     } catch (error) {
       setError(
         getErrorMessage(error, {
-          403: 'Brak uprawnień.',
-          404: 'Kierowca nie istnieje.',
+          403: 'Wymagana jest rola administratora.',
+          404: 'Nie znaleziono kierowcy.',
         }),
       );
     }

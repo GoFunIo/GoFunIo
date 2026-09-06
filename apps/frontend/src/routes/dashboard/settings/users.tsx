@@ -12,6 +12,7 @@ import { usePermissions } from '@/features/dashboard/hooks/usePermissions';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
 import { useUsersModal } from '@/features/dashboard/hooks/useUsersModal';
 import { getUserColumns } from '@/store/usersTable';
+import { Users } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/settings/users')({
   component: RouteComponent,
@@ -25,7 +26,6 @@ function RouteComponent() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Dynamiczne filtrowanie użytkowników
   const filteredTeam = useMemo(() => {
     if (!team) return [];
 
@@ -79,7 +79,10 @@ function RouteComponent() {
         {isPending ? (
           <LoadingIcon className="m-auto my-[24px]" />
         ) : filteredTeam.length === 0 ? (
-          <EmptyPlaceholder title="Brak użytkowników" />
+          <EmptyPlaceholder
+            title="Brak użytkowników"
+            icon={<Users size={24} className="text-primary" />}
+          />
         ) : (
           <DataTable
             columns={getUserColumns((user) => openModal('showCars_user', user))}

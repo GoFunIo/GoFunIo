@@ -1,13 +1,15 @@
-import { Button } from '@/components/ui/Button';
-import heroApp from '@/assets/img/heroApp.webp';
-import heroAppSmall from '@/assets/img/heroAppSmall.webp';
-import heroFleet from '@/assets/img/heroFleet.webp';
-import heroFleetSmall from '@/assets/img/heroFleetSmall.webp';
-import heroService from '@/assets/img/heroService.webp';
-import heroServiceSmall from '@/assets/img/heroServiceSmall.webp';
 import { Link } from '@tanstack/react-router';
+import { Button } from '@/components/ui/Button';
 import { Blob } from '@/features/homepage/ui/Blob';
 import { SocialProofBadge } from '@/features/homepage/ui/SocialProofBadge';
+import { getImage } from '@/utils/getImage';
+
+const heroApp = getImage('heroApp.webp');
+const heroAppSmall = getImage('heroAppSmall.webp');
+const heroFleet = getImage('heroFleet.webp');
+const heroFleetSmall = getImage('heroFleetSmall.webp');
+const heroService = getImage('heroService.webp');
+const heroServiceSmall = getImage('heroServiceSmall.webp');
 
 export const Hero = () => {
   return (
