@@ -32,10 +32,10 @@ export const Modal = ({ title, subtitle, isOpen, setIsOpen, children }: Props) =
         <motion.div
           className="z-9999 fixed top-0 left-0 flex h-full w-full items-center justify-center bg-black/80"
           onMouseDown={() => setIsOpen(false)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          // initial={{ opacity: 0 }}
+          // animate={{ opacity: 1 }}
+          // exit={{ opacity: 0 }}
+          // transition={{ duration: 0.2 }}
         >
           <motion.div
             className="scrollbar-dashboard relative max-h-[90vh] w-full max-w-[800px] overflow-y-auto rounded-[7px] border-icon bg-bg-page p-[25px] md:m-[32px] m-[15px]"
