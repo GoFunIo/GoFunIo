@@ -15,15 +15,24 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
       registrationNumber: 'WX 1234',
     });
 
-    expect(rendered).toEqual({
-      subject: 'Termin OC pojazdu WX 1234',
-      text:
-        'Termin ubezpieczenia OC pojazdu WX 1234 przypada 12.09.2026 (za 14 dni).\n\n' +
+    expect(rendered.subject).toBe('Termin OC pojazdu WX 1234');
+    expect(rendered.text).toBe(
+      'Termin ubezpieczenia OC pojazdu WX 1234 przypada 12.09.2026 (za 14 dni).\n\n' +
         'Otwórz powiadomienie: https://app.gofun.io/notifications?workspaceId=11111111-1111-4111-8111-111111111111&notificationId=22222222-2222-4222-8222-222222222222',
-      html:
-        '<p>Termin ubezpieczenia OC pojazdu <strong>WX 1234</strong> przypada <strong>12.09.2026</strong> (za 14 dni).</p>' +
-        '<p><a href="https://app.gofun.io/notifications?workspaceId=11111111-1111-4111-8111-111111111111&amp;notificationId=22222222-2222-4222-8222-222222222222">Otwórz powiadomienie</a></p>',
-    });
+    );
+    // WARNING variant badge (8-30 days out) and the deadline card label.
+    expect(rendered.html).toContain('Zostało 14 dni');
+    expect(rendered.html).toContain('#F0B14A');
+    expect(rendered.html).toContain(
+      'Ubezpieczenie OC &middot; termin 12.09.2026',
+    );
+    expect(rendered.html).toContain(
+      'https://app.gofun.io/images/icons/shield-alert.png',
+    );
+    expect(rendered.html).toContain(
+      'href="https://app.gofun.io/notifications?workspaceId=11111111-1111-4111-8111-111111111111&amp;notificationId=22222222-2222-4222-8222-222222222222"',
+    );
+    expect(rendered.html).toContain('Zarządzaj powiadomieniami');
   });
 
   it('uses overdue wording and escapes the registration snapshot in HTML', () => {
@@ -43,7 +52,12 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
       'Termin przeglądu technicznego pojazdu A&B<1>',
     );
     expect(rendered.text).toContain('minął 27.08.2026.');
-    expect(rendered.html).toContain('<strong>A&amp;B&lt;1&gt;</strong>');
+    expect(rendered.html).toContain('A&amp;B&lt;1&gt;');
+    expect(rendered.html).toContain('1 dzień temu');
+    expect(rendered.html).toContain('#D93025');
+    expect(rendered.html).toContain(
+      'https://app.gofun.io/images/icons/calendar-cog.png',
+    );
     expect(rendered.html).not.toContain('vehicleId');
   });
 

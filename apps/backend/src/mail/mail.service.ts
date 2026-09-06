@@ -1,10 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import {
   FRONTEND_ORIGINS,
   type FrontendOrigins,
 } from '../common/frontend-origins';
 import type { TokenDelivery } from '../users/events/token-delivery';
+import { User } from '../users/users.entity';
 import { MAIL_TRANSPORT, type MailTransport } from './mail-transport';
 import { renderMailTemplate } from './template-renderer';
 import type { EnvVars } from '../config/env.validation';
@@ -18,18 +21,25 @@ export class MailService {
     config: ConfigService<EnvVars, true>,
     @Inject(FRONTEND_ORIGINS) private readonly frontendOrigins: FrontendOrigins,
     @Inject(MAIL_TRANSPORT) private readonly transport: MailTransport,
+    @InjectRepository(User) private readonly users: Repository<User>,
   ) {
     this.from = config.getOrThrow<string>('MAIL_FROM');
   }
 
-  async sendVerificationEmail(delivery: TokenDelivery): Promise<void> {
+  async sendVerificationEmail(
+    delivery: TokenDelivery,
+    userId?: string,
+  ): Promise<void> {
+    const base = this.frontendOrigins.resolveLinkBase(delivery.origin);
     return this.send(
       'verify-email',
       {
-        verificationUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/verify-email?token=${delivery.token}`,
+        link: `${base}/verify-email?token=${delivery.token}`,
+        assetBaseUrl: base,
+        firstName: await this.firstName(userId),
       },
       delivery.email,
-      'Verify your GoFunIo email',
+      'Potwierdź swój adres e-mail w AutoKeep',
     );
   }
 
@@ -37,40 +47,71 @@ export class MailService {
     delivery: TokenDelivery,
     ttlHours: number,
     isFirstPassword = false,
+    userId?: string,
   ): Promise<void> {
+    const base = this.frontendOrigins.resolveLinkBase(delivery.origin);
     return this.send(
       isFirstPassword ? 'set-password' : 'reset-password',
       {
-        resetUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/reset-password?token=${delivery.token}`,
+        link: `${base}/reset-password?token=${delivery.token}`,
+        assetBaseUrl: base,
         ttlHours,
+        firstName: await this.firstName(userId),
       },
       delivery.email,
       isFirstPassword
-        ? 'Set your GoFunIo password'
-        : 'Reset your GoFunIo password',
+        ? 'Ustaw hasło do AutoKeep'
+        : 'Zresetuj hasło do AutoKeep',
     );
   }
 
-  async sendEmailChangeVerification(delivery: TokenDelivery): Promise<void> {
+  async sendEmailChangeVerification(
+    delivery: TokenDelivery,
+    userId?: string,
+  ): Promise<void> {
+    const base = this.frontendOrigins.resolveLinkBase(delivery.origin);
     return this.send(
       'verify-email-change',
       {
-        verificationUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/verify-email-change?token=${delivery.token}`,
+        link: `${base}/verify-email-change?token=${delivery.token}`,
+        assetBaseUrl: base,
+        newEmail: delivery.email,
+        firstName: await this.firstName(userId),
       },
       delivery.email,
-      'Verify your new GoFunIo email',
+      'Potwierdź nowy adres e-mail w AutoKeep',
     );
   }
 
   async sendMembershipInvitation(delivery: TokenDelivery): Promise<void> {
+    const base = this.frontendOrigins.resolveLinkBase(delivery.origin);
     return this.send(
       'membership-invitation',
       {
-        acceptUrl: `${this.frontendOrigins.resolveLinkBase(delivery.origin)}/accept-invitation?token=${delivery.token}`,
+        link: `${base}/accept-invitation?token=${delivery.token}`,
+        assetBaseUrl: base,
       },
       delivery.email,
-      'You were invited to a GoFunIo workspace',
+      'Zaproszenie do zespołu w AutoKeep',
     );
+  }
+
+  // Best-effort: a failed name lookup must not block the email.
+  private async firstName(userId?: string): Promise<string | undefined> {
+    if (!userId) return undefined;
+    try {
+      const user = await this.users.findOne({
+        where: { id: userId },
+        select: { firstName: true },
+      });
+      return user?.firstName ?? undefined;
+    } catch (err) {
+      this.logger.warn({
+        event: 'mail.recipient_lookup_failed',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+      });
+      return undefined;
+    }
   }
 
   // Delivery is best-effort: workflows persist before emitting mail events.

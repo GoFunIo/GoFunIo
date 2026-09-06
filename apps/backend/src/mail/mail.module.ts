@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { EnvVars, MailTransportDriver } from '../config/env.validation';
+import { User } from '../users/users.entity';
 import { MailService } from './mail.service';
 import { MAIL_TRANSPORT, type MailTransport } from './mail-transport';
 import { ResendMailTransport } from './resend-mail.transport';
@@ -23,6 +25,7 @@ export function createMailTransport(
 }
 
 @Module({
+  imports: [TypeOrmModule.forFeature([User])],
   providers: [
     {
       provide: MAIL_TRANSPORT,

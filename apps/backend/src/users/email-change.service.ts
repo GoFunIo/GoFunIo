@@ -63,7 +63,7 @@ export class EmailChangeService {
     }
     this.events.emit(
       USER_EMAIL_CHANGE_REQUESTED_EVENT,
-      new UserEmailChangeRequestedEvent({ email, token, origin }),
+      new UserEmailChangeRequestedEvent(userId, { email, token, origin }),
     );
   }
 
