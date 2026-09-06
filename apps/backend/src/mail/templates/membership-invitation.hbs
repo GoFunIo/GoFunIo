@@ -1,2 +1,12 @@
-<p>You were invited to a GoFunIo workspace.</p>
-<p><a href="{{acceptUrl}}">View invitation</a></p>
+{{#> layout subject="Zaproszenie do zespołu w AutoKeep"}}
+  {{#*inline "preheader"}}Zaproszono Cię do zespołu w AutoKeep. Ustaw hasło, żeby dokończyć rejestrację.{{/inline}}
+  {{#*inline "footer"}}AutoKeep &middot; Zarządzanie flotą pojazdów.{{/inline}}
+
+  {{> icon-badge icon="user-round-plus" }}
+  {{> greeting }}
+  {{#> body-text }}zaproszono Cię do zespołu w AutoKeep. Ustaw hasło, żeby dokończyć rejestrację.{{/body-text}}
+  {{> button label="Dołącz do zespołu" buttonWidth="170" }}
+  {{#> body-text pb="24" }}Link jest ważny przez 24 godziny. Jeśli nie spodziewałeś się tego
+  zaproszenia, możesz zignorować tę wiadomość.{{/body-text}}
+  {{> copy-link }}
+{{/layout}}

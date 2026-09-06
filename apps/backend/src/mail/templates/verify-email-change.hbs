@@ -1,6 +1,14 @@
-<html>
-  <body>
-    <p>Confirm your new GoFunIo email address:</p>
-    <p><a href='{{verificationUrl}}'>Verify email</a></p>
-  </body>
-</html>
+{{#> layout subject="Potwierdź nowy adres e-mail w AutoKeep"}}
+  {{#*inline "preheader"}}Potwierdź, że {{newEmail}} to nowy adres e-mail do Twojego konta AutoKeep.{{/inline}}
+  {{#*inline "footer"}}AutoKeep &middot; Ta wiadomość dotyczy bezpieczeństwa Twojego konta i nie można jej wyłączyć w ustawieniach.{{/inline}}
+
+  {{> icon-badge icon="mail" }}
+  {{> greeting }}
+  {{#> body-text }}potwierdź, że
+  <strong style="color: #111518">{{newEmail}}</strong> to nowy adres e-mail do Twojego konta
+  AutoKeep.{{/body-text}}
+  {{> button label="Potwierdź adres" buttonWidth="150" }}
+  {{#> body-text pb="24" }}Link jest ważny przez 24 godziny. Jeśli to nie Ty inicjowałeś tę
+  zmianę, zignoruj tę wiadomość — Twój adres e-mail pozostaje bez zmian.{{/body-text}}
+  {{> copy-link }}
+{{/layout}}

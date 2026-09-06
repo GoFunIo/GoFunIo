@@ -1,0 +1,15 @@
+{{!--
+  UNWIRED template. No NotificationType / sender emits this yet — see templates/UNWIRED.md.
+  Expected context: firstName?, companyName, newRole, link, assetBaseUrl, notificationSettingsUrl
+--}}
+{{#> layout subject="Twoja rola w AutoKeep została zmieniona"}}
+  {{#*inline "preheader"}}Twoja rola w zespole {{companyName}} została zmieniona na {{newRole}}.{{/inline}}
+  {{#*inline "footer"}}Otrzymujesz tę wiadomość, bo masz włączone powiadomienia e-mail dla kategorii Zespół i uprawnienia.<br /><a href="{{notificationSettingsUrl}}" target="_blank" style="color: #145ae2;">Zarządzaj powiadomieniami</a>{{/inline}}
+
+  {{> icon-badge icon="users" }}
+  {{> greeting }}
+  {{#> body-text pb="24" }}Twoja rola w zespole
+  <strong style="color: #111518">{{companyName}}</strong> została zmieniona na
+  <strong style="color: #111518">{{newRole}}</strong>.{{/body-text}}
+  {{> button label="Przejdź do zespołu" buttonWidth="180" }}
+{{/layout}}
