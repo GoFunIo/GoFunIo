@@ -1,0 +1,14 @@
+{{!--
+  UNWIRED template. No NotificationType / sender emits this yet — see templates/UNWIRED.md.
+  Expected context: firstName?, make, model, registrationNumber, link, assetBaseUrl, notificationSettingsUrl
+--}}
+{{#> layout subject="Otrzymałeś dostęp do pojazdu w AutoKeep"}}
+  {{#*inline "preheader"}}Otrzymałeś dostęp do pojazdu {{make}} {{model}} ({{registrationNumber}}).{{/inline}}
+  {{#*inline "footer"}}Otrzymujesz tę wiadomość, bo masz włączone powiadomienia e-mail dla kategorii Dostęp do pojazdów.<br /><a href="{{notificationSettingsUrl}}" target="_blank" style="color: #145ae2;">Zarządzaj powiadomieniami</a>{{/inline}}
+
+  {{> icon-badge icon="key-round" }}
+  {{> greeting }}
+  {{#> body-text pb="24" }}otrzymałeś dostęp do pojazdu
+  <strong style="color: #111518">{{make}} {{model}} ({{registrationNumber}})</strong>.{{/body-text}}
+  {{> button label="Zobacz pojazd" buttonWidth="160" }}
+{{/layout}}
