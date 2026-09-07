@@ -1,7 +1,9 @@
-import about from '@/assets/img/about.webp';
-import aboutMedium from '@/assets/img/aboutMedium.webp';
-import aboutSmall from '@/assets/img/aboutSmall.webp';
+import { getImage } from '@/utils/getImage';
 import { Blob } from '@/features/homepage/ui/Blob';
+
+const about = getImage('about.webp');
+const aboutMedium = getImage('aboutMedium.webp');
+const aboutSmall = getImage('aboutSmall.webp');
 
 const steps = [
   {

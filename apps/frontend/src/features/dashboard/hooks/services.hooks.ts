@@ -14,10 +14,7 @@ import {
   updateServiceAttachment,
 } from '../api/attachments.api';
 
-// =========================================================================
 // POBIERANIE LISTY USŁUG  GET /services
-// =========================================================================
-
 export const useServices = (params?: ServiceListParams) => {
   return useQuery({
     queryKey: ['services', 'list', params],
@@ -26,10 +23,7 @@ export const useServices = (params?: ServiceListParams) => {
   });
 };
 
-// =========================================================================
 // POBIERANIE POJEDYNCZEJ USŁUGI   GET /services/{id}
-// =========================================================================
-
 export const useService = (id?: string | null) => {
   return useQuery({
     queryKey: ['service', id],
@@ -39,10 +33,7 @@ export const useService = (id?: string | null) => {
   });
 };
 
-// =========================================================================
 // TWORZENIE USŁUGI  POST /services
-// =========================================================================
-
 export const useCreateService = () => {
   const queryClient = useQueryClient();
 
@@ -71,10 +62,7 @@ export const useCreateService = () => {
   });
 };
 
-// =========================================================================
 // AKTUALIZACJA USŁUGI  PATCH /services/{id}
-// =========================================================================
-
 export const useUpdateService = () => {
   const queryClient = useQueryClient();
 
@@ -118,10 +106,7 @@ export const useUpdateService = () => {
   });
 };
 
-// =========================================================================
 // USUWANIE USŁUGI  DELETE /services/{id}
-// =========================================================================
-
 export const useDeleteService = () => {
   const queryClient = useQueryClient();
 

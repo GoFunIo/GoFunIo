@@ -2,8 +2,10 @@ import React from 'react';
 import { Link } from '@tanstack/react-router';
 import classNames from 'classnames';
 import { CircleCheckBig, TriangleAlert } from 'lucide-react';
-import LogoLight from '@/assets/logo/logo_autokeep.svg';
-import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
+import { getImage } from '@/utils/getImage';
+
+const LogoLight = getImage('logo_autokeep.svg');
+const LogoDark = getImage('logo_autokeep_darktheme.svg');
 
 type Props = {
   title: string;
@@ -17,7 +19,7 @@ export const AuthWrapper = ({ title, subtitle, children, type }: Props) => {
     <section className="px-[20px] py-[20px] bg-bg-section flex items-center justify-center h-full">
       <div
         className="
-        relative bg-bg-card max-w-[560px] w-full rounded-[15px] shadow-[0_4px_13px_0_rgba(0,0,0,0.2)] 
+        relative bg-bg-card max-w-[560px] w-full rounded-[15px] shadow-[0_4px_13px_0_rgba(0,0,0,0.2)]
         md:py-[70px] sm:py-[50px] py-[35px]
         md:px-[50px] sm:px-[30px] px-[20px]
       "

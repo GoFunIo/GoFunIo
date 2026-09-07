@@ -105,7 +105,7 @@ export function DeadlineAlertsSection() {
               vehicles={vehicles}
               alerts={alerts}
               filterType={filterType}
-              onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+              onRenewCar={(vehicle) => openVehicleModal('renew_car', vehicle)}
             />
 
             {hasNextPage && (

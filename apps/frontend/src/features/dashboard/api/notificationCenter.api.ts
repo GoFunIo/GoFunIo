@@ -29,24 +29,17 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
     throw {
       status: res.status,
       message: data?.message ?? 'Nie udało się pobrać danych powiadomień.',
-      //code: data?.code,
     };
   }
 
   return data as T;
 };
 
-// =========================================================================
-// PODSUMOWANIE / BADGE
 // GET /notification-center/summary
-// =========================================================================
 export const getNotificationCenterSummary = () =>
   request<NotificationCenterSummary>(`${API_URL}/notification-center/summary`);
 
-// =========================================================================
-// AKTUALNE ALERTY POJAZDÓW
 // GET /vehicle-deadline-alerts
-// =========================================================================
 export const getVehicleDeadlineAlerts = (params?: VehicleDeadlineAlertsParams) => {
   const query = new URLSearchParams();
 
@@ -63,10 +56,7 @@ export const getVehicleDeadlineAlerts = (params?: VehicleDeadlineAlertsParams) =
   );
 };
 
-// =========================================================================
-// POLITYKA ALERTÓW
 // GET /alert-policy
-// =========================================================================
 export const getAlertPolicy = () => request<AlertPolicy>(`${API_URL}/alert-policy`);
 
 // PATCH /alert-policy (tylko OWNER, ADMIN)
@@ -76,10 +66,7 @@ export const updateAlertPolicy = (payload: UpdateAlertPolicyPayload) =>
     body: JSON.stringify(payload),
   });
 
-// =========================================================================
-// LISTA NOTIFICATIONS
 // GET /notifications
-// =========================================================================
 export const getNotifications = (params?: NotificationsListParams) => {
   const query = new URLSearchParams();
 
@@ -96,45 +83,30 @@ export const getNotifications = (params?: NotificationsListParams) => {
   );
 };
 
-// =========================================================================
-// SZCZEGÓŁ NOTIFICATION
 // GET /notifications/{notificationId}
-// =========================================================================
 export const getNotification = (notificationId: string) =>
   request<NotificationItem>(`${API_URL}/notifications/${notificationId}`);
 
-// =========================================================================
-// OZNACZENIE JAKO PRZECZYTANE
 // PATCH /notifications/{notificationId}/read
-// =========================================================================
 export const markNotificationAsRead = (notificationId: string) =>
   request<NotificationItem>(`${API_URL}/notifications/${notificationId}/read`, {
     method: 'PATCH',
   });
 
-// =========================================================================
-// ARCHIWIZACJA
 // PATCH /notifications/{notificationId}/archive
-// =========================================================================
 export const archiveNotification = (notificationId: string) =>
   request<NotificationItem>(`${API_URL}/notifications/${notificationId}/archive`, {
     method: 'PATCH',
   });
 
-// =========================================================================
-// OZNACZENIE WSZYSTKICH JAKO PRZECZYTANE
 // POST /notifications/read-all
-// =========================================================================
 export const markAllNotificationsAsRead = (payload?: ReadAllPayload) =>
   request<ReadAllResponse>(`${API_URL}/notifications/read-all`, {
     method: 'POST',
     body: JSON.stringify(payload ?? {}),
   });
 
-// =========================================================================
-// PREFERENCJE UŻYTKOWNIKA
 // GET /notification-preferences/me
-// =========================================================================
 export const getNotificationPreferences = () =>
   request<NotificationPreferencesResponse>(`${API_URL}/notification-preferences/me`);
 

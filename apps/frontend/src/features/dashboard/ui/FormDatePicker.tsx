@@ -16,6 +16,8 @@ type FormDatePickerProps<T extends FieldValues> = {
   error?: string;
   disabled?: boolean;
   className?: string;
+  maxDate?: boolean;
+  clearable?: boolean;
 };
 
 export function FormDatePicker<T extends FieldValues>({
@@ -25,6 +27,8 @@ export function FormDatePicker<T extends FieldValues>({
   error,
   disabled,
   className,
+  maxDate,
+  clearable,
 }: FormDatePickerProps<T>) {
   return (
     <div
@@ -33,7 +37,14 @@ export function FormDatePicker<T extends FieldValues>({
       })}
     >
       <div className="flex justify-between items-center">
-        <label className="text-[14px] font-medium text-content-secondary">{label}</label>
+        <label
+          className={classNames(
+            'text-[14px] font-medium mb-[4px]',
+            error ? 'text-alert' : 'text-content-secondary',
+          )}
+        >
+          {label}
+        </label>
         {error && <span className="text-[12px] font-medium text-alert">{error}</span>}
       </div>
       <Controller
@@ -44,6 +55,9 @@ export function FormDatePicker<T extends FieldValues>({
             value={field.value ? new Date(field.value) : undefined}
             onChange={(date) => field.onChange(date ? toLocalDateString(date) : '')}
             className={classNames('!w-full h-[40px]', className)}
+            maxDate={maxDate}
+            clearable={clearable}
+            error={error}
           />
         )}
       />

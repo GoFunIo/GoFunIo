@@ -10,6 +10,7 @@ import { DataTable } from '@/features/dashboard/widgets/DataTable';
 import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
 import { getDriverColumns } from '@/store/driversTable';
 import { createFileRoute } from '@tanstack/react-router';
+import { Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/settings/drivers')({
@@ -23,7 +24,6 @@ function RouteComponent() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Dynamiczne filtrowanie kierowcow
   const filteredDrivers = useMemo(() => {
     if (!drivers) return [];
 
@@ -75,7 +75,10 @@ function RouteComponent() {
         {isPending ? (
           <LoadingIcon className="m-auto my-[24px]" />
         ) : filteredDrivers.length === 0 ? (
-          <EmptyPlaceholder title="Brak kierowców" />
+          <EmptyPlaceholder
+            title="Brak kierowców"
+            icon={<Users size={24} className="text-primary" />}
+          />
         ) : (
           <DataTable
             columns={getDriverColumns((driver) => openModal('showCars_driver', driver))}

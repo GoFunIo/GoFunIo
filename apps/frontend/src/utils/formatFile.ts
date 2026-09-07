@@ -6,8 +6,12 @@ export const formatFileSize = (size: number) => {
   return `${(size / 1024 ** 3).toFixed(2)} GB`;
 };
 
-export const formatFileDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleDateString('pl-PL');
+export const formatFileDate = (timestamp: string) => {
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(timestamp));
 };
 
 export const formatFileType = (fileType: string) => {

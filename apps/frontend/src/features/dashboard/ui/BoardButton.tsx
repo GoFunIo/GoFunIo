@@ -56,7 +56,7 @@ export const BoardButton = ({
   `;
 
   const outlineBtn = `
-    bg-white border border-primary text-primary not-disabled:hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)]
+    bg-white border border-primary text-primary hover:bg-secondary hover:text-white not-disabled:hover:shadow-[0_3px_13px_0_rgba(0,0,0,0.2)]
   `;
   const dangerBtn = `
     bg-alert text-white

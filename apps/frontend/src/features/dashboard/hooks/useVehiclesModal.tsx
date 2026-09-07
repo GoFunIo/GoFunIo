@@ -11,7 +11,9 @@ export const useVehiclesModal = () => {
   const [vehicle, setVehicle] = useState<VehicleData | null>(null);
 
   const openModal = (
-    ...args: [modal: 'add_car'] | [modal: 'edit_car' | 'delete_car', vehicle: VehicleData]
+    ...args:
+      | [modal: 'add_car']
+      | [modal: 'edit_car' | 'delete_car' | 'renew_car', vehicle: VehicleData]
   ) => {
     const [modal, vehicle] = args;
 
@@ -32,6 +34,7 @@ export const useVehiclesModal = () => {
           subtitle: 'Wprowadź dane pojazdu. Pola oznaczone * są wymagane.',
           content: <AddVehicleForm onClose={closeModal} />,
         };
+
       case 'edit_car':
         if (!vehicle) return { title: '', subtitle: '', content: null };
 
@@ -40,6 +43,15 @@ export const useVehiclesModal = () => {
           subtitle:
             'Zaktualizuj dane techniczne, ubezpieczenia lub numery rejestracyjne tego pojazdu.',
           content: <AddVehicleForm initialData={vehicle} onClose={closeModal} />,
+        };
+
+      case 'renew_car':
+        if (!vehicle) return { title: '', subtitle: '', content: null };
+
+        return {
+          title: `Odnów termin — ${vehicle?.brand} ${vehicle?.model}`,
+          subtitle: 'Wprowadź nową datę ważności OC, AC lub przeglądu technicznego.',
+          content: <AddVehicleForm initialData={vehicle} onClose={closeModal} isRenewalMode />,
         };
 
       case 'delete_car':

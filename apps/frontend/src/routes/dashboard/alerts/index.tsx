@@ -24,7 +24,6 @@ function RouteComponent() {
         subtitle="Centrum alertów: przeglądy, ubezpieczenia i powiadomienia."
       />
 
-      {/* PRZEŁĄCZNIK SEKCJI */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <BoardButton
           size="small"

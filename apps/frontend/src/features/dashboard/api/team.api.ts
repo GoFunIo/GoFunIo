@@ -25,7 +25,6 @@ export const getTeam = async () => {
 // invite user to your team
 
 export const inviteTeamMember = async (form: UserFormData) => {
-  console.log(form);
   try {
     const res = await fetch(`${API_URL}/users`, {
       method: 'POST',
@@ -44,17 +43,14 @@ export const inviteTeamMember = async (form: UserFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }
@@ -83,17 +79,14 @@ export const changeTeamMember = async (form: UserFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }
@@ -117,17 +110,14 @@ export const deleteTeamMember = async (id: string) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }

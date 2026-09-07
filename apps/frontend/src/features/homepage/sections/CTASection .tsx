@@ -1,10 +1,12 @@
-import avatar1 from '@/assets/img/testimonial-image-1.webp';
-import avatar2 from '@/assets/img/testimonial-image-2.webp';
-import avatar3 from '@/assets/img/testimonial-image-3.webp';
-import ctaLarge from '@/assets/img/ctaLarge.webp';
+import { getImage } from '@/utils/getImage';
 import { SocialProofBadge } from '@/features/homepage/ui/SocialProofBadge';
 import { AvatarStack } from '@/features/homepage/ui/AvatarStack';
 import { Button } from '@/components/ui/Button';
+
+const avatar1 = getImage('testimonial-image-1.webp');
+const avatar2 = getImage('testimonial-image-2.webp');
+const avatar3 = getImage('testimonial-image-3.webp');
+const ctaLarge = getImage('ctaLarge.webp');
 
 const AVATAR_URLS = [avatar1, avatar2, avatar3];
 

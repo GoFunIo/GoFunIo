@@ -75,7 +75,8 @@ export const useUsersModal = () => {
           ),
         };
       case 'showCars_user':
-        if (!selectedUser) return { title: '', subtitle: '', content: null };
+        if (!selectedUser || selectedUser.carsCount === 0)
+          return { title: '', subtitle: '', content: null };
 
         return {
           title: 'Pojazdy managera.',

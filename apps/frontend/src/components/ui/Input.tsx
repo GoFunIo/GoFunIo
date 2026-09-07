@@ -24,7 +24,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(
   `;
 
     return (
-      <div className={classNames('relative w-full')}>
+      <div className={classNames('relative w-full flex flex-col justify-between')}>
         <div
           className={classNames(
             'min-h-[14px] mb-[8px] w-full flex justify-between items-end gap-x-2',

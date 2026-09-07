@@ -5,7 +5,6 @@ export type DriversActions =
   | 'showCars_driver'
   | null;
 
-// Pojazd aktualnie przypisany do kierowcy.
 export interface DriverActiveVehicle {
   id: string;
   brand: string;
@@ -13,9 +12,6 @@ export interface DriverActiveVehicle {
   registrationNumber: string;
 }
 
-// Dane kierowcy zwracane przez API.
-// GET /drivers
-// GET /drivers/{id}
 export interface DriverType {
   id: string;
   email: string;
@@ -27,7 +23,6 @@ export interface DriverType {
   activeVehicles: DriverActiveVehicle[];
 }
 
-// Dane formularza kierowcy - wykorzystywane przy tworzeniu i edycji kierowcy
 export interface DriverFormData {
   firstName: string;
   lastName: string;

@@ -41,7 +41,9 @@ export const EditDriverForm = ({ onClose, initialData }: Props) => {
       onClose();
     } catch (error) {
       setError('root', {
-        message: getErrorMessage(error),
+        message: getErrorMessage(error, {
+          404: 'Nie znaleziono kierowcy.',
+        }),
       });
     }
   };

@@ -65,6 +65,7 @@ export type ServiceListParams = {
 export type ServicesFiltersType = {
   vehicleId: string | null;
   type: ServiceType | null;
+  providerName: string | null;
   from: Date | undefined;
   to: Date | undefined;
 };

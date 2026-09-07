@@ -46,13 +46,10 @@ export const NotificationBanner = ({
         'animate-in fade-in slide-in-from-top-2 duration-200',
 
         {
-          // SUKCES (Zielony)
           'bg-success-bg border-success-bg-icon text-success': variant === 'success',
 
-          // BŁĄD / ALERT (Czerwony)
           'bg-alert-bg border-alert-bg-icon text-alert': variant === 'error',
 
-          // OSTRZEŻENIE (Pomarańczowy / Żółty)
           'bg-warning-bg border-warning-bg-icon text-warning': variant === 'warning',
         },
         className,

@@ -26,10 +26,7 @@ const useCompanyId = () => {
   return user?.companyId ?? null;
 };
 
-// =========================================================================
-// PODSUMOWANIE / BADGE
 // GET /notification-center/summary
-// =========================================================================
 export const useNotificationCenterSummary = () => {
   const companyId = useCompanyId();
 
@@ -41,10 +38,7 @@ export const useNotificationCenterSummary = () => {
   });
 };
 
-// =========================================================================
-// AKTUALNE ALERTY POJAZDÓW (cursor)
-// GET /vehicle-deadline-alerts
-// =========================================================================
+// GET /vehicle-deadline-alerts (cursor)
 export const useVehicleDeadlineAlerts = (params?: Omit<VehicleDeadlineAlertsParams, 'cursor'>) => {
   const companyId = useCompanyId();
   const hasVehicleIdKey = params ? 'vehicleId' in params : false;
@@ -60,10 +54,7 @@ export const useVehicleDeadlineAlerts = (params?: Omit<VehicleDeadlineAlertsPara
   });
 };
 
-// =========================================================================
-// POLITYKA ALERTÓW
 // GET /alert-policy
-// =========================================================================
 export const useAlertPolicy = () => {
   const companyId = useCompanyId();
 
@@ -87,10 +78,7 @@ export const useUpdateAlertPolicy = () => {
   });
 };
 
-// =========================================================================
-// LISTA NOTIFICATIONS (cursor)
 // GET /notifications
-// =========================================================================
 export const useNotifications = (params?: Omit<NotificationsListParams, 'cursor'>) => {
   const companyId = useCompanyId();
 
@@ -104,10 +92,7 @@ export const useNotifications = (params?: Omit<NotificationsListParams, 'cursor'
   });
 };
 
-// =========================================================================
-// SZCZEGÓŁ NOTIFICATION
 // GET /notifications/{id}
-// =========================================================================
 export const useNotification = (notificationId: string) => {
   const companyId = useCompanyId();
 
@@ -119,10 +104,7 @@ export const useNotification = (notificationId: string) => {
   });
 };
 
-// =========================================================================
-// OZNACZENIE JAKO PRZECZYTANE
 // PATCH /notifications/{id}/read
-// =========================================================================
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
@@ -136,10 +118,7 @@ export const useMarkNotificationAsRead = () => {
   });
 };
 
-// =========================================================================
-// ARCHIWIZACJA
 // PATCH /notifications/{id}/archive
-// =========================================================================
 export const useArchiveNotification = () => {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
@@ -153,10 +132,7 @@ export const useArchiveNotification = () => {
   });
 };
 
-// =========================================================================
-// OZNACZENIE WSZYSTKICH JAKO PRZECZYTANE
 // POST /notifications/read-all
-// =========================================================================
 export const useMarkAllNotificationsAsRead = () => {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
@@ -170,10 +146,7 @@ export const useMarkAllNotificationsAsRead = () => {
   });
 };
 
-// =========================================================================
-// PREFERENCJE UŻYTKOWNIKA (globalne)
 // GET /notification-preferences/me
-// =========================================================================
 export const useNotificationPreferences = () => {
   return useQuery({
     queryKey: ['notification-preferences', 'me'],

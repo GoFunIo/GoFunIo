@@ -52,17 +52,14 @@ export const changeUserSettings = async (form: PersonalDataFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }
@@ -89,17 +86,14 @@ export const changeUserPassword = async (form: ChangePasswordFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }
@@ -126,17 +120,14 @@ export const changeUserEmail = async (form: ChangeEmailFormData) => {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw {
-        status: res.status,
-        message: data?.message ?? 'Request failed',
-      };
+      throw data;
     }
 
     return data;
   } catch (error) {
     if (error instanceof TypeError) {
       throw {
-        status: 0,
+        statusCode: 0,
         message: 'Brak połączenia z internetem',
       };
     }

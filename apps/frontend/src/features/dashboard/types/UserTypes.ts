@@ -14,6 +14,7 @@ export interface UserType {
   phone: string | null;
   postalCode: string | null;
   role: string | null;
+  carsCount: number;
 }
 
 export interface UserFormData {

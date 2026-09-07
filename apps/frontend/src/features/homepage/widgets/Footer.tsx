@@ -1,7 +1,10 @@
 import { Blob } from '../ui/Blob';
 import { InstagramIcon, XIcon, FacebookIcon } from '../ui/Icons';
-import LogoLight from '@/assets/logo/logo_autokeep.svg';
-import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
+
+import { getImage } from '@/utils/getImage';
+
+const LogoLight = getImage('logo_autokeep.svg');
+const LogoDark = getImage('logo_autokeep_darktheme.svg');
 
 export const Footer = () => {
   return (

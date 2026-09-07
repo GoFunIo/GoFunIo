@@ -32,7 +32,8 @@ export const DeleteServiceConfirm = ({ service, onClose }: Props) => {
     } catch (err) {
       setError(
         getErrorMessage(err, {
-          404: 'Ten wpis nie istnieje lub został już usunięty.',
+          403: 'Brak uprawnień do tego zasobu lub operacji.',
+          404: 'Pojazd lub serwis nie został znaleziony.',
         }),
       );
     }

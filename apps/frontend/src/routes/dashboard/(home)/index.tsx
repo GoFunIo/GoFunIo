@@ -39,6 +39,7 @@ import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
 import { useVehiclesModal } from '@/features/dashboard/hooks/useVehiclesModal';
 import { useUsersModal } from '@/features/dashboard/hooks/useUsersModal';
 import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { pluralize } from '@/utils/pluralize';
 
 type DashboardAction = {
   id: number;
@@ -124,9 +125,6 @@ function RouteComponent() {
   const vehicles: VehicleData[] = vehiclesResponse?.items ?? [];
   const services: ServiceData[] = servicesResponse?.items ?? [];
 
-  // ============================================================
-  // PRZEGLĄDY TECHNICZNE
-  // ============================================================
   const inspectionStats = useMemo(
     () =>
       vehicleAlerts
@@ -142,9 +140,6 @@ function RouteComponent() {
     [vehicleAlerts],
   );
 
-  // ============================================================
-  // OC / AC
-  // ============================================================
   const insuranceStats = useMemo(
     () =>
       vehicleAlerts
@@ -171,9 +166,6 @@ function RouteComponent() {
     [vehicleAlerts],
   );
 
-  // ============================================================
-  // PODSUMOWANIE WYDATKÓW
-  // ============================================================
   const expensesSummary = useMemo(() => {
     let servicesAndRepairs = 0;
     let insurance = 0;
@@ -195,9 +187,6 @@ function RouteComponent() {
     };
   }, [services]);
 
-  // ============================================================
-  // QUICK ACTIONS
-  // ============================================================
   const visibleActions = useMemo(
     () =>
       dashboardActions.filter((action) => {
@@ -248,15 +237,16 @@ function RouteComponent() {
         </div>
       </div>
 
-      {/* ========================================================
-          KARTY STATYSTYK
-          ======================================================== */}
       <GridWrapper layout={'3-equal'}>
         <Link to="/dashboard/my-cars" className="block no-underline">
           <DashboardCard
             title="Pojazdy we flocie"
             value={isVehiclesPending ? '...' : adminStats.totalFleetVehicles}
-            subtitle="aktywne"
+            subtitle={
+              isVehiclesPending
+                ? '...'
+                : pluralize(adminStats.totalFleetVehicles, 'aktywny', 'aktywne', 'aktywnych')
+            }
             icon={<CarFront size={20} />}
           />
         </Link>
@@ -265,7 +255,16 @@ function RouteComponent() {
           <DashboardCard
             title="Aktywni użytkownicy"
             value={isTeamLoading ? '...' : adminStats.activeUsersCount}
-            subtitle="osoby mają pojazdy w systemie"
+            subtitle={
+              isTeamLoading
+                ? '...'
+                : pluralize(
+                    adminStats.activeUsersCount,
+                    'osoba ma pojazd w systemie',
+                    'osoby mają pojazdy w systemie',
+                    'osób ma pojazdy w systemie',
+                  )
+            }
             icon={<Users size={20} />}
           />
         </Link>
@@ -274,16 +273,22 @@ function RouteComponent() {
           <DashboardCard
             title="Pilne przypomnienia"
             value={isAlertsPending ? '...' : adminStats.urgentReminders}
-            subtitle="aktualnych alertów"
+            subtitle={
+              isAlertsPending
+                ? '...'
+                : pluralize(
+                    adminStats.urgentReminders,
+                    'aktualny alert',
+                    'aktualne alerty',
+                    'aktualnych alertów',
+                  )
+            }
             icon={<TriangleAlert size={20} />}
             variant="alert"
           />
         </Link>
       </GridWrapper>
 
-      {/* ========================================================
-          NADCHODZĄCE TERMINY
-          ======================================================== */}
       <BlockWrapper>
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -302,7 +307,7 @@ function RouteComponent() {
             onClick={() => navigate({ to: '/dashboard/alerts' })}
             className="shrink-0"
           >
-            Zobacz wszystkie alerty →
+            Zobacz wszystkie alerty
           </BoardButton>
         </div>
 
@@ -324,7 +329,7 @@ function RouteComponent() {
                 alerts={remindersAlerts}
                 vehicles={vehicles}
                 filterType="inspection"
-                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+                onRenewCar={(vehicle) => openVehicleModal('renew_car', vehicle)}
                 limit={5}
               />
             </div>
@@ -343,17 +348,13 @@ function RouteComponent() {
                 alerts={remindersAlerts}
                 vehicles={vehicles}
                 filterType="insurance"
-                onRenewCar={(vehicle) => openVehicleModal('edit_car', vehicle)}
+                onRenewCar={(vehicle) => openVehicleModal('renew_car', vehicle)}
                 limit={5}
               />
             </div>
           </div>
         )}
       </BlockWrapper>
-
-      {/* ========================================================
-          HISTORIA + QUICK ACTIONS
-          ======================================================== */}
 
       <GridWrapper layout="2-unequal">
         <History
@@ -372,7 +373,6 @@ function RouteComponent() {
           }}
         />
 
-        {/* SZYBKIE AKCJE PRAWA STRONA */}
         <div className=" flex flex-col gap-6">
           <BlockWrapper className="lg:col-span-1 h-fit">
             <h4 className="text-content-primary ">Szybkie akcje</h4>
@@ -425,9 +425,6 @@ function RouteComponent() {
         </div>
       </GridWrapper>
 
-      {/* ========================================================
-          MODALS
-          ======================================================== */}
       {ServiceModal}
       {VehiclesModal}
       {UsersModal}

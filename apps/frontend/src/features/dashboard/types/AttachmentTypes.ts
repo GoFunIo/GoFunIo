@@ -5,4 +5,5 @@ export type AttachmentData = {
   mimeType: string;
   size: number;
   createdAt: string;
+  previewUrl?: string;
 };

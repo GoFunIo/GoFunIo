@@ -1,14 +1,16 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import { MobileMenu } from './MobileMenu';
-import LogoLight from '@/assets/logo/logo_autokeep.svg';
-import LogoDark from '@/assets/logo/logo_autokeep_darktheme.svg';
 import { Menu, X } from 'lucide-react';
+import { MobileMenu } from './MobileMenu';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/hooks/useTheme';
 import { useLogoAction } from '@/hooks/useLogoAction';
 import { useScrollY } from '@/hooks/useScrollY';
 import { useUser } from '@/features/dashboard/hooks/user.hooks';
+import { getImage } from '@/utils/getImage';
+
+const LogoLight = getImage('logo_autokeep.svg');
+const LogoDark = getImage('logo_autokeep_darktheme.svg');
 
 const navLinks = [
   { label: 'FUNKCJE', href: '#funkcje' },
@@ -35,7 +37,6 @@ export const Header = () => {
         }`}
       >
         <div className="container mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 flex items-center justify-between">
-          {/* LEFT SIDE   */}
           <div className="flex items-center gap-8">
             <Link to="/" onClick={handleLogoClick} className="z-[200] ">
               <img
@@ -68,11 +69,9 @@ export const Header = () => {
             </nav>
           </div>
 
-          {/* RIGHT SIDE   */}
           <div className="flex items-center gap-4">
             <ThemeToggle />
 
-            {/* LOGIN/REGISTER BUTTON  */}
             <div className="hidden lg:flex items-center gap-3">
               {!user && !isLoading ? (
                 <>
@@ -127,7 +126,6 @@ export const Header = () => {
               )}
             </div>
 
-            {/* HAMBURGER MENU */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="group lg:hidden flex items-center justify-center w-8 h-8 border border-content-secondary rounded-[3px] text-content-secondary hover:border-content-secondary hover:text-content-secondary hover:bg-bg-section"
@@ -138,7 +136,6 @@ export const Header = () => {
         </div>
       </header>
 
-      {/* MENU MOBILNE */}
       <MobileMenu
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}

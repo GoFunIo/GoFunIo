@@ -17,7 +17,6 @@ export const BenefitCard = ({ title, desc, icon, className }: BenefitCardProps) 
         'group p-8 rounded-[15px] bg-bg-card shadow-card flex flex-col items-center text-center gap-6',
         'border border-transparent transition-all duration-300',
 
-        // HOVER GRUPOWY:
         'hover:bg-bg-section hover:border-secondary hover:shadow-hover hover:-translate-y-1',
         className,
       )}

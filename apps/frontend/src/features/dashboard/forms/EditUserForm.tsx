@@ -54,9 +54,8 @@ export const EditUserForm = ({ onClose, initialData }: Props) => {
     } catch (error) {
       setError('root', {
         message: getErrorMessage(error, {
-          403: 'Brak uprawnień.',
+          403: 'Wymagana jest rola administratora.',
           404: 'Nie znaleziono użytkownika.',
-          409: 'Nie możesz odebrać sobie uprawnień.',
         }),
       });
     }

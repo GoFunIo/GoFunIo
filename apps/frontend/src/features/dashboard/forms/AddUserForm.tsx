@@ -44,8 +44,7 @@ export const AddUserForm = ({ onClose }: Props) => {
     } catch (error) {
       setError('root', {
         message: getErrorMessage(error, {
-          403: 'Brak uprawnień.',
-          409: 'Użytkownik z takim email adresem już istnieje.',
+          403: 'Wymagana jest rola administratora.',
         }),
       });
     }

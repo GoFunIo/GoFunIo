@@ -33,7 +33,7 @@ export const getUserColumns = (onShowManagerCars: (user: UserType) => void): Col
     render: (_, item) => {
       return item.role === 'MANAGER' ? (
         <BoardButton
-          // disabled={item.cars.length === 0}
+          disabled={item.carsCount === 0}
           onClick={() => onShowManagerCars(item)}
           size="square"
         >

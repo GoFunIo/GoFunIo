@@ -54,8 +54,10 @@ export const Select = ({
   };
 
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      const target = e.target as Node;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target;
+
+      if (!(target instanceof Node)) return;
 
       if (selectRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
@@ -64,10 +66,10 @@ export const Select = ({
       setIsOpen(false);
     };
 
-    document.addEventListener('mousedown', close);
+    document.addEventListener('pointerdown', handlePointerDown, true);
 
     return () => {
-      document.removeEventListener('mousedown', close);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
     };
   }, []);
 
