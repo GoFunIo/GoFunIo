@@ -2,7 +2,10 @@ import { ForbiddenException } from '@nestjs/common';
 import type { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { MembershipRole } from '../users/membership-role';
 import type { SessionPrincipal } from '../users/session-principal';
-import { constrainToVisibleVehicles } from './typeorm-vehicle-visibility';
+import {
+  constrainToReadableVehicles,
+  constrainToVisibleVehicles,
+} from './typeorm-vehicle-visibility';
 
 describe('constrainToVisibleVehicles', () => {
   it('applies workspace and active membership visibility for admins', () => {
@@ -36,11 +39,31 @@ describe('constrainToVisibleVehicles', () => {
       principal(MembershipRole.MANAGER),
     );
 
-    expect(query.andWhere).toHaveBeenCalledTimes(3);
+    expect(query.andWhere).toHaveBeenCalledTimes(4);
     expect(query.andWhere).toHaveBeenNthCalledWith(
-      3,
+      4,
       expect.stringContaining('manager_vehicle_assignments'),
       { managerId: 'user-one' },
+    );
+  });
+
+  it('allows managers to read workspace vehicles without requiring an assignment', () => {
+    const query = queryBuilder();
+
+    constrainToReadableVehicles(
+      query.builder,
+      principal(MembershipRole.MANAGER),
+    );
+
+    expect(query.andWhere).toHaveBeenCalledTimes(3);
+    expect(query.andWhere).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('actor_membership.status'),
+      { actorId: 'user-one', actorRole: MembershipRole.MANAGER },
+    );
+    expect(query.andWhere).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('readable_assignment'),
     );
   });
 

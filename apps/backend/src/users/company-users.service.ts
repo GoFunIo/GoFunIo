@@ -38,7 +38,7 @@ export type CompanyUser = User & {
 
 type CompanyUserCatalogEntry = Pick<
   CompanyUser,
-  'id' | 'firstName' | 'lastName' | 'email' | 'role'
+  'id' | 'firstName' | 'lastName' | 'email' | 'role' | 'carsCount'
 >;
 
 @Injectable()
@@ -88,12 +88,13 @@ export class CompanyUsersService {
     }
     if (isWorkspaceAdmin(actor.role)) return users;
     if (actor.role !== MembershipRole.MANAGER) throw new ForbiddenException();
-    return users.map(({ id, firstName, lastName, email, role }) => ({
+    return users.map(({ id, firstName, lastName, email, role, carsCount }) => ({
       id,
       firstName,
       lastName,
       email,
       role,
+      carsCount,
     }));
   }
 

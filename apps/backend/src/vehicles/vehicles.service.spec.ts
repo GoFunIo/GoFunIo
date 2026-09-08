@@ -35,6 +35,7 @@ describe('VehiclesService create workflow', () => {
     });
     const vehicleAccess = {
       list: jest.fn(),
+      findReadable: jest.fn(),
       activeManagers: jest.fn((_companyId, vehicleIds: string[]) =>
         Promise.resolve(
           new Map(
@@ -170,6 +171,39 @@ describe('VehiclesService create workflow', () => {
     expect(driverAllocation.activeDrivers).toHaveBeenCalledWith(
       companyId,
       vehicleIds,
+    );
+  });
+
+  it('uses the read-only vehicle scope for details', async () => {
+    const { fleet, service, vehicleAccess } = setup();
+    const vehicle = await fleet.transact((stores) =>
+      stores.vehicles.create({
+        companyId,
+        brand: 'Ford',
+        model: 'Focus',
+        registrationNumber: 'WA5678',
+        productionYear: null,
+        fuelType: null,
+        vin: null,
+        currentMileage: null,
+        purchaseDate: null,
+        ocExpiry: null,
+        acExpiry: null,
+        technicalInspectionExpiry: null,
+        notes: null,
+      }),
+    );
+    vehicleAccess.findReadable.mockResolvedValue(vehicle);
+
+    await expect(
+      service.findOne(
+        { id: managerId, companyId, role: MembershipRole.MANAGER },
+        vehicle.id,
+      ),
+    ).resolves.toMatchObject({ id: vehicle.id });
+    expect(vehicleAccess.findReadable).toHaveBeenCalledWith(
+      { id: managerId, companyId, role: MembershipRole.MANAGER },
+      vehicle.id,
     );
   });
 

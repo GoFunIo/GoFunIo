@@ -86,7 +86,7 @@ describe('Company users (e2e)', () => {
 
   it('gives MANAGER a minimal read-only team catalog', async () => {
     const admin = await signedIn('role-admin@example.com');
-    const { token } = await invite(admin, 'role-manager@example.com');
+    const { user, token } = await invite(admin, 'role-manager@example.com');
     await request(app.getHttpServer())
       .post('/auth/reset-password')
       .send({ token, password: 'Manager-password1!' })
@@ -98,6 +98,19 @@ describe('Company users (e2e)', () => {
         email: 'role-manager@example.com',
         password: 'Manager-password1!',
       })
+      .expect(201);
+
+    const vehicle = await admin
+      .post('/vehicles')
+      .send({
+        brand: 'Ford',
+        model: 'Focus',
+        registrationNumber: 'ROLE1',
+      })
+      .expect(201);
+    await admin
+      .post(`/vehicles/${vehicle.body.id}/managers`)
+      .send({ managerId: user.id })
       .expect(201);
 
     const { body: context } = await admin.get('/auth/me').expect(200);
@@ -131,9 +144,12 @@ describe('Company users (e2e)', () => {
         expect(
           body.map((user: Record<string, unknown>) => Object.keys(user).sort()),
         ).toEqual([
-          ['email', 'firstName', 'id', 'lastName', 'role'],
-          ['email', 'firstName', 'id', 'lastName', 'role'],
+          ['carsCount', 'email', 'firstName', 'id', 'lastName', 'role'],
+          ['carsCount', 'email', 'firstName', 'id', 'lastName', 'role'],
         ]);
+        expect(
+          body.find(({ id }: { id: string }) => id === user.id),
+        ).toMatchObject({ carsCount: 1 });
       });
     await manager
       .post('/users')

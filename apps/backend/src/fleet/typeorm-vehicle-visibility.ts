@@ -10,6 +10,28 @@ export function constrainToVisibleVehicles<Entity extends ObjectLiteral>(
   query: SelectQueryBuilder<Entity>,
   actor: SessionPrincipal,
 ): SelectQueryBuilder<Entity> {
+  constrainToReadableVehicles(query, actor);
+
+  if (actor.role === MembershipRole.MANAGER) {
+    query.andWhere(
+      `EXISTS (
+        SELECT 1 FROM "manager_vehicle_assignments" assignment
+        WHERE assignment."vehicleId" = vehicle.id
+          AND assignment."companyId" = vehicle."companyId"
+          AND assignment."managerId" = :managerId
+          AND assignment."assignedTo" IS NULL
+      )`,
+      { managerId: actor.id },
+    );
+  }
+
+  return query;
+}
+
+export function constrainToReadableVehicles<Entity extends ObjectLiteral>(
+  query: SelectQueryBuilder<Entity>,
+  actor: SessionPrincipal,
+): SelectQueryBuilder<Entity> {
   const companyId = requireCompanyId(actor);
   if (!isWorkspaceAdmin(actor.role) && actor.role !== MembershipRole.MANAGER) {
     throw new ForbiddenException();
@@ -27,16 +49,12 @@ export function constrainToVisibleVehicles<Entity extends ObjectLiteral>(
   );
 
   if (actor.role === MembershipRole.MANAGER) {
-    query.andWhere(
-      `EXISTS (
-        SELECT 1 FROM "manager_vehicle_assignments" assignment
-        WHERE assignment."vehicleId" = vehicle.id
-          AND assignment."companyId" = vehicle."companyId"
-          AND assignment."managerId" = :managerId
-          AND assignment."assignedTo" IS NULL
-      )`,
-      { managerId: actor.id },
-    );
+    query.andWhere(`EXISTS (
+      SELECT 1 FROM "manager_vehicle_assignments" readable_assignment
+      WHERE readable_assignment."vehicleId" = vehicle.id
+        AND readable_assignment."companyId" = vehicle."companyId"
+        AND readable_assignment."assignedTo" IS NULL
+    )`);
   }
 
   return query;

@@ -250,7 +250,7 @@ describe('Vehicles (e2e)', () => {
     await manager.delete(`/vehicles/${created.body.id}`).expect(204);
   });
 
-  it('limits MANAGER access to assigned vehicles', async () => {
+  it('allows MANAGER read-only access while limiting writes to assigned vehicles', async () => {
     const admin = await signedIn('scope-admin@example.com');
     const { manager, user } = await inviteManager(
       admin,
@@ -266,6 +266,25 @@ describe('Vehicles (e2e)', () => {
       .expect(200)
       .expect((res) => expect(res.body.total).toBe(0));
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(404);
+    const second = await inviteManager(admin, 'scope-manager-two@example.com');
+    await admin
+      .post(`/vehicles/${unassigned.body.id}/managers`)
+      .send({ managerId: second.user.id })
+      .expect(201);
+    await manager
+      .get('/vehicles')
+      .query({ managerId: second.user.id })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.total).toBe(1);
+        expect(body.items[0].id).toBe(unassigned.body.id);
+      });
+    await manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
+    await manager
+      .patch(`/vehicles/${unassigned.body.id}`)
+      .send({ notes: 'Blocked manager update' })
+      .expect(404);
+    await manager.delete(`/vehicles/${unassigned.body.id}`).expect(404);
     await admin
       .post(`/vehicles/${unassigned.body.id}/managers`)
       .send({ managerId: user.id })
@@ -274,12 +293,11 @@ describe('Vehicles (e2e)', () => {
       .get(`/vehicles/${unassigned.body.id}`)
       .expect(200)
       .expect((res) =>
-        expect(res.body.managers.map(({ id }: { id: string }) => id)).toEqual([
-          user.id,
-        ]),
+        expect(
+          res.body.managers.map(({ id }: { id: string }) => id).sort(),
+        ).toEqual([user.id, second.user.id].sort()),
       );
     await manager.get(`/vehicles/${unassigned.body.id}`).expect(200);
-    const second = await inviteManager(admin, 'scope-manager-two@example.com');
     await admin
       .post(`/vehicles/${unassigned.body.id}/managers`)
       .send({ managerId: second.user.id })
@@ -432,9 +450,17 @@ describe('Vehicles (e2e)', () => {
       .query({ managerId: selected.user.id })
       .expect(200)
       .expect(({ body }) => {
-        expect(body.total).toBe(1);
-        expect(body.items[0].id).toBe(shared.body.id);
+        expect(body.total).toBe(2);
+        expect(body.items.map(({ id }: { id: string }) => id).sort()).toEqual(
+          [targetOnly.body.id, shared.body.id].sort(),
+        );
       });
+    await viewer.manager.get(`/vehicles/${targetOnly.body.id}`).expect(200);
+    await viewer.manager
+      .patch(`/vehicles/${targetOnly.body.id}`)
+      .send({ notes: 'Blocked cross-manager update' })
+      .expect(404);
+    await viewer.manager.delete(`/vehicles/${targetOnly.body.id}`).expect(404);
     const foreignOwner = await signedIn('manager-filter-foreign@example.com');
     await foreignOwner
       .get('/vehicles')

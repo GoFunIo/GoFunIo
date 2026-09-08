@@ -35,6 +35,10 @@ export interface VehicleAccess {
     actor: SessionPrincipal,
     query: ListVehiclesQueryDto,
   ): Promise<FleetVehiclePage>;
+  findReadable(
+    actor: SessionPrincipal,
+    vehicleId: string,
+  ): Promise<FleetVehicle>;
   find(actor: SessionPrincipal, vehicleId: string): Promise<FleetVehicle>;
   history(
     actor: SessionPrincipal,

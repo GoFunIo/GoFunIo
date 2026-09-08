@@ -30,7 +30,10 @@ import type {
 } from './vehicle-access';
 import type { TransactionalVehicleAccess } from './transactional-vehicle-access';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
-import { constrainToVisibleVehicles } from './typeorm-vehicle-visibility';
+import {
+  constrainToReadableVehicles,
+  constrainToVisibleVehicles,
+} from './typeorm-vehicle-visibility';
 
 const sortColumns: Record<VehicleSortBy, string> = {
   [VehicleSortBy.CREATED_AT]: 'vehicle.createdAt',
@@ -76,7 +79,9 @@ export class TypeOrmVehicleAccess
         totalPages: 0,
       };
     }
-    const qb = this.visibleVehicles(this.dataSource.manager, actor);
+    const qb = query.managerId
+      ? this.readableVehicles(this.dataSource.manager, actor)
+      : this.visibleVehicles(this.dataSource.manager, actor);
     if (query.managerId) {
       qb.andWhere(
         `EXISTS (
@@ -131,6 +136,10 @@ export class TypeOrmVehicleAccess
 
   find(actor: SessionPrincipal, vehicleId: string): Promise<Vehicle> {
     return this.findVisible(this.dataSource.manager, actor, vehicleId);
+  }
+
+  findReadable(actor: SessionPrincipal, vehicleId: string): Promise<Vehicle> {
+    return this.findOneReadable(this.dataSource.manager, actor, vehicleId);
   }
 
   async history(
@@ -277,6 +286,28 @@ export class TypeOrmVehicleAccess
       qb.withDeleted();
     }
     return constrainToVisibleVehicles(qb, actor);
+  }
+
+  private readableVehicles(
+    manager: EntityManager,
+    actor: SessionPrincipal,
+  ): SelectQueryBuilder<Vehicle> {
+    return constrainToReadableVehicles(
+      manager.createQueryBuilder(Vehicle, 'vehicle'),
+      actor,
+    );
+  }
+
+  private async findOneReadable(
+    manager: EntityManager,
+    actor: SessionPrincipal,
+    vehicleId: string,
+  ): Promise<Vehicle> {
+    const vehicle = await this.readableVehicles(manager, actor)
+      .andWhere('vehicle.id = :vehicleId', { vehicleId })
+      .getOne();
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    return vehicle;
   }
 
   private async findVisible(

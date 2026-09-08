@@ -48,11 +48,11 @@ export class CompanyUsersController {
   @ApiOperation({
     summary: 'List company users',
     description:
-      'Requires an ADMIN session. Copy a returned id for update, removal, or ownership transfer.',
+      'OWNER and ADMIN receive the full catalog. MANAGER receives a read-only team catalog with vehicle counts.',
   })
   @ApiOkResponse({ type: UserDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
-  @ApiForbiddenResponse({ description: 'Admin role required' })
+  @ApiForbiddenResponse({ description: 'Supported workspace role required' })
   @Get()
   list(@CurrentPrincipal() principal: SessionPrincipal) {
     return this.companyUsers.list(principal);

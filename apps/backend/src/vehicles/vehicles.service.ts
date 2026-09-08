@@ -70,7 +70,7 @@ export class VehiclesService {
   }
 
   async findOne(actor: SessionPrincipal, id: string): Promise<VehicleView> {
-    const vehicle = await this.vehicleAccess.find(actor, id);
+    const vehicle = await this.vehicleAccess.findReadable(actor, id);
     return (
       await this.views(
         requireCompanyId(actor),

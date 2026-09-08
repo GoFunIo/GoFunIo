@@ -51,7 +51,11 @@ import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto
 export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
 
-  @ApiOperation({ summary: 'List vehicles' })
+  @ApiOperation({
+    summary: 'List vehicles',
+    description:
+      "A MANAGER sees their own vehicles by default and may use managerId for read-only access to another manager's vehicles.",
+  })
   @ApiOkResponse({ type: VehicleListDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @Get()
@@ -63,7 +67,11 @@ export class VehiclesController {
     return this.vehicles.list(principal, query);
   }
 
-  @ApiOperation({ summary: 'Get vehicle by id' })
+  @ApiOperation({
+    summary: 'Get vehicle by id',
+    description:
+      'A MANAGER may read any actively manager-assigned vehicle in their workspace. Mutation access remains assignment-scoped.',
+  })
   @ApiUuidParam('id', 'Vehicle id')
   @ApiOkResponse({ type: VehicleDto })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
