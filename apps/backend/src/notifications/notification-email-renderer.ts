@@ -5,6 +5,7 @@ export interface VehicleDeadlineNotificationEmailInput {
   workspaceId: string;
   notificationId: string;
   frontendBaseUrl: string;
+  vehicleId: string;
   deadlineKind: VehicleDeadlineKind;
   deadlineDate: string;
   leadDay: number;
@@ -111,7 +112,7 @@ function renderHtml(
   const iconUrl = `${assetBase}/images/icons/${deadlineIcons[input.deadlineKind]}.png`;
   const logoUrl = `${assetBase}/images/autokeep-logo-mailing.png`;
   const settingsLink = escapeHtml(
-    new URL('/notifications', input.frontendBaseUrl).toString(),
+    new URL('/dashboard/settings/notification', input.frontendBaseUrl).toString(),
   );
   const buttonLink = escapeHtml(link);
   const grey =
@@ -174,16 +175,14 @@ function renderHtml(
 </html>`;
 }
 
+// Mirrors the in-app OPEN_VEHICLE action (RemindersDropdown -> /dashboard/my-cars/$carId).
 function notificationLink(
-  input: Pick<
-    VehicleDeadlineNotificationEmailInput,
-    'frontendBaseUrl' | 'workspaceId' | 'notificationId'
-  >,
+  input: Pick<VehicleDeadlineNotificationEmailInput, 'frontendBaseUrl' | 'vehicleId'>,
 ): string {
-  const url = new URL('/notifications', input.frontendBaseUrl);
-  url.searchParams.set('workspaceId', input.workspaceId);
-  url.searchParams.set('notificationId', input.notificationId);
-  return url.toString();
+  return new URL(
+    `/dashboard/my-cars/${encodeURIComponent(input.vehicleId)}`,
+    input.frontendBaseUrl,
+  ).toString();
 }
 
 function polishDate(value: string): string {

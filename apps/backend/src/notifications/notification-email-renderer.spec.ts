@@ -2,12 +2,13 @@ import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-poli
 import { renderVehicleDeadlineNotificationEmail } from './notification-email-renderer';
 
 describe('renderVehicleDeadlineNotificationEmail', () => {
-  it('renders deterministic version 1 Polish content and a Workspace/Notification link', () => {
+  it('renders deterministic version 1 Polish content and a vehicle deep link', () => {
     const rendered = renderVehicleDeadlineNotificationEmail({
       rendererVersion: 1,
       workspaceId: '11111111-1111-4111-8111-111111111111',
       notificationId: '22222222-2222-4222-8222-222222222222',
       frontendBaseUrl: 'https://app.gofun.io/dashboard/',
+      vehicleId: '33333333-3333-4333-8333-333333333333',
       deadlineKind: VehicleDeadlineKind.OC,
       deadlineDate: '2026-09-12',
       leadDay: 14,
@@ -18,7 +19,7 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
     expect(rendered.subject).toBe('Termin OC pojazdu WX 1234');
     expect(rendered.text).toBe(
       'Termin ubezpieczenia OC pojazdu WX 1234 przypada 12.09.2026 (za 14 dni).\n\n' +
-        'Otwórz powiadomienie: https://app.gofun.io/notifications?workspaceId=11111111-1111-4111-8111-111111111111&notificationId=22222222-2222-4222-8222-222222222222',
+        'Otwórz powiadomienie: https://app.gofun.io/dashboard/my-cars/33333333-3333-4333-8333-333333333333',
     );
     // WARNING variant badge (8-30 days out) and the deadline card label.
     expect(rendered.html).toContain('Zostało 14 dni');
@@ -30,9 +31,12 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
       'https://app.gofun.io/images/icons/shield-alert.png',
     );
     expect(rendered.html).toContain(
-      'href="https://app.gofun.io/notifications?workspaceId=11111111-1111-4111-8111-111111111111&amp;notificationId=22222222-2222-4222-8222-222222222222"',
+      'href="https://app.gofun.io/dashboard/my-cars/33333333-3333-4333-8333-333333333333"',
     );
     expect(rendered.html).toContain('Zarządzaj powiadomieniami');
+    expect(rendered.html).toContain(
+      'href="https://app.gofun.io/dashboard/settings/notification"',
+    );
   });
 
   it('uses overdue wording and escapes the registration snapshot in HTML', () => {
@@ -41,6 +45,7 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
       workspaceId: '11111111-1111-4111-8111-111111111111',
       notificationId: '22222222-2222-4222-8222-222222222222',
       frontendBaseUrl: 'https://app.gofun.io',
+      vehicleId: '33333333-3333-4333-8333-333333333333',
       deadlineKind: VehicleDeadlineKind.TECHNICAL_INSPECTION,
       deadlineDate: '2026-08-27',
       leadDay: 0,
@@ -68,6 +73,7 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
         workspaceId: '11111111-1111-4111-8111-111111111111',
         notificationId: '22222222-2222-4222-8222-222222222222',
         frontendBaseUrl: 'https://app.gofun.io',
+        vehicleId: '33333333-3333-4333-8333-333333333333',
         deadlineKind: VehicleDeadlineKind.AC,
         deadlineDate: '2026-08-28',
         leadDay: 0,

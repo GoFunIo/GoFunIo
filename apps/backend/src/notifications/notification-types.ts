@@ -74,6 +74,7 @@ const vehicleDeadlineReached: NotificationTypeContract<
   emailRenderer: (detail, context) =>
     renderVehicleDeadlineNotificationEmail({
       ...context,
+      vehicleId: detail.vehicleId,
       deadlineKind: detail.deadlineKind,
       deadlineDate: detail.deadlineDate,
       leadDay: detail.leadDay,
