@@ -96,12 +96,23 @@ export const Attachments = ({
           return (
             <div key={`${item.name}-${item.size}-${index}`} className="flex items-center gap-3">
               {mimeType === 'JPEG' || mimeType === 'PNG' ? (
-                <img
-                  onClick={() => handleOpenFile(previewUrl, item.name)}
-                  src={previewUrl}
-                  alt={item.name}
-                  className={classNames('object-cover', attachmentPreviewSize)}
-                />
+                previewUrl ? (
+                  <img
+                    onClick={() => handleOpenFile(previewUrl, item.name)}
+                    src={previewUrl}
+                    alt={item.name}
+                    className={classNames('object-cover cursor-pointer', attachmentPreviewSize)}
+                  />
+                ) : (
+                  <div
+                    className={classNames(
+                      'flex items-center justify-center',
+                      attachmentPreviewSize,
+                    )}
+                  >
+                    <Paperclip size={21} className="text-content-secondary shrink-0" />
+                  </div>
+                )
               ) : (
                 <div
                   className={classNames('flex items-center justify-center', attachmentPreviewSize)}
