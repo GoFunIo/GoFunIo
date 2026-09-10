@@ -6,8 +6,9 @@ import { formatFileDate, formatFileSize, formatFileType } from '@/utils/formatFi
 
 import classNames from 'classnames';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { FormError } from '@/features/auth/ui/FormError';
+import { Modal } from '../ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -21,6 +22,11 @@ type Props = {
   error?: string | null;
 };
 
+type ImgProps = {
+  url: string;
+  title: string;
+};
+
 export const Attachments = ({
   attachments,
   className,
@@ -31,6 +37,8 @@ export const Attachments = ({
   error,
 }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [modal, setModal] = useState<boolean>(false);
+  const [img, setImg] = useState<ImgProps | null>(null);
 
   const handleAddFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,100 +50,133 @@ export const Attachments = ({
     event.target.value = '';
   };
 
+  const handleOpenFile = (url: string, title: string) => {
+    setImg({ url, title });
+    setModal(true);
+  };
+
+  const handleCloseFile = () => {
+    setImg(null);
+    setModal(false);
+  };
+
   return (
-    <div className={classNames('flex flex-col gap-3 relative', className)}>
-      {error && <FormError message={error} />}
-      {onAdd && attachments.length < MAX_FILES_PER_UPLOAD && (
-        <div className="">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleAddFile}
-            accept=".pdf,.png,.jpg,.jpeg"
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="cursor-pointer w-full h-[45px] border border-dashed border-icon rounded-[7px] flex items-center justify-center gap-2 text-content-secondary hover:border-secondary hover:text-secondary custom-transition text-[14px]"
-          >
-            <Upload size={16} />
-            Załącz dokumenty z dysku
-          </button>
-        </div>
-      )}
-      {attachments.map((item, index) => {
-        const isExisting = 'id' in item;
-        const mimeType = formatFileType(item.mimeType);
-        const attachmentPreviewSize = 'w-10 h-10';
-        const previewUrl = item.previewUrl
-          ? `${API_URL}${item.previewUrl}`
-          : item.file
-            ? URL.createObjectURL(item.file)
-            : undefined;
-
-        return (
-          <div key={`${item.name}-${item.size}-${index}`} className="flex items-center gap-3">
-            {mimeType === 'JPEG' || mimeType === 'PNG' ? (
-              <a
-                href={previewUrl}
-                className={classNames(attachmentPreviewSize)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img src={previewUrl} alt={item.name} className="object-cover w-full h-full" />
-              </a>
-            ) : (
-              <div
-                className={classNames('flex items-center justify-center', attachmentPreviewSize)}
-              >
-                <Paperclip size={21} className="text-content-secondary shrink-0" />
-              </div>
-            )}
-
-            <div>
-              <p className="text-[14px] text-content-secondary">{item.name}</p>
-
-              <p className="text-[14px] text-content-secondary">
-                {formatFileSize(item.size)} · {formatFileType(item.mimeType)} ·{' '}
-                {formatFileDate(item.createdAt)}
-              </p>
-            </div>
-
-            <div className="flex gap-2 ml-auto">
-              {isExisting && onDownload && (
-                <button className="cursor-pointer" type="button" onClick={() => onDownload(index)}>
-                  <Download size={21} className="text-content-secondary" />
-                </button>
-              )}
-
-              {isExisting && onEdit && (
-                <label htmlFor={`attachment-${index}`} className="cursor-pointer">
-                  <Pencil size={21} className="text-content-secondary" />
-
-                  <input
-                    id={`attachment-${index}`}
-                    type="file"
-                    hidden
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-
-                      if (!file) return;
-
-                      onEdit(index, file);
-                      event.target.value = '';
-                    }}
-                  />
-                </label>
-              )}
-
-              <button type="button" className="cursor-pointer" onClick={() => onDelete(index)}>
-                <Trash2 size={21} className="text-content-secondary" />
-              </button>
-            </div>
+    <>
+      <div className={classNames('flex flex-col gap-3 relative', className)}>
+        {error && <FormError message={error} />}
+        {onAdd && attachments.length < MAX_FILES_PER_UPLOAD && (
+          <div className="">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAddFile}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer w-full h-[45px] border border-dashed border-icon rounded-[7px] flex items-center justify-center gap-2 text-content-secondary hover:border-secondary hover:text-secondary custom-transition text-[14px]"
+            >
+              <Upload size={16} />
+              Załącz dokumenty z dysku
+            </button>
           </div>
-        );
-      })}
-    </div>
+        )}
+        {attachments.map((item, index) => {
+          const isExisting = 'id' in item;
+          const mimeType = formatFileType(item.mimeType);
+          const attachmentPreviewSize = 'w-10 h-10';
+          const previewUrl = item.previewUrl
+            ? `${API_URL}${item.previewUrl}`
+            : item.file
+              ? URL.createObjectURL(item.file)
+              : undefined;
+
+          return (
+            <div key={`${item.name}-${item.size}-${index}`} className="flex items-center gap-3">
+              {mimeType === 'JPEG' || mimeType === 'PNG' ? (
+                previewUrl ? (
+                  <img
+                    onClick={() => handleOpenFile(previewUrl, item.name)}
+                    src={previewUrl}
+                    alt={item.name}
+                    className={classNames('object-cover cursor-pointer', attachmentPreviewSize)}
+                  />
+                ) : (
+                  <div
+                    className={classNames(
+                      'flex items-center justify-center',
+                      attachmentPreviewSize,
+                    )}
+                  >
+                    <Paperclip size={21} className="text-content-secondary shrink-0" />
+                  </div>
+                )
+              ) : (
+                <div
+                  className={classNames('flex items-center justify-center', attachmentPreviewSize)}
+                >
+                  <Paperclip size={21} className="text-content-secondary shrink-0" />
+                </div>
+              )}
+
+              <div>
+                <p className="text-[14px] text-content-secondary">{item.name}</p>
+
+                <p className="text-[14px] text-content-secondary">
+                  {formatFileSize(item.size)} · {formatFileType(item.mimeType)} ·{' '}
+                  {formatFileDate(item.createdAt)}
+                </p>
+              </div>
+
+              <div className="flex gap-2 ml-auto">
+                {isExisting && onDownload && (
+                  <button
+                    className="cursor-pointer"
+                    type="button"
+                    onClick={() => onDownload(index)}
+                  >
+                    <Download size={21} className="text-content-secondary" />
+                  </button>
+                )}
+
+                {isExisting && onEdit && (
+                  <label htmlFor={`attachment-${index}`} className="cursor-pointer">
+                    <Pencil size={21} className="text-content-secondary" />
+
+                    <input
+                      id={`attachment-${index}`}
+                      type="file"
+                      hidden
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+
+                        if (!file) return;
+
+                        onEdit(index, file);
+                        event.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+
+                <button type="button" className="cursor-pointer" onClick={() => onDelete(index)}>
+                  <Trash2 size={21} className="text-content-secondary" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Modal
+        isOpen={modal !== false}
+        setIsOpen={(modal) => !modal && handleCloseFile()}
+        title={img?.title}
+      >
+        <img src={img?.url} alt={img?.title} className="object-cover w-full max-h-[75vh] h-full" />
+      </Modal>
+    </>
   );
 };
