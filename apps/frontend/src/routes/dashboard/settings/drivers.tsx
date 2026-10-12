@@ -83,7 +83,7 @@ function RouteComponent() {
           <DataTable
             columns={getDriverColumns((driver) => openModal('showCars_driver', driver))}
             data={filteredDrivers}
-            onEdit={(driver) => openModal('delete_driver', driver)}
+            onEdit={(driver) => openModal('edit_driver', driver)}
             onDelete={canDeleteDrivers ? (driver) => openModal('delete_driver', driver) : undefined}
             footer={false}
           />
