@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import type {
   Control,
@@ -46,6 +46,8 @@ const FUEL_TYPE_MAP: Record<string, VehicleFuelType> = {
 
 const INVALID_VIN_MESSAGE = 'Nieprawidłowy numer VIN. Sprawdź wprowadzony numer.';
 
+const normalizeVin = (value?: string | null) => (value ?? '').replace(/\s/g, '').toUpperCase();
+
 export const VinAutofillField = ({
   control,
   getValues,
@@ -62,8 +64,16 @@ export const VinAutofillField = ({
     name: 'vin',
   });
 
+  const previousVinRef = useRef(normalizeVin(getValues('vin')));
+
   useEffect(() => {
-    const normalizedVin = (vin ?? '').replace(/\s/g, '').toUpperCase();
+    const normalizedVin = normalizeVin(vin);
+
+    if (normalizedVin === previousVinRef.current) {
+      return;
+    }
+
+    previousVinRef.current = normalizedVin;
 
     clearErrors('root');
 
@@ -83,10 +93,7 @@ export const VinAutofillField = ({
           signal: controller.signal,
         });
 
-        if (
-          controller.signal.aborted ||
-          getValues('vin')?.replace(/\s/g, '').toUpperCase() !== normalizedVin
-        ) {
+        if (controller.signal.aborted || normalizeVin(getValues('vin')) !== normalizedVin) {
           return;
         }
 
@@ -104,10 +111,7 @@ export const VinAutofillField = ({
 
         const data: VinResponse = await response.json();
 
-        if (
-          controller.signal.aborted ||
-          getValues('vin')?.replace(/\s/g, '').toUpperCase() !== normalizedVin
-        ) {
+        if (controller.signal.aborted || normalizeVin(getValues('vin')) !== normalizedVin) {
           return;
         }
 
@@ -153,7 +157,7 @@ export const VinAutofillField = ({
 
         console.error('DB.VIN lookup failed:', error);
 
-        if (getValues('vin')?.replace(/\s/g, '').toUpperCase() === normalizedVin) {
+        if (normalizeVin(getValues('vin')) === normalizedVin) {
           setError('root', {
             type: 'manual',
             message: INVALID_VIN_MESSAGE,
