@@ -32,7 +32,7 @@ export function FormDatePicker<T extends FieldValues>({
 }: FormDatePickerProps<T>) {
   return (
     <div
-      className={classNames('flex flex-col gap-1 transition-opacity', {
+      className={classNames('flex flex-col gap-1 transition-opacity justify-between', {
         'opacity-60 select-none pointer-events-none': disabled,
       })}
     >
