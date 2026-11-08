@@ -1,4 +1,4 @@
-import { Bell, CarFront, History, LayoutDashboard, Settings, Wrench } from 'lucide-react';
+import { Bell, CarFront, LayoutDashboard, Settings, Wrench } from 'lucide-react';
 
 const baseRoute = '/dashboard';
 
@@ -24,12 +24,6 @@ export const sidebar = [
     },
     {
       id: 4,
-      title: 'Oś czasu',
-      href: `${baseRoute}/timeline`,
-      icon: History,
-    },
-    {
-      id: 5,
       title: 'Alerty',
       href: `${baseRoute}/alerts`,
       icon: Bell,
@@ -37,7 +31,7 @@ export const sidebar = [
   ],
   [
     {
-      id: 6,
+      id: 5,
       title: 'Ustawienia',
       href: `${baseRoute}/settings`,
       icon: Settings,

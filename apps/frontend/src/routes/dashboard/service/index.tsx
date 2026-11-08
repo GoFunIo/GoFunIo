@@ -1,90 +1,59 @@
-import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { DataTable } from '@/features/dashboard/widgets/DataTable';
-import { EmptyPlaceholder } from '@/features/dashboard/widgets/EmptyPlaceholder';
-import { getServiceColumns } from '@/store/serviceTable';
-import { createFileRoute } from '@tanstack/react-router';
-import { useServices } from '@/features/dashboard/hooks/services.hooks';
-import { ServiceData, ServicesFiltersType } from '@/features/dashboard/types';
-import { LoadingIcon } from '@/components/ui/LoadingIcon';
-import { useState } from 'react';
-import { SERVICES_PAGE_SIZE } from '@/features/dashboard/constants/serviceOptions';
-import { Pagination } from '@/features/dashboard/ui/Pagination';
-import { ServicesFilters } from '@/features/dashboard/widgets/ServicesFilters';
-import { formatDate } from '@/utils/formatFile';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { History, ListTree } from 'lucide-react';
+
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
 import { useServiceModal } from '@/features/dashboard/hooks/useServiceModal';
+import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
+import { ServiceHistorySection } from '@/features/dashboard/widgets/ServiceHistorySection';
+import { ServiceTimelineSection } from '@/features/dashboard/widgets/ServiceTimelineSection';
+
+type ServiceTab = 'history' | 'timeline';
 
 export const Route = createFileRoute('/dashboard/service/')({
+  validateSearch: (search: Record<string, unknown>): { tab: ServiceTab } => ({
+    tab: search.tab === 'timeline' ? 'timeline' : 'history',
+  }),
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const { openModal, ServiceModal } = useServiceModal();
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<ServicesFiltersType>({
-    vehicleId: null,
-    type: null,
-    providerName: null,
-    from: undefined,
-    to: undefined,
-  });
 
-  const { data: servicesResponse, isPending: allServicesLoading } = useServices({
-    page,
-    pageSize: SERVICES_PAGE_SIZE,
-    vehicleId: filters.vehicleId ?? undefined,
-    type: filters.type ?? undefined,
-    providerName: filters.providerName ?? undefined,
-    from: formatDate(filters.from),
-    to: formatDate(filters.to),
-  });
-
-  const services: ServiceData[] = servicesResponse?.items ?? [];
-
-  const handleFilterChange = (filters: ServicesFiltersType) => {
-    setFilters(filters);
-    setPage(1);
-  };
+  const setTab = (next: ServiceTab) => navigate({ search: { tab: next }, replace: true });
 
   return (
     <>
       <DashboardHeader
         title="Serwis i przeglądy"
-        subtitle="Pełna historia serwisowa Twojej floty"
+        subtitle="Historia serwisowa i oś czasu Twojej floty"
         button={{
           label: 'Dodaj wpis serwisowy',
           onClick: () => openModal('add_service'),
         }}
       />
 
-      <ServicesFilters filters={filters} onChange={handleFilterChange} />
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <BoardButton
+          size="small"
+          variant={tab === 'history' ? 'default' : 'outline'}
+          onClick={() => setTab('history')}
+        >
+          <History size={16} className="shrink-0" />
+          Historia serwisowa
+        </BoardButton>
+        <BoardButton
+          size="small"
+          variant={tab === 'timeline' ? 'default' : 'outline'}
+          onClick={() => setTab('timeline')}
+        >
+          <ListTree size={16} className="shrink-0" />
+          Oś czasu
+        </BoardButton>
+      </div>
 
-      {allServicesLoading ? (
-        <BlockWrapper>
-          <LoadingIcon className="m-auto my-[24px]" />
-        </BlockWrapper>
-      ) : services.length === 0 ? (
-        <BlockWrapper>
-          <EmptyPlaceholder title="Brak wpisów serwisowych" />
-        </BlockWrapper>
-      ) : (
-        <div className="flex flex-col flex-1">
-          <DataTable
-            columns={getServiceColumns((service) => openModal('attachments', service.id))}
-            data={services}
-            onEdit={(service) => openModal('edit_service', service.id)}
-            onDelete={(service) => openModal('delete_service', service.id)}
-            footerLabel={`Łącznie: ${servicesResponse?.totalCost} zł`}
-            totalLength={servicesResponse?.total}
-          />
-          <Pagination
-            className="mt-auto pt-6"
-            currentPage={servicesResponse?.page ?? page}
-            totalPages={servicesResponse?.totalPages ?? 1}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
+      {tab === 'history' ? <ServiceHistorySection /> : <ServiceTimelineSection />}
 
       {ServiceModal}
     </>

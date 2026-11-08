@@ -13,7 +13,6 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/settings/route'
-import { Route as DashboardTimelineIndexRouteImport } from './routes/dashboard/timeline/index'
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index'
 import { Route as DashboardServiceIndexRouteImport } from './routes/dashboard/service/index'
 import { Route as DashboardMyCarsIndexRouteImport } from './routes/dashboard/my-cars/index'
@@ -50,11 +49,6 @@ const authRouteRoute = authRouteRouteImport.update({
 const DashboardSettingsRouteRoute = DashboardSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardTimelineIndexRoute = DashboardTimelineIndexRouteImport.update({
-  id: '/timeline/',
-  path: '/timeline/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardSettingsIndexRoute = DashboardSettingsIndexRouteImport.update({
@@ -181,7 +175,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute
   '/dashboard/service/': typeof DashboardServiceIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
-  '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
 }
 export interface FileRoutesByTo {
   '/dashboard/my-cars/$carId': typeof DashboardMyCarsCarIdRoute
@@ -203,7 +196,6 @@ export interface FileRoutesByTo {
   '/dashboard/my-cars': typeof DashboardMyCarsIndexRoute
   '/dashboard/service': typeof DashboardServiceIndexRoute
   '/dashboard/settings': typeof DashboardSettingsIndexRoute
-  '/dashboard/timeline': typeof DashboardTimelineIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -230,7 +222,6 @@ export interface FileRoutesById {
   '/dashboard/my-cars/': typeof DashboardMyCarsIndexRoute
   '/dashboard/service/': typeof DashboardServiceIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
-  '/dashboard/timeline/': typeof DashboardTimelineIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -256,7 +247,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
-    | '/dashboard/timeline/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/dashboard/my-cars/$carId'
@@ -278,7 +268,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars'
     | '/dashboard/service'
     | '/dashboard/settings'
-    | '/dashboard/timeline'
   id:
     | '__root__'
     | '/(auth)'
@@ -304,7 +293,6 @@ export interface FileRouteTypes {
     | '/dashboard/my-cars/'
     | '/dashboard/service/'
     | '/dashboard/settings/'
-    | '/dashboard/timeline/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -341,13 +329,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof DashboardSettingsRouteRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/timeline/': {
-      id: '/dashboard/timeline/'
-      path: '/timeline'
-      fullPath: '/dashboard/timeline/'
-      preLoaderRoute: typeof DashboardTimelineIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/settings/': {
@@ -553,7 +534,6 @@ interface DashboardRouteRouteChildren {
   DashboardAlertsIndexRoute: typeof DashboardAlertsIndexRoute
   DashboardMyCarsIndexRoute: typeof DashboardMyCarsIndexRoute
   DashboardServiceIndexRoute: typeof DashboardServiceIndexRoute
-  DashboardTimelineIndexRoute: typeof DashboardTimelineIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -563,7 +543,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAlertsIndexRoute: DashboardAlertsIndexRoute,
   DashboardMyCarsIndexRoute: DashboardMyCarsIndexRoute,
   DashboardServiceIndexRoute: DashboardServiceIndexRoute,
-  DashboardTimelineIndexRoute: DashboardTimelineIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
