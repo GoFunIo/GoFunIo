@@ -12,7 +12,7 @@ import {
   Min,
 } from 'class-validator';
 import { VehicleFuelType } from '../vehicles.entity';
-import { vehicleTransforms } from './vehicle-transforms';
+import { VIN_PATTERN, vehicleTransforms } from './vehicle-transforms';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   CustomDeadlinesField,
@@ -45,7 +45,7 @@ export class CreateVehicleDto {
 
   @Transform(vehicleTransforms.vin)
   @IsOptional()
-  @Matches(/^[A-HJ-NPR-Z0-9]{17}$/)
+  @Matches(VIN_PATTERN)
   vin?: string | null;
 
   @Transform(vehicleTransforms.registration)

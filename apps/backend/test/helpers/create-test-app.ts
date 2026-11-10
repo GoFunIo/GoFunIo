@@ -24,6 +24,7 @@ import {
   NOTIFICATION_EMAIL_SENDER,
   type NotificationEmailSender,
 } from '../../src/notifications/notification-email-sender';
+import { VIN_DECODER, type VinDecoder } from '../../src/vin-lookup/vin-decoder';
 
 @Injectable()
 class MockThrottlerGuard implements CanActivate {
@@ -50,6 +51,7 @@ export async function createTestApp(
     clock?: Clock;
     frontendOrigins?: FrontendOrigins;
     notificationEmailSender?: NotificationEmailSender;
+    vinDecoder?: VinDecoder;
   } = {},
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
@@ -67,6 +69,11 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(FRONTEND_ORIGINS)
       .useValue(options.frontendOrigins);
+  }
+  if (options.vinDecoder) {
+    builder = builder
+      .overrideProvider(VIN_DECODER)
+      .useValue(options.vinDecoder);
   }
   const moduleFixture: TestingModule = await builder
     .overrideProvider(ATTACHMENT_OBJECT_STORE)

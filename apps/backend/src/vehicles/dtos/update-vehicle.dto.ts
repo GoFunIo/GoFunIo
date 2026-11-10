@@ -13,7 +13,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { VehicleFuelType } from '../vehicles.entity';
-import { vehicleTransforms } from './vehicle-transforms';
+import { VIN_PATTERN, vehicleTransforms } from './vehicle-transforms';
 import {
   CustomDeadlinesField,
   type VehicleCustomDeadlineInputDto,
@@ -46,7 +46,7 @@ export class UpdateVehicleDto {
 
   @Transform(vehicleTransforms.vin)
   @IsOptional()
-  @Matches(/^[A-HJ-NPR-Z0-9]{17}$/)
+  @Matches(VIN_PATTERN)
   vin?: string | null;
 
   @Transform(vehicleTransforms.registration)

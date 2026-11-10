@@ -1,5 +1,7 @@
 import { optionalText } from '../../common/dto-transforms';
 
+export const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/;
+
 export const vehicleTransforms = {
   trim: ({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,

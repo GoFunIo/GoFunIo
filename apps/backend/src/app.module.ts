@@ -10,6 +10,7 @@ import { EnvVars, validateEnv } from './config/env.validation';
 import { buildTypeOrmOptions } from './config/database.config';
 import { CompaniesModule } from './companies/companies.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { VinLookupModule } from './vin-lookup/vin-lookup.module';
 import { DriversModule } from './drivers/drivers.module';
 import { FrontendOriginsModule } from './common/frontend-origins.module';
 import { ServicesModule } from './services/services.module';
@@ -56,6 +57,7 @@ import { NotificationChangesModule } from './notification-changes/notification-c
     MailModule,
     CompaniesModule,
     VehiclesModule,
+    VinLookupModule,
     DriversModule,
     ServicesModule,
     AlertPolicyModule,
