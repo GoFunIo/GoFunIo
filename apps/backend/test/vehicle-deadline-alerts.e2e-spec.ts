@@ -519,7 +519,7 @@ describe('Vehicle Deadline Alerts (e2e)', () => {
     }
     const manyAlertQueries = await countQueries(owner);
     expect(manyAlertQueries).toBe(oneAlertQueries);
-    expect(manyAlertQueries).toBeLessThanOrEqual(4);
+    expect(manyAlertQueries).toBeLessThanOrEqual(5);
   });
 
   it('requires authentication and documents the complete Swagger contract', async () => {
@@ -552,6 +552,7 @@ describe('Vehicle Deadline Alerts (e2e)', () => {
         'vehicleId',
         'vehicle',
         'deadlineKind',
+        'deadlineLabel',
         'deadlineDate',
         'daysRemaining',
         'overdue',

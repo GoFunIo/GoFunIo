@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { EntityManager } from 'typeorm';
-import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
+import { vehicleDeadlineLabel } from '../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 import {
   TRANSACTIONAL_VEHICLE_ACCESS,
   type TransactionalVehicleAccess,
@@ -16,12 +16,13 @@ import { NOTIFICATION_TYPES } from './notification-types';
 interface VehicleDeadlinePreparationRow {
   vehicleId: string;
   vehicleDeletedAt: Date | null;
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
+  deadlineLabelSnapshot: string | null;
   deadlineDate: string;
   currentDeadlineDate: string | null;
   leadDay: number;
   registrationNumber: string;
-  enabledDeadlineKinds: VehicleDeadlineKind[] | null;
+  enabledDeadlineKinds: string[] | null;
   leadDays: number[] | null;
   timeZone: string | null;
 }
@@ -68,6 +69,10 @@ export class VehicleDeadlineDeliveryTypeAdapter implements NotificationDeliveryT
     const detail = contract.detailAdapter({
       vehicleId: row.vehicleId,
       deadlineKind: row.deadlineKind,
+      deadlineLabel: vehicleDeadlineLabel(
+        row.deadlineKind,
+        row.deadlineLabelSnapshot,
+      ),
       deadlineDate: row.deadlineDate,
       leadDay: row.leadDay,
       registrationNumber: row.registrationNumber,
@@ -106,12 +111,9 @@ export class VehicleDeadlineDeliveryTypeAdapter implements NotificationDeliveryT
   ): Promise<VehicleDeadlinePreparationRow | undefined> {
     const rows = await manager.query<VehicleDeadlinePreparationRow[]>(
       `SELECT detail."vehicleId", vehicle."deletedAt" AS "vehicleDeletedAt",
-              detail."deadlineKind", to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate",
-              CASE detail."deadlineKind"
-                WHEN 'OC' THEN to_char(vehicle."ocExpiry", 'YYYY-MM-DD')
-                WHEN 'AC' THEN to_char(vehicle."acExpiry", 'YYYY-MM-DD')
-                WHEN 'TECHNICAL_INSPECTION' THEN to_char(vehicle."technicalInspectionExpiry", 'YYYY-MM-DD')
-              END AS "currentDeadlineDate",
+              detail."deadlineKind", detail."deadlineLabelSnapshot",
+              to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate",
+              to_char(source_date."deadlineDate", 'YYYY-MM-DD') AS "currentDeadlineDate",
               detail."leadDay", detail."registrationNumberSnapshot" AS "registrationNumber",
               policy."enabledDeadlineKinds", policy."leadDays", policy."timeZone"
          FROM vehicle_deadline_notification_details detail
@@ -119,6 +121,10 @@ export class VehicleDeadlineDeliveryTypeAdapter implements NotificationDeliveryT
            ON vehicle.id = detail."vehicleId" AND vehicle."companyId" = detail."companyId"
          LEFT JOIN vehicle_deadline_alert_policies policy
            ON policy."companyId" = detail."companyId"
+         LEFT JOIN vehicle_deadline_dates source_date
+           ON source_date."vehicleId" = detail."vehicleId"
+          AND source_date."companyId" = detail."companyId"
+          AND source_date."deadlineKind" = detail."deadlineKind"
         WHERE detail."companyId" = $1
           AND detail."notificationId" = $2`,
       [companyId, notificationId],

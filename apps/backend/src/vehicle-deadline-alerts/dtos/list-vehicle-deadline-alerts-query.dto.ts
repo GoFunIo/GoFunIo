@@ -2,7 +2,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -11,16 +10,17 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { VehicleDeadlineKind } from '../../alert-policy/vehicle-deadline-alert-policy.entity';
+import { IsVehicleDeadlineKindKey } from '../../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 
 export class ListVehicleDeadlineAlertsQueryDto {
   @ApiPropertyOptional({
-    enum: VehicleDeadlineKind,
-    description: 'Return only this enabled Vehicle deadline kind.',
+    example: 'OC',
+    description:
+      'Return only this enabled Vehicle deadline kind: a built-in kind or a custom kind id.',
   })
   @IsOptional()
-  @IsEnum(VehicleDeadlineKind)
-  deadlineKind?: VehicleDeadlineKind;
+  @IsVehicleDeadlineKindKey()
+  deadlineKind?: string;
 
   @ApiPropertyOptional({
     format: 'uuid',

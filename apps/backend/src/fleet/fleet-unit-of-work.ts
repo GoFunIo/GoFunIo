@@ -17,7 +17,6 @@ import type {
 import type { DriverAllocationStore } from './driver-allocation';
 import type { ServiceType } from '../services/services.entity';
 import type { ServiceAttachmentMimeType } from '../service-attachments/service-attachment.entity';
-import type { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import type { VehicleDeadlineRecipientReconciliationScope } from '../notifications/transactional-notification-recipient-reconciliation';
 
 // The in-memory unit of work mirrors asynchronous persistence interfaces while
@@ -49,6 +48,26 @@ export interface FleetVehicle extends FleetVehicleInput {
   deletedAt: Date | null;
 }
 
+export interface FleetCustomDeadlineInput {
+  kindId: string;
+  date: string | null;
+}
+export interface FleetVehicleCustomDeadline {
+  kindId: string;
+  label: string;
+  date: string;
+}
+export interface FleetCustomDeadlineKind {
+  id: string;
+  companyId: string;
+  label: string;
+}
+export interface FleetCustomDeadlineDate {
+  companyId: string;
+  vehicleId: string;
+  kindId: string;
+  date: string;
+}
 export interface FleetMembership {
   userId: string;
   companyId: string;
@@ -157,6 +176,10 @@ export interface FleetVehicleAccessStore {
     companyId: string,
     vehicleIds: string[],
   ): Promise<Map<string, FleetManagerProjection[]>>;
+  customDeadlines(
+    companyId: string,
+    vehicleIds: string[],
+  ): Promise<Map<string, FleetVehicleCustomDeadline[]>>;
   closeVehicle(companyId: string, vehicleId: string): Promise<void>;
 }
 
@@ -168,6 +191,12 @@ export interface FleetTransaction {
       fields: Partial<Omit<FleetVehicleInput, 'companyId'>>,
     ): Promise<FleetVehicle>;
     remove(actor: SessionPrincipal, vehicleId: string): Promise<void>;
+    /** Applies the entries and returns the kind ids whose date changed. */
+    applyCustomDeadlines(
+      companyId: string,
+      vehicleId: string,
+      entries: FleetCustomDeadlineInput[],
+    ): Promise<string[]>;
   };
   vehicleAccess: FleetVehicleAccessStore;
   drivers: {
@@ -226,7 +255,7 @@ export interface FleetTransaction {
   notifications: {
     persistVehicleDeadlineStages(
       vehicle: FleetVehicle,
-      changedKinds: VehicleDeadlineKind[],
+      changedKinds: string[],
     ): Promise<void>;
     reconcileVehicleDeadlineRecipients(
       input: VehicleDeadlineRecipientReconciliationScope,
@@ -243,6 +272,8 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
   readonly managerProfiles: FleetManagerProjection[] = [];
   readonly drivers: FleetDriver[] = [];
   readonly vehicles: FleetVehicle[] = [];
+  readonly customDeadlineKinds: FleetCustomDeadlineKind[] = [];
+  readonly customDeadlineDates: FleetCustomDeadlineDate[] = [];
   readonly managerAssignments: FleetManagerAssignment[] = [];
   readonly driverAssignments: FleetDriverAssignment[] = [];
   readonly services: FleetService[] = [];
@@ -290,6 +321,9 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
     work: (fleet: FleetTransaction) => Promise<T>,
   ): Promise<T> {
     const vehicles = this.vehicles.map((vehicle) => ({ ...vehicle }));
+    const customDeadlineDates = this.customDeadlineDates.map((date) => ({
+      ...date,
+    }));
     const drivers = this.drivers.map((driver) => ({ ...driver }));
     const managerAssignments = this.managerAssignments.map((assignment) => ({
       ...assignment,
@@ -353,6 +387,35 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
             if (!vehicle) throw new NotFoundException('Vehicle not found');
             Object.assign(vehicle, fields, { updatedAt: new Date() });
             return vehicle;
+          },
+          applyCustomDeadlines: async (companyId, vehicleId, entries) => {
+            const known = entries.every(({ kindId }) =>
+              this.customDeadlineKinds.some(
+                (kind) => kind.id === kindId && kind.companyId === companyId,
+              ),
+            );
+            if (!known) throw new BadRequestException('Invalid deadline kind');
+            const changed: string[] = [];
+            for (const { kindId, date } of entries) {
+              const index = this.customDeadlineDates.findIndex(
+                (entry) =>
+                  entry.vehicleId === vehicleId && entry.kindId === kindId,
+              );
+              if ((this.customDeadlineDates[index]?.date ?? null) === date) {
+                continue;
+              }
+              changed.push(kindId);
+              if (index >= 0) this.customDeadlineDates.splice(index, 1);
+              if (date) {
+                this.customDeadlineDates.push({
+                  companyId,
+                  vehicleId,
+                  kindId,
+                  date,
+                });
+              }
+            }
+            return changed;
           },
           remove: async (actor, vehicleId) => {
             const companyId = requireCompanyId(actor);
@@ -558,6 +621,25 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
                     );
                     return manager ? [manager] : [];
                   }),
+              ]),
+            ),
+          customDeadlines: async (companyId, vehicleIds) =>
+            new Map(
+              vehicleIds.map((vehicleId) => [
+                vehicleId,
+                this.customDeadlineDates
+                  .filter(
+                    (entry) =>
+                      entry.companyId === companyId &&
+                      entry.vehicleId === vehicleId,
+                  )
+                  .map(({ kindId, date }) => ({
+                    kindId,
+                    date,
+                    label:
+                      this.customDeadlineKinds.find(({ id }) => id === kindId)
+                        ?.label ?? '',
+                  })),
               ]),
             ),
           closeVehicle: async (companyId, vehicleId) => {
@@ -934,6 +1016,11 @@ export class FakeFleetUnitOfWork implements FleetUnitOfWork {
       return result;
     } catch (error) {
       this.vehicles.splice(0, this.vehicles.length, ...vehicles);
+      this.customDeadlineDates.splice(
+        0,
+        this.customDeadlineDates.length,
+        ...customDeadlineDates,
+      );
       this.drivers.splice(0, this.drivers.length, ...drivers);
       this.managerAssignments.splice(
         0,

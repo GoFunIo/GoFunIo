@@ -14,6 +14,10 @@ import {
 import { VehicleFuelType } from '../vehicles.entity';
 import { vehicleTransforms } from './vehicle-transforms';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  CustomDeadlinesField,
+  type VehicleCustomDeadlineInputDto,
+} from './vehicle-custom-deadline-input.dto';
 
 export class CreateVehicleDto {
   @ApiProperty({ example: 'Toyota' })
@@ -79,6 +83,9 @@ export class CreateVehicleDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsDateString({ strict: true, strictSeparator: true })
   technicalInspectionExpiry?: string | null;
+
+  @CustomDeadlinesField()
+  customDeadlines?: VehicleCustomDeadlineInputDto[];
 
   @Transform(vehicleTransforms.optionalText)
   @IsOptional()

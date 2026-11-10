@@ -26,9 +26,24 @@ export class VehicleDriverDto {
   lastName!: string;
 }
 
+export class VehicleCustomDeadlineDto {
+  @Expose()
+  kindId!: string;
+
+  @Expose()
+  label!: string;
+
+  @Expose()
+  date!: string;
+}
+
 export class VehicleDto {
   @Expose()
   id!: string;
+
+  @Expose()
+  @Type(() => VehicleCustomDeadlineDto)
+  customDeadlines!: VehicleCustomDeadlineDto[];
 
   @Expose()
   @Type(() => VehicleManagerDto)

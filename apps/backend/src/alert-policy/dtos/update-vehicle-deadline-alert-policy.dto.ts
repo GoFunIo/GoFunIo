@@ -5,7 +5,6 @@ import {
   ArrayMinSize,
   ArrayUnique,
   IsArray,
-  IsEnum,
   IsInt,
   IsString,
   Max,
@@ -13,22 +12,26 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { isIanaTimeZone } from '../../common/workspace-calendar';
-import { VehicleDeadlineKind } from '../vehicle-deadline-alert-policy.entity';
+import {
+  IsVehicleDeadlineKindKey,
+  MAX_VEHICLE_DEADLINE_KINDS,
+} from '../../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 
 export class UpdateVehicleDeadlineAlertPolicyDto {
   @ApiPropertyOptional({
-    enum: VehicleDeadlineKind,
+    type: String,
     isArray: true,
     uniqueItems: true,
-    maxItems: 3,
+    maxItems: MAX_VEHICLE_DEADLINE_KINDS,
     example: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
+    description: 'Built-in kinds or custom kind ids of this Workspace.',
   })
   @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
-  @ArrayMaxSize(3)
+  @ArrayMaxSize(MAX_VEHICLE_DEADLINE_KINDS)
   @ArrayUnique()
-  @IsEnum(VehicleDeadlineKind, { each: true })
-  enabledDeadlineKinds?: VehicleDeadlineKind[];
+  @IsVehicleDeadlineKindKey({ each: true })
+  enabledDeadlineKinds?: string[];
 
   @ApiPropertyOptional({
     type: 'array',

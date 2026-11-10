@@ -595,10 +595,10 @@ describe('Vehicle deadline Notifications (e2e)', () => {
        ORDER BY "deadlineKind", "leadDay" DESC`,
     );
     expect(details).toEqual([
-      { deadlineKind: 'OC', leadDay: 30 },
-      { deadlineKind: 'OC', leadDay: 7 },
       { deadlineKind: 'AC', leadDay: 30 },
       { deadlineKind: 'AC', leadDay: 7 },
+      { deadlineKind: 'OC', leadDay: 30 },
+      { deadlineKind: 'OC', leadDay: 7 },
       { deadlineKind: 'TECHNICAL_INSPECTION', leadDay: 30 },
       { deadlineKind: 'TECHNICAL_INSPECTION', leadDay: 7 },
     ]);

@@ -14,6 +14,10 @@ import {
 } from 'class-validator';
 import { VehicleFuelType } from '../vehicles.entity';
 import { vehicleTransforms } from './vehicle-transforms';
+import {
+  CustomDeadlinesField,
+  type VehicleCustomDeadlineInputDto,
+} from './vehicle-custom-deadline-input.dto';
 
 export class UpdateVehicleDto {
   @Transform(vehicleTransforms.trim)
@@ -81,6 +85,9 @@ export class UpdateVehicleDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsDateString({ strict: true, strictSeparator: true })
   technicalInspectionExpiry?: string | null;
+
+  @CustomDeadlinesField()
+  customDeadlines?: VehicleCustomDeadlineInputDto[];
 
   @Transform(vehicleTransforms.optionalText)
   @IsOptional()

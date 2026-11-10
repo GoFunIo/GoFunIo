@@ -1,9 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import {
-  VehicleDeadlineAlertPolicy,
-  VehicleDeadlineKind,
-} from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import { VehicleDeadlineAlertPolicy } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import { CLOCK, type Clock } from '../common/clock';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
 import type { FleetVehicle } from '../fleet/fleet-unit-of-work';
@@ -12,10 +9,8 @@ import { NOTIFICATION_TYPES } from './notification-types';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
 import { VehicleDeadlineRecipientReconciler } from './vehicle-deadline-recipient-reconciler';
 import { selectVehicleDeadlineStage } from './vehicle-deadline-stage';
-import {
-  vehicleDeadlineDate,
-  vehicleDeadlineTriggerKey,
-} from './vehicle-deadline-trigger';
+import { vehicleDeadlineTriggerKey } from './vehicle-deadline-trigger';
+import { loadVehicleDeadlineDates } from '../vehicle-deadline-kinds/vehicle-deadline-dates';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 import { recordNotificationOperationalEvent } from '../notification-changes/notification-transaction-observer';
 
@@ -31,7 +26,7 @@ export class VehicleDeadlineNotificationWriter {
   async persist(
     manager: EntityManager,
     vehicle: FleetVehicle,
-    changedKinds: VehicleDeadlineKind[],
+    changedKinds: string[],
     scheduled?: {
       policy: VehicleDeadlineAlertPolicy;
       enforceActivationBoundary: true;
@@ -46,11 +41,13 @@ export class VehicleDeadlineNotificationWriter {
     if (!policy) return;
     const now = this.calendar.now(policy.timeZone);
     if (policy.activatedAt > this.clock.now()) return;
+    const deadlineDates = await loadVehicleDeadlineDates(manager, [vehicle.id]);
 
     for (const deadlineKind of changedKinds) {
       if (!policy.enabledDeadlineKinds.includes(deadlineKind)) continue;
-      const deadlineDate = vehicleDeadlineDate(vehicle, deadlineKind);
-      if (!deadlineDate) continue;
+      const source = deadlineDates.find(vehicle.id, deadlineKind);
+      if (!source) continue;
+      const { deadlineDate } = source;
       const leadDay = selectVehicleDeadlineStage({
         deadlineDate,
         leadDays: policy.leadDays,
@@ -112,6 +109,7 @@ export class VehicleDeadlineNotificationWriter {
           deadlineDate,
           leadDay,
           registrationNumberSnapshot: vehicle.registrationNumber,
+          deadlineLabelSnapshot: source.customLabel,
         }),
       );
       await this.recipients.addRecipientsForNotifications(manager, [

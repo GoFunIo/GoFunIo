@@ -25,13 +25,8 @@ export class VehicleDeadlineAlertPolicy {
   @PrimaryColumn({ type: 'uuid' })
   companyId!: string;
 
-  @Column({
-    type: 'enum',
-    enum: VehicleDeadlineKind,
-    enumName: 'vehicle_deadline_kind',
-    array: true,
-  })
-  enabledDeadlineKinds!: VehicleDeadlineKind[];
+  @Column({ type: 'text', array: true })
+  enabledDeadlineKinds!: string[];
 
   @Column({ type: 'smallint', array: true })
   leadDays!: number[];

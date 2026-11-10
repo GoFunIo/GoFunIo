@@ -15,7 +15,7 @@ import {
 import { NotificationType } from './notification.entity';
 import { NOTIFICATION_TYPES } from './notification-types';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
-import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import { vehicleDeadlineLabel } from '../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 import { CLOCK, type Clock } from '../common/clock';
 import {
   TRANSACTIONAL_VEHICLE_ACCESS,
@@ -58,7 +58,8 @@ interface NotificationRow {
   readAt: Date | null;
   archivedAt: Date | null;
   vehicleId: string;
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
+  deadlineLabelSnapshot: string | null;
   deadlineDate: string;
   leadDay: number;
   registrationNumber: string;
@@ -190,7 +191,7 @@ export class NotificationsService {
       `SELECT notification.id, notification.type, notification."rendererVersion", notification."createdAt",
               to_char(notification."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "cursorCreatedAt",
               recipient.id AS "recipientId", recipient."readAt", recipient."archivedAt",
-              detail."vehicleId", detail."deadlineKind", to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate", detail."leadDay",
+              detail."vehicleId", detail."deadlineKind", detail."deadlineLabelSnapshot", to_char(detail."deadlineDate", 'YYYY-MM-DD') AS "deadlineDate", detail."leadDay",
               vehicle.brand, vehicle.model, vehicle."registrationNumber",
               policy."leadDays", policy."timeZone"
        FROM notifications notification
@@ -310,6 +311,10 @@ export class NotificationsService {
     const detail = contract.detailAdapter({
       vehicleId: row.vehicleId,
       deadlineKind: row.deadlineKind,
+      deadlineLabel: vehicleDeadlineLabel(
+        row.deadlineKind,
+        row.deadlineLabelSnapshot,
+      ),
       deadlineDate: row.deadlineDate,
       leadDay: row.leadDay,
       registrationNumber: row.registrationNumber,

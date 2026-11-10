@@ -66,6 +66,32 @@ describe('renderVehicleDeadlineNotificationEmail', () => {
     expect(rendered.html).not.toContain('vehicleId');
   });
 
+  it('quotes a custom deadline label and escapes it in HTML', () => {
+    const rendered = renderVehicleDeadlineNotificationEmail({
+      rendererVersion: 1,
+      workspaceId: '11111111-1111-4111-8111-111111111111',
+      notificationId: '22222222-2222-4222-8222-222222222222',
+      frontendBaseUrl: 'https://app.gofun.io',
+      vehicleId: '33333333-3333-4333-8333-333333333333',
+      deadlineKind: '44444444-4444-4444-8444-444444444444',
+      deadlineLabel: 'Olej <b>5W30</b>',
+      deadlineDate: '2026-09-12',
+      leadDay: 14,
+      daysRemaining: 14,
+      registrationNumber: 'WX 1234',
+    });
+
+    expect(rendered.subject).toBe('Termin „Olej <b>5W30</b>” pojazdu WX 1234');
+    expect(rendered.text).toContain(
+      'Termin „Olej <b>5W30</b>” pojazdu WX 1234 przypada 12.09.2026',
+    );
+    expect(rendered.html).toContain('Olej &lt;b&gt;5W30&lt;/b&gt;');
+    expect(rendered.html).not.toContain('<b>5W30</b>');
+    expect(rendered.html).toContain(
+      'https://app.gofun.io/images/icons/calendar-cog.png',
+    );
+  });
+
   it('rejects an unsupported persisted renderer version', () => {
     expect(() =>
       renderVehicleDeadlineNotificationEmail({

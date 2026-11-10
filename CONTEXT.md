@@ -52,6 +52,10 @@ Uwierzytelnienie Usera przez zweryfikowaną tożsamość Google. Może zalogowa�
 
 Pojazd należący do jednego Workspace. OWNER, ADMIN i MANAGER mogą tworzyć Vehicle w Active Workspace. Utworzenie Vehicle przez MANAGERa automatycznie nadaje mu Vehicle Access w tej samej transakcji.
 
+## Vehicle Deadline Kind
+
+Rodzaj terminu, o którym Workspace chce być powiadamiany. Trzy są wbudowane (OC, AC, przegląd techniczny) i mają daty w kolumnach Vehicle. Pozostałe to rodzaje własne Workspace'u (domyślnie wymiana oleju i świec): nazwa jest wspólna dla Workspace'u, data osobna dla każdego Vehicle. Kluczem rodzaju jest nazwa wbudowanego albo id własnego. Rodzajami własnymi zarządzają OWNER i ADMIN; nowy rodzaj jest od razu włączony w polityce alertów. Powiadomienie zachowuje nazwę z chwili utworzenia.
+
 ## Service
 
 Zdarzenie serwisowe, przegląd techniczny lub ubezpieczeniowe dotyczące jednego Vehicle w jednym Workspace. Rejestruje datę, typ, koszt i Service Provider.

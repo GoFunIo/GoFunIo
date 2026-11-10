@@ -70,7 +70,13 @@ describe('Vehicle Deadline Alert Policy (e2e)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body).toEqual({
-          enabledDeadlineKinds: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
+          enabledDeadlineKinds: [
+            'OC',
+            'AC',
+            'TECHNICAL_INSPECTION',
+            expect.any(String),
+            expect.any(String),
+          ],
           leadDays: [30, 14, 7, 0],
           timeZone: 'Europe/Warsaw',
         });
@@ -167,7 +173,7 @@ describe('Vehicle Deadline Alert Policy (e2e)', () => {
         expect(body.message).toEqual(
           expect.arrayContaining([
             "All enabledDeadlineKinds's elements must be unique",
-            'each value in enabledDeadlineKinds must be one of the following values: OC, AC, TECHNICAL_INSPECTION',
+            'deadline kind must be a built-in kind or a custom kind id',
             "All leadDays's elements must be unique",
             'each value in leadDays must not be less than 0',
             'each value in leadDays must not be greater than 365',
@@ -234,7 +240,13 @@ describe('Vehicle Deadline Alert Policy (e2e)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body).toEqual({
-          enabledDeadlineKinds: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
+          enabledDeadlineKinds: [
+            'OC',
+            'AC',
+            'TECHNICAL_INSPECTION',
+            expect.any(String),
+            expect.any(String),
+          ],
           leadDays: [30, 14, 7, 0],
           timeZone: 'Europe/Warsaw',
         });
@@ -267,7 +279,7 @@ describe('Vehicle Deadline Alert Policy (e2e)', () => {
         enabledDeadlineKinds: {
           type: 'array',
           uniqueItems: true,
-          maxItems: 3,
+          maxItems: 23,
         },
         leadDays: {
           type: 'array',

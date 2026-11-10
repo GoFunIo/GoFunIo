@@ -18,23 +18,19 @@ import { VehicleDeadlineNotificationWriter } from './vehicle-deadline-notificati
 import { VehicleDeadlineRecipientReconciler } from './vehicle-deadline-recipient-reconciler';
 import { VehicleDeadlineNotificationDetail } from './vehicle-deadline-notification-detail.entity';
 import { selectVehicleDeadlineStage } from './vehicle-deadline-stage';
-import {
-  VEHICLE_DEADLINE_FIELDS,
-  vehicleDeadlineDate,
-  vehicleDeadlineTriggerKey,
-} from './vehicle-deadline-trigger';
+import { vehicleDeadlineTriggerKey } from './vehicle-deadline-trigger';
+import { loadVehicleDeadlineDates } from '../vehicle-deadline-kinds/vehicle-deadline-dates';
 import { NOTIFICATION_DELIVERY_COMMITTED } from './notification-delivery-events';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
 import { recordNotificationOperationalEvent } from '../notification-changes/notification-transaction-observer';
 
 const SCHEDULE_MS = 15 * 60 * 1000;
 const INVALID_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
-const SOURCE_DATE_INVALIDITY_SQL = Object.entries(VEHICLE_DEADLINE_FIELDS)
-  .map(
-    ([kind, field]) =>
-      `WHEN '${kind}' THEN v."${field}" IS DISTINCT FROM d."deadlineDate"`,
-  )
-  .join('\n');
+const SOURCE_DATE_JOIN = `
+  LEFT JOIN vehicle_deadline_dates source_date
+    ON source_date."vehicleId" = d."vehicleId"
+   AND source_date."companyId" = d."companyId"
+   AND source_date."deadlineKind" = d."deadlineKind"`;
 
 @Injectable()
 export class VehicleDeadlineReconciliationStore {
@@ -60,10 +56,11 @@ export class VehicleDeadlineReconciliationStore {
              ON v.id = d."vehicleId" AND v."companyId" = d."companyId"
            LEFT JOIN vehicle_deadline_alert_policies p
              ON p."companyId" = d."companyId"
+           ${SOURCE_DATE_JOIN}
           WHERE n."invalidatedAt" IS NULL
             AND (v.id IS NULL OR v."deletedAt" IS NOT NULL OR p."companyId" IS NULL
               OR NOT (d."deadlineKind" = ANY(p."enabledDeadlineKinds"))
-              OR CASE d."deadlineKind" ${SOURCE_DATE_INVALIDITY_SQL} END)`,
+              OR source_date."deadlineDate" IS DISTINCT FROM d."deadlineDate")`,
       );
       await manager.query(
         `WITH invalid AS (
@@ -71,11 +68,12 @@ export class VehicleDeadlineReconciliationStore {
            FROM vehicle_deadline_notification_details d
            LEFT JOIN vehicles v ON v.id = d."vehicleId" AND v."companyId" = d."companyId"
            LEFT JOIN vehicle_deadline_alert_policies p ON p."companyId" = d."companyId"
+           ${SOURCE_DATE_JOIN}
            WHERE n.id = d."notificationId" AND n."companyId" = d."companyId"
              AND n."invalidatedAt" IS NULL
              AND (v.id IS NULL OR v."deletedAt" IS NOT NULL OR p."companyId" IS NULL
                OR NOT (d."deadlineKind" = ANY(p."enabledDeadlineKinds"))
-               OR CASE d."deadlineKind" ${SOURCE_DATE_INVALIDITY_SQL} END)
+               OR source_date."deadlineDate" IS DISTINCT FROM d."deadlineDate")
            RETURNING n.id, n."companyId"
          )
          UPDATE notification_deliveries delivery
@@ -103,6 +101,10 @@ export class VehicleDeadlineReconciliationStore {
         where: { deletedAt: IsNull() },
         order: { companyId: 'ASC', id: 'ASC' },
       });
+      const deadlineDates = await loadVehicleDeadlineDates(
+        manager,
+        vehicles.map(({ id }) => id),
+      );
       const existingDetails = await manager.find(
         VehicleDeadlineNotificationDetail,
       );
@@ -121,7 +123,10 @@ export class VehicleDeadlineReconciliationStore {
           policy.timeZone,
         );
         const missingKinds = policy.enabledDeadlineKinds.filter((kind) => {
-          const deadlineDate = vehicleDeadlineDate(vehicle, kind);
+          const deadlineDate = deadlineDates.find(
+            vehicle.id,
+            kind,
+          )?.deadlineDate;
           if (!deadlineDate) return false;
           const leadDay = selectVehicleDeadlineStage({
             deadlineDate,

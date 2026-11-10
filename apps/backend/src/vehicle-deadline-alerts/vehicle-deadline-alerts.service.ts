@@ -3,10 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { Repository } from 'typeorm';
-import {
-  VehicleDeadlineKind,
-  VehicleDeadlineAlertPolicy,
-} from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import { VehicleDeadlineAlertPolicy } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import { loadVehicleDeadlineDates } from '../vehicle-deadline-kinds/vehicle-deadline-dates';
+import { vehicleDeadlineLabel } from '../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 import { WorkspaceCalendar } from '../common/workspace-calendar';
 import type { EnvVars } from '../config/env.validation';
 import { VEHICLE_ACCESS, type VehicleAccess } from '../fleet/vehicle-access';
@@ -20,7 +19,7 @@ interface AlertCursor {
   companyId: string;
   deadlineDate: string;
   vehicleId: string;
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
   filters: string;
 }
 
@@ -28,7 +27,8 @@ interface AlertProjection {
   alertKey: string;
   vehicleId: string;
   vehicle: { brand: string; model: string; registrationNumber: string };
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
+  deadlineLabel: string;
   deadlineDate: string;
   daysRemaining: number;
   overdue: boolean;
@@ -38,15 +38,6 @@ type AlertPosition = Pick<
   AlertProjection,
   'deadlineDate' | 'vehicleId' | 'deadlineKind'
 >;
-
-const deadlineFields: Record<
-  VehicleDeadlineKind,
-  'ocExpiry' | 'acExpiry' | 'technicalInspectionExpiry'
-> = {
-  [VehicleDeadlineKind.OC]: 'ocExpiry',
-  [VehicleDeadlineKind.AC]: 'acExpiry',
-  [VehicleDeadlineKind.TECHNICAL_INSPECTION]: 'technicalInspectionExpiry',
-};
 
 @Injectable()
 export class VehicleDeadlineAlertsService {
@@ -110,14 +101,19 @@ export class VehicleDeadlineAlertsService {
       this.vehicleAccess.visible(actor),
       this.vehicleAccessPolicy(companyId),
     ]);
+    const deadlineDates = await loadVehicleDeadlineDates(
+      this.policies.manager,
+      vehicles.map(({ id }) => id),
+    );
     const today = this.calendar.now(policy.timeZone).date;
     const horizon = Math.max(...policy.leadDays);
     const alerts: AlertProjection[] = [];
 
     for (const vehicle of vehicles) {
       for (const deadlineKind of policy.enabledDeadlineKinds) {
-        const deadlineDate = vehicle[deadlineFields[deadlineKind]];
-        if (!deadlineDate) continue;
+        const source = deadlineDates.find(vehicle.id, deadlineKind);
+        if (!source) continue;
+        const { deadlineDate } = source;
         const daysRemaining = this.calendar.daysBetween(today, deadlineDate);
         if (daysRemaining > horizon) continue;
         alerts.push({
@@ -134,6 +130,7 @@ export class VehicleDeadlineAlertsService {
             registrationNumber: vehicle.registrationNumber,
           },
           deadlineKind,
+          deadlineLabel: vehicleDeadlineLabel(deadlineKind, source.customLabel),
           deadlineDate,
           daysRemaining,
           overdue: daysRemaining < 0,
@@ -155,7 +152,7 @@ export class VehicleDeadlineAlertsService {
   private alertKey(
     companyId: string,
     vehicleId: string,
-    kind: VehicleDeadlineKind,
+    kind: string,
     date: string,
   ): string {
     return createHash('sha256')
@@ -215,9 +212,7 @@ export class VehicleDeadlineAlertsService {
         cursor.companyId !== companyId ||
         typeof cursor.deadlineDate !== 'string' ||
         typeof cursor.vehicleId !== 'string' ||
-        !Object.values(VehicleDeadlineKind).includes(
-          cursor.deadlineKind as VehicleDeadlineKind,
-        ) ||
+        typeof cursor.deadlineKind !== 'string' ||
         cursor.filters !== filters
       ) {
         throw new Error();

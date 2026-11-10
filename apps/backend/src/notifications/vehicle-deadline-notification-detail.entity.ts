@@ -6,7 +6,6 @@ import {
   PrimaryColumn,
   Unique,
 } from 'typeorm';
-import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
 import { Notification } from './notification.entity';
 
@@ -22,15 +21,13 @@ export class VehicleDeadlineNotificationDetail {
   @PrimaryColumn({ type: 'uuid' }) notificationId!: string;
   @Column({ type: 'uuid' }) companyId!: string;
   @Column({ type: 'uuid' }) vehicleId!: string;
-  @Column({
-    type: 'enum',
-    enum: VehicleDeadlineKind,
-    enumName: 'vehicle_deadline_kind',
-  })
-  deadlineKind!: VehicleDeadlineKind;
+  @Column({ type: 'text' })
+  deadlineKind!: string;
   @Column({ type: 'date' }) deadlineDate!: string;
   @Column({ type: 'smallint' }) leadDay!: number;
   @Column({ type: 'varchar', length: 10 }) registrationNumberSnapshot!: string;
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  deadlineLabelSnapshot!: string | null;
 
   @ManyToOne(() => Notification, { onDelete: 'CASCADE' })
   @JoinColumn([

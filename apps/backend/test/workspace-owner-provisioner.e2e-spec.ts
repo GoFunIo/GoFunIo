@@ -9,6 +9,7 @@ import {
   WorkspaceOwnerConflictError,
 } from '../src/users/workspace-owner-provisioner';
 import { VehicleDeadlineAlertPolicy } from '../src/alert-policy/vehicle-deadline-alert-policy.entity';
+import { VehicleDeadlineCustomKind } from '../src/vehicle-deadline-kinds/vehicle-deadline-custom-kind.entity';
 
 describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
   let dataSource: DataSource;
@@ -19,7 +20,13 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
       type: 'postgres',
       url: process.env.DATABASE_URL,
       schema: process.env.DATABASE_SCHEMA,
-      entities: [User, Company, Membership, VehicleDeadlineAlertPolicy],
+      entities: [
+        User,
+        Company,
+        Membership,
+        VehicleDeadlineAlertPolicy,
+        VehicleDeadlineCustomKind,
+      ],
       synchronize: false,
       extra: {
         options: `-c search_path=${process.env.DATABASE_SCHEMA},public`,
@@ -75,7 +82,13 @@ describe('TypeOrmWorkspaceOwnerProvisioner (integration)', () => {
         .getRepository(VehicleDeadlineAlertPolicy)
         .findOneByOrFail({ companyId: membership.companyId }),
     ).resolves.toMatchObject({
-      enabledDeadlineKinds: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
+      enabledDeadlineKinds: [
+        'OC',
+        'AC',
+        'TECHNICAL_INSPECTION',
+        expect.any(String),
+        expect.any(String),
+      ],
       leadDays: [30, 14, 7, 0],
       timeZone: 'Europe/Warsaw',
     });

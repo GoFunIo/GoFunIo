@@ -1,4 +1,9 @@
 import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
+import {
+  BUILT_IN_VEHICLE_DEADLINE_LABELS,
+  isBuiltInVehicleDeadlineKind,
+  vehicleDeadlineLabel,
+} from '../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
 
 export interface VehicleDeadlineNotificationEmailInput {
   rendererVersion: number;
@@ -6,7 +11,8 @@ export interface VehicleDeadlineNotificationEmailInput {
   notificationId: string;
   frontendBaseUrl: string;
   vehicleId: string;
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
+  deadlineLabel?: string;
   deadlineDate: string;
   leadDay: number;
   daysRemaining: number;
@@ -25,17 +31,45 @@ const deadlineNames: Record<VehicleDeadlineKind, string> = {
   [VehicleDeadlineKind.TECHNICAL_INSPECTION]: 'przeglądu technicznego',
 };
 
-const deadlineCardLabels: Record<VehicleDeadlineKind, string> = {
-  [VehicleDeadlineKind.OC]: 'Ubezpieczenie OC',
-  [VehicleDeadlineKind.AC]: 'Ubezpieczenie AC',
-  [VehicleDeadlineKind.TECHNICAL_INSPECTION]: 'Przegląd techniczny',
-};
-
 const deadlineIcons: Record<VehicleDeadlineKind, string> = {
   [VehicleDeadlineKind.OC]: 'shield-alert',
   [VehicleDeadlineKind.AC]: 'shield-check',
   [VehicleDeadlineKind.TECHNICAL_INSPECTION]: 'calendar-cog',
 };
+
+const CUSTOM_DEADLINE_ICON = 'calendar-cog';
+
+interface DeadlineCopy {
+  name: string;
+  subjectName: string;
+  cardLabel: string;
+  icon: string;
+}
+
+function deadlineCopy(
+  input: VehicleDeadlineNotificationEmailInput,
+): DeadlineCopy {
+  const kind = input.deadlineKind;
+  if (isBuiltInVehicleDeadlineKind(kind)) {
+    return {
+      name: deadlineNames[kind],
+      subjectName:
+        kind === VehicleDeadlineKind.TECHNICAL_INSPECTION
+          ? 'przeglądu technicznego'
+          : kind,
+      cardLabel: BUILT_IN_VEHICLE_DEADLINE_LABELS[kind],
+      icon: deadlineIcons[kind],
+    };
+  }
+  // Custom labels are free text, so they are quoted instead of declined.
+  const label = vehicleDeadlineLabel(kind, input.deadlineLabel);
+  return {
+    name: `„${label}”`,
+    subjectName: `„${label}”`,
+    cardLabel: label,
+    icon: CUSTOM_DEADLINE_ICON,
+  };
+}
 
 interface AlertVariant {
   iconBg: string;
@@ -83,36 +117,35 @@ export function renderVehicleDeadlineNotificationEmail(
       `Unsupported VEHICLE_DEADLINE_REACHED renderer version: ${input.rendererVersion}`,
     );
   }
-  const deadlineName = deadlineNames[input.deadlineKind];
+  const copy = deadlineCopy(input);
   const date = polishDate(input.deadlineDate);
   const timing = timingPhrase(input.daysRemaining, date);
-  const sentence = `Termin ${deadlineName} pojazdu ${input.registrationNumber} ${timing}`;
+  const sentence = `Termin ${copy.name} pojazdu ${input.registrationNumber} ${timing}`;
   const link = notificationLink(input);
-  const subjectName =
-    input.deadlineKind === VehicleDeadlineKind.TECHNICAL_INSPECTION
-      ? 'przeglądu technicznego'
-      : input.deadlineKind;
   return {
-    subject: `Termin ${subjectName} pojazdu ${input.registrationNumber}`,
+    subject: `Termin ${copy.subjectName} pojazdu ${input.registrationNumber}`,
     text: `${sentence}\n\nOtwórz powiadomienie: ${link}`,
-    html: renderHtml(input, { date, link }),
+    html: renderHtml(input, { date, link, copy }),
   };
 }
 
 function renderHtml(
   input: VehicleDeadlineNotificationEmailInput,
-  { date, link }: { date: string; link: string },
+  { date, link, copy }: { date: string; link: string; copy: DeadlineCopy },
 ): string {
   const variant = alertVariant(input.daysRemaining);
   const registration = escapeHtml(input.registrationNumber);
-  const cardLabel = deadlineCardLabels[input.deadlineKind];
+  const { cardLabel } = copy;
   const assetBase = new URL('/', input.frontendBaseUrl)
     .toString()
     .replace(/\/$/, '');
-  const iconUrl = `${assetBase}/images/icons/${deadlineIcons[input.deadlineKind]}.png`;
+  const iconUrl = `${assetBase}/images/icons/${copy.icon}.png`;
   const logoUrl = `${assetBase}/images/autokeep-logo-mailing.png`;
   const settingsLink = escapeHtml(
-    new URL('/dashboard/settings/notification', input.frontendBaseUrl).toString(),
+    new URL(
+      '/dashboard/settings/notification',
+      input.frontendBaseUrl,
+    ).toString(),
   );
   const buttonLink = escapeHtml(link);
   const grey =
@@ -177,7 +210,10 @@ function renderHtml(
 
 // Mirrors the in-app OPEN_VEHICLE action (RemindersDropdown -> /dashboard/my-cars/$carId).
 function notificationLink(
-  input: Pick<VehicleDeadlineNotificationEmailInput, 'frontendBaseUrl' | 'vehicleId'>,
+  input: Pick<
+    VehicleDeadlineNotificationEmailInput,
+    'frontendBaseUrl' | 'vehicleId'
+  >,
 ): string {
   return new URL(
     `/dashboard/my-cars/${encodeURIComponent(input.vehicleId)}`,

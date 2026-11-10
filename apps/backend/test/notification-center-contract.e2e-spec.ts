@@ -166,7 +166,6 @@ describe('Notification Center cross-slice contract (e2e)', () => {
           'notification_delivery_status',
           'notification_email_mode',
           'notification_type',
-          'vehicle_deadline_kind',
         ],
       ],
     );
@@ -190,10 +189,6 @@ describe('Notification Center cross-slice contract (e2e)', () => {
       {
         type: 'notification_type',
         values: ['VEHICLE_DEADLINE_REACHED'],
-      },
-      {
-        type: 'vehicle_deadline_kind',
-        values: ['OC', 'AC', 'TECHNICAL_INSPECTION'],
       },
     ]);
 

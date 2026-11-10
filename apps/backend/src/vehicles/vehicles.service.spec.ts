@@ -36,6 +36,18 @@ describe('VehiclesService create workflow', () => {
     const vehicleAccess = {
       list: jest.fn(),
       findReadable: jest.fn(),
+      customDeadlines: jest.fn((_companyId, vehicleIds: string[]) =>
+        Promise.resolve(
+          new Map(
+            vehicleIds.map((vehicleId) => [
+              vehicleId,
+              fleet.customDeadlineDates
+                .filter((entry) => entry.vehicleId === vehicleId)
+                .map(({ kindId, date }) => ({ kindId, date, label: kindId })),
+            ]),
+          ),
+        ),
+      ),
       activeManagers: jest.fn((_companyId, vehicleIds: string[]) =>
         Promise.resolve(
           new Map(

@@ -1,20 +1,23 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import type { SessionPrincipal } from '../users/session-principal';
 import { requireCompanyId } from '../users/session-principal';
-import { Membership } from '../users/membership.entity';
-import { isWorkspaceAdmin } from '../users/membership-role';
 import { CLOCK, type Clock } from '../common/clock';
 import { UpdateVehicleDeadlineAlertPolicyDto } from './dtos/update-vehicle-deadline-alert-policy.dto';
 import { VehicleDeadlineAlertPolicy } from './vehicle-deadline-alert-policy.entity';
 import { NotificationChangeRelay } from '../notification-changes/notification-change-relay';
+import { VehicleDeadlineCustomKind } from '../vehicle-deadline-kinds/vehicle-deadline-custom-kind.entity';
+import { isBuiltInVehicleDeadlineKind } from '../vehicle-deadline-kinds/vehicle-deadline-kind-catalog';
+import {
+  requireAdminMembership,
+  requirePolicyForUpdate,
+} from './alert-policy-transaction';
 
 function applyPolicyChanges(
   policy: VehicleDeadlineAlertPolicy,
@@ -57,8 +60,13 @@ export class AlertPolicyService {
     }
     const companyId = requireCompanyId(actor);
     return this.policies.manager.transaction(async (manager) => {
-      await this.requireAdminMembership(manager, companyId, actor.id);
-      const policy = await this.requirePolicy(manager, companyId);
+      await requireAdminMembership(manager, companyId, actor.id);
+      const policy = await requirePolicyForUpdate(manager, companyId);
+      await this.assertKnownKinds(
+        manager,
+        companyId,
+        body.enabledDeadlineKinds ?? [],
+      );
       applyPolicyChanges(policy, body, this.clock.now());
       const saved = await manager.save(policy);
       await this.notificationChanges.record(manager, {
@@ -69,29 +77,21 @@ export class AlertPolicyService {
     });
   }
 
-  private async requireAdminMembership(
+  private async assertKnownKinds(
     manager: EntityManager,
     companyId: string,
-    userId: string,
+    kinds: string[],
   ): Promise<void> {
-    const membership = await manager.findOne(Membership, {
-      where: { companyId, userId, status: 'active' },
-      lock: { mode: 'pessimistic_write' },
+    const customKinds = kinds.filter(
+      (kind) => !isBuiltInVehicleDeadlineKind(kind),
+    );
+    if (!customKinds.length) return;
+    const known = await manager.countBy(VehicleDeadlineCustomKind, {
+      companyId,
+      id: In(customKinds),
     });
-    if (!membership || !isWorkspaceAdmin(membership.role)) {
-      throw new ForbiddenException();
+    if (known !== customKinds.length) {
+      throw new BadRequestException('Unsupported deadline kind');
     }
-  }
-
-  private async requirePolicy(
-    manager: EntityManager,
-    companyId: string,
-  ): Promise<VehicleDeadlineAlertPolicy> {
-    const policy = await manager.findOne(VehicleDeadlineAlertPolicy, {
-      where: { companyId },
-      lock: { mode: 'pessimistic_write' },
-    });
-    if (!policy) throw new NotFoundException('Alert policy not found');
-    return policy;
   }
 }

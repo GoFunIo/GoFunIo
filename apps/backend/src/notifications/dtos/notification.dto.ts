@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { VehicleDeadlineKind } from '../../alert-policy/vehicle-deadline-alert-policy.entity';
 import { NotificationCategory } from '../../notification-preferences/notification-preference.entity';
 import { NotificationType } from '../notification.entity';
 
@@ -38,9 +37,19 @@ export class VehicleDeadlineNotificationDto {
   @Expose()
   archivedAt!: Date | null;
   @ApiProperty({ format: 'uuid' }) @Expose() vehicleId!: string;
-  @ApiProperty({ enum: VehicleDeadlineKind })
+  @ApiProperty({
+    example: 'OC',
+    description: 'Built-in kind or custom kind id.',
+  })
   @Expose()
-  deadlineKind!: VehicleDeadlineKind;
+  deadlineKind!: string;
+  @ApiProperty({
+    example: 'Ubezpieczenie OC',
+    description:
+      'Display label. Custom kinds keep the label from when the Notification was created.',
+  })
+  @Expose()
+  deadlineLabel!: string;
   @ApiProperty({ format: 'date' }) @Expose() deadlineDate!: string;
   @ApiProperty({ example: 7 }) @Expose() leadDay!: number;
   @ApiProperty({ type: NotificationVehicleDto })

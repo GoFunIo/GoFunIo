@@ -12,6 +12,7 @@ import {
 } from '../fleet/driver-allocation';
 import {
   FLEET_UNIT_OF_WORK,
+  type FleetCustomDeadlineInput,
   type FleetUnitOfWork,
   type FleetVehicle,
   type FleetVehicleAccessStore,
@@ -30,6 +31,7 @@ import { CreateVehicleDto } from './dtos/create-vehicle.dto';
 import { CreateManagerAssignmentDto } from './dtos/create-manager-assignment.dto';
 import { ListVehiclesQueryDto } from './dtos/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dtos/update-vehicle.dto';
+import type { VehicleCustomDeadlineInputDto } from './dtos/vehicle-custom-deadline-input.dto';
 import type { VehicleView } from './vehicle-view';
 import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 
@@ -89,6 +91,7 @@ export class VehiclesService {
     this.validatePurchaseDate(body.purchaseDate);
     try {
       const companyId = requireCompanyId(actor);
+      const { customDeadlines = [], ...fields } = body;
       return await this.fleet.transact(async (fleet) => {
         if (
           !isWorkspaceAdmin(actor.role) &&
@@ -98,25 +101,30 @@ export class VehiclesService {
         }
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         const created = await fleet.vehicles.create({
-          ...body,
+          ...fields,
           companyId,
-          productionYear: body.productionYear ?? null,
-          fuelType: body.fuelType ?? null,
-          vin: body.vin ?? null,
-          currentMileage: body.currentMileage ?? null,
-          purchaseDate: body.purchaseDate ?? null,
-          ocExpiry: body.ocExpiry ?? null,
-          acExpiry: body.acExpiry ?? null,
-          technicalInspectionExpiry: body.technicalInspectionExpiry ?? null,
-          notes: body.notes ?? null,
+          productionYear: fields.productionYear ?? null,
+          fuelType: fields.fuelType ?? null,
+          vin: fields.vin ?? null,
+          currentMileage: fields.currentMileage ?? null,
+          purchaseDate: fields.purchaseDate ?? null,
+          ocExpiry: fields.ocExpiry ?? null,
+          acExpiry: fields.acExpiry ?? null,
+          technicalInspectionExpiry: fields.technicalInspectionExpiry ?? null,
+          notes: fields.notes ?? null,
         });
+        const changedCustomKinds = await fleet.vehicles.applyCustomDeadlines(
+          companyId,
+          created.id,
+          this.customDeadlineInputs(customDeadlines),
+        );
         if (actor.role === MembershipRole.MANAGER) {
           await fleet.vehicleAccess.assign(companyId, created.id, actor.id);
         }
-        await fleet.notifications.persistVehicleDeadlineStages(
-          created,
-          Object.values(VehicleDeadlineKind),
-        );
+        await fleet.notifications.persistVehicleDeadlineStages(created, [
+          ...Object.values(VehicleDeadlineKind),
+          ...changedCustomKinds,
+        ]);
         return (
           await this.views(
             companyId,
@@ -143,12 +151,20 @@ export class VehiclesService {
     this.validatePurchaseDate(body.purchaseDate);
     try {
       const companyId = requireCompanyId(actor);
+      const { customDeadlines = [], ...fields } = body;
       return await this.fleet.transact(async (fleet) => {
         if (!actor.role) throw new ForbiddenException();
         await fleet.vehicleAccess.requireActor(companyId, actor.id, actor.role);
         const existing = await fleet.vehicleAccess.find(actor, id, true);
-        const vehicle = await fleet.vehicles.update(id, body);
-        const changedKinds = Object.entries(deadlineKindsByField)
+        const vehicle = Object.keys(fields).length
+          ? await fleet.vehicles.update(id, fields)
+          : existing;
+        const changedCustomKinds = await fleet.vehicles.applyCustomDeadlines(
+          companyId,
+          id,
+          this.customDeadlineInputs(customDeadlines),
+        );
+        const changedKinds: string[] = Object.entries(deadlineKindsByField)
           .filter(
             ([field]) =>
               Object.prototype.hasOwnProperty.call(body, field) &&
@@ -156,10 +172,10 @@ export class VehiclesService {
                 existing[field as keyof typeof deadlineKindsByField],
           )
           .map(([, kind]) => kind);
-        await fleet.notifications.persistVehicleDeadlineStages(
-          vehicle,
-          changedKinds,
-        );
+        await fleet.notifications.persistVehicleDeadlineStages(vehicle, [
+          ...changedKinds,
+          ...changedCustomKinds,
+        ]);
         return (
           await this.views(
             companyId,
@@ -228,18 +244,32 @@ export class VehiclesService {
   private async views(
     companyId: string,
     vehicles: FleetVehicle[],
-    vehicleAccess: Pick<FleetVehicleAccessStore, 'activeManagers'>,
+    vehicleAccess: Pick<
+      FleetVehicleAccessStore,
+      'activeManagers' | 'customDeadlines'
+    >,
     driverAllocation: Pick<DriverAllocation, 'activeDrivers'>,
   ): Promise<VehicleView[]> {
     const vehicleIds = vehicles.map(({ id }) => id);
-    const [managers, drivers] = await Promise.all([
+    const [managers, drivers, customDeadlines] = await Promise.all([
       vehicleAccess.activeManagers(companyId, vehicleIds),
       driverAllocation.activeDrivers(companyId, vehicleIds),
+      vehicleAccess.customDeadlines(companyId, vehicleIds),
     ]);
     return vehicles.map((vehicle) => ({
       ...vehicle,
       managers: managers.get(vehicle.id) ?? [],
       drivers: drivers.get(vehicle.id) ?? [],
+      customDeadlines: customDeadlines.get(vehicle.id) ?? [],
+    }));
+  }
+
+  private customDeadlineInputs(
+    entries: VehicleCustomDeadlineInputDto[],
+  ): FleetCustomDeadlineInput[] {
+    return entries.map(({ kindId, date }) => ({
+      kindId,
+      date: date ?? null,
     }));
   }
 

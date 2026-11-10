@@ -1,6 +1,5 @@
 import { NotificationCategory } from '../notification-preferences/notification-preference.entity';
 import { NotificationType } from './notification.entity';
-import { VehicleDeadlineKind } from '../alert-policy/vehicle-deadline-alert-policy.entity';
 import {
   type RenderedNotificationEmail,
   renderVehicleDeadlineNotificationEmail,
@@ -37,7 +36,8 @@ export interface NotificationTypeContract<TDetail, TDto> {
 
 export interface VehicleDeadlineDetail {
   vehicleId: string;
-  deadlineKind: VehicleDeadlineKind;
+  deadlineKind: string;
+  deadlineLabel: string;
   deadlineDate: string;
   leadDay: number;
   registrationNumber: string;
@@ -49,7 +49,7 @@ export interface VehicleDeadlineDetail {
 
 export type VehicleDeadlineNotificationContent = Pick<
   VehicleDeadlineDetail,
-  'vehicleId' | 'deadlineKind' | 'deadlineDate' | 'leadDay'
+  'vehicleId' | 'deadlineKind' | 'deadlineLabel' | 'deadlineDate' | 'leadDay'
 >;
 
 const vehicleDeadlineReached: NotificationTypeContract<
@@ -68,6 +68,7 @@ const vehicleDeadlineReached: NotificationTypeContract<
   dtoRenderer: (detail) => ({
     vehicleId: detail.vehicleId,
     deadlineKind: detail.deadlineKind,
+    deadlineLabel: detail.deadlineLabel,
     deadlineDate: detail.deadlineDate,
     leadDay: detail.leadDay,
   }),
@@ -76,6 +77,7 @@ const vehicleDeadlineReached: NotificationTypeContract<
       ...context,
       vehicleId: detail.vehicleId,
       deadlineKind: detail.deadlineKind,
+      deadlineLabel: detail.deadlineLabel,
       deadlineDate: detail.deadlineDate,
       leadDay: detail.leadDay,
       daysRemaining: detail.daysRemaining,

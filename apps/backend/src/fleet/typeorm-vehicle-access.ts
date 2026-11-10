@@ -21,7 +21,10 @@ import {
 } from '../vehicles/dtos/list-vehicles-query.dto';
 import { ManagerVehicleAssignment } from '../vehicles/manager-vehicle-assignment.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
-import type { FleetVehicleAccessStore } from './fleet-unit-of-work';
+import type {
+  FleetVehicleAccessStore,
+  FleetVehicleCustomDeadline,
+} from './fleet-unit-of-work';
 import type {
   FleetManagerAssignment,
   FleetManagerProjection,
@@ -164,6 +167,17 @@ export class TypeOrmVehicleAccess
     );
   }
 
+  customDeadlines(
+    companyId: string,
+    vehicleIds: string[],
+  ): Promise<Map<string, FleetVehicleCustomDeadline[]>> {
+    return this.customDeadlinesFrom(
+      this.dataSource.manager,
+      companyId,
+      vehicleIds,
+    );
+  }
+
   closeManager(
     manager: EntityManager,
     companyId: string,
@@ -271,6 +285,8 @@ export class TypeOrmVehicleAccess
         this.unassign(manager, companyId, vehicleId, managerId),
       activeManagers: (companyId, vehicleIds) =>
         this.activeManagersFrom(manager, companyId, vehicleIds),
+      customDeadlines: (companyId, vehicleIds) =>
+        this.customDeadlinesFrom(manager, companyId, vehicleIds),
       closeVehicle: (companyId, vehicleId) =>
         this.close(manager, companyId, 'vehicleId', vehicleId),
     };
@@ -394,6 +410,37 @@ export class TypeOrmVehicleAccess
       companyId,
       userId: managerId,
     });
+  }
+
+  private async customDeadlinesFrom(
+    manager: EntityManager,
+    companyId: string,
+    vehicleIds: string[],
+  ): Promise<Map<string, FleetVehicleCustomDeadline[]>> {
+    const result = new Map(
+      vehicleIds.map((vehicleId) => [
+        vehicleId,
+        [] as FleetVehicleCustomDeadline[],
+      ]),
+    );
+    if (!vehicleIds.length) return result;
+    const rows = await manager.query<
+      Array<FleetVehicleCustomDeadline & { vehicleId: string }>
+    >(
+      `SELECT custom."vehicleId", custom."kindId", kind.label,
+              to_char(custom."deadlineDate", 'YYYY-MM-DD') AS date
+         FROM vehicle_deadline_custom_dates custom
+         JOIN vehicle_deadline_custom_kinds kind
+           ON kind.id = custom."kindId" AND kind."companyId" = custom."companyId"
+        WHERE custom."companyId" = $1
+          AND custom."vehicleId" = ANY($2::uuid[])
+        ORDER BY kind.label`,
+      [companyId, vehicleIds],
+    );
+    for (const { vehicleId, ...deadline } of rows) {
+      result.get(vehicleId)?.push(deadline);
+    }
+    return result;
   }
 
   private async activeManagersFrom(

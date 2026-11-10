@@ -16,6 +16,8 @@ import {
 import { Driver } from '../drivers/drivers.entity';
 import { Service } from '../services/services.entity';
 import { Vehicle } from '../vehicles/vehicles.entity';
+import { VehicleDeadlineCustomDate } from '../vehicle-deadline-kinds/vehicle-deadline-custom-date.entity';
+import { VehicleDeadlineCustomKind } from '../vehicle-deadline-kinds/vehicle-deadline-custom-kind.entity';
 import { ConflictCode, conflictException } from '../common/conflict';
 import {
   type FleetTransaction,
@@ -172,6 +174,54 @@ export class TypeOrmFleetUnitOfWork implements FleetUnitOfWork {
             userId: null,
           });
           return vehicle;
+        },
+        applyCustomDeadlines: async (companyId, vehicleId, entries) => {
+          if (!entries.length) return [];
+          const kindIds = entries.map(({ kindId }) => kindId);
+          const known = await manager.countBy(VehicleDeadlineCustomKind, {
+            companyId,
+            id: In(kindIds),
+          });
+          if (known !== kindIds.length) {
+            throw new BadRequestException('Invalid deadline kind');
+          }
+          const existing = new Map(
+            (
+              await manager.findBy(VehicleDeadlineCustomDate, {
+                vehicleId,
+                kindId: In(kindIds),
+              })
+            ).map(({ kindId, deadlineDate }) => [kindId, deadlineDate]),
+          );
+          const changed = entries.filter(
+            ({ kindId, date }) => (existing.get(kindId) ?? null) !== date,
+          );
+          if (!changed.length) return [];
+          const removed = changed.filter(({ date }) => date === null);
+          if (removed.length) {
+            await manager.delete(VehicleDeadlineCustomDate, {
+              vehicleId,
+              kindId: In(removed.map(({ kindId }) => kindId)),
+            });
+          }
+          const saved = changed.filter(({ date }) => date !== null);
+          if (saved.length) {
+            await manager.upsert(
+              VehicleDeadlineCustomDate,
+              saved.map(({ kindId, date }) => ({
+                companyId,
+                vehicleId,
+                kindId,
+                deadlineDate: date as string,
+              })),
+              ['vehicleId', 'kindId'],
+            );
+          }
+          await this.notificationChanges.record(manager, {
+            companyId,
+            userId: null,
+          });
+          return changed.map(({ kindId }) => kindId);
         },
         remove: async (actor, vehicleId) => {
           const companyId = await requireActor(actor);

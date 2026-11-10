@@ -18,6 +18,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AttachmentStorageModule } from './attachment-storage/attachment-storage.module';
 import { TimeModule } from './common/time.module';
 import { AlertPolicyModule } from './alert-policy/alert-policy.module';
+import { VehicleDeadlineKindsModule } from './vehicle-deadline-kinds/vehicle-deadline-kinds.module';
 import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
 import { VehicleDeadlineAlertsModule } from './vehicle-deadline-alerts/vehicle-deadline-alerts.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -58,6 +59,7 @@ import { NotificationChangesModule } from './notification-changes/notification-c
     DriversModule,
     ServicesModule,
     AlertPolicyModule,
+    VehicleDeadlineKindsModule,
     NotificationPreferencesModule,
     VehicleDeadlineAlertsModule,
     NotificationsModule,

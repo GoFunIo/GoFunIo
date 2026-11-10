@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { VehicleDeadlineKind } from '../../alert-policy/vehicle-deadline-alert-policy.entity';
 
 export class VehicleDeadlineAlertVehicleDto {
   @ApiProperty()
@@ -30,9 +29,16 @@ export class VehicleDeadlineAlertDto {
   @Type(() => VehicleDeadlineAlertVehicleDto)
   vehicle!: VehicleDeadlineAlertVehicleDto;
 
-  @ApiProperty({ enum: VehicleDeadlineKind })
+  @ApiProperty({
+    example: 'OC',
+    description: 'Built-in kind or custom kind id.',
+  })
   @Expose()
-  deadlineKind!: VehicleDeadlineKind;
+  deadlineKind!: string;
+
+  @ApiProperty({ example: 'Ubezpieczenie OC' })
+  @Expose()
+  deadlineLabel!: string;
 
   @ApiProperty({ type: String, format: 'date' })
   @Expose()

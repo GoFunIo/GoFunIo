@@ -1,6 +1,9 @@
 import type { SessionPrincipal } from '../users/session-principal';
 import type { ListVehiclesQueryDto } from '../vehicles/dtos/list-vehicles-query.dto';
-import type { FleetVehicle } from './fleet-unit-of-work';
+import type {
+  FleetVehicle,
+  FleetVehicleCustomDeadline,
+} from './fleet-unit-of-work';
 
 export const VEHICLE_ACCESS = Symbol('VEHICLE_ACCESS');
 
@@ -48,4 +51,8 @@ export interface VehicleAccess {
     companyId: string,
     vehicleIds: string[],
   ): Promise<Map<string, FleetManagerProjection[]>>;
+  customDeadlines(
+    companyId: string,
+    vehicleIds: string[],
+  ): Promise<Map<string, FleetVehicleCustomDeadline[]>>;
 }
