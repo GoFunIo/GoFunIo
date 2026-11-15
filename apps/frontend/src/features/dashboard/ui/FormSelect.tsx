@@ -5,7 +5,7 @@ import { Select } from './Select';
 type Value = string | number | null;
 
 type SelectOption = {
-  id: number;
+  id: number | string;
   value: Value;
   label: string;
   disabled?: boolean;
@@ -22,6 +22,11 @@ type FormSelectProps<T extends FieldValues> = {
   className?: string;
   clearOption?: boolean;
   onValueChange?: (value: Value) => void;
+  customInput?: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+  };
 };
 
 export function FormSelect<T extends FieldValues>({
@@ -35,6 +40,7 @@ export function FormSelect<T extends FieldValues>({
   className,
   clearOption = false,
   onValueChange,
+  customInput,
 }: FormSelectProps<T>) {
   return (
     <div className="flex flex-col gap-1 relative">
@@ -67,6 +73,7 @@ export function FormSelect<T extends FieldValues>({
             className={classNames('w-full !h-[45px]', className)}
             error={error}
             disabled={disabled}
+            customInput={customInput}
           />
         )}
       />

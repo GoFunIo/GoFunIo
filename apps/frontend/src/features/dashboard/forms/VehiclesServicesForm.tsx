@@ -1,6 +1,6 @@
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import classNames from 'classnames';
 
 import { AddServiceFormData, AddServiceSchema } from '../lib/formValidationRules';
@@ -9,7 +9,6 @@ import { useVehicles } from '../hooks/vehicles.hooks';
 import { SingleServiceData, VehicleData } from '../types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { handlePriceInput } from '@/utils/handlePhoneInput';
-import { serviceTypeOptions } from '../constants/serviceOptions';
 import { MAX_FILES_PER_UPLOAD } from '../constants/fileOptions';
 
 import { Input } from '@/components/ui/Input';
@@ -17,6 +16,7 @@ import { BoardButton } from '../ui/BoardButton';
 import { FormDatePicker } from '../ui/FormDatePicker';
 import { AttachmentsForm } from './AttachmentsForm';
 import { FormSelect } from '../ui/FormSelect';
+import { useDeadlinesKinds } from '../hooks/vehiclesDeadlinesKinds.hooks';
 
 type BaseFormProps = {
   className?: string;
@@ -43,9 +43,11 @@ export const VehiclesServiceForm = ({
   mode,
   currentVehicle,
 }: FormProps) => {
+  const [customServiceType, setCustomServiceType] = useState('');
   const { mutateAsync: createService, isPending: isCreating } = useCreateService();
   const { mutateAsync: updateService, isPending: isUpdating } = useUpdateService();
   const { data: vehiclesData, isLoading: isVehiclesLoading } = useVehicles();
+  const { data: typesData } = useDeadlinesKinds();
 
   const isPending = isCreating || isUpdating;
 
@@ -61,6 +63,16 @@ export const VehiclesServiceForm = ({
     }));
   }, [vehiclesData]);
 
+  const typeOptions = useMemo(() => {
+    if (!typesData) return [];
+
+    return typesData.map((item) => ({
+      id: item.key,
+      value: item.key,
+      label: item.label,
+    }));
+  }, [typesData]);
+  console.log(typesData);
   const {
     register,
     control,
@@ -148,11 +160,25 @@ export const VehiclesServiceForm = ({
             control={control}
             name="serviceType"
             label="Typ *"
-            options={serviceTypeOptions}
+            options={typeOptions}
             placeholder="Podaj rodzaj serwisu"
             error={errors.serviceType?.message}
             disabled={isPending}
-            onValueChange={() => clearErrors('serviceType')}
+            customInput={{
+              value: customServiceType,
+              placeholder: 'Wpisz nowy typ',
+              onChange: (value) => {
+                setCustomServiceType(value);
+                setValue('serviceType', value, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              },
+            }}
+            onValueChange={() => {
+              setCustomServiceType('');
+              clearErrors('serviceType');
+            }}
           />
         </div>
 

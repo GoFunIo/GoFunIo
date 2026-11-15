@@ -7,7 +7,14 @@ export type ServiceActions =
   | 'delete_service'
   | 'attachments'
   | null;
-export type ServiceType = 'FULL' | 'OIL_CHANGE' | 'TECHNICAL_INSPECTION' | 'OC' | 'AC' | 'OTHER';
+export type ServiceType =
+  | 'FULL'
+  | 'OIL_CHANGE'
+  | 'TECHNICAL_INSPECTION'
+  | 'OC'
+  | 'AC'
+  | 'OTHER'
+  | 'TEST';
 export type ServiceIdType = string | null;
 
 export type ServiceVehicle = {
