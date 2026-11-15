@@ -6,8 +6,13 @@ import { ServicesFiltersType } from '@/features/dashboard/types';
 import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
 import { ServicesFilters } from '@/features/dashboard/widgets/ServicesFilters';
 import { formatDate } from '@/utils/formatFile';
+import { Download } from 'lucide-react';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { exportServiceTimelinePdf } from '@/utils/exportServiceTimelinePdf';
 
 export function ServiceTimelineSection() {
+  const [exporting, setExporting] = useState(false);
+
   const [filters, setFilters] = useState<ServicesFiltersType>({
     vehicleId: null,
     type: null,
@@ -25,9 +30,35 @@ export function ServiceTimelineSection() {
   });
   const services = servicesResponse?.items ?? [];
 
+  const vehicleLabel =
+    filters.vehicleId && services[0]
+      ? `${services[0].vehicle.brand} ${services[0].vehicle.model} ${services[0].vehicle.registrationNumber}`
+      : undefined;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportServiceTimelinePdf(services, { vehicleLabel });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       <ServicesFilters filters={filters} onChange={setFilters} />
+
+      <div className="flex justify-end mb-4">
+        <BoardButton
+          size="small"
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting || services.length === 0}
+        >
+          <Download size={16} className="shrink-0" />
+          {exporting ? 'Generowanie...' : 'Eksportuj do PDF'}
+        </BoardButton>
+      </div>
 
       {isLoading ? (
         <BlockWrapper className="min-h-[250px] flex items-center justify-center">
