@@ -3,9 +3,13 @@ import { useVehicles } from '../hooks/vehicles.hooks';
 import { Select } from '../ui/Select';
 import { Filters } from './Filters';
 import { ServicesFiltersType, ServiceType } from '../types';
-import { serviceTypeOptions } from '../constants/serviceOptions';
 import { useServices } from '../hooks/services.hooks';
 import { DateRangePicker } from '../ui/DateRangePicker';
+import {
+  useDeadlinesKinds,
+  useDeleteDeadlineKind,
+  useRenameDeadlineKind,
+} from '../hooks/vehiclesDeadlinesKinds.hooks';
 
 type Props = {
   filters: ServicesFiltersType;
@@ -23,6 +27,9 @@ const EMPTY_FILTERS: ServicesFiltersType = {
 export const ServicesFilters = ({ filters, onChange }: Props) => {
   const { data: vehiclesData } = useVehicles();
   const { data: servicesData } = useServices();
+  const { data: typesData } = useDeadlinesKinds();
+  const renameDeadlineKind = useRenameDeadlineKind();
+  const deleteDeadlineKind = useDeleteDeadlineKind();
 
   const carOptions = useMemo(() => {
     if (!vehiclesData) return [];
@@ -54,6 +61,17 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
 
     return Array.from(uniqueProviders.values());
   }, [servicesData]);
+
+  const typeOptions = useMemo(() => {
+    if (!typesData) return [];
+
+    return typesData.map((item) => ({
+      id: item.key,
+      value: item.builtIn ? item.key : 'OTHER',
+      label: item.label,
+      builtIn: item.builtIn,
+    }));
+  }, [typesData]);
 
   useEffect(() => {
     if (
@@ -99,8 +117,17 @@ export const ServicesFilters = ({ filters, onChange }: Props) => {
           })
         }
         placeholder="Wszystkie typy"
-        options={serviceTypeOptions}
+        options={typeOptions}
         className="w-full"
+        onEdit={(option) => {
+          renameDeadlineKind.mutate({
+            id: String(option.id),
+            formData: { label: option.label },
+          });
+        }}
+        onDelete={(option) => {
+          deleteDeadlineKind.mutate(String(option.id));
+        }}
       />
 
       <Select

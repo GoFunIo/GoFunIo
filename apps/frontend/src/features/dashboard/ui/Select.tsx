@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, Pencil, Trash2, Check, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -10,32 +10,45 @@ type Option = {
   value: Value;
   label: string;
   disabled?: boolean;
+  builtIn?: boolean;
 };
 
 type Props = {
   options: Option[];
   value: Value;
   onChange: (value: Value) => void;
+  onEdit?: (option: Option) => void;
+  onDelete?: (option: Option) => void;
   placeholder?: string;
   clearOption?: boolean;
   className?: string;
   error?: string;
   disabled?: boolean;
+  customInput?: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+  };
 };
 
 export const Select = ({
   options = [],
   value,
   onChange,
+  onEdit,
+  onDelete,
   placeholder = 'Wybierz jedno',
   clearOption = true,
   className,
   error,
   disabled = false,
+  customInput,
 }: Props) => {
   const OFFSET = 6;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
+  const [editLabel, setEditLabel] = useState('');
 
   const [position, setPosition] = useState({
     top: 0,
@@ -45,13 +58,55 @@ export const Select = ({
 
   const selectRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const editInputRef = useRef<HTMLInputElement | null>(null);
 
-  const selected = options.find((item) => item.value === value);
+  const selected =
+    options.find((item) => item.value === value) ??
+    (customInput?.value.trim() && value === customInput.value
+      ? {
+          id: 'custom',
+          value: customInput.value,
+          label: customInput.value,
+        }
+      : undefined);
 
   const handleSelect = (newValue: Value) => {
     onChange(newValue);
     setIsOpen(false);
   };
+
+  const handleStartEdit = (option: Option) => {
+    setEditingId(option.id);
+    setEditLabel(option.label);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditLabel('');
+  };
+
+  const handleConfirmEdit = (option: Option) => {
+    const label = editLabel.trim();
+
+    if (!label || label === option.label) {
+      handleCancelEdit();
+      return;
+    }
+
+    onEdit?.({
+      ...option,
+      label,
+    });
+
+    handleCancelEdit();
+  };
+
+  useEffect(() => {
+    if (editingId !== null) {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }
+  }, [editingId]);
 
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
@@ -64,6 +119,7 @@ export const Select = ({
       }
 
       setIsOpen(false);
+      handleCancelEdit();
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -107,13 +163,13 @@ export const Select = ({
     if (isOpen) {
       updatePosition();
     }
-  }, [isOpen, options.length]);
+  }, [isOpen, options.length, editingId]);
 
   return (
     <div
       ref={selectRef}
       className={classNames('relative w-full', className, {
-        ['opacity-50 cursor-none pointer-events-none']: disabled,
+        'opacity-50 cursor-none pointer-events-none': disabled,
       })}
     >
       <button
@@ -176,19 +232,116 @@ export const Select = ({
             {options
               .filter((item) => !item.disabled)
               .map((item) => (
-                <span
+                <div
                   key={item.id}
-                  onMouseDown={() => handleSelect(item.value)}
                   className={classNames(
-                    'cursor-pointer rounded-[5px] p-[8px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
+                    'flex items-center justify-between gap-2 rounded-[5px] text-[14px] text-content-secondary hover:bg-bg-section hover:text-content-primary',
                     {
                       'bg-bg-section text-content-primary': item.value === value,
                     },
                   )}
                 >
-                  {item.label}
-                </span>
+                  {editingId === item.id ? (
+                    <>
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleConfirmEdit(item);
+                          }
+
+                          if (e.key === 'Escape') {
+                            handleCancelEdit();
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded-[5px] border border-icon bg-bg-card px-2 py-[7px] text-[14px] text-content-primary outline-none focus:border-info"
+                      />
+
+                      <div
+                        className="flex shrink-0 items-center gap-1 pr-2"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          aria-label="Zatwierdź zmianę"
+                          disabled={!editLabel.trim()}
+                          onClick={() => handleConfirmEdit(item)}
+                          className="cursor-pointer rounded p-1 text-success disabled:opacity-40"
+                        >
+                          <Check size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          aria-label="Anuluj edycję"
+                          onClick={handleCancelEdit}
+                          className="cursor-pointer rounded p-1 text-secondary"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        onMouseDown={() => handleSelect(item.value)}
+                        className="min-w-0 flex-1 cursor-pointer p-[8px]"
+                      >
+                        {item.label}
+                      </span>
+
+                      {!item.builtIn && (
+                        <div
+                          className="flex shrink-0 items-center gap-1 pr-2"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          {onEdit && (
+                            <button
+                              type="button"
+                              aria-label={`Edytuj ${item.label}`}
+                              onClick={() => handleStartEdit(item)}
+                              className="cursor-pointer rounded p-1 text-secondary"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                          )}
+
+                          {onDelete && (
+                            <button
+                              type="button"
+                              aria-label={`Usuń ${item.label}`}
+                              onClick={() => onDelete(item)}
+                              className="cursor-pointer rounded p-1 text-alert"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               ))}
+
+            {customInput && (
+              <div
+                className="mt-1 border-t border-icon pt-2"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="text"
+                  value={customInput.value}
+                  placeholder={customInput.placeholder ?? 'Wpisz nowy typ'}
+                  onChange={(e) => customInput.onChange(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full rounded-[5px] border border-icon bg-bg-card px-3 py-2 text-[14px] text-content-primary outline-none focus:border-info"
+                />
+              </div>
+            )}
           </div>,
           document.body,
         )}

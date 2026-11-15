@@ -40,7 +40,7 @@ export function ServiceHistorySection() {
     setFilters(filters);
     setPage(1);
   };
-
+  console.log(servicesResponse);
   return (
     <>
       <ServicesFilters filters={filters} onChange={handleFilterChange} />
