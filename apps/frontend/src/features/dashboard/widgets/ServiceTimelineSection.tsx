@@ -1,23 +1,64 @@
-import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
-import { DashboardHeader } from '@/features/dashboard/widgets/DashboardHeader';
-import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { useState } from 'react';
+
 import { serviceTypeLabels } from '@/features/dashboard/constants/serviceOptions';
-import { createFileRoute } from '@tanstack/react-router';
+import { useServices } from '@/features/dashboard/hooks/services.hooks';
+import { ServicesFiltersType } from '@/features/dashboard/types';
+import { BlockWrapper } from '@/features/dashboard/ui/BlockWrapper';
+import { ServicesFilters } from '@/features/dashboard/widgets/ServicesFilters';
+import { formatDate } from '@/utils/formatFile';
+import { Download } from 'lucide-react';
+import { BoardButton } from '@/features/dashboard/ui/BoardButton';
+import { exportServiceTimelinePdf } from '@/utils/exportServiceTimelinePdf';
 
-export const Route = createFileRoute('/dashboard/timeline/')({
-  component: RouteComponent,
-});
+export function ServiceTimelineSection() {
+  const [exporting, setExporting] = useState(false);
 
-function RouteComponent() {
-  const { data: servicesResponse, isLoading } = useServices();
+  const [filters, setFilters] = useState<ServicesFiltersType>({
+    vehicleId: null,
+    type: null,
+    providerName: null,
+    from: undefined,
+    to: undefined,
+  });
+
+  const { data: servicesResponse, isLoading } = useServices({
+    vehicleId: filters.vehicleId ?? undefined,
+    type: filters.type ?? undefined,
+    providerName: filters.providerName ?? undefined,
+    from: formatDate(filters.from),
+    to: formatDate(filters.to),
+  });
   const services = servicesResponse?.items ?? [];
+
+  const vehicleLabel =
+    filters.vehicleId && services[0]
+      ? `${services[0].vehicle.brand} ${services[0].vehicle.model} ${services[0].vehicle.registrationNumber}`
+      : undefined;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportServiceTimelinePdf(services, { vehicleLabel });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <>
-      <DashboardHeader
-        title="Oś czasu serwisu"
-        subtitle="Chronologiczny widok wszystkich napraw i przeglądów."
-      />
+      <ServicesFilters filters={filters} onChange={setFilters} />
+
+      <div className="flex justify-end mb-4">
+        <BoardButton
+          size="small"
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting || services.length === 0}
+        >
+          <Download size={16} className="shrink-0" />
+          {exporting ? 'Generowanie...' : 'Eksportuj do PDF'}
+        </BoardButton>
+      </div>
 
       {isLoading ? (
         <BlockWrapper className="min-h-[250px] flex items-center justify-center">
@@ -35,8 +76,8 @@ function RouteComponent() {
             return (
               <div key={item.id} className="flex">
                 <div className="flex shrink-0 flex-col items-center mr-[25px]">
-                  <div className="h-[15px] w-[15px] bg-secondary rounded-full shrink-0"></div>
-                  <div className="w-[1px] h-full bg-secondary"></div>
+                  <div className="h-[15px] w-[15px] bg-secondary rounded-full shrink-0" />
+                  <div className="w-[1px] h-full bg-secondary" />
                 </div>
 
                 <div className="w-full grid grid-cols-1 sm:grid-cols-[2fr_1.5fr_2fr_1fr] gap-[12px] sm:items-end p-[16px] bg-bg-page border border-icon rounded-[7px]">
