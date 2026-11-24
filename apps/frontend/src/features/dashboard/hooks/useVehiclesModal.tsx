@@ -31,7 +31,8 @@ export const useVehiclesModal = () => {
       case 'add_car':
         return {
           title: 'Dodaj pojazd',
-          subtitle: 'Wprowadź dane pojazdu. Pola oznaczone * są wymagane.',
+          subtitle:
+            'Wprowadź dane pojazdu. Pola oznaczone * są wymagane. Wpisz numer VIN, a dane zostaną uzupełnione automatycznie.',
           content: <AddVehicleForm onClose={closeModal} />,
         };
 
