@@ -8,15 +8,13 @@ import { BoardButton } from '../ui/BoardButton';
 import { useCreateVehicle, useUpdateVehicle } from '../hooks/vehicles.hooks';
 import { VehicleData } from '@/features/dashboard/types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import {
-  withTransform,
-  toUpperCase,
-  toUpperCaseNoSpaces,
-  capitalizeWords,
-} from '@/utils/formFieldTransforms';
+import { withTransform, toUpperCaseNoSpaces, capitalizeWords } from '@/utils/formFieldTransforms';
 import { FormDatePicker } from '../ui/FormDatePicker';
 import { FUEL_OPTIONS } from '../constants/fuelOptions';
 import { FormSelect } from '../ui/FormSelect';
+import { useState } from 'react';
+import { LoadingIcon } from '@/components/ui/LoadingIcon';
+import { InputVIN } from '../ui/InputVIN';
 
 type FormProps = {
   className?: string;
@@ -54,11 +52,13 @@ export const AddVehicleForm = ({
   const updateVehicleMutation = useUpdateVehicle();
 
   const loading = isEditMode ? updateVehicleMutation.isPending : createVehicleMutation.isPending;
-
+  const [isLoadingVIN, setIsLoadingVIN] = useState(false);
   const {
     register,
     setError,
     clearErrors,
+    setValue,
+    getValues,
     control,
     formState: { errors },
     handleSubmit,
@@ -91,9 +91,7 @@ export const AddVehicleForm = ({
     } catch (err) {
       setError('root', {
         type: 'server',
-        message: getErrorMessage(err, {
-          409: 'Pojazd o takim numerze rejestracyjnym już istnieje.',
-        }),
+        message: getErrorMessage(err),
       });
     }
   };
@@ -101,10 +99,29 @@ export const AddVehicleForm = ({
   const inputStyles = '!text-[14px] !placeholder:text-[12px]';
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className={classNames('w-full', className)}>
+    <form onSubmit={handleSubmit(onSubmit)} className={classNames('w-full relative', className)}>
+      {isLoadingVIN && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60">
+          <LoadingIcon size={36} className="text-primary" />
+        </div>
+      )}
       {errors.root?.message && (
         <p className="text-center text-[14px] font-medium text-alert mb-4">{errors.root.message}</p>
       )}
+
+      <div className="mb-3">
+        <InputVIN
+          control={control}
+          register={register}
+          getValues={getValues}
+          setValue={setValue}
+          setError={setError}
+          clearErrors={clearErrors}
+          onLoadingChange={setIsLoadingVIN}
+          error={errors.vin?.message}
+          disabled={isRenewalMode || loading}
+        />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
         <Input
@@ -145,15 +162,8 @@ export const AddVehicleForm = ({
           error={errors.fuelType?.message}
           disabled={isRenewalMode || loading}
         />
-
-        <Input
-          label="VIN"
-          placeholder="17 znaków"
-          error={errors.vin?.message}
-          className={inputStyles}
-          {...withTransform(register('vin'), toUpperCase)}
-          disabled={isRenewalMode || loading}
-        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
         <Input
           label="Nr Rejestracyjny *"
           placeholder="Np. WA12345"
@@ -193,7 +203,6 @@ export const AddVehicleForm = ({
           maxDate
         />
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ">
         <FormDatePicker
           control={control}
