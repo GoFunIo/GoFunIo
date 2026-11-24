@@ -46,235 +46,323 @@ const buildVehiclePayload = (form: AddVehicleFormData) => ({
 });
 
 // POST /vehicles
+
 export const createVehicle = async (form: AddVehicleFormData) => {
-  const payload = buildVehiclePayload(form);
+  try {
+    const payload = buildVehiclePayload(form);
 
-  const res = await fetch(`${API_URL}/vehicles`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
+    const res = await fetch(`${API_URL}/vehicles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się dodać pojazdu.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleData;
 };
 
 // AKTUALIZACJA POJAZDU  PATCH /vehicles/{id}
 export const updateVehicle = async (id: string, form: AddVehicleFormData) => {
-  const payload = buildVehiclePayload(form);
+  try {
+    const payload = buildVehiclePayload(form);
 
-  const res = await fetch(`${API_URL}/vehicles/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się zaktualizować pojazdu.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleData;
 };
 
 //   DELETE /vehicles/{id}
 export const deleteVehicle = async (id: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw data;
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
 
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się usunąć pojazdu.',
-    };
+    throw error;
   }
 };
 
 //   GET /vehicles
 export const getAllVehicles = async (params?: VehicleListParams) => {
-  const query = new URLSearchParams();
+  try {
+    const query = new URLSearchParams();
 
-  if (params?.page) query.set('page', String(params.page));
-  if (params?.pageSize) query.set('pageSize', String(params.pageSize));
-  if (params?.managerId) query.set('managerId', params.managerId);
-  if (params?.search) query.set('search', params.search);
-  if (params?.sortBy) query.set('sortBy', params.sortBy);
-  if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
-  if (params?.expiryType) query.set('expiryType', params.expiryType);
-  if (params?.expiresWithinDays) query.set('expiresWithinDays', String(params.expiresWithinDays));
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    if (params?.managerId) query.set('managerId', params.managerId);
+    if (params?.search) query.set('search', params.search);
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+    if (params?.expiryType) query.set('expiryType', params.expiryType);
+    if (params?.expiresWithinDays) {
+      query.set('expiresWithinDays', String(params.expiresWithinDays));
+    }
 
-  const queryString = query.toString();
+    const queryString = query.toString();
 
-  const res = await fetch(`${API_URL}/vehicles${queryString ? `?${queryString}` : ''}`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+    const res = await fetch(`${API_URL}/vehicles${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się pobrać listy pojazdów.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleListResponse;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleListResponse;
 };
 
 //   GET /vehicles/{id}
 export const getVehicle = async (id: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${id}`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się pobrać danych pojazdu.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleData;
 };
 
 // PRZYPISANIE MANAGERA DO SAMOCHODU  POST /vehicles/{id}/managers
 export const assignManagerToVehicle = async (vehicleId: string, managerId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({
-      managerId,
-    }),
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        managerId,
+      }),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się przypisać managera.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleData;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleData;
 };
 
 // DELETE /vehicles/{id}/managers/{managerId}
 export const removeManagerFromVehicle = async (vehicleId: string, managerId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers/${managerId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/managers/${managerId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw data;
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
 
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się usunąć managera.',
-    };
+    throw error;
   }
 };
 
 // GET /vehicles/{id}/manager-assignments
 export const getVehicleManagerAssignments = async (vehicleId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/manager-assignments`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/manager-assignments`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się pobrać historii przypisań managerów.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleManagerAssignment[];
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleManagerAssignment[];
 };
 
 // POST /vehicles/{vehicleId}/drivers
 export const addDriverToVehicle = async (vehicleId: string, driverId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ driverId }),
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ driverId }),
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się przypisać kierowcy.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleDriverAssignment;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleDriverAssignment;
 };
 
 // DELETE /vehicles/{vehicleId}/drivers/{driverId}
 export const removeDriverFromVehicle = async (vehicleId: string, driverId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers/${driverId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/drivers/${driverId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw data;
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
 
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się usunąć kierowcy.',
-    };
+    throw error;
   }
 };
 
 // GET /vehicles/{vehicleId}/driver-assignments
 export const getVehicleDriverAssignments = async (vehicleId: string) => {
-  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/driver-assignments`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_URL}/vehicles/${vehicleId}/driver-assignments`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: data?.message ?? 'Nie udało się pobrać historii przypisań kierowców.',
-    };
+    if (!res.ok) {
+      throw data;
+    }
+
+    return data as VehicleDriverAssignment[];
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw {
+        statusCode: 0,
+        message: 'Brak połączenia z internetem',
+      };
+    }
+
+    throw error;
   }
-
-  return data as VehicleDriverAssignment[];
 };
